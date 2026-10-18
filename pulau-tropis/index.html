@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="theme-color" content="#7ec8e8">
+  <meta name="mobile-web-app-capable" content="yes">
+  <title>Pulau Tropis</title>
+  <link rel="stylesheet" href="./src/style.css">
+</head>
+
+<body>
+  <canvas id="game"></canvas>
+
+  <div id="loading">
+    <div class="judul">Pulau Tropis</div>
+    <div id="loading-teks">Memuat pulau…</div>
+  </div>
+
+  <div id="hud" hidden>
+    <div class="hud-kiri">
+      <div class="hud-judul">Pulau Tropis <span>· Milestone 1</span></div>
+      <div id="fps">-- FPS</div>
+    </div>
+    <div class="hud-kanan">
+      <button id="btn-layar-penuh" type="button">Layar penuh</button>
+    </div>
+    <div id="petunjuk">Geser 1 jari: putar kamera · Cubit 2 jari: zoom · Geser 2 jari: geser</div>
+  </div>
+
+  <div id="error" hidden>
+    <div class="judul">Terjadi masalah</div>
+    <pre id="error-teks"></pre>
+  </div>
+
+  <script type="module" src="./src/main.js"></script>
+</body>
+
+</html>

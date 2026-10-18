@@ -1,0 +1,44 @@
+# TESTING — Pulau Tropis
+
+## Membuka game di HP Android (tanpa instalasi apa pun)
+Hasil build (`pulau-tropis/dist/`) ikut di-commit, jadi bisa dibuka langsung dari GitHub
+melalui layanan raw.githack (menyajikan file repo sebagai halaman web):
+
+```
+https://raw.githack.com/Penguin116677/threejs-games.github.io/<COMMIT>/pulau-tropis/dist/index.html
+```
+
+`<COMMIT>` = hash commit terbaru di branch pengembangan (ditulis di laporan setiap iterasi).
+Hash commit dipakai karena nama branch mengandung `/` yang membingungkan githack.
+
+Jika GitHub Pages diaktifkan di repo (Settings → Pages → branch `master`) dan perubahan sudah
+di-merge ke `master`, alamatnya:
+`https://penguin116677.github.io/threejs-games.github.io/pulau-tropis/dist/`
+
+## Menjalankan di komputer
+```bash
+cd pulau-tropis
+npm install
+npm run dev        # server pengembangan (--host: bisa dibuka dari HP di Wi-Fi yang sama)
+npm run build      # build ke dist/ — WAJIB dijalankan & di-commit setelah mengubah src/
+npm run preview    # menyajikan dist/ di http://localhost:4173
+npm run test:smoke # (dengan preview berjalan) tes otomatis + screenshot ke screenshots/
+```
+Smoke test butuh Chromium untuk Playwright. FPS yang dilaporkan smoke test berasal dari render
+software dan **tidak** mencerminkan performa HP.
+
+## Parameter URL
+- `?kualitas=rendah` / `?kualitas=tinggi` — paksa tingkat kualitas grafis.
+
+## Daftar uji manual — Milestone 1 (di HP)
+1. Buka URL → layar "Memuat pulau…" muncul lalu pulau tampil (tidak ada layar merah error).
+2. Pulau terlihat: pantai pasir, air toska di tepi, laut biru, gunung, langit biru.
+3. Geser 1 jari → kamera berputar mengelilingi pulau.
+4. Cubit 2 jari → zoom masuk/keluar. Geser 2 jari → kamera bergeser.
+5. Kamera tidak bisa menembus tanah atau masuk ke bawah laut.
+6. Putar HP (portrait ↔ landscape) → tampilan menyesuaikan tanpa terpotong/meregang.
+7. Tombol "Layar penuh" → masuk/keluar layar penuh.
+8. Catat angka FPS di pojok kiri atas (idealnya ≥ 30).
+9. Laut beranimasi (ombak bergerak, buih di pantai).
+
+Laporkan: model HP, angka FPS, screenshot, dan langkah yang gagal.

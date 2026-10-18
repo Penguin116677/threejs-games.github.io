@@ -6,6 +6,10 @@ A new version of this project is located at:
 
 https://github.com/partisan-games/partisan-games.github.io
 
+## Pulau Tropis (game 3D)
+
+Game eksplorasi pulau tropis berbasis Vite ada di folder [`pulau-tropis/`](pulau-tropis/) — lihat `pulau-tropis/TESTING.md`.
+
 ## Start
 
 ```
