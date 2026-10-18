@@ -1,5 +1,9 @@
-penjelajah.glb
-  Sumber : Kenney "Mini Characters" 1.0 — character-male-f (www.kenney.nl)
+prajurit.glb, pedang.glb
+  Sumber : Kenney "Mini Arena" 1.1 — character-soldier & weapon-sword (www.kenney.nl,
+           kredit tambahan: Tony Schär)
   Lisensi: Creative Commons Zero (CC0 1.0) — bebas dipakai untuk proyek pribadi,
            pendidikan, maupun komersial. Kredit ke Kenney tidak wajib, tetapi kami cantumkan.
   Diubah : tekstur colormap.png digabung ke dalam GLB (scripts/embed-glb-texture.py).
+
+(Karakter sebelumnya — Kenney "Mini Characters" character-male-f, juga CC0 — masih ada di
+riwayat git, commit df66831, bila ingin dipakai lagi.)

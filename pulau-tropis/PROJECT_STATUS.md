@@ -1,7 +1,7 @@
 # PROJECT_STATUS — Pulau Tropis
 
 **Milestone aktif:** 2 — Karakter dan eksplorasi (selesai diimplementasikan, menunggu umpan balik dari HP)
-**Versi:** 0.5.0
+**Versi:** 0.5.1
 **Terakhir diperbarui:** 2026-10-18
 
 ## Kondisi awal repository (sebelum Milestone 1)
@@ -32,7 +32,7 @@
 ## Milestone 2 — status
 | Item | Status |
 |---|---|
-| Karakter pemain (model Kenney CC0, animasi diam/jalan/lari/lompat/jatuh) | ✅ selesai |
+| Karakter pemain: prajurit berpedang (Kenney CC0), animasi diam/jalan/lari/lompat/jatuh | ✅ selesai (diganti prajurit v0.5.1) |
 | Kamera orang ketiga (putar, zoom, tidak menembus bukit/air, ikut arah lari) | ✅ selesai |
 | Joystick virtual, tombol Lompat, geser kamera, cubit zoom | ✅ selesai |
 | Kontrol keyboard + mouse (komputer) | ✅ selesai |

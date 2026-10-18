@@ -162,7 +162,8 @@ async function start() {
   await nextFrame()
   let asset = null
   try {
-    asset = await loadPlayerModel(new URL('models/penjelajah.glb', document.baseURI).href, quality)
+    const modelUrl = name => new URL(`models/${name}`, document.baseURI).href
+    asset = await loadPlayerModel(modelUrl('prajurit.glb'), quality, modelUrl('pedang.glb'))
   } catch (err) {
     console.warn('Model karakter gagal dimuat:', err)
   }

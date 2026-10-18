@@ -2,7 +2,7 @@ import { chromium, devices } from 'playwright'
 import { mkdirSync } from 'node:fs'
 // Smoke test otomatis (Chromium headless, render software) untuk HP portrait/landscape,
 // HP kualitas Rendah, dan komputer. Memeriksa:
-// - game termuat tanpa error, karakter (model) muncul berdiri di tanah
+// - game termuat tanpa error, karakter prajurit (model + pedang) muncul berdiri di tanah
 // - rumput di lereng gunung, data garis pantai (ombak) valid; memotret pantai & kelapa
 // - komputer: jalan (W), lompat (Spasi), tabrakan batang pohon, laut dalam → kembali ke
 //   pantai, mendaki lereng gunung
@@ -82,6 +82,9 @@ for (const [name, opts, query] of cases) {
 
   const s0 = await state(page)
   if (!s0.model) fail('model karakter tidak termuat (memakai karakter cadangan)')
+  else if (!await page.evaluate(() => !!window.__pulau.player.root.getObjectByName('weapon-sword')))
+    fail('pedang prajurit tidak terpasang')
+  else ok('prajurit dengan pedang termuat')
   if (Math.abs(s0.h) > 0.05) fail(`karakter tidak berdiri di tanah (selisih ${s0.h.toFixed(2)} m)`)
   else ok('karakter berdiri di tanah')
 

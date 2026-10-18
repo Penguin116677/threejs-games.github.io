@@ -1,5 +1,16 @@
 # CHANGELOG — Pulau Tropis
 
+## [0.5.1] — 2026-10-18 — Karakter diganti prajurit (permintaan pengguna)
+### Diubah
+- Karakter pemain sekarang **prajurit**: Kenney "Mini Arena" `character-soldier` (CC0) — helm baja
+  berjambul merah, tunik merah — memegang **pedang** (`weapon-sword`) di tangan kanan. Pedang
+  dipasang pada tulang lengan sehingga ikut berayun saat berjalan/berlari/melompat; posisinya
+  dihitung dari data skin model (pusat balok tangan).
+- Rig dan nama animasi sama dengan karakter sebelumnya, jadi kontrol, animasi, dan fisika tidak
+  berubah. File: `models/prajurit.glb` (183 KB) + `models/pedang.glb` (18 KB), tekstur digabung.
+- Model penjelajah lama (`penjelajah.glb`) dihapus dari build (masih ada di riwayat git).
+- Smoke test memeriksa pedang terpasang.
+
 ## [0.5.0] — 2026-10-18 — Milestone 2: Karakter dan eksplorasi
 ### Ditambahkan
 - **Karakter pemain**: model Kenney "Mini Characters" (CC0) dengan animasi diam, jalan, lari,

@@ -18,7 +18,8 @@ Three.js (WebGL 2) + Vite, JavaScript murni (tanpa framework UI). Dunia dibuat p
 dengan seed tetap, jadi bentuk pulau selalu sama setiap kali dibuka.
 
 ## Kredit aset
-- Karakter pemain: Kenney — "Mini Characters" (CC0), www.kenney.nl. Lihat `public/models/LISENSI.txt`.
+- Karakter pemain (prajurit + pedang): Kenney — "Mini Arena" (CC0), www.kenney.nl, kredit tambahan
+  Tony Schär. Lihat `public/models/LISENSI.txt`.
 - Semua aset lain (pulau, pohon, rumput, air, langit) dibuat prosedural di kode.
 
 ## Rencana milestone

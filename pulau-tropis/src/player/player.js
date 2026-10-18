@@ -2,12 +2,12 @@ import * as THREE from 'three'
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js'
 import { ISLAND } from '../world/island.js'
 
-// Karakter pemain: model Kenney "Mini Characters" (CC0) dengan animasi bawaan
-// idle / walk / sprint / jump / fall, plus fisika sederhana:
+// Karakter pemain: prajurit Kenney "Mini Arena" (CC0) membawa pedang, dengan animasi
+// bawaan idle / walk / sprint / jump / fall, plus fisika sederhana:
 // gravitasi, lompat, batas kemiringan lereng, tabrakan batang pohon & batu,
 // berjalan di air dangkal, dan kembali ke tempat aman bila masuk laut dalam.
 
-const MODEL_SCALE = 2.3 // tinggi model asli ±0,67 → ±1,55 m
+const MODEL_SCALE = 2.3 // tinggi model asli ±0,67 (tanpa jambul helm) → ±1,55 m
 const RADIUS = 0.35 // jari-jari badan untuk tabrakan
 const WALK_SPEED = 2.0 // m/s
 const RUN_SPEED = 5.6
@@ -22,13 +22,35 @@ const WADE_DEPTH = 0.35 // mulai melambat di air
 const DEEP_DEPTH = 1.3 // lebih dalam dari ini = kembali ke pantai
 const MAX_DISTANCE = 430 // dari pusat pulau
 
-// source: URL file .glb, atau isi file-nya (ArrayBuffer) — dipakai halaman pratinjau
-// yang tidak bisa menyajikan file .glb
-export async function loadPlayerModel(source, quality) {
+// Pedang di tangan kanan, dalam ruang lokal tulang lengan kanan (satuan model asli).
+// hand = pusat balok tangan (dihitung dari data skin model); blade = arah bilah:
+// ke depan dan sedikit searah lengan, jadi saat lengan turun bilah menunjuk ke depan-bawah.
+const WEAPON_GRIP = { hand: [-0.265, 0, 0.068], blade: [-0.45, 0, 0.9], grip: 0.05 }
+
+// source / weaponSource: URL file .glb, atau isi file-nya (ArrayBuffer) — yang kedua dipakai
+// halaman pratinjau yang tidak bisa menyajikan file .glb. Senjata boleh tidak ada / gagal dimuat.
+// Pasang pedang pada tulang lengan kanan: ikut setiap animasi (ayunan lengan saat jalan/lari).
+async function attachWeapon(model, load, weaponSource) {
+  try {
+    const weapon = (await load(weaponSource)).scene
+    // bilah model pedang mengarah ke −y; gagang ±0,05 di atas pelindung tangan (titik asal)
+    const blade = new THREE.Vector3().fromArray(WEAPON_GRIP.blade).normalize()
+    weapon.quaternion.setFromUnitVectors(new THREE.Vector3(0, -1, 0), blade)
+    weapon.position.fromArray(WEAPON_GRIP.hand).addScaledVector(blade, WEAPON_GRIP.grip)
+    model.getObjectByName('arm-right')?.add(weapon)
+  } catch (err) {
+    console.warn('Senjata gagal dimuat:', err)
+  }
+}
+
+export async function loadPlayerModel(source, quality, weaponSource = null) {
   const loader = new GLTFLoader()
-  const gltf = typeof source === 'string' ? await loader.loadAsync(source) : await loader.parseAsync(source, '')
+  const load = src => (typeof src === 'string' ? loader.loadAsync(src) : loader.parseAsync(src, ''))
+  const gltf = await load(source)
   const model = gltf.scene
   model.scale.setScalar(MODEL_SCALE)
+  if (weaponSource) await attachWeapon(model, load, weaponSource)
+
   model.traverse(o => {
     if (!o.isMesh) return
     // Lambert: sama dengan dunia (lebih ringan dan warnanya senada)

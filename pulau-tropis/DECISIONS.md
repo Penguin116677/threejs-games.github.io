@@ -74,7 +74,9 @@ tandai sebagai "diganti" bila berubah.
 20. **Buah kelapa digabung ke geometri pohon kelapa** (bukan objek terpisah): ikut goyangan angin
     dan bayangan tanpa draw call tambahan. Konsekuensi: semua pohon punya tandan yang sama
     (variasi hanya dari rotasi/skala). Kelapa jatuh/bisa diambil cocok untuk Milestone 4 (item).
-21. **Karakter = Kenney "Mini Characters" (CC0), bukan buatan prosedural** (v0.5.0). Sudah ber-rig
+21. **Karakter = model Kenney (CC0), bukan buatan prosedural** (v0.5.0; diganti prajurit di v0.5.1 —
+    Kenney "Mini Arena" `character-soldier` + `weapon-sword`, rig & animasi sama). Semula:
+    Kenney "Mini Characters". Sudah ber-rig
     dengan animasi idle/walk/sprint/jump/fall (+ pick-up, interact, emote untuk Milestone 4),
     1.291 vertex, 251 KB — ringan untuk HP dan gayanya cocok dengan dunia low-poly. Material diganti
     Lambert agar senada dengan dunia. Karakter default `character-male-f`; 12 karakter lain di paket
@@ -91,3 +93,9 @@ tandai sebagai "diganti" bila berubah.
 24. **Laut dalam = kembali ke pantai, belum ada berenang.** Air ≤ 1,3 m bisa diseberangi (pelan);
     lebih dalam selama 0,6 detik → layar meredup dan pemain kembali ke posisi aman terakhir di darat.
     Berenang bisa ditambahkan nanti bila diinginkan.
+25. **Prajurit = gaya prajurit klasik** (helm berjambul, tunik, pedang) karena itulah model prajurit
+    CC0 yang tersedia dengan rig & animasi yang sama. Prajurit militer modern (seragam loreng, helm
+    tempur) belum ada asetnya; bisa dibuat nanti (mewarnai ulang + helm buatan sendiri) bila diminta.
+    Pedang dipasang pada tulang `arm-right` di pusat balok tangan (dihitung dari data skin),
+    bilah ke depan-bawah agar terlihat dari depan dan sedikit dari belakang. Pedang belum bisa dipakai
+    menyerang (animasi `attack-melee-right` sudah tersedia untuk nanti).
