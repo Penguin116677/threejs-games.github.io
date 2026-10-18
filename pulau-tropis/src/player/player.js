@@ -22,8 +22,11 @@ const WADE_DEPTH = 0.35 // mulai melambat di air
 const DEEP_DEPTH = 1.3 // lebih dalam dari ini = kembali ke pantai
 const MAX_DISTANCE = 430 // dari pusat pulau
 
-export async function loadPlayerModel(url, quality) {
-  const gltf = await new GLTFLoader().loadAsync(url)
+// source: URL file .glb, atau isi file-nya (ArrayBuffer) — dipakai halaman pratinjau
+// yang tidak bisa menyajikan file .glb
+export async function loadPlayerModel(source, quality) {
+  const loader = new GLTFLoader()
+  const gltf = typeof source === 'string' ? await loader.loadAsync(source) : await loader.parseAsync(source, '')
   const model = gltf.scene
   model.scale.setScalar(MODEL_SCALE)
   model.traverse(o => {
