@@ -1,6 +1,7 @@
 import * as THREE from 'three'
 import { ISLAND, heightAt } from './island.js'
 import { meadowAmount } from './biome.js'
+import { SHORE_GLSL, waveTime } from './shore.js'
 
 // ---------------------------------------------------------------------------
 // Data tanah: grid tinggi yang SAMA dengan mesh yang digambar.
@@ -59,6 +60,8 @@ varying vec2 vSurface;
 const fragmentPars = /* glsl */`
 uniform sampler2D uNoise;
 uniform float uBeachTop;
+uniform float uWaveTime;
+${SHORE_GLSL}
 varying vec3 vWorldPos;
 varying vec3 vWorldNrm;
 varying vec2 vSurface;
@@ -85,6 +88,15 @@ vec3 terrainColor() {
   vec3 sand = mix(WET_SAND, SAND, smoothstep(-0.2, 1.0, h + (nM - 0.5) * 0.8));
   sand = mix(DEEP_SAND, sand, smoothstep(-6.0, -0.3, h));
   sand *= 0.9 + 0.2 * nF;
+#ifdef WAVE_WET_SAND
+  // pasir yang baru dijilat ombak tetap gelap (basah) sebentar setelah air surut
+  if (h > -0.4 && h < 1.0) {
+    vec2 loc = waveLocal(uNoise, p, uWaveTime);
+    float top = max(swashLevel(loc, uWaveTime),
+      max(swashLevel(loc, uWaveTime - 1.3) * 0.9, swashLevel(loc, uWaveTime - 2.8) * 0.75));
+    sand *= mix(1.0, 0.66, 1.0 - smoothstep(top - 0.03, top + 0.05, h));
+  }
+#endif
 
   // rumput/hutan: bercak terang-gelap, lebih kekuningan di padang sekitar gunung
   vec3 grass = mix(GRASS, GRASS_DARK, smoothstep(0.3, 0.75, nL + (nM - 0.5) * 0.4));
@@ -132,9 +144,11 @@ export function createTerrain(ground, { noiseTexture, quality }) {
   geo.computeBoundingSphere()
 
   const mat = new THREE.MeshLambertMaterial({ color: 0xffffff })
+  if (quality.water.wetSand) mat.defines = { WAVE_WET_SAND: '' }
   mat.onBeforeCompile = shader => {
     shader.uniforms.uNoise = { value: noiseTexture }
     shader.uniforms.uBeachTop = { value: ISLAND.beachTop }
+    shader.uniforms.uWaveTime = waveTime
     shader.vertexShader = vertexPars + shader.vertexShader.replace(
       '#include <worldpos_vertex>',
       `#include <worldpos_vertex>
@@ -175,28 +189,4 @@ export function createTerrain(ground, { noiseTexture, quality }) {
     surfaceAttr.needsUpdate = true
   }
   return mesh
-}
-
-// Tekstur kedalaman air (0 = dangkal/daratan, 1 = dalam ≥ 20 m) untuk shader laut:
-// dipakai untuk warna toska di perairan dangkal dan buih di garis pantai.
-export function createDepthTexture(res = 256) {
-  const data = new Uint8Array(res * res * 4)
-  const half = ISLAND.size / 2
-  for (let j = 0; j < res; j++)
-    for (let i = 0; i < res; i++) {
-      const x = -half + (i + 0.5) / res * ISLAND.size
-      const z = -half + (j + 0.5) / res * ISLAND.size
-      const depth = Math.min(1, Math.max(0, (ISLAND.seaLevel - heightAt(x, z)) / 20))
-      const k = (j * res + i) * 4
-      data[k] = Math.round(depth * 255)
-      data[k + 1] = 0
-      data[k + 2] = 0
-      data[k + 3] = 255
-    }
-  const tex = new THREE.DataTexture(data, res, res, THREE.RGBAFormat, THREE.UnsignedByteType)
-  tex.magFilter = THREE.LinearFilter
-  tex.minFilter = THREE.LinearFilter
-  tex.wrapS = tex.wrapT = THREE.ClampToEdgeWrapping
-  tex.needsUpdate = true
-  return tex
 }

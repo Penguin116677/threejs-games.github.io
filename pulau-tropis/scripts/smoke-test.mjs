@@ -2,8 +2,9 @@ import { chromium, devices } from 'playwright'
 import { mkdirSync } from 'node:fs'
 // Smoke test otomatis: buka game di Chromium headless dengan emulasi HP
 // (portrait + landscape) dan desktop, di ketiga tingkat kualitas. Memeriksa:
-// tidak ada error, rumput muncul di lereng gunung, gestur geser 1 jari memutar
-// kamera, dan menu Kualitas benar-benar mengganti tingkat kualitas.
+// tidak ada error, rumput muncul di lereng gunung, data garis pantai valid (ombak),
+// gestur geser 1 jari memutar kamera, dan menu Kualitas benar-benar mengganti tingkat
+// kualitas. Juga memotret pantai (ombak) dan kelapa dari dekat.
 // Pemakaian: npm run build && npm run preview (terminal lain) && npm run test:smoke
 // Catatan: FPS di sini memakai render software (SwiftShader), BUKAN ukuran performa HP.
 const out = process.argv[2] || 'screenshots'
@@ -62,6 +63,37 @@ for (const [name, opts, query] of cases) {
     await page.waitForTimeout(1500)
     console.log('  rumput', JSON.stringify(await page.evaluate(() => window.__pulau.grass.userData.stats())))
     await page.screenshot({ path: `${out}/${name}-rumput.png` })
+
+    // pantai barat daya: ombak, buih, dan air naik ke pasir (dua foto berselang untuk melihat gerakan)
+    const shoreOk = await page.evaluate(() => {
+      const { camera, controls, ground, shore } = window.__pulau
+      controls.target.set(-133, Math.max(0, ground.heightAt(-133, 133)), 133)
+      camera.position.set(-150, Math.max(0, ground.heightAt(-150, 150)) + 18, 150)
+      controls.update()
+      // data jarak-ke-pantai harus punya sisi darat (−) dan laut (+)
+      let neg = 0
+      let pos = 0
+      for (const v of shore.distance) v < 0 ? neg++ : pos++
+      return neg > 0 && pos > 0
+    })
+    if (!shoreOk) fail('data garis pantai (shore) tidak valid')
+    await page.waitForTimeout(2000)
+    await page.screenshot({ path: `${out}/${name}-pantai.png` })
+    await page.waitForTimeout(1500)
+    await page.screenshot({ path: `${out}/${name}-pantai-2.png` })
+
+    // kelapa dari dekat: tandan buah di bawah pelepah
+    await page.evaluate(() => {
+      const { camera, controls, trees } = window.__pulau
+      const m = new window.__pulau.camera.matrix.constructor()
+      trees.getObjectByName('kelapa').children[0].getMatrixAt(5, m)
+      const [x, y, z] = [m.elements[12], m.elements[13], m.elements[14]]
+      controls.target.set(x + 0.3, y + 6.6, z)
+      camera.position.set(x + 6, y + 5.2, z + 4)
+      controls.update()
+    })
+    await page.waitForTimeout(1500)
+    await page.screenshot({ path: `${out}/${name}-kelapa.png` })
   }
 
   if (name === 'hp-portrait' && !info.err) {

@@ -56,3 +56,19 @@ tandai sebagai "diganti" bila berubah.
     diambil di lingkaran yang mencakup daratan (bukan seluruh peta) agar efisien.
 16. **Detail tinggi hanya untuk tajuk pohon** (Tinggi): semak dan batu selalu low-poly karena
     kecil di layar — menghemat ±280 ribu segitiga di Tinggi.
+17. **Ombak pantai berbasis jarak ke garis pantai** (v0.4.0). Saat loading, `shore.js` menghitung
+    peta jarak bertanda ke garis pantai dari mesh tanah (transformasi jarak Euclidean Felzenszwalb,
+    ±80 ms untuk 512², dihaluskan dengan −h/|∇h| di dekat garis air) dan menyimpannya di tekstur
+    half-float (tinggi tanah, jarak, arah ke laut). Fase ombak = (jarak + waktu·kecepatan)/panjang
+    gelombang, jadi ombak selalu tegak lurus pantai tanpa perlu simulasi. Fungsi ombak (GLSL
+    `SHORE_GLSL`) dipakai bersama shader laut dan shader tanah agar air yang naik ke pasir dan pasir
+    basahnya selalu sinkron. Dipilih karena murah untuk HP (tanpa simulasi fluida, tanpa render
+    pantulan tambahan).
+18. **Mesh laut = satu grid "melengkung"**: sel rapat di area pulau, membesar geometris sampai
+    ±6000 m (tanpa sambungan/celah), sel daratan dibuang dari index. Dekat garis pantai permukaan
+    disatukan dengan tinggi air di pasir, kalau tidak tepi air di pasir bergerigi mengikuti grid.
+19. **Pantulan air memakai warna langit + awan yang dihitung ulang di shader**, bukan render
+    pantulan (Reflector/Water three.js) yang menggandakan biaya render — terlalu berat untuk HP.
+20. **Buah kelapa digabung ke geometri pohon kelapa** (bukan objek terpisah): ikut goyangan angin
+    dan bayangan tanpa draw call tambahan. Konsekuensi: semua pohon punya tandan yang sama
+    (variasi hanya dari rotasi/skala). Kelapa jatuh/bisa diambil cocok untuk Milestone 4 (item).

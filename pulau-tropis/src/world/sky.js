@@ -131,7 +131,8 @@ export function createEnvironment(scene, { noiseTexture, quality }) {
 
   return {
     sunDir,
-    skyColor: new THREE.Color('#a4d2ee'),
+    zenith,
+    horizon,
     fog: scene.fog,
     sun,
     hemi,

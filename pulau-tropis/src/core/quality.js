@@ -15,6 +15,7 @@ const PRESETS = {
     canopyDetail: 0,
     grass: { radius: 70, near: 9, density: 1.6, blades: 4, max: 4000, shadows: false },
     caustics: false,
+    water: { segments: 128, detailLayers: 1, cloudReflection: false, wetSand: false, shoreRes: 256 },
   },
   sedang: {
     maxPixelRatio: 1.5,
@@ -26,6 +27,7 @@ const PRESETS = {
     canopyDetail: 0,
     grass: { radius: 120, near: 13, density: 2.4, blades: 6, max: 9000, shadows: false },
     caustics: true,
+    water: { segments: 192, detailLayers: 2, cloudReflection: true, wetSand: true, shoreRes: 512 },
   },
   tinggi: {
     maxPixelRatio: 2,
@@ -37,6 +39,7 @@ const PRESETS = {
     canopyDetail: 1,
     grass: { radius: 170, near: 18, density: 3.2, blades: 8, max: 26000, shadows: true },
     caustics: true,
+    water: { segments: 240, detailLayers: 2, cloudReflection: true, wetSand: true, shoreRes: 512 },
   },
 }
 

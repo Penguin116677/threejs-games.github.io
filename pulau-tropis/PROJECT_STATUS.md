@@ -1,7 +1,7 @@
 # PROJECT_STATUS — Pulau Tropis
 
 **Milestone aktif:** 1 — Fondasi game (selesai + tambahan pohon, rumput, dan peningkatan kualitas; menunggu umpan balik dari HP)
-**Versi:** 0.3.0
+**Versi:** 0.4.0
 **Terakhir diperbarui:** 2026-10-18
 
 ## Kondisi awal repository (sebelum Milestone 1)
@@ -22,20 +22,26 @@
 | Rumput ilalang di sekitar gunung (chunk + LOD, goyang angin) — permintaan tambahan | ✅ selesai |
 | Peningkatan kualitas: bayangan, tanah per-piksel, awan, kaustik, semak, bunga, batu — permintaan tambahan | ✅ selesai |
 | Menu Kualitas Rendah/Sedang/Tinggi + saran bila FPS rendah | ✅ selesai |
+| Buah kelapa (tandan di setiap pohon kelapa) — permintaan tambahan | ✅ selesai |
+| Kualitas air: pantulan langit & awan, riak bertekstur, kilau matahari — permintaan tambahan | ✅ selesai |
+| Ombak pantai: pecah jadi buih, naik ke pasir lalu surut, pasir basah — permintaan tambahan | ✅ selesai |
 | UI dasar berbahasa Indonesia (judul, FPS, layar penuh, petunjuk) | ✅ selesai |
 | Pesan error tampil di layar (tanpa konsol) | ✅ selesai |
 | Dibuka di browser HP Android sungguhan | ⏳ belum diverifikasi — menunggu laporan pengguna |
 
-## Yang sudah diperiksa (v0.3.0)
+## Yang sudah diperiksa (v0.4.0)
 - `npm run build` berhasil; ESLint dengan konfigurasi repo (`.eslintrc.json`, ESLint 8): 0 error, 0 warning.
 - Smoke test otomatis (Chromium headless, render software) — **LULUS**:
   - HP portrait & landscape (Sedang, default HP), HP dengan `?kualitas=rendah`, desktop (Tinggi):
     tanpa error JavaScript, dunia ter-render.
   - Rumput muncul di padang lereng gunung pada semua tingkat kualitas.
+  - Data garis pantai valid (ada sisi darat dan laut); foto pantai dua kali berselang 1,5 detik
+    menunjukkan ombak bergerak (buih dan tepi air berpindah).
   - Geser 1 jari memutar kamera.
   - Menu Kualitas: panel terbuka, pilih Rendah → halaman dimuat ulang dengan kualitas Rendah.
 - Screenshot diperiksa secara visual dari beberapa sudut (pulau penuh, lereng, padang rumput dekat,
-  pantai, kelapa, dalam hutan) di ketiga tingkat kualitas.
+  pantai dari laut / dari pasir / dari atas, kelapa dari dekat, dalam hutan) di ketiga tingkat kualitas.
+- Peta jarak ke garis pantai diuji angka: nol tepat di garis air, berubah ±1 m per meter (0,987).
 
 ## Yang BELUM diperiksa
 - **Performa nyata di HP** — FPS di smoke test memakai render software, tidak mewakili HP.
@@ -44,12 +50,13 @@
 - Apakah URL hosting (githack / GitHub Pages) terbuka di HP — tidak bisa diakses dari lingkungan pengembangan.
 
 ## Performa (segitiga per frame termasuk bayangan, dari smoke test)
-| Tingkat | Pulau penuh | Dekat di padang rumput | Draw call |
-|---|---|---|---|
-| Rendah | ±300 ribu | ±330 ribu | ±31 |
-| Sedang (default HP) | ±400 ribu | ±500 ribu | ±31 |
-| Tinggi (default komputer) | ±850 ribu | ±1 juta | ±31 |
-Sebagai pembanding, v0.2.0 (HP) ±230 ribu segitiga, 5 draw call.
+| Tingkat | Pulau penuh | Draw call |
+|---|---|---|
+| Rendah | ±330 ribu | ±31 |
+| Sedang (default HP) | ±475 ribu | ±31 |
+| Tinggi (default komputer) | ±980 ribu | ±31 |
+v0.3.0: Rendah ±300 rb, Sedang ±400 rb, Tinggi ±850 rb. Tambahan v0.4.0 berasal dari mesh laut
+yang lebih rapat (untuk ombak) dan buah kelapa. v0.2.0 (HP): ±230 ribu.
 
 ## Masalah yang diketahui
 - Ukuran bundle ±500 KB (sebagian besar Three.js). Bisa dikecilkan nanti bila loading lambat.
@@ -60,4 +67,7 @@ Sebagai pembanding, v0.2.0 (HP) ±230 ribu segitiga, 5 draw call.
 - Tajuk pohon tetap bergaya low-poly (bersegi) pada Rendah/Sedang.
 - Bayangan di Sedang (1024 px) agak kasar bila kamera sangat dekat ke batang pohon.
 - Ganti tingkat kualitas memuat ulang halaman (posisi kamera kembali ke awal).
+- Ombak tidak memakai fisika sungguhan: bentuknya diatur fungsi (cukup untuk tampilan, belum untuk
+  berenang/perahu). Di teluk yang sempit puncak ombak dari dua sisi bisa bertemu membentuk sudut.
+- Buah kelapa sama di semua pohon (satu bentuk tandan); belum ada kelapa jatuh di pasir.
 - Belum ada karakter, collision, atau gameplay (memang bagian Milestone 2+).

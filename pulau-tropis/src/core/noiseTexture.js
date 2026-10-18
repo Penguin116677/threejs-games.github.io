@@ -86,3 +86,41 @@ export function createNoiseTexture(renderer, size = 256) {
   tex.needsUpdate = true
   return tex
 }
+
+// Tekstur normal riak air 256×256 (tileable, ber-mipmap): dari jauh riak otomatis
+// menghalus (mipmap) sehingga tidak muncul pola moiré seperti gelombang sinus.
+export function createWaterNormalTexture(renderer, size = 256) {
+  const hgt = new Float32Array(size * size)
+  for (let j = 0; j < size; j++)
+    for (let i = 0; i < size; i++) {
+      const u = i / size
+      const v = j / size
+      // campuran riak bulat + riak "berpuncak" (ridged) agar mirip permukaan air
+      const soft = tileFbm(u, v, 6, 4, 21)
+      const sharp = 1 - Math.abs(tileFbm(u, v, 9, 3, 37) * 2 - 1)
+      hgt[j * size + i] = soft * 0.6 + sharp * 0.4
+    }
+  normalize(hgt)
+  const data = new Uint8Array(size * size * 4)
+  const at = (i, j) => hgt[((j + size) % size) * size + ((i + size) % size)]
+  const STRENGTH = 5
+  for (let j = 0; j < size; j++)
+    for (let i = 0; i < size; i++) {
+      const nx = -(at(i + 1, j) - at(i - 1, j)) * STRENGTH
+      const ny = -(at(i, j + 1) - at(i, j - 1)) * STRENGTH
+      const len = Math.hypot(nx, ny, 1)
+      const k = (j * size + i) * 4
+      data[k] = Math.round((nx / len * 0.5 + 0.5) * 255)
+      data[k + 1] = Math.round((ny / len * 0.5 + 0.5) * 255)
+      data[k + 2] = Math.round((1 / len * 0.5 + 0.5) * 255)
+      data[k + 3] = 255
+    }
+  const tex = new THREE.DataTexture(data, size, size, THREE.RGBAFormat, THREE.UnsignedByteType)
+  tex.wrapS = tex.wrapT = THREE.RepeatWrapping
+  tex.magFilter = THREE.LinearFilter
+  tex.minFilter = THREE.LinearMipmapLinearFilter
+  tex.generateMipmaps = true
+  tex.anisotropy = Math.min(4, renderer.capabilities.getMaxAnisotropy())
+  tex.needsUpdate = true
+  return tex
+}

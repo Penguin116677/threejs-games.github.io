@@ -55,4 +55,12 @@ software dan **tidak** mencerminkan performa HP.
    Catat FPS di tiap tingkat.
 5. Bila muncul saran "Terasa berat?", coba Kualitas Rendah dan bandingkan FPS.
 
+## Daftar uji manual — v0.4.0 (kelapa, air, ombak)
+1. Zoom ke pohon kelapa di pantai → di bawah pelepah ada tandan buah (hijau, kuning, coklat).
+2. Zoom ke pantai mana saja → ombak datang menuju pantai, pecah jadi buih putih, air naik ke pasir
+   lalu surut; pasir yang baru terkena ombak tampak lebih gelap (Sedang/Tinggi).
+3. Lihat laut dari dekat → riak bergerak, pantulan langit/awan, kilau matahari; dari jauh tidak ada
+   pola cincin/garis-garis aneh.
+4. Bandingkan FPS dengan versi sebelumnya di tingkat kualitas yang sama.
+
 Laporkan: model HP, angka FPS di tiap tingkat kualitas, screenshot, dan langkah yang gagal.

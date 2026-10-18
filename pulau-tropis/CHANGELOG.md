@@ -1,5 +1,28 @@
 # CHANGELOG — Pulau Tropis
 
+## [0.4.0] — 2026-10-18 — Buah kelapa, air lebih bagus, ombak pantai (permintaan pengguna)
+### Ditambahkan
+- **Buah kelapa**: tandan 8 buah di setiap pohon kelapa — kebanyakan hijau (muda), ada yang
+  kuning-oranye (kelapa gading) dan coklat (tua) — menggantung di bawah pelepah dengan tangkainya,
+  ikut bergoyang ditiup angin.
+- **Ombak pantai** di seluruh pulau:
+  - ombak selalu datang tegak lurus garis pantai (memakai peta jarak ke garis pantai);
+  - membesar saat mendekat, lalu pecah menjadi buih putih bertekstur;
+  - air naik ke pasir lalu surut perlahan, dengan garis buih di ujungnya;
+  - pasir yang baru dijilat ombak tetap gelap/basah sebentar (Sedang/Tinggi);
+  - set ombak kuat/lemah bergantian; puncak ombak berkelok dan putus-putus (tidak kaku).
+### Diubah — kualitas air
+- Pantulan langit mengikuti gradasi warna langit + **awan terpantul** di air (Sedang/Tinggi).
+- Riak air dari tekstur normal ber-mipmap (1 lapis di Rendah, 2 lapis di Sedang/Tinggi),
+  menggantikan gelombang sinus yang dulu menimbulkan pola cincin (moiré) di kejauhan.
+- Kilau matahari lebih tajam, efek Fresnel, cahaya tembus di puncak ombak, toska → biru tua
+  menurut kedalaman, air tipis di pantai tembus pandang.
+- Mesh laut baru: grid rapat di sekitar pulau (Rendah 7,8 m / Sedang 5,2 m / Tinggi 4,2 m),
+  makin renggang ke cakrawala, sel daratan dibuang. Kedalaman diambil dari mesh tanah,
+  jadi garis air pas dengan pasir.
+### Dihapus
+- `createDepthTexture` (diganti data pantai `createShoreData`).
+
 ## [0.3.0] — 2026-10-18 — Rumput di sekitar gunung + peningkatan kualitas (permintaan pengguna)
 ### Ditambahkan
 - **Rumput ilalang** di lereng dan kaki gunung: rumpun-rumpun helai melengkung yang bergoyang

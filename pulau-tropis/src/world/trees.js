@@ -120,10 +120,30 @@ function palmGeometry() {
   const crown = new THREE.IcosahedronGeometry(0.42, 0)
   crown.translate(topX, height - 0.15, 0)
   parts.push(part(crown, '#6b5a2e'))
-  for (let i = 0; i < 3; i++) {
-    const nut = new THREE.IcosahedronGeometry(0.2, 0)
-    nut.translate(topX + Math.cos(i * 2.1) * 0.3, height - 0.5, Math.sin(i * 2.1) * 0.3)
-    parts.push(part(nut, '#5d6b2b', { dark: 0.8, light: 1 }))
+
+  // tandan kelapa menggantung di bawah pelepah: kebanyakan hijau (muda),
+  // sebagian kuning-oranye (kelapa gading) dan coklat (tua)
+  const NUTS = [
+    [0.0, 0.36, 0.5, '#5f8f23'], [0.8, 0.42, 0.62, '#6f9c2b'], [1.6, 0.37, 0.52, '#c9921f'],
+    [2.5, 0.43, 0.66, '#5f8f23'], [3.3, 0.36, 0.5, '#7c5a32'], [4.1, 0.42, 0.63, '#6f9c2b'],
+    [4.9, 0.37, 0.54, '#5f8f23'], [5.7, 0.43, 0.67, '#d4a02a'],
+  ]
+  for (const [a, r, drop, col] of NUTS) {
+    const c = new THREE.Vector3(topX + Math.cos(a) * r, height - drop, Math.sin(a) * r)
+    const nut = new THREE.IcosahedronGeometry(1, 0)
+    nut.scale(0.21, 0.26, 0.21)
+    nut.translate(c.x, c.y, c.z)
+    parts.push(part(nut, col, { centers: [[c, 1]], dark: 0.7, light: 1.12 }))
+  }
+  // tangkai tandan dari pangkal pelepah ke gerombol buah
+  for (const a of [0.4, 3.6]) {
+    const from = new THREE.Vector3(topX, height - 0.2, 0)
+    const to = new THREE.Vector3(topX + Math.cos(a) * 0.34, height - 0.6, Math.sin(a) * 0.34)
+    const dir = to.clone().sub(from)
+    const stalk = new THREE.CylinderGeometry(0.03, 0.05, dir.length(), 4, 1, true)
+    stalk.applyQuaternion(new THREE.Quaternion().setFromUnitVectors(UP, dir.normalize()))
+    stalk.translate((from.x + to.x) / 2, (from.y + to.y) / 2, (from.z + to.z) / 2)
+    parts.push(part(stalk, '#b8923f', { dark: 0.85, light: 1 }))
   }
   return mergeGeometries(parts)
 }

@@ -1,10 +1,11 @@
 import * as THREE from 'three'
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js'
 import { quality, setQualityLevel } from './core/quality.js'
-import { createNoiseTexture } from './core/noiseTexture.js'
+import { createNoiseTexture, createWaterNormalTexture } from './core/noiseTexture.js'
 import { PlacementGrid } from './core/spatial.js'
 import { ISLAND } from './world/island.js'
-import { createGround, createTerrain, createDepthTexture } from './world/terrain.js'
+import { createGround, createTerrain } from './world/terrain.js'
+import { createShoreData, waveTime } from './world/shore.js'
 import { createWater } from './world/water.js'
 import { createEnvironment } from './world/sky.js'
 import { createTrees } from './world/trees.js'
@@ -98,6 +99,7 @@ async function start() {
   setStatus('Membentuk pulau…')
   await nextFrame()
   const ground = createGround(quality.terrainSegments)
+  const shore = createShoreData(ground, quality.water.shoreRes)
   const terrain = createTerrain(ground, shared)
   scene.add(terrain)
 
@@ -116,7 +118,8 @@ async function start() {
 
   setStatus('Mengisi lautan…')
   await nextFrame()
-  const water = createWater(createDepthTexture(256), env, shared)
+  const normalTexture = createWaterNormalTexture(renderer)
+  const water = createWater({ ground, shore, env, noiseTexture, normalTexture, quality })
   scene.add(water)
 
   // Kamera orbit sementara untuk melihat pulau (karakter + kamera orang ketiga di Milestone 2)
@@ -194,7 +197,7 @@ async function start() {
     controls.update()
     keepCameraAboveGround()
     env.update(t, camera, controls.target)
-    water.userData.update(t)
+    waveTime.value = t
     trees.userData.update(t)
     grass.userData.update(camera, t)
     renderer.render(scene, camera)
@@ -225,7 +228,7 @@ async function start() {
   $('hud').hidden = false
 
   // akses untuk debugging / pengujian otomatis
-  window.__pulau = { renderer, scene, camera, controls, ground, quality, trees, rocks, grass, env }
+  window.__pulau = { renderer, scene, camera, controls, ground, shore, quality, trees, rocks, grass, water, env }
 }
 
 start().catch(showError)
