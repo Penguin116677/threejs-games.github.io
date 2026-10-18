@@ -7,8 +7,8 @@
   <meta name="theme-color" content="#7ec8e8">
   <meta name="mobile-web-app-capable" content="yes">
   <title>Pulau Tropis</title>
-  <script type="module" crossorigin src="./assets/index-D-SYxkyu.js"></script>
-  <link rel="stylesheet" crossorigin href="./assets/index-B7iBslDT.css">
+  <script type="module" crossorigin src="./assets/index-BvF2hkD9.js"></script>
+  <link rel="stylesheet" crossorigin href="./assets/index-DmZCquST.css">
 </head>
 
 <body>
@@ -21,13 +21,20 @@
 
   <div id="hud" hidden>
     <div class="hud-kiri">
-      <div class="hud-judul">Pulau Tropis <span>· Milestone 1</span></div>
+      <div class="hud-judul">Pulau Tropis <span>· Milestone 2</span></div>
       <div id="fps">-- FPS</div>
     </div>
     <div class="hud-kanan">
       <button id="btn-kualitas" type="button">Kualitas</button>
       <button id="btn-layar-penuh" type="button">Layar penuh</button>
+      <button id="btn-mode" type="button">Lihat pulau</button>
     </div>
+    <div id="joystick" hidden><div id="joystick-knob"></div></div>
+    <button id="btn-lompat" type="button" aria-label="Lompat" hidden>
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.5 20 12h-5v8.5H9V12H4z" /></svg>
+      <span>Lompat</span>
+    </button>
+    <div id="pesan" hidden></div>
     <div id="panel-kualitas" hidden>
       <div class="panel-judul">Kualitas grafis</div>
       <button type="button" data-q="rendah">Rendah <small>paling ringan, tanpa bayangan</small></button>
@@ -36,8 +43,9 @@
       <button type="button" id="btn-tutup-kualitas" class="tutup">Tutup</button>
     </div>
     <div id="saran" hidden>Terasa berat? Ketuk <b>Kualitas</b> lalu pilih <b>Rendah</b>.</div>
-    <div id="petunjuk">Geser 1 jari: putar kamera · Cubit 2 jari: zoom · Geser 2 jari: geser</div>
+    <div id="petunjuk"></div>
   </div>
+  <div id="tirai"></div>
 
   <div id="error" hidden>
     <div class="judul">Terjadi masalah</div>

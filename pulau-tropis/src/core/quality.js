@@ -22,7 +22,7 @@ const PRESETS = {
     terrainSegments: 256,
     shadows: true,
     shadowMapSize: 1024,
-    softShadows: false,
+    softShadows: true,
     treeDensity: 1,
     canopyDetail: 0,
     grass: { radius: 120, near: 13, density: 2.4, blades: 6, max: 9000, shadows: false },

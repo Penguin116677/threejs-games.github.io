@@ -14,6 +14,7 @@ body {
   -webkit-tap-highlight-color: transparent;
   user-select: none;
   -webkit-user-select: none;
+  overscroll-behavior: none;
 }
 
 #game {
@@ -114,19 +115,111 @@ body {
   backdrop-filter: blur(4px);
 }
 
+/* petunjuk kontrol: di atas karakter (yang berada di tengah layar), tidak menutupinya */
 #petunjuk {
   position: absolute;
   left: 50%;
-  bottom: max(14px, env(safe-area-inset-bottom));
+  top: 22%;
   transform: translateX(-50%);
   width: max-content;
-  max-width: calc(100% - 24px);
-  font-size: 13px;
+  max-width: calc(100% - 32px);
+  font-size: 14px;
+  line-height: 1.5;
   text-align: center;
-  background: rgba(0, 40, 60, 0.4);
-  padding: 8px 12px;
-  border-radius: 10px;
+  background: rgba(0, 40, 60, 0.5);
+  padding: 10px 14px;
+  border-radius: 12px;
   transition: opacity 1s;
+}
+
+/* joystick virtual: lingkaran dasar + knob; posisi diatur lewat transform dari JS */
+#joystick {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, 0.55);
+  background: rgba(0, 30, 45, 0.18);
+  opacity: 0.4;
+  transition: opacity 0.2s;
+}
+
+#joystick.aktif {
+  opacity: 1;
+}
+
+#joystick-knob {
+  position: absolute;
+  left: 32px;
+  top: 32px;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.85);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+}
+
+#hud #btn-lompat {
+  position: absolute;
+  right: max(22px, env(safe-area-inset-right));
+  bottom: max(26px, env(safe-area-inset-bottom));
+  width: 86px;
+  height: 86px;
+  padding: 0;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, 0.6);
+  background: rgba(255, 255, 255, 0.2);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  font-size: 12px;
+  font-weight: 600;
+  touch-action: none;
+  transition: transform 0.08s, background 0.08s;
+}
+
+#btn-lompat svg {
+  width: 30px;
+  height: 30px;
+  fill: #fff;
+}
+
+#hud #btn-lompat.ditekan {
+  background: rgba(255, 255, 255, 0.45);
+  transform: scale(0.93);
+}
+
+#pesan {
+  position: absolute;
+  left: 50%;
+  top: 24%;
+  transform: translateX(-50%);
+  width: max-content;
+  max-width: calc(100% - 32px);
+  padding: 10px 16px;
+  border-radius: 12px;
+  background: rgba(0, 40, 60, 0.75);
+  font-size: 15px;
+  text-align: center;
+}
+
+/* tirai gelap sebentar saat pemain dikembalikan ke pantai */
+#tirai {
+  position: fixed;
+  inset: 0;
+  background: #02141f;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.35s;
+  z-index: 5;
+}
+
+#tirai.gelap {
+  opacity: 0.9;
 }
 
 #panel-kualitas {
@@ -188,4 +281,13 @@ body {
   background: rgba(120, 60, 0, 0.75);
   font-size: 14px;
   text-align: center;
+}
+
+/* layar mendatar: petunjuk di ruang kosong atas, di antara judul dan tombol */
+@media (orientation: landscape) {
+  #petunjuk {
+    top: max(12px, env(safe-area-inset-top));
+    max-width: 46%;
+    font-size: 13px;
+  }
 }

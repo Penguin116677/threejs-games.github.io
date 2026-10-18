@@ -1,0 +1,5 @@
+penjelajah.glb
+  Sumber : Kenney "Mini Characters" 1.0 — character-male-f (www.kenney.nl)
+  Lisensi: Creative Commons Zero (CC0 1.0) — bebas dipakai untuk proyek pribadi,
+           pendidikan, maupun komersial. Kredit ke Kenney tidak wajib, tetapi kami cantumkan.
+  Diubah : tekstur colormap.png digabung ke dalam GLB (scripts/embed-glb-texture.py).

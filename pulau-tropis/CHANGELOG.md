@@ -1,5 +1,28 @@
 # CHANGELOG — Pulau Tropis
 
+## [0.5.0] — 2026-10-18 — Milestone 2: Karakter dan eksplorasi
+### Ditambahkan
+- **Karakter pemain**: model Kenney "Mini Characters" (CC0) dengan animasi diam, jalan, lari,
+  lompat, dan jatuh yang berganti halus menurut kecepatan. Satu file GLB 251 KB (tekstur digabung).
+  Bila model gagal dimuat, game memakai karakter sederhana dan tetap bisa dimainkan.
+- **Kamera orang ketiga**: mengikuti dari belakang; geser untuk memutar, cubit/roda mouse untuk
+  zoom; tidak menembus bukit atau masuk ke bawah air; saat berjalan kamera pelan-pelan kembali
+  ke belakang karakter (bisa main dengan satu jempol).
+- **Kontrol HP**: joystick virtual muncul di tempat jempol kiri menyentuh (dorong jauh = lari),
+  tombol **Lompat** di kanan bawah, geser layar kanan untuk kamera, cubit untuk zoom.
+- **Kontrol komputer**: WASD/panah, Shift = pelan, Spasi = lompat, seret mouse = kamera.
+- **Fisika**: gravitasi, lompat ±1,1 m (dengan toleransi waktu tekan), tetap menempel saat
+  menuruni lereng, lereng > ±52° tidak bisa didaki (merosot), tabrakan dengan batang pohon dan
+  batu besar (batu kecil bisa dilangkahi), berjalan lebih lambat di air dangkal.
+- **Respawn**: masuk laut dalam (> 1,3 m) atau terlalu jauh dari pulau → layar meredup, pemain
+  kembali ke posisi aman terakhir di darat, dengan pesan.
+- Tombol **Lihat pulau** / **Main lagi**: beralih ke kamera bebas (orbit) untuk melihat pulau.
+- Titik mulai di pantai barat daya, menghadap gunung.
+- `scripts/embed-glb-texture.py`: menggabungkan tekstur ke file GLB.
+### Diubah
+- Smoke test ditulis ulang (menunggu per frame): jalan, lompat, tabrakan pohon, laut dalam,
+  mendaki, joystick, tombol Lompat, geser kamera, cubit, tombol mode, menu Kualitas.
+
 ## [0.4.0] — 2026-10-18 — Buah kelapa, air lebih bagus, ombak pantai (permintaan pengguna)
 ### Ditambahkan
 - **Buah kelapa**: tandan 8 buah di setiap pohon kelapa — kebanyakan hijau (muda), ada yang

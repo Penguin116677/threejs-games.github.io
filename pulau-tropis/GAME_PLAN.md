@@ -17,6 +17,10 @@ Eksplorasi / petualangan santai orang ketiga (third-person), tanpa pertarungan (
 Three.js (WebGL 2) + Vite, JavaScript murni (tanpa framework UI). Dunia dibuat prosedural
 dengan seed tetap, jadi bentuk pulau selalu sama setiap kali dibuka.
 
+## Kredit aset
+- Karakter pemain: Kenney — "Mini Characters" (CC0), www.kenney.nl. Lihat `public/models/LISENSI.txt`.
+- Semua aset lain (pulau, pohon, rumput, air, langit) dibuat prosedural di kode.
+
 ## Rencana milestone
 1. **Fondasi game** — Vite + Three.js, terrain pulau, pantai, laut, langit, bisa dibuka di browser HP.
 2. **Karakter & eksplorasi** — karakter pemain, kamera third-person, joystick virtual, tombol lompat,
@@ -32,4 +36,4 @@ Milestone adalah rencana, bukan kewajiban. Perubahan konsep dicatat di `DECISION
 
 Catatan: atas permintaan pengguna, pohon (v0.2.0), rumput di sekitar gunung, dan sebagian
 peningkatan visual Milestone 5 (bayangan, tanah bertekstur, awan, kaustik — v0.3.0) sudah
-dikerjakan lebih awal, sebelum Milestone 2.
+dikerjakan lebih awal, sebelum Milestone 2. Milestone 2 (karakter & kontrol) dikerjakan di v0.5.0.

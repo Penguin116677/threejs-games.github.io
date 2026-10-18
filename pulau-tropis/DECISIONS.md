@@ -23,6 +23,8 @@ tandai sebagai "diganti" bila berubah.
    `npm run build` dan commit `dist/`.
 8. **Kamera orbit sementara** — Milestone 1 memakai OrbitControls untuk melihat pulau;
    akan diganti kamera third-person di Milestone 2.
+   *(Diperbarui v0.5.0: kamera orang ketiga menjadi kamera utama; orbit tetap ada sebagai mode
+   "Lihat pulau".)*
 9. **Bahasa** — semua UI, pesan error, dan dokumentasi dalam bahasa Indonesia.
 10. **Pohon prosedural + instancing** — pohon dibuat dari geometri sederhana di kode (tanpa file
     model), digabung per jenis dan digambar dengan `InstancedMesh`. Goyangan angin di vertex shader.
@@ -36,7 +38,7 @@ tandai sebagai "diganti" bila berubah.
     |---|---|---|---|
     | Pixel ratio maks | 1.25 | 1.5 | 2 |
     | Grid terrain | 200² | 256² | 384² |
-    | Bayangan | – | 1024, PCF | 2048, PCF soft |
+    | Bayangan | – | 1024, PCF soft (sejak v0.5.0; sebelumnya PCF) | 2048, PCF soft |
     | Jumlah pohon | 0,75× | 1× | 1,5× |
     | Rumput (radius / rumpun per m² dekat / helai) | 70 m / 1,6 / 4 | 120 m / 2,4 / 6 | 170 m / 3,2 / 8 |
     | Kaustik air | – | ✓ | ✓ |
@@ -72,3 +74,20 @@ tandai sebagai "diganti" bila berubah.
 20. **Buah kelapa digabung ke geometri pohon kelapa** (bukan objek terpisah): ikut goyangan angin
     dan bayangan tanpa draw call tambahan. Konsekuensi: semua pohon punya tandan yang sama
     (variasi hanya dari rotasi/skala). Kelapa jatuh/bisa diambil cocok untuk Milestone 4 (item).
+21. **Karakter = Kenney "Mini Characters" (CC0), bukan buatan prosedural** (v0.5.0). Sudah ber-rig
+    dengan animasi idle/walk/sprint/jump/fall (+ pick-up, interact, emote untuk Milestone 4),
+    1.291 vertex, 251 KB — ringan untuk HP dan gayanya cocok dengan dunia low-poly. Material diganti
+    Lambert agar senada dengan dunia. Karakter default `character-male-f`; 12 karakter lain di paket
+    yang sama memakai rig & animasi yang sama, jadi bisa diganti tanpa ubah kode lain. Bila model
+    gagal dimuat, dipakai karakter kapsul sederhana (game tetap bisa dimainkan).
+22. **Fisika buatan sendiri, bukan engine fisika** (Rapier/Cannon): tanah = `ground.heightAt`
+    (permukaan mesh yang persis), penghalang = lingkaran (batang pohon, batu ≥ 0,8 m) di grid ruang.
+    Cukup untuk berjalan/lompat di pulau, jauh lebih ringan, dan tanpa unduhan tambahan. Engine
+    fisika bisa dipertimbangkan bila nanti ada benda yang bisa didorong/dilempar.
+23. **Kontrol HP**: joystick dinamis (muncul di tempat jempol kiri menyentuh, 45% kiri layar),
+    besar dorongan = kecepatan (≥ 70% = lari); tombol Lompat besar (86 px) di kanan bawah; sisa
+    layar kanan untuk kamera. Kamera otomatis kembali ke belakang pemain saat berjalan (bila
+    pemain tidak sedang memutar kamera ±1,8 detik) supaya bisa main dengan satu jempol.
+24. **Laut dalam = kembali ke pantai, belum ada berenang.** Air ≤ 1,3 m bisa diseberangi (pelan);
+    lebih dalam selama 0,6 detik → layar meredup dan pemain kembali ke posisi aman terakhir di darat.
+    Berenang bisa ditambahkan nanti bila diinginkan.

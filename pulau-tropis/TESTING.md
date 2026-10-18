@@ -63,4 +63,17 @@ software dan **tidak** mencerminkan performa HP.
    pola cincin/garis-garis aneh.
 4. Bandingkan FPS dengan versi sebelumnya di tingkat kualitas yang sama.
 
+## Daftar uji manual — Milestone 2 (karakter & kontrol)
+1. Setelah loading, karakter berdiri di pantai barat daya, kamera di belakangnya menghadap gunung.
+2. Jempol kiri di layar kiri → joystick muncul; dorong sedikit = jalan, dorong jauh = lari.
+3. Ketuk tombol **Lompat** → karakter melompat; bisa lompat sambil berlari.
+4. Geser layar kanan → kamera berputar; cubit dua jari → kamera mendekat/menjauh.
+5. Jalan ke batang pohon atau batu besar → tertahan (tidak menembus).
+6. Jalan ke laut → di air dangkal melambat; terus ke laut dalam → layar meredup, kembali ke pantai
+   dengan pesan.
+7. Daki lereng gunung → bisa naik; di bagian sangat curam karakter tertahan/merosot.
+8. Tombol **Lihat pulau** → kamera bebas (geser/cubit seperti dulu); **Main lagi** → kembali.
+9. Putar HP portrait ↔ landscape → joystick dan tombol tetap di tempat yang pas.
+10. Komputer: WASD/panah, Shift (pelan), Spasi (lompat), seret mouse, roda mouse.
+
 Laporkan: model HP, angka FPS di tiap tingkat kualitas, screenshot, dan langkah yang gagal.
