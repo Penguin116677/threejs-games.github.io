@@ -1,6 +1,6 @@
 import * as THREE from 'three'
 import { rng, seed2 } from '../core/random.js'
-import { grassDensity } from './biome.js'
+import { grassNoise, grassDensityFrom } from './biome.js'
 
 // Rumput: rumpun-rumpun ilalang yang bergoyang tertiup angin di sekitar gunung.
 // Supaya ringan di HP, rumput dibuat & digambar hanya di sekitar kamera:
@@ -160,16 +160,37 @@ export function createGrass({ ground, grid, quality }) {
 
   const chunks = new Map()
 
+  // noise vegetasi di grid kasar 5×5 per chunk (jarak 4 m), diinterpolasi per rumpun
+  const G = 4
+  const noiseF = new Float32Array((G + 1) * (G + 1))
+  const noiseP = new Float32Array((G + 1) * (G + 1))
+  const lerp2 = (arr, u, v) => {
+    const fx = u * G
+    const fz = v * G
+    const i = Math.min(G - 1, Math.floor(fx))
+    const j = Math.min(G - 1, Math.floor(fz))
+    const tx = fx - i
+    const tz = fz - j
+    const a = arr[j * (G + 1) + i]
+    const b = arr[j * (G + 1) + i + 1]
+    const c = arr[(j + 1) * (G + 1) + i]
+    const d = arr[(j + 1) * (G + 1) + i + 1]
+    return (a + (b - a) * tx) * (1 - tz) + (c + (d - c) * tx) * tz
+  }
+
   function buildChunk(cx, cz) {
     const x0 = cx * CHUNK
     const z0 = cz * CHUNK
-    // cek cepat 4×4 titik: lewati chunk yang sama sekali tidak berumput
+    // hitung noise di grid kasar; sekaligus cek cepat apakah chunk berumput sama sekali
     let any = false
-    for (let i = 0; i < 4 && !any; i++)
-      for (let j = 0; j < 4 && !any; j++) {
-        const x = x0 + (i + 0.5) * CHUNK / 4
-        const z = z0 + (j + 0.5) * CHUNK / 4
-        if (grassDensity(x, z, ground.heightAt(x, z), 0) > 0.02) any = true
+    for (let j = 0; j <= G; j++)
+      for (let i = 0; i <= G; i++) {
+        const x = x0 + i * CHUNK / G
+        const z = z0 + j * CHUNK / G
+        const n = grassNoise(x, z)
+        noiseF[j * (G + 1) + i] = n.forest
+        noiseP[j * (G + 1) + i] = n.patch
+        if (!any && grassDensityFrom(n.forest, n.patch, x, z, ground.heightAt(x, z), 0) > 0.02) any = true
       }
     if (!any) return EMPTY
 
@@ -183,7 +204,9 @@ export function createGrass({ ground, grid, quality }) {
       const z = z0 + rand() * CHUNK
       const keep = rand()
       const y = ground.heightAt(x, z)
-      if (keep >= grassDensity(x, z, y, ground.slopeAt(x, z))) continue
+      const u = (x - x0) / CHUNK
+      const v = (z - z0) / CHUNK
+      if (keep >= grassDensityFrom(lerp2(noiseF, u, v), lerp2(noiseP, u, v), x, z, y, ground.slopeAt(x, z))) continue
       if (grid.covered(x, z, 'batu', 0.85)) continue
       const fresh = rand() < 0.12 ? rand() * 0.5 : 0.6 + rand() * 0.4
       list.push([x, y - 0.04, z, rand(), rand() * TAU, 0.6 + rand() * 0.7, fresh, rand() * TAU])
@@ -255,7 +278,14 @@ export function createGrass({ ground, grid, quality }) {
           const dx = Math.max(0, Math.abs(cam.x - (i + 0.5) * CHUNK) - CHUNK * 0.71)
           const dz = Math.max(0, Math.abs(cam.z - (j + 0.5) * CHUNK) - CHUNK * 0.71)
           const d2 = dx * dx + dz * dz
-          if (d2 <= R * R) missing.push({ i, j, key, d2 })
+          if (d2 > R * R) continue
+          // perkiraan bola chunk (tinggi dari tanah di tengahnya) untuk cek terlihat/tidak
+          const mx = (i + 0.5) * CHUNK
+          const mz = (j + 0.5) * CHUNK
+          sphere.center.set(mx, ground.heightAt(mx, mz), mz)
+          sphere.radius = CHUNK * 0.71 + 12
+          const seen = frustum.intersectsSphere(sphere)
+          missing.push({ i, j, key, order: d2 + (seen ? 0 : 1e9) })
           continue
         }
         addIfVisible(ch, cam, R)
@@ -263,7 +293,7 @@ export function createGrass({ ground, grid, quality }) {
 
     // buat chunk yang belum ada, terdekat dulu, dalam batas waktu per frame
     if (missing.length) {
-      missing.sort((a, b) => a.d2 - b.d2)
+      missing.sort((a, b) => a.order - b.order)
       const t0 = performance.now()
       let n = 0
       for (const m of missing) {

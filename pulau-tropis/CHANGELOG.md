@@ -6,7 +6,7 @@
   ditiup angin (gelombang angin menyapu padang). Sabuk rumput rapat di lereng gunung (±16–76 m,
   di atas batas hutan, di bawah puncak berbatu) + rumput lebih jarang di padang terbuka sekitarnya.
   Sistem chunk 16×16 m: rumput hanya dibuat & digambar di sekitar kamera, kepadatan turun
-  dengan jarak, semua dalam satu draw call.
+  dengan jarak, semua dalam satu draw call; chunk yang terlihat kamera dibuat lebih dulu.
 - **Menu Kualitas** (tombol "Kualitas" di kanan atas): Rendah / Sedang / Tinggi. Pilihan disimpan;
   HP otomatis mulai di Sedang, komputer di Tinggi. Saran "Terasa berat?" muncul bila FPS < 24.
 - **Bayangan matahari** (Sedang/Tinggi): pohon, kelapa, dan batu membayangi tanah. Kotak bayangan

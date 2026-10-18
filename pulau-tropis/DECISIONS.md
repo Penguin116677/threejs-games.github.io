@@ -47,6 +47,8 @@ tandai sebagai "diganti" bila berubah.
     kamera orbit sering melihat dari atas, di mana kartu rumput tampak sebagai garis; geometri
     tidak butuh alpha-test (lebih ramah GPU HP). Kepadatan ∝ (jarak)^-1,5 → jumlah rumpun di layar
     hampir tetap berapa pun radiusnya; rumpun "tumbuh/menyusut" halus sehingga tidak ada pop-in.
+    Chunk dibuat saat dibutuhkan dengan anggaran 3 ms per frame, chunk yang terlihat kamera lebih
+    dulu; noise vegetasi dihitung di grid 5×5 per chunk lalu diinterpolasi (noise itu berubah pelan).
 14. **Tinggi tanah dari grid mesh** (`ground.heightAt`), bukan langsung dari fungsi noise, karena
     mesh adalah interpolasi kasar dari noise; selisihnya bisa >1 m di lereng gunung sehingga objek
     melayang/tenggelam. Collision Milestone 2 wajib memakai fungsi yang sama.
