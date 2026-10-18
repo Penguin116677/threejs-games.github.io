@@ -22,3 +22,7 @@ tandai sebagai "diganti" bila berubah.
 8. **Kamera orbit sementara** — Milestone 1 memakai OrbitControls untuk melihat pulau;
    akan diganti kamera third-person di Milestone 2.
 9. **Bahasa** — semua UI, pesan error, dan dokumentasi dalam bahasa Indonesia.
+10. **Pohon prosedural + instancing** — pohon dibuat dari geometri sederhana di kode (tanpa file
+    model), digabung per jenis dan digambar dengan `InstancedMesh`. Goyangan angin di vertex shader.
+    Dipilih karena paling ringan untuk HP dan tidak perlu mengunduh aset. Pohon "hutan tropis" penuh
+    (variasi jenis, semak, dll.) tetap bagian Milestone 3.

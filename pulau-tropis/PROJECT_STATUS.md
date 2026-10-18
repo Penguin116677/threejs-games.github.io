@@ -17,6 +17,7 @@
 | Laut beranimasi (shader ringan) | ✅ selesai |
 | Langit gradien + matahari + kabut cakrawala | ✅ selesai |
 | Kamera orbit sentuh (sementara, sampai Milestone 2) | ✅ selesai |
+| Pohon kelapa & hutan tropis (instancing, goyang angin) — permintaan tambahan | ✅ selesai |
 | UI dasar berbahasa Indonesia (judul, FPS, layar penuh, petunjuk) | ✅ selesai |
 | Pesan error tampil di layar (tanpa konsol) | ✅ selesai |
 | Dibuka di browser HP Android sungguhan | ⏳ belum diverifikasi — menunggu laporan pengguna |
@@ -32,7 +33,12 @@
 - Gestur cubit (pinch zoom) dua jari di perangkat sungguhan.
 - Apakah URL hosting (githack / GitHub Pages) terbuka di HP — tidak bisa diakses dari lingkungan pengembangan.
 
+## Performa (jumlah segitiga per frame, dari smoke test)
+- HP (kualitas rendah): ±230 ribu segitiga, 5 draw call. Desktop: ±465 ribu.
+
 ## Masalah yang diketahui
 - Ukuran bundle ±500 KB (sebagian besar Three.js). Bisa dikecilkan nanti bila loading lambat.
 - Tepi luar terrain (1000 × 1000 m) bisa terlihat samar di bawah air dari sudut tertentu.
+- Pohon belum punya collision (data batang sudah disiapkan untuk Milestone 2).
+- Daun kelapa berupa bidang tipis: dari samping persis terlihat tipis.
 - Belum ada karakter, collision, atau gameplay (memang bagian Milestone 2+).

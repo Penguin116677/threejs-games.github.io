@@ -1,5 +1,14 @@
 # CHANGELOG — Pulau Tropis
 
+## [0.2.0] — 2026-10-18 — Pohon (permintaan pengguna)
+### Ditambahkan
+- Pohon kelapa low-poly di pantai (batang melengkung, daun terkulai) dan pohon hutan tropis
+  di pedalaman yang berkelompok (hutan lebat + padang terbuka).
+- Semua pohon memakai `InstancedMesh` (1 draw call per jenis) dan bergoyang pelan ditiup angin
+  (animasi di vertex shader, tanpa beban CPU).
+- Posisi pohon tetap (seed) dan disimpan sebagai data batang untuk collision di Milestone 2.
+- Jumlah: HP ±170 kelapa + ±900 pohon hutan; desktop ±1,8×.
+
 ## [0.1.0] — 2026-10-18 — Milestone 1: Fondasi game
 ### Ditambahkan
 - Proyek baru `pulau-tropis/` (Three.js 0.170 + Vite 6), build relatif (`base: './'`) agar bisa

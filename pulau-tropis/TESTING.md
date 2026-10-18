@@ -40,5 +40,7 @@ software dan **tidak** mencerminkan performa HP.
 7. Tombol "Layar penuh" → masuk/keluar layar penuh.
 8. Catat angka FPS di pojok kiri atas (idealnya ≥ 30).
 9. Laut beranimasi (ombak bergerak, buih di pantai).
+10. Ada pohon kelapa di pantai dan hutan di pedalaman; zoom dekat → pohon bergoyang pelan.
+11. Bandingkan FPS sebelum/sesudah pohon ditambahkan (laporkan bila turun jauh).
 
 Laporkan: model HP, angka FPS, screenshot, dan langkah yang gagal.

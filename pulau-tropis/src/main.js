@@ -5,6 +5,7 @@ import { ISLAND, heightAt } from './world/island.js'
 import { createTerrain, createDepthTexture } from './world/terrain.js'
 import { createWater } from './world/water.js'
 import { createEnvironment } from './world/sky.js'
+import { createTrees } from './world/trees.js'
 
 const $ = id => document.getElementById(id)
 
@@ -55,6 +56,11 @@ async function start() {
   await nextFrame()
   const terrain = createTerrain(quality.terrainSegments)
   scene.add(terrain)
+
+  setStatus('Menanam pohon…')
+  await nextFrame()
+  const trees = createTrees(quality)
+  scene.add(trees)
 
   setStatus('Mengisi lautan…')
   await nextFrame()
@@ -129,6 +135,7 @@ async function start() {
     controls.update()
     keepCameraAboveGround()
     water.userData.update(t)
+    trees.userData.update(t)
     renderer.render(scene, camera)
 
     frames++
@@ -144,7 +151,7 @@ async function start() {
   $('hud').hidden = false
 
   // akses untuk debugging / pengujian otomatis
-  window.__pulau = { renderer, scene, camera, controls, heightAt, quality }
+  window.__pulau = { renderer, scene, camera, controls, heightAt, quality, trees }
 }
 
 start().catch(showError)
