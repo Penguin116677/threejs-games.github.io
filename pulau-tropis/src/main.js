@@ -1,11 +1,15 @@
 import * as THREE from 'three'
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js'
-import { quality } from './core/quality.js'
-import { ISLAND, heightAt } from './world/island.js'
-import { createTerrain, createDepthTexture } from './world/terrain.js'
+import { quality, setQualityLevel } from './core/quality.js'
+import { createNoiseTexture } from './core/noiseTexture.js'
+import { PlacementGrid } from './core/spatial.js'
+import { ISLAND } from './world/island.js'
+import { createGround, createTerrain, createDepthTexture } from './world/terrain.js'
 import { createWater } from './world/water.js'
 import { createEnvironment } from './world/sky.js'
 import { createTrees } from './world/trees.js'
+import { createRocks } from './world/rocks.js'
+import { createGrass } from './world/grass.js'
 
 const $ = id => document.getElementById(id)
 
@@ -34,6 +38,34 @@ function setStatus(teks) {
 // beri browser kesempatan menggambar layar loading sebelum kerja berat
 const nextFrame = () => new Promise(r => requestAnimationFrame(() => setTimeout(r, 0)))
 
+const LABEL = { rendah: 'Rendah', sedang: 'Sedang', tinggi: 'Tinggi' }
+
+function setupQualityMenu() {
+  const btn = $('btn-kualitas')
+  const panel = $('panel-kualitas')
+  btn.textContent = `Kualitas: ${LABEL[quality.level]}`
+  panel.querySelectorAll('button[data-q]').forEach(b => {
+    b.classList.toggle('aktif', b.dataset.q === quality.level)
+    b.addEventListener('click', () => {
+      if (b.dataset.q === quality.level) {
+        panel.hidden = true
+        return
+      }
+      panel.hidden = true
+      $('loading').hidden = false
+      setStatus(`Mengganti kualitas ke ${LABEL[b.dataset.q]}…`)
+      setTimeout(() => setQualityLevel(b.dataset.q), 50)
+    })
+  })
+  btn.addEventListener('click', () => {
+    panel.hidden = !panel.hidden
+    $('saran').hidden = true
+  })
+  $('btn-tutup-kualitas').addEventListener('click', () => {
+    panel.hidden = true
+  })
+}
+
 async function start() {
   if (!webglAvailable()) {
     showError('Browser ini tidak mendukung WebGL 2.\nCoba gunakan Chrome versi terbaru di Android.')
@@ -41,30 +73,50 @@ async function start() {
   }
 
   const canvas = $('game')
-  const renderer = new THREE.WebGLRenderer({ canvas, antialias: quality.antialias, powerPreference: 'high-performance' })
+  const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' })
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, quality.maxPixelRatio))
   renderer.outputColorSpace = THREE.SRGBColorSpace
+  renderer.toneMapping = THREE.ACESFilmicToneMapping
+  renderer.toneMappingExposure = 1.0
+  if (quality.shadows) {
+    renderer.shadowMap.enabled = true
+    renderer.shadowMap.type = quality.softShadows ? THREE.PCFSoftShadowMap : THREE.PCFShadowMap
+  }
 
   const scene = new THREE.Scene()
   const camera = new THREE.PerspectiveCamera(55, 1, 0.5, 5000)
 
+  setStatus('Menyiapkan tekstur…')
+  await nextFrame()
+  const noiseTexture = createNoiseTexture(renderer)
+  const shared = { noiseTexture, quality }
+
   setStatus('Membuat langit dan cahaya…')
   await nextFrame()
-  const env = createEnvironment(scene)
+  const env = createEnvironment(scene, shared)
 
   setStatus('Membentuk pulau…')
   await nextFrame()
-  const terrain = createTerrain(quality.terrainSegments)
+  const ground = createGround(quality.terrainSegments)
+  const terrain = createTerrain(ground, shared)
   scene.add(terrain)
 
-  setStatus('Menanam pohon…')
+  setStatus('Menanam pohon dan menebar batu…')
   await nextFrame()
-  const trees = createTrees(quality)
-  scene.add(trees)
+  const grid = new PlacementGrid(8)
+  const trees = createTrees({ ground, grid, quality, noiseTexture })
+  const rocks = createRocks({ ground, grid, quality })
+  scene.add(trees, rocks)
+  terrain.userData.applyOcclusion([...trees.userData.occlusion, ...rocks.userData.occlusion])
+
+  setStatus('Menumbuhkan rumput…')
+  await nextFrame()
+  const grass = createGrass({ ground, grid, quality })
+  scene.add(grass)
 
   setStatus('Mengisi lautan…')
   await nextFrame()
-  const water = createWater(createDepthTexture(256), env)
+  const water = createWater(createDepthTexture(256), env, shared)
   scene.add(water)
 
   // Kamera orbit sementara untuk melihat pulau (karakter + kamera orang ketiga di Milestone 2)
@@ -73,7 +125,7 @@ async function start() {
   camera.position.set(-260, 140, 330)
   controls.enableDamping = true
   controls.dampingFactor = 0.08
-  controls.minDistance = 25
+  controls.minDistance = 12
   controls.maxDistance = 900
   controls.maxPolarAngle = Math.PI * 0.47
   controls.rotateSpeed = quality.isMobile ? 0.6 : 0.8
@@ -83,12 +135,12 @@ async function start() {
 
   // jaga kamera tetap di atas tanah / air
   function keepCameraAboveGround() {
-    const ground = Math.max(heightAt(camera.position.x, camera.position.z), ISLAND.seaLevel)
-    if (camera.position.y < ground + 4) camera.position.y = ground + 4
+    const ground0 = Math.max(ground.heightAt(camera.position.x, camera.position.z), ISLAND.seaLevel)
+    if (camera.position.y < ground0 + 3) camera.position.y = ground0 + 3
     const half = ISLAND.size * 0.9
     controls.target.x = THREE.MathUtils.clamp(controls.target.x, -half, half)
     controls.target.z = THREE.MathUtils.clamp(controls.target.z, -half, half)
-    controls.target.y = Math.max(heightAt(controls.target.x, controls.target.z), 0) + 4
+    controls.target.y = Math.max(ground.heightAt(controls.target.x, controls.target.z), 0) + 3
   }
 
   function resize() {
@@ -114,28 +166,37 @@ async function start() {
   document.addEventListener('fullscreenchange', () => {
     btnFull.textContent = document.fullscreenElement ? 'Keluar layar penuh' : 'Layar penuh'
   })
+  setupQualityMenu()
 
   // petunjuk menghilang setelah pemain mulai menyentuh layar
   canvas.addEventListener('pointerdown', () => {
-    setTimeout(() => { $('petunjuk').style.opacity = 0 }, 4000)
+    setTimeout(() => {
+      $('petunjuk').style.opacity = 0
+    }, 4000)
   }, { once: true })
 
   canvas.addEventListener('webglcontextlost', e => {
     e.preventDefault()
-    showError('Grafis HP kehilangan konteks WebGL (biasanya karena memori penuh).\nMuat ulang halaman.')
+    showError('Grafis HP kehilangan konteks WebGL (biasanya karena memori penuh).\nMuat ulang halaman, lalu pilih Kualitas: Rendah.')
   })
 
   const clock = new THREE.Clock()
   let frames = 0
   let fpsTime = 0
+  // saran turunkan kualitas bila FPS rata-rata rendah setelah beberapa detik
+  let sampleTime = 0
+  let sampleFrames = 0
+  let hinted = quality.level === 'rendah'
 
   renderer.setAnimationLoop(() => {
     const dt = Math.min(clock.getDelta(), 0.1)
     const t = clock.elapsedTime
     controls.update()
     keepCameraAboveGround()
+    env.update(t, camera, controls.target)
     water.userData.update(t)
     trees.userData.update(t)
+    grass.userData.update(camera, t)
     renderer.render(scene, camera)
 
     frames++
@@ -145,13 +206,26 @@ async function start() {
       frames = 0
       fpsTime = 0
     }
+    if (!hinted && t > 3) {
+      sampleTime += dt
+      sampleFrames++
+      if (sampleTime > 6) {
+        hinted = true
+        if (sampleFrames / sampleTime < 24) {
+          $('saran').hidden = false
+          setTimeout(() => {
+            $('saran').hidden = true
+          }, 9000)
+        }
+      }
+    }
   })
 
   $('loading').hidden = true
   $('hud').hidden = false
 
   // akses untuk debugging / pengujian otomatis
-  window.__pulau = { renderer, scene, camera, controls, heightAt, quality, trees }
+  window.__pulau = { renderer, scene, camera, controls, ground, quality, trees, rocks, grass, env }
 }
 
 start().catch(showError)

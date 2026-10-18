@@ -27,8 +27,10 @@ npm run test:smoke # (dengan preview berjalan) tes otomatis + screenshot ke scre
 Smoke test butuh Chromium untuk Playwright. FPS yang dilaporkan smoke test berasal dari render
 software dan **tidak** mencerminkan performa HP.
 
-## Parameter URL
-- `?kualitas=rendah` / `?kualitas=tinggi` — paksa tingkat kualitas grafis.
+## Kualitas grafis
+- Di game: tombol **Kualitas** (kanan atas) → Rendah / Sedang / Tinggi. Pilihan disimpan.
+- Lewat alamat: `?kualitas=rendah|sedang|tinggi` (atau `#kualitas=…`).
+- Default: HP → Sedang, komputer → Tinggi.
 
 ## Daftar uji manual — Milestone 1 (di HP)
 1. Buka URL → layar "Memuat pulau…" muncul lalu pulau tampil (tidak ada layar merah error).
@@ -43,4 +45,14 @@ software dan **tidak** mencerminkan performa HP.
 10. Ada pohon kelapa di pantai dan hutan di pedalaman; zoom dekat → pohon bergoyang pelan.
 11. Bandingkan FPS sebelum/sesudah pohon ditambahkan (laporkan bila turun jauh).
 
-Laporkan: model HP, angka FPS, screenshot, dan langkah yang gagal.
+## Daftar uji manual — v0.3.0 (rumput + kualitas)
+1. Zoom ke lereng gunung (cubit 2 jari) sampai dekat → padang rumput ilalang terlihat dan bergoyang.
+   Rumput paling rapat di lereng barat gunung (di atas hutan, di bawah puncak batu).
+2. Putar kamera di dekat rumput → rumput tetap mengikuti, tidak ada yang tiba-tiba muncul/hilang
+   (rumput boleh "tumbuh" halus ±1 detik setelah zoom cepat).
+3. Pohon membayangi tanah (Sedang/Tinggi); ada awan bergerak; air dangkal punya kilau cahaya.
+4. Ketuk **Kualitas** → pilih Rendah, lalu Tinggi → game dimuat ulang dan label berubah.
+   Catat FPS di tiap tingkat.
+5. Bila muncul saran "Terasa berat?", coba Kualitas Rendah dan bandingkan FPS.
+
+Laporkan: model HP, angka FPS di tiap tingkat kualitas, screenshot, dan langkah yang gagal.

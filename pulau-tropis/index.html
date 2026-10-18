@@ -24,8 +24,17 @@
       <div id="fps">-- FPS</div>
     </div>
     <div class="hud-kanan">
+      <button id="btn-kualitas" type="button">Kualitas</button>
       <button id="btn-layar-penuh" type="button">Layar penuh</button>
     </div>
+    <div id="panel-kualitas" hidden>
+      <div class="panel-judul">Kualitas grafis</div>
+      <button type="button" data-q="rendah">Rendah <small>paling ringan, tanpa bayangan</small></button>
+      <button type="button" data-q="sedang">Sedang <small>bayangan + rumput (disarankan untuk HP)</small></button>
+      <button type="button" data-q="tinggi">Tinggi <small>paling detail, untuk HP kuat / komputer</small></button>
+      <button type="button" id="btn-tutup-kualitas" class="tutup">Tutup</button>
+    </div>
+    <div id="saran" hidden>Terasa berat? Ketuk <b>Kualitas</b> lalu pilih <b>Rendah</b>.</div>
     <div id="petunjuk">Geser 1 jari: putar kamera · Cubit 2 jari: zoom · Geser 2 jari: geser</div>
   </div>
 

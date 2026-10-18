@@ -29,3 +29,7 @@ dengan seed tetap, jadi bentuk pulau selalu sama setiap kali dibuka.
 7. **Optimasi & pengujian** — bug, kontrol sentuh, collision, performa, ukuran layar/orientasi.
 
 Milestone adalah rencana, bukan kewajiban. Perubahan konsep dicatat di `DECISIONS.md`.
+
+Catatan: atas permintaan pengguna, pohon (v0.2.0), rumput di sekitar gunung, dan sebagian
+peningkatan visual Milestone 5 (bayangan, tanah bertekstur, awan, kaustik — v0.3.0) sudah
+dikerjakan lebih awal, sebelum Milestone 2.

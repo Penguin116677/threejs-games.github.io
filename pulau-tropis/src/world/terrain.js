@@ -1,67 +1,179 @@
 import * as THREE from 'three'
 import { ISLAND, heightAt } from './island.js'
-import { fbm, smoothstep } from '../core/noise.js'
+import { meadowAmount } from './biome.js'
 
-const C = {
-  deepSand: new THREE.Color('#b59a6a'),
-  wetSand: new THREE.Color('#d2b77f'),
-  sand: new THREE.Color('#ecdcaa'),
-  grass: new THREE.Color('#5fa63a'),
-  jungle: new THREE.Color('#2f7a2c'),
-  rock: new THREE.Color('#857a6c'),
-  darkRock: new THREE.Color('#5d564e'),
-}
+// ---------------------------------------------------------------------------
+// Data tanah: grid tinggi yang SAMA dengan mesh yang digambar.
+// ground.heightAt(x, z) mengembalikan tinggi permukaan mesh yang sebenarnya
+// (interpolasi segitiga persis seperti PlaneGeometry), sehingga pohon, batu,
+// rumput, dan nanti karakter (Milestone 2) berdiri tepat di atas tanah —
+// tidak melayang atau tenggelam seperti bila memakai fungsi noise langsung.
+// ---------------------------------------------------------------------------
+export function createGround(segments) {
+  const { size } = ISLAND
+  const n = segments + 1
+  const step = size / segments
+  const half = size / 2
+  const heights = new Float32Array(n * n)
+  for (let j = 0; j < n; j++)
+    for (let i = 0; i < n; i++)
+      heights[j * n + i] = heightAt(-half + i * step, -half + j * step)
 
-const tmp = new THREE.Color()
-
-function colorFor(h, slope, x, z, out) {
-  const n = fbm(x * 0.02, z * 0.02, 3, 5)
-
-  if (h < -0.3) {
-    out.copy(C.deepSand).lerp(C.wetSand, smoothstep(-8, -0.3, h))
-  } else if (h < ISLAND.beachTop) {
-    out.copy(C.wetSand).lerp(C.sand, smoothstep(-0.3, 0.8, h))
-  } else {
-    // vegetasi: campuran rumput terang dan hutan gelap
-    out.copy(C.grass).lerp(C.jungle, smoothstep(0.35, 0.65, n))
-    // peralihan pasir → rumput
-    out.lerp(C.sand, 1 - smoothstep(ISLAND.beachTop, ISLAND.beachTop + 1.6, h))
-    // batu di lereng curam dan puncak tinggi
-    const rocky = Math.max(smoothstep(0.55, 0.85, slope), smoothstep(48, 62, h))
-    tmp.copy(C.rock).lerp(C.darkRock, n)
-    out.lerp(tmp, rocky)
+  function groundHeight(x, z) {
+    const fx = (x + half) / step
+    const fz = (z + half) / step
+    if (fx < 0 || fz < 0 || fx >= segments || fz >= segments) return heightAt(x, z)
+    const ix = Math.floor(fx)
+    const iz = Math.floor(fz)
+    const u = fx - ix
+    const v = fz - iz
+    const a = heights[iz * n + ix]
+    const b = heights[(iz + 1) * n + ix]
+    const c = heights[(iz + 1) * n + ix + 1]
+    const d = heights[iz * n + ix + 1]
+    if (u + v <= 1) return a + (d - a) * u + (b - a) * v
+    return c + (b - c) * (1 - u) + (d - c) * (1 - v)
   }
-  // variasi warna halus agar tidak datar
-  const v = 0.92 + 0.16 * fbm(x * 0.15, z * 0.15, 2, 9)
-  out.multiplyScalar(v)
+
+  // kemiringan (naik per meter datar)
+  function slopeAt(x, z) {
+    const h = groundHeight(x, z)
+    return Math.hypot(groundHeight(x + 1, z) - h, groundHeight(x, z + 1) - h)
+  }
+
+  return { size, segments, step, half, n, heights, heightAt: groundHeight, slopeAt }
 }
 
-export function createTerrain(segments) {
-  const geo = new THREE.PlaneGeometry(ISLAND.size, ISLAND.size, segments, segments)
+// ---------------------------------------------------------------------------
+// Shader tanah: warna dihitung per piksel (bukan per vertex) dari tinggi,
+// kemiringan, dan tekstur noise → batas pasir/rumput/batu tajam dan bertekstur.
+// Dibangun di atas MeshLambertMaterial agar tetap dapat cahaya, kabut, dan bayangan.
+// ---------------------------------------------------------------------------
+const vertexPars = /* glsl */`
+attribute vec2 aSurface; // x = oklusi (gelap di bawah pohon), y = padang rumput
+varying vec3 vWorldPos;
+varying vec3 vWorldNrm;
+varying vec2 vSurface;
+`
+
+const fragmentPars = /* glsl */`
+uniform sampler2D uNoise;
+uniform float uBeachTop;
+varying vec3 vWorldPos;
+varying vec3 vWorldNrm;
+varying vec2 vSurface;
+
+const vec3 DEEP_SAND = vec3(0.47, 0.37, 0.22);
+const vec3 WET_SAND = vec3(0.62, 0.50, 0.30);
+const vec3 SAND = vec3(0.83, 0.72, 0.47);
+const vec3 GRASS = vec3(0.24, 0.47, 0.12);
+const vec3 GRASS_DARK = vec3(0.11, 0.30, 0.08);
+const vec3 MEADOW = vec3(0.32, 0.52, 0.12);
+const vec3 DRY = vec3(0.60, 0.58, 0.26);
+const vec3 ROCK = vec3(0.42, 0.39, 0.35);
+const vec3 ROCK_DARK = vec3(0.26, 0.24, 0.22);
+
+vec3 terrainColor() {
+  vec2 p = vWorldPos.xz;
+  float h = vWorldPos.y;
+  float slope = 1.0 - clamp(normalize(vWorldNrm).y, 0.0, 1.0);
+  float nF = texture2D(uNoise, p * 0.055).r;     // butiran ±0.5 m
+  float nM = texture2D(uNoise, p * 0.0173).g;    // variasi ±10 m
+  float nL = texture2D(uNoise, p * 0.0037).b;    // bercak besar ±60 m
+
+  // pasir: basah di tepi air, kering di atasnya, lebih gelap di dasar laut
+  vec3 sand = mix(WET_SAND, SAND, smoothstep(-0.2, 1.0, h + (nM - 0.5) * 0.8));
+  sand = mix(DEEP_SAND, sand, smoothstep(-6.0, -0.3, h));
+  sand *= 0.9 + 0.2 * nF;
+
+  // rumput/hutan: bercak terang-gelap, lebih kekuningan di padang sekitar gunung
+  vec3 grass = mix(GRASS, GRASS_DARK, smoothstep(0.3, 0.75, nL + (nM - 0.5) * 0.4));
+  grass = mix(grass, MEADOW, vSurface.y * 0.7);
+  grass = mix(grass, DRY, vSurface.y * smoothstep(0.55, 0.85, nM) * 0.45);
+  grass *= 0.86 + 0.28 * nF;
+
+  // batu: lereng curam dan dekat puncak
+  vec3 rock = mix(ROCK, ROCK_DARK, smoothstep(0.3, 0.8, nM));
+  rock *= 0.8 + 0.4 * nF;
+
+  float edge = uBeachTop + (nM - 0.5) * 1.6;
+  vec3 col = mix(sand, grass, smoothstep(edge - 0.3, edge + 0.3, h));
+  float rocky = max(
+    smoothstep(0.32, 0.42, slope + (nM - 0.5) * 0.12),
+    smoothstep(70.0, 80.0, h + (nL - 0.5) * 14.0)
+  );
+  rocky *= smoothstep(uBeachTop, uBeachTop + 1.5, h);
+  col = mix(col, rock, rocky);
+
+  return col * vSurface.x;
+}
+`
+
+export function createTerrain(ground, { noiseTexture, quality }) {
+  const { segments, n, heights, half, step } = ground
+  const geo = new THREE.PlaneGeometry(ground.size, ground.size, segments, segments)
   geo.rotateX(-Math.PI / 2)
+  geo.deleteAttribute('uv')
 
   const pos = geo.attributes.position
-  for (let i = 0; i < pos.count; i++)
-    pos.setY(i, heightAt(pos.getX(i), pos.getZ(i)))
-
+  for (let i = 0; i < pos.count; i++) pos.setY(i, heights[i])
   geo.computeVertexNormals()
 
-  const nor = geo.attributes.normal
-  const colors = new Float32Array(pos.count * 3)
-  const col = new THREE.Color()
-  for (let i = 0; i < pos.count; i++) {
-    const slope = 1 - nor.getY(i)
-    colorFor(pos.getY(i), slope * 2.2, pos.getX(i), pos.getZ(i), col)
-    colors[i * 3] = col.r
-    colors[i * 3 + 1] = col.g
-    colors[i * 3 + 2] = col.b
-  }
-  geo.setAttribute('color', new THREE.BufferAttribute(colors, 3))
+  // aSurface: oklusi (diisi pohon nanti) + seberapa padang rumput
+  const surface = new Float32Array(pos.count * 2)
+  for (let j = 0; j < n; j++)
+    for (let i = 0; i < n; i++) {
+      const k = j * n + i
+      surface[k * 2] = 1
+      surface[k * 2 + 1] = meadowAmount(-half + i * step, -half + j * step, heights[k])
+    }
+  const surfaceAttr = new THREE.BufferAttribute(surface, 2)
+  geo.setAttribute('aSurface', surfaceAttr)
   geo.computeBoundingSphere()
 
-  const mat = new THREE.MeshLambertMaterial({ vertexColors: true })
+  const mat = new THREE.MeshLambertMaterial({ color: 0xffffff })
+  mat.onBeforeCompile = shader => {
+    shader.uniforms.uNoise = { value: noiseTexture }
+    shader.uniforms.uBeachTop = { value: ISLAND.beachTop }
+    shader.vertexShader = vertexPars + shader.vertexShader.replace(
+      '#include <worldpos_vertex>',
+      `#include <worldpos_vertex>
+      vWorldPos = (modelMatrix * vec4(transformed, 1.0)).xyz;
+      vWorldNrm = normalize(mat3(modelMatrix) * objectNormal);
+      vSurface = aSurface;`
+    )
+    shader.fragmentShader = fragmentPars + shader.fragmentShader.replace(
+      '#include <color_fragment>',
+      `#include <color_fragment>
+      diffuseColor.rgb *= terrainColor();`
+    )
+  }
+
   const mesh = new THREE.Mesh(geo, mat)
   mesh.name = 'terrain'
+  mesh.receiveShadow = quality.shadows
+
+  // Gelapkan tanah di bawah pohon/batu (oklusi palsu yang murah).
+  // items: [{ x, z, radius, strength }]
+  mesh.userData.applyOcclusion = items => {
+    for (const it of items) {
+      const r = it.radius
+      const i0 = Math.max(0, Math.floor((it.x - r + half) / step))
+      const i1 = Math.min(n - 1, Math.ceil((it.x + r + half) / step))
+      const j0 = Math.max(0, Math.floor((it.z - r + half) / step))
+      const j1 = Math.min(n - 1, Math.ceil((it.z + r + half) / step))
+      for (let j = j0; j <= j1; j++)
+        for (let i = i0; i <= i1; i++) {
+          const dx = -half + i * step - it.x
+          const dz = -half + j * step - it.z
+          const t = 1 - (dx * dx + dz * dz) / (r * r)
+          if (t <= 0) continue
+          const k = (j * n + i) * 2
+          surface[k] = Math.max(0.5, surface[k] * (1 - it.strength * t * t))
+        }
+    }
+    surfaceAttr.needsUpdate = true
+  }
   return mesh
 }
 

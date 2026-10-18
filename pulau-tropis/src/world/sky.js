@@ -1,6 +1,7 @@
 import * as THREE from 'three'
 
-// Langit: kubah gradien + matahari, tanpa tekstur (murah untuk HP).
+// Langit: kubah gradien + matahari + awan bergerak, tanpa tekstur gambar (murah untuk HP).
+// Awan memakai tekstur noise bersama (3 kali baca tekstur per piksel).
 const vertexShader = /* glsl */`
 varying vec3 vDir;
 void main() {
@@ -15,13 +16,29 @@ uniform vec3 uZenith;
 uniform vec3 uHorizon;
 uniform vec3 uSunDir;
 uniform vec3 uSunColor;
+uniform sampler2D uNoise;
+uniform float uTime;
 varying vec3 vDir;
 void main() {
   vec3 d = normalize(vDir);
   float up = max(d.y, 0.0);
-  vec3 col = mix(uHorizon, uZenith, pow(up, 0.55));
+  vec3 col = mix(uHorizon, uZenith, pow(up, 0.5));
   float s = max(dot(d, uSunDir), 0.0);
-  col += uSunColor * (pow(s, 900.0) * 3.0 + pow(s, 12.0) * 0.25);
+  col += uSunColor * (pow(s, 12.0) * 0.22 + pow(s, 120.0) * 0.4);
+
+  // awan: diproyeksikan ke "langit-langit" datar, bergerak pelan
+  if (d.y > 0.0) {
+    vec2 uv = d.xz / (d.y + 0.15) * 0.22 + vec2(uTime * 0.0025, uTime * 0.001);
+    float n = texture2D(uNoise, uv).b * 0.62
+      + texture2D(uNoise, uv * 2.9 + 0.31).g * 0.28
+      + texture2D(uNoise, uv * 7.3 + 0.67).r * 0.1;
+    float cover = smoothstep(0.5, 0.74, n) * smoothstep(0.0, 0.16, d.y);
+    vec3 cloud = mix(vec3(0.72, 0.78, 0.86), vec3(1.0), smoothstep(0.5, 0.82, n));
+    cloud += uSunColor * pow(s, 6.0) * 0.25; // tepi awan bercahaya ke arah matahari
+    col = mix(col, cloud, cover * 0.92);
+  }
+  // cakram matahari (di atas awan tipis)
+  col += uSunColor * pow(s, 1800.0) * 4.0;
   // di bawah cakrawala: warna kabut (menyatu dengan laut di kejauhan)
   col = mix(col, uHorizon, smoothstep(0.0, -0.05, d.y));
   gl_FragColor = vec4(col, 1.0);
@@ -30,25 +47,28 @@ void main() {
 }
 `
 
-export function createEnvironment(scene) {
-  const sunDir = new THREE.Vector3(0.45, 0.55, 0.35).normalize()
-  const horizon = new THREE.Color('#cfe9f3')
-  const zenith = new THREE.Color('#3f8fd6')
+export function createEnvironment(scene, { noiseTexture, quality }) {
+  const sunDir = new THREE.Vector3(0.5, 0.52, 0.32).normalize()
+  const horizon = new THREE.Color('#d3ecf6')
+  const zenith = new THREE.Color('#3d8bd4')
 
-  scene.fog = new THREE.Fog(horizon.clone(), 350, 2400)
+  scene.fog = new THREE.Fog(horizon.clone(), 380, 2400)
   scene.background = horizon.clone()
 
+  const skyUniforms = {
+    uZenith: { value: zenith },
+    uHorizon: { value: horizon },
+    uSunDir: { value: sunDir },
+    uSunColor: { value: new THREE.Color('#fff0c8') },
+    uNoise: { value: noiseTexture },
+    uTime: { value: 0 },
+  }
   const skyMat = new THREE.ShaderMaterial({
     vertexShader,
     fragmentShader,
     side: THREE.BackSide,
     depthWrite: false,
-    uniforms: {
-      uZenith: { value: zenith },
-      uHorizon: { value: horizon },
-      uSunDir: { value: sunDir },
-      uSunColor: { value: new THREE.Color('#fff2cc') },
-    },
+    uniforms: skyUniforms,
   })
   const sky = new THREE.Mesh(new THREE.SphereGeometry(1, 32, 16), skyMat)
   sky.name = 'langit'
@@ -62,18 +82,62 @@ export function createEnvironment(scene) {
   }
   scene.add(sky)
 
-  const hemi = new THREE.HemisphereLight('#cfeaff', '#6b8a4a', 1.4)
+  const hemi = new THREE.HemisphereLight('#d6ecff', '#5d7a3c', 1.1)
   scene.add(hemi)
 
-  const sun = new THREE.DirectionalLight('#fff1d6', 2.2)
+  const sun = new THREE.DirectionalLight('#fff1d6', 2.4)
   sun.position.copy(sunDir).multiplyScalar(500)
-  scene.add(sun)
+  scene.add(sun, sun.target)
+
+  if (quality.shadows) {
+    sun.castShadow = true
+    sun.shadow.mapSize.set(quality.shadowMapSize, quality.shadowMapSize)
+    sun.shadow.camera.near = 1
+    sun.shadow.camera.far = 1600
+    sun.shadow.bias = -0.0006
+    sun.shadow.radius = 2
+  }
+
+  // Kotak bayangan mengikuti kamera: dekat = tajam, jauh = mencakup seluruh pulau.
+  // Ukuran dibulatkan bertingkat dan posisinya "di-snap" ke grid texel bayangan
+  // supaya tepi bayangan tidak berkedip saat kamera bergerak.
+  const lightRot = new THREE.Matrix4().lookAt(sunDir, new THREE.Vector3(), new THREE.Vector3(0, 1, 0))
+  const lightRotInv = lightRot.clone().invert()
+  const center = new THREE.Vector3()
+  const STEP = Math.log(1.15)
+
+  function updateShadow(camera, target) {
+    if (!sun.castShadow) return
+    const dist = camera.position.distanceTo(target)
+    const raw = THREE.MathUtils.clamp(dist * 0.95, 45, 560)
+    const half = Math.exp(Math.ceil(Math.log(raw) / STEP) * STEP)
+    const cam = sun.shadow.camera
+    if (cam.right !== half) {
+      cam.left = -half
+      cam.right = half
+      cam.top = half
+      cam.bottom = -half
+      cam.updateProjectionMatrix()
+    }
+    const texel = (2 * half) / sun.shadow.mapSize.x
+    center.copy(target).lerp(camera.position, 0.25).applyMatrix4(lightRotInv)
+    center.x = Math.round(center.x / texel) * texel
+    center.y = Math.round(center.y / texel) * texel
+    center.applyMatrix4(lightRot)
+    sun.target.position.copy(center)
+    sun.position.copy(center).addScaledVector(sunDir, 800)
+    sun.shadow.normalBias = texel * 1.6
+  }
 
   return {
     sunDir,
-    skyColor: new THREE.Color('#9fd0ee'),
+    skyColor: new THREE.Color('#a4d2ee'),
     fog: scene.fog,
     sun,
     hemi,
+    update(time, camera, target) {
+      skyUniforms.uTime.value = time
+      updateShadow(camera, target)
+    },
   }
 }

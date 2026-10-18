@@ -1,5 +1,34 @@
 # CHANGELOG — Pulau Tropis
 
+## [0.3.0] — 2026-10-18 — Rumput di sekitar gunung + peningkatan kualitas (permintaan pengguna)
+### Ditambahkan
+- **Rumput ilalang** di lereng dan kaki gunung: rumpun-rumpun helai melengkung yang bergoyang
+  ditiup angin (gelombang angin menyapu padang). Sabuk rumput rapat di lereng gunung (±16–76 m,
+  di atas batas hutan, di bawah puncak berbatu) + rumput lebih jarang di padang terbuka sekitarnya.
+  Sistem chunk 16×16 m: rumput hanya dibuat & digambar di sekitar kamera, kepadatan turun
+  dengan jarak, semua dalam satu draw call.
+- **Menu Kualitas** (tombol "Kualitas" di kanan atas): Rendah / Sedang / Tinggi. Pilihan disimpan;
+  HP otomatis mulai di Sedang, komputer di Tinggi. Saran "Terasa berat?" muncul bila FPS < 24.
+- **Bayangan matahari** (Sedang/Tinggi): pohon, kelapa, dan batu membayangi tanah. Kotak bayangan
+  mengikuti kamera (tajam saat dekat, mencakup pulau saat jauh) dan di-snap ke grid texel agar
+  tidak berkedip.
+- **Awan** bergerak di langit + cakram matahari.
+- **Kilau kaustik** (jaring cahaya) bergerak di air dangkal (Sedang/Tinggi).
+- **Vegetasi baru**: pohon payung di padang, semak, semak berbunga (merah/kuning/pink), batu
+  besar di lereng gunung dan batu kecil di padang/pantai.
+- `PlacementGrid`: objek tidak saling menembus (pohon, batu, semak berjarak wajar).
+- `ground.heightAt()`: tinggi permukaan mesh yang sebenarnya — objek berdiri tepat di tanah
+  (juga untuk collision karakter di Milestone 2).
+### Diubah
+- **Tanah** diwarnai per piksel (bukan per vertex) dengan tekstur noise ber-mipmap: batas
+  pasir/rumput/batu tajam, butiran halus, bercak warna, padang lebih hijau-kekuningan di sekitar
+  gunung, tanah lebih gelap di bawah pohon (oklusi palsu).
+- **Kelapa**: pelepah bersirip (anak daun) + pelepah tua kekuningan + buah kelapa, batang bercincin.
+- **Pohon hutan**: cabang, tajuk dengan cahaya lembut (normal membulat), pola daun.
+- Tone mapping ACES + penyesuaian cahaya; pohon & batu dibagi per petak 3×3 agar yang di luar
+  layar tidak digambar.
+- Kamera orbit bisa zoom lebih dekat (12 m) untuk melihat rumput.
+
 ## [0.2.0] — 2026-10-18 — Pohon (permintaan pengguna)
 ### Ditambahkan
 - Pohon kelapa low-poly di pantai (batang melengkung, daun terkulai) dan pohon hutan tropis

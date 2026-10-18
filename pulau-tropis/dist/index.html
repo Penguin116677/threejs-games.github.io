@@ -7,8 +7,8 @@
   <meta name="theme-color" content="#7ec8e8">
   <meta name="mobile-web-app-capable" content="yes">
   <title>Pulau Tropis</title>
-  <script type="module" crossorigin src="./assets/index-ROX4eQkD.js"></script>
-  <link rel="stylesheet" crossorigin href="./assets/index-DYSMjIz6.css">
+  <script type="module" crossorigin src="./assets/index-Aa3rCnP2.js"></script>
+  <link rel="stylesheet" crossorigin href="./assets/index-B7iBslDT.css">
 </head>
 
 <body>
@@ -25,8 +25,17 @@
       <div id="fps">-- FPS</div>
     </div>
     <div class="hud-kanan">
+      <button id="btn-kualitas" type="button">Kualitas</button>
       <button id="btn-layar-penuh" type="button">Layar penuh</button>
     </div>
+    <div id="panel-kualitas" hidden>
+      <div class="panel-judul">Kualitas grafis</div>
+      <button type="button" data-q="rendah">Rendah <small>paling ringan, tanpa bayangan</small></button>
+      <button type="button" data-q="sedang">Sedang <small>bayangan + rumput (disarankan untuk HP)</small></button>
+      <button type="button" data-q="tinggi">Tinggi <small>paling detail, untuk HP kuat / komputer</small></button>
+      <button type="button" id="btn-tutup-kualitas" class="tutup">Tutup</button>
+    </div>
+    <div id="saran" hidden>Terasa berat? Ketuk <b>Kualitas</b> lalu pilih <b>Rendah</b>.</div>
     <div id="petunjuk">Geser 1 jari: putar kamera · Cubit 2 jari: zoom · Geser 2 jari: geser</div>
   </div>
 

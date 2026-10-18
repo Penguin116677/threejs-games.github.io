@@ -34,6 +34,8 @@ uniform vec3 uSunColor;
 uniform vec3 uFogColor;
 uniform float uFogNear;
 uniform float uFogFar;
+uniform sampler2D uNoise;
+uniform float uCaustics;
 varying vec3 vWorld;
 varying float vFogDepth;
 
@@ -75,6 +77,15 @@ void main() {
   float spec = pow(max(dot(n, h), 0.0), 180.0);
   col += uSunColor * spec * 1.4;
 
+  // kilau kaustik: jaring cahaya bergerak di air dangkal (dua lapis noise yang saling geser)
+  if (uCaustics > 0.5) {
+    vec2 cp = vWorld.xz * 0.045;
+    float c1 = texture2D(uNoise, cp + vec2(uTime * 0.011, uTime * 0.007)).a;
+    float c2 = texture2D(uNoise, cp * 1.37 + vec2(-uTime * 0.009, uTime * 0.012)).a;
+    float caustic = pow(smoothstep(0.55, 1.0, 1.0 - abs(c1 - c2)), 3.0);
+    col += vec3(0.85, 1.0, 0.95) * caustic * 0.32 * (1.0 - smoothstep(0.03, 0.4, depth)) * (1.0 - far);
+  }
+
   // buih bergerak di garis pantai
   float shore = 1.0 - smoothstep(0.0, 0.07, depth);
   float band = 0.5 + 0.5 * sin(depth * 140.0 - uTime * 2.2 + vWorld.x * 0.05);
@@ -94,7 +105,7 @@ void main() {
 }
 `
 
-export function createWater(depthTexture, env) {
+export function createWater(depthTexture, env, { noiseTexture, quality }) {
   const geo = new THREE.PlaneGeometry(6000, 6000, 120, 120)
   geo.rotateX(-Math.PI / 2)
 
@@ -115,6 +126,8 @@ export function createWater(depthTexture, env) {
       uFogColor: { value: env.fog.color },
       uFogNear: { value: env.fog.near },
       uFogFar: { value: env.fog.far },
+      uNoise: { value: noiseTexture },
+      uCaustics: { value: quality.caustics ? 1 : 0 },
     },
   })
 

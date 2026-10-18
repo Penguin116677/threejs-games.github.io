@@ -1,17 +1,83 @@
-// Pengaturan kualitas: HP mendapat resolusi dan detail lebih rendah
-// agar tetap lancar. Bisa dipaksa lewat URL: ?kualitas=rendah|tinggi
-const params = new URLSearchParams(location.search)
-const paksa = params.get('kualitas')
+// Pengaturan kualitas grafis: rendah / sedang / tinggi.
+// Pilihan dibaca dari: #kualitas= (diset menu dalam game) → ?kualitas= di URL
+// → pilihan tersimpan → otomatis (HP: sedang, komputer: tinggi).
+const LEVELS = ['rendah', 'sedang', 'tinggi']
+const KEY = 'pulau-tropis:kualitas'
+
+const PRESETS = {
+  rendah: {
+    maxPixelRatio: 1.25,
+    terrainSegments: 200,
+    shadows: false,
+    shadowMapSize: 0,
+    softShadows: false,
+    treeDensity: 0.75,
+    canopyDetail: 0,
+    grass: { radius: 70, near: 9, density: 1.6, blades: 4, max: 4000, shadows: false },
+    caustics: false,
+  },
+  sedang: {
+    maxPixelRatio: 1.5,
+    terrainSegments: 256,
+    shadows: true,
+    shadowMapSize: 1024,
+    softShadows: false,
+    treeDensity: 1,
+    canopyDetail: 0,
+    grass: { radius: 120, near: 13, density: 2.4, blades: 6, max: 9000, shadows: false },
+    caustics: true,
+  },
+  tinggi: {
+    maxPixelRatio: 2,
+    terrainSegments: 384,
+    shadows: true,
+    shadowMapSize: 2048,
+    softShadows: true,
+    treeDensity: 1.5,
+    canopyDetail: 1,
+    grass: { radius: 170, near: 18, density: 3.2, blades: 8, max: 26000, shadows: true },
+    caustics: true,
+  },
+}
 
 const isMobile = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent)
   || (navigator.maxTouchPoints > 1 && window.matchMedia('(pointer: coarse)').matches)
 
-const rendah = paksa ? paksa === 'rendah' : isMobile
+function stored() {
+  try {
+    return localStorage.getItem(KEY)
+  } catch {
+    return null // penyimpanan bisa diblokir (mode privat / pratinjau)
+  }
+}
 
-export const quality = {
-  isMobile,
-  level: rendah ? 'rendah' : 'tinggi',
-  maxPixelRatio: rendah ? 1.5 : 2,
-  terrainSegments: rendah ? 220 : 352,
-  antialias: !rendah || window.devicePixelRatio < 2,
+function pickLevel() {
+  const fromHash = new URLSearchParams(location.hash.slice(1)).get('kualitas')
+  const fromUrl = new URLSearchParams(location.search).get('kualitas')
+  for (const v of [fromHash, fromUrl, stored()])
+    if (LEVELS.includes(v)) return v
+  return isMobile ? 'sedang' : 'tinggi'
+}
+
+const level = pickLevel()
+
+export const quality = { isMobile, level, levels: LEVELS, ...PRESETS[level] }
+
+// Simpan pilihan lalu muat ulang halaman (dunia dibangun ulang dengan pengaturan baru).
+export function setQualityLevel(next) {
+  if (!LEVELS.includes(next)) return
+  try {
+    localStorage.setItem(KEY, next)
+  } catch {
+    // tidak apa-apa: pilihan tetap terbawa lewat #kualitas= di alamat
+  }
+  try {
+    const url = new URL(location.href)
+    url.searchParams.delete('kualitas')
+    url.hash = `kualitas=${next}`
+    history.replaceState(null, '', url)
+  } catch {
+    location.hash = `kualitas=${next}`
+  }
+  location.reload()
 }

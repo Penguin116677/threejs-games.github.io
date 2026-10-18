@@ -96,6 +96,10 @@ body {
   position: absolute;
   top: max(10px, env(safe-area-inset-top));
   right: max(12px, env(safe-area-inset-right));
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 8px;
 }
 
 #hud button {
@@ -123,4 +127,65 @@ body {
   padding: 8px 12px;
   border-radius: 10px;
   transition: opacity 1s;
+}
+
+#panel-kualitas {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: min(340px, calc(100% - 32px));
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 16px;
+  border-radius: 14px;
+  background: rgba(0, 32, 48, 0.82);
+  backdrop-filter: blur(6px);
+  pointer-events: auto;
+  text-shadow: none;
+}
+
+.panel-judul {
+  font-weight: 700;
+  font-size: 16px;
+  margin-bottom: 4px;
+}
+
+#panel-kualitas button {
+  text-align: left;
+  font-size: 15px;
+  font-weight: 600;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+#panel-kualitas button small {
+  display: block;
+  font-weight: 400;
+  font-size: 12px;
+  opacity: 0.8;
+}
+
+#panel-kualitas button.aktif {
+  background: #1f9c8a;
+}
+
+#panel-kualitas button.tutup {
+  text-align: center;
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.35);
+}
+
+#saran {
+  position: absolute;
+  left: 50%;
+  top: 30%;
+  transform: translateX(-50%);
+  width: max-content;
+  max-width: calc(100% - 24px);
+  padding: 10px 14px;
+  border-radius: 10px;
+  background: rgba(120, 60, 0, 0.75);
+  font-size: 14px;
+  text-align: center;
 }
