@@ -7,8 +7,10 @@ import { mkdirSync } from 'node:fs'
 // - komputer: klik tanah untuk berjalan, jalan (W), lompat (Spasi), tabrakan batang pohon,
 //   laut dalam → kembali ke pantai, mendaki lereng gunung
 // - HP: ketuk tanah untuk berjalan (jalur memutari batang pohon), ketuk laut → berhenti di
-//   air dangkal, tombol Lompat, geser kamera (tanpa memicu jalan), cubit zoom,
-//   tombol Lihat pulau, menu Kualitas
+//   air dangkal, tombol Pukul (berhenti + mengayun, mengenai batang pohon → serpihan),
+//   tombol Lompat, geser kamera (tanpa memicu jalan), cubit zoom, tombol Lihat pulau, menu Kualitas
+// - komputer: tombol F = pukul
+// - tidak ada lagi lingkaran hijau di bawah prajurit
 // Waktu tunggu dihitung dalam FRAME (fisika berjalan per frame), bukan detik, karena
 // render software jauh lebih lambat dari HP.
 // Pemakaian: npm run build && npm run preview (terminal lain) && npm run test:smoke
@@ -43,7 +45,7 @@ const state = page => page.evaluate(() => {
   const g = ground.heightAt(p.x, p.z)
   return {
     x: p.x, y: p.y, z: p.z, ground: g, h: p.y - g, speed: player.speed, grounded: player.grounded,
-    yaw: cam.yaw, model: player.usingModel, path: player.hasPath,
+    yaw: cam.yaw, model: player.usingModel, path: player.hasPath, attacking: player.attacking,
   }
 })
 
@@ -86,6 +88,12 @@ const openSpot = (page, x, z, toward) => page.evaluate(([x, z, toward]) => {
   }
   return null
 }, [x, z, toward])
+
+// tunggu sampai ayunan pedang selesai; kembalikan statistik efek pukulan
+async function attackDone(page) {
+  for (let i = 0; i < 60 && (await state(page)).attacking; i++) await waitFrames(page, 1)
+  return page.evaluate(() => window.__pulau.effects.stats())
+}
 
 // batang pohon hutan yang kiri-kanannya lapang (untuk uji tabrakan & jalur memutar)
 const openTrunk = page => page.evaluate(() => {
@@ -131,6 +139,14 @@ for (const [name, opts, query] of cases) {
   else ok('prajurit dengan pedang termuat')
   if (Math.abs(s0.h) > 0.05) fail(`karakter tidak berdiri di tanah (selisih ${s0.h.toFixed(2)} m)`)
   else ok('karakter berdiri di tanah')
+  const greenRing = await page.evaluate(() => {
+    let found = false
+    window.__pulau.scene.traverse(o => {
+      if (o.material?.color?.getHexString?.() === '6dff8a') found = true
+    })
+    return found
+  })
+  if (greenRing) fail('lingkaran hijau di bawah prajurit masih ada')
 
   // rumput: pemain di padang lereng barat gunung, menghadap puncak
   await teleport(page, -50, -95, [70, -60])
@@ -200,6 +216,15 @@ for (const [name, opts, query] of cases) {
     if (moved < 5 || Math.abs(b.h) > 0.05) fail(`jalan W: pindah ${moved.toFixed(1)} m, selisih tanah ${b.h.toFixed(2)}`)
     else ok(`jalan W: pindah ${moved.toFixed(1)} m dalam 30 frame, tetap di tanah`)
     await page.screenshot({ path: `${out}/${name}-jalan.png` })
+
+    // pukul dengan F
+    const fxa = await page.evaluate(() => window.__pulau.effects.stats())
+    await page.keyboard.press('KeyF')
+    await waitFrames(page, 2)
+    const swingF = (await state(page)).attacking
+    const fxb = await attackDone(page)
+    if (!swingF || fxb.slashes !== fxa.slashes + 1) fail(`tombol F: mengayun ${swingF}, sabetan ${fxb.slashes - fxa.slashes}`)
+    else ok('tombol F: prajurit mengayunkan pedang')
 
     // lompat dengan Spasi
     await waitFrames(page, 10)
@@ -329,7 +354,36 @@ for (const [name, opts, query] of cases) {
       window.__pulau.cam.state.dist = 22
     })
 
+    // tombol Pukul saat berjalan: prajurit berhenti di tempat dan mengayunkan pedang
+    await teleport(page, -122, 122, [0, 0])
+    await waitFrames(page, 3)
+    await tap(await screenOf(page, ...(await openSpot(page, -122, 122, [0, 0]))))
+    await waitFrames(page, 6)
+    const fx0 = await page.evaluate(() => window.__pulau.effects.stats())
+    const run = await state(page)
+    await page.tap('#btn-pukul')
+    await waitFrames(page, 2)
+    const swing = await state(page)
+    const fx1 = await attackDone(page)
+    const after = await state(page)
+    if (!run.path || run.speed < 1) fail('uji Pukul: prajurit tidak sedang berjalan sebelum menekan Pukul')
+    else if (!swing.attacking || swing.path) fail(`tombol Pukul: mengayun ${swing.attacking}, masih berjalan ${swing.path}`)
+    else if (after.attacking || fx1.slashes !== fx0.slashes + 1 || after.speed > 0.3) fail(`tombol Pukul: selesai ${!after.attacking}, sabetan ${fx1.slashes - fx0.slashes}, kecepatan ${after.speed.toFixed(2)}`)
+    else ok('tombol Pukul: berhenti berjalan, mengayunkan pedang (1 sabetan), lalu diam')
+
+    // memukul batang pohon dari dekat → serpihan kayu & daun
+    const target = await openTrunk(page)
+    await teleport(page, target.x - (target.radius + 0.5), target.z, [target.x, target.z])
+    await waitFrames(page, 5)
+    await page.tap('#btn-pukul')
+    await waitFrames(page, 2)
+    const fx2 = await attackDone(page)
+    if (fx2.bursts !== fx1.bursts + 1 || fx2.lastKind !== 'pohon') fail(`Pukul batang pohon: serpihan ${fx2.bursts - fx1.bursts}, jenis ${fx2.lastKind}`)
+    else ok('Pukul batang pohon: kena, serpihan kayu & daun muncul')
+    await page.screenshot({ path: `${out}/${name}-pukul.png` })
+
     // tombol Lompat
+    await teleport(page, -122, 122, [0, 0])
     await waitFrames(page, 10)
     await page.tap('#btn-lompat')
     let peak = 0

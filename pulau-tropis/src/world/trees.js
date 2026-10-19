@@ -411,11 +411,11 @@ export function createTrees({ ground, grid, quality, noiseTexture }) {
     ...bushes.map(p => ({ x: p.x, z: p.z, radius: 1.8, strength: 0.2 })),
     ...flowers.map(p => ({ x: p.x, z: p.z, radius: 1.6, strength: 0.15 })),
   ]
-  // batang pohon untuk collision di Milestone 2
+  // batang pohon untuk collision (dan sasaran pukulan pedang)
   group.userData.trunks = [
-    ...palms.map(p => ({ x: p.x, z: p.z, radius: 0.45 })),
-    ...jungle.map(p => ({ x: p.x, z: p.z, radius: 0.7 })),
-    ...umbrella.map(p => ({ x: p.x, z: p.z, radius: 0.75 })),
+    ...palms.map(p => ({ x: p.x, z: p.z, radius: 0.45, kind: 'pohon' })),
+    ...jungle.map(p => ({ x: p.x, z: p.z, radius: 0.7, kind: 'pohon' })),
+    ...umbrella.map(p => ({ x: p.x, z: p.z, radius: 0.75, kind: 'pohon' })),
   ]
   group.userData.counts = {
     kelapa: palms.length, pohon: jungle.length, payung: umbrella.length,

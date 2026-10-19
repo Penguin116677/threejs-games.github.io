@@ -72,7 +72,7 @@ software dan **tidak** mencerminkan performa HP.
 5. Tombol **Lihat pulau** → kamera bebas (geser/cubit seperti dulu); **Main lagi** → kembali.
 
 ## Daftar uji manual — v0.6.0 (kamera strategi + ketuk untuk berjalan)
-1. Kamera melihat prajurit dari atas (seperti game strategi); ada cincin hijau di bawah prajurit.
+1. Kamera melihat prajurit dari atas (seperti game strategi).
 2. **Ketuk tanah** di dekat prajurit → cincin kuning muncul di titik itu, prajurit berjalan ke sana
    lalu berhenti tepat di cincin. Ketuk jauh → prajurit berlari, melambat menjelang tujuan.
 3. Ketuk di balik pohon/batu besar → prajurit berjalan memutar, tidak menabrak/tersangkut.
@@ -86,5 +86,15 @@ software dan **tidak** mencerminkan performa HP.
 10. Putar HP portrait ↔ landscape → tampilan & tombol tetap pas; ketukan tetap tepat sasaran.
 11. Komputer: klik kiri tanah = jalan, seret / klik kanan = putar kamera, roda = zoom,
     Spasi = lompat, WASD/panah juga bisa.
+
+## Daftar uji manual — v0.7.0 (tombol Pukul)
+1. Tidak ada lagi lingkaran hijau di bawah prajurit.
+2. Di kanan bawah ada dua tombol: **Pukul** (ikon pedang) dan **Lompat**.
+3. Ketuk **Pukul** → prajurit mengayunkan pedang, muncul busur putih di depannya.
+4. Ketuk **Pukul** berkali-kali dengan cepat → prajurit mengayun berulang tanpa macet.
+5. Ketuk tanah agar prajurit berjalan, lalu ketuk **Pukul** → prajurit berhenti dan memukul.
+6. Jalan ke dekat batang pohon (ketuk tanah di depan batang), lalu **Pukul** → serpihan kayu dan
+   daun berhamburan. Di dekat batu besar → debu & percikan.
+7. Komputer: tombol **F** = pukul.
 
 Laporkan: model HP, angka FPS di tiap tingkat kualitas, screenshot, dan langkah yang gagal.

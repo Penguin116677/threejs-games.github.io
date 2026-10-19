@@ -118,4 +118,14 @@ tandai sebagai "diganti" bila berubah.
 28. **Tembus pandang tajuk = dither (discard berpola), bukan transparansi**: material pohon tetap
     opaque (tanpa sorting, tanpa biaya blending), fragmen di silinder antara kamera dan prajurit
     dibuang dengan pola interleaved gradient noise (aman untuk presisi GPU HP). Bayangan pohon
-    tetap utuh. Cincin hijau di bawah prajurit digambar tanpa depth test sebagai cadangan.
+    tetap utuh. *(Cincin hijau di bawah prajurit yang semula jadi cadangan dihapus di v0.7.0 atas
+    permintaan pengguna.)*
+29. **Memukul = animasi bawaan model + cek lingkaran di depan, belum ada sistem pertarungan**
+    (v0.7.0, permintaan pengguna). Prajurit memakai klip `attack-melee-right` (tangan kanan yang
+    memegang pedang) dengan kecepatan 0,9× agar terbaca dari kamera atas. Selama mengayun prajurit
+    berdiri di tempat dan jalur ketukannya dibatalkan (seperti game klik-untuk-jalan: memukul
+    menghentikan gerak); lompat ditahan sampai ayunan selesai. Pada puncak ayunan (0,24 detik di
+    klip asli) dicek lingkaran r 0,7 m yang berpusat 1 m di depan badan terhadap collider batang
+    pohon/batu (`colliders.hitAt`, collider kini membawa `kind`). Belum ada nyawa/kerusakan/musuh —
+    itu bagian Milestone 4 — jadi pukulan baru memberi efek visual (sabetan + serpihan, 1 mesh +
+    1 InstancedMesh 40 keping, tanpa bayangan). Di komputer: tombol F (klik kiri dipakai berjalan).

@@ -1,7 +1,7 @@
 # PROJECT_STATUS — Pulau Tropis
 
-**Milestone aktif:** 2 — Karakter dan eksplorasi (kamera & kontrol diubah ke gaya game strategi di v0.6.0, menunggu umpan balik dari HP)
-**Versi:** 0.6.0
+**Milestone aktif:** 2 — Karakter dan eksplorasi (kamera strategi v0.6.0, tombol Pukul v0.7.0 — menunggu umpan balik dari HP)
+**Versi:** 0.7.0
 **Terakhir diperbarui:** 2026-10-19
 
 ## Kondisi awal repository (sebelum Milestone 1)
@@ -35,13 +35,28 @@
 | Karakter pemain: prajurit berpedang (Kenney CC0), animasi diam/jalan/lari/lompat/jatuh | ✅ selesai (diganti prajurit v0.5.1) |
 | Kamera strategi dari atas (putar, zoom 10–60 m, tidak menembus bukit) — menggantikan kamera orang ketiga | ✅ selesai (v0.6.0) |
 | Ketuk tanah untuk berjalan (jalur memutari pohon/batu/tebing/laut dalam) — menggantikan joystick | ✅ selesai (v0.6.0) |
-| Penanda tujuan + cincin prajurit, tajuk pohon tembus pandang di depan kamera | ✅ selesai (v0.6.0) |
+| Penanda tujuan, tajuk pohon tembus pandang di depan kamera (lingkaran hijau dihapus v0.7.0) | ✅ selesai |
+| Tombol Pukul: ayunan pedang + efek sabetan/serpihan (belum ada musuh/kerusakan) | ✅ selesai (v0.7.0) |
 | Tombol Lompat, geser kamera, cubit zoom | ✅ selesai |
 | Kontrol mouse + keyboard (komputer): klik = jalan, WASD tetap bisa | ✅ selesai |
 | Gravitasi, lompat, batas lereng, tabrakan batang pohon & batu besar | ✅ selesai |
 | Respawn: laut dalam / terlalu jauh → kembali ke posisi aman | ✅ selesai |
 | Map bisa dijelajahi (pantai, hutan, padang, lereng gunung, puncak) | ✅ analisis + uji otomatis |
 | Dicoba di HP Android sungguhan | ⏳ menunggu laporan pengguna |
+
+## Yang sudah diperiksa (v0.7.0 — tombol Pukul, lingkaran hijau dihapus)
+- `npm run build` berhasil; ESLint (konfigurasi repo): 0 error, 0 warning.
+- Smoke test otomatis (4 perangkat) — **LULUS**, termasuk uji baru:
+  - tidak ada lagi lingkaran hijau di scene;
+  - HP: Pukul saat berlari → jalan berhenti, 1 sabetan, lalu diam (kecepatan 0); Pukul di depan
+    batang pohon → serpihan "pohon" muncul; semua uji lama (ketuk, memutari pohon, laut, Lompat,
+    geser, cubit, mode, menu Kualitas) tetap lulus;
+  - komputer: tombol F mengayunkan pedang; klik/W/Spasi/tabrakan/laut/mendaki tetap lulus.
+- Uji perilaku terpisah: Pukul di tempat lapang → sabetan tanpa serpihan; batang pohon → 16 keping
+  kayu & daun; batu besar → 12 keping debu & percikan; tombol Pukul terlihat di HP.
+- Efek dipotret pada waktu efek yang tepat (0,04 / 0,1 / 0,18 / 0,3 detik) dari jarak kamera normal
+  (22 m): sabetan dan serpihan terbaca.
+- Halaman pratinjau (artifact) diuji dulu sebagai salinan lokal: Pukul → mengayun + sabetan.
 
 ## Yang sudah diperiksa (v0.6.0 — kamera strategi + ketuk untuk berjalan)
 - `npm run build` berhasil; ESLint (konfigurasi repo): 0 error, 0 warning.
@@ -88,6 +103,7 @@
 ## Yang BELUM diperiksa
 - **Rasa kontrol ketuk di HP sungguhan** (ketepatan titik ketuk, beda ketuk vs geser, cubit) dan
   tampilan tembus pandang tajuk di GPU HP — hanya diuji dengan sentuhan tiruan di Chromium.
+- Rasa tombol Pukul di HP sungguhan (posisi tombol untuk jempol, kecepatan ayunan).
 - **Performa nyata di HP** — FPS di smoke test memakai render software, tidak mewakili HP.
 - Gestur cubit (pinch zoom) dua jari di perangkat sungguhan.
 - Menu Kualitas di dalam halaman preview (artifact) — memuat ulang halaman di dalam bingkai preview.
@@ -122,3 +138,6 @@ yang lebih rapat (untuk ombak) dan buah kelapa. v0.2.0 (HP): ±230 ribu.
 - Jalur dihitung di grid 2 m: celah sangat sempit di antara batang/batu (< ±1 m) dianggap tertutup;
   mengetuk tajuk pohon memilih tanah di bawah/di balik tajuk.
 - Batu besar tidak ikut tembus pandang (jarang menutupi prajurit karena kamera dari atas).
+- Pukulan belum berpengaruh pada apa pun (belum ada musuh, nyawa, atau kerusakan) dan belum ada
+  suara; serpihan hanya efek sesaat. Prajurit memukul ke arah hadapnya (tidak otomatis menghadap
+  sasaran terdekat). Rumput, semak, dan bunga tidak bereaksi saat dipukul.

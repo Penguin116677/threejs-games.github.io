@@ -1,5 +1,21 @@
 # CHANGELOG — Pulau Tropis
 
+## [0.7.0] — 2026-10-19 — Tombol Pukul, lingkaran hijau dihapus (permintaan pengguna)
+### Ditambahkan
+- **Tombol Pukul** (ikon pedang, kanan bawah di sebelah kiri tombol Lompat): prajurit berhenti di
+  tempat dan mengayunkan pedang (animasi bawaan model `attack-melee-right`, ±0,46 detik).
+  Ditekan lagi saat masih mengayun = langsung mengayun sekali lagi. Saat berjalan, memukul
+  menghentikan jalan (ketuk tanah lagi untuk melanjutkan). Komputer: tombol **F**.
+- **Efek pukulan** agar terlihat dari kamera atas: busur sabetan putih berbentuk bulan sabit yang
+  menyapu lalu memudar; bila bilah mengenai batang pohon → serpihan kayu & daun berhamburan, bila
+  mengenai batu → debu & percikan. Jangkauan ±1 m di depan prajurit.
+### Dihapus
+- **Lingkaran hijau** di bawah prajurit. Cincin kuning penanda tujuan tetap ada; di hutan prajurit
+  tetap terlihat lewat tajuk yang tembus pandang.
+### Pengujian
+- Smoke test: Pukul saat berjalan (berhenti + 1 sabetan), Pukul batang pohon (serpihan muncul),
+  tombol F di komputer, dan memastikan lingkaran hijau sudah tidak ada.
+
 ## [0.6.0] — 2026-10-19 — Kamera strategi + ketuk untuk berjalan (permintaan pengguna)
 ### Diubah
 - **Kamera gaya game strategi** menggantikan kamera orang ketiga: prajurit dilihat dari atas dengan

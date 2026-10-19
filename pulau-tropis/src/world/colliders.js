@@ -1,10 +1,10 @@
 import { PlacementGrid } from '../core/spatial.js'
 
 // Penghalang berbentuk lingkaran (batang pohon, batu besar) untuk collision pemain.
-// list: [{ x, z, radius }]
+// list: [{ x, z, radius, kind }] — kind: 'pohon' / 'batu' (untuk efek pukulan)
 export function createColliders(list) {
   const grid = new PlacementGrid(8)
-  for (const c of list) grid.add(c.x, c.z, c.radius, 'blok')
+  for (const c of list) grid.add(c.x, c.z, c.radius, c.kind || 'blok')
 
   return {
     list,
@@ -37,6 +37,20 @@ export function createColliders(list) {
     // apakah titik (x, z) dengan jari-jari r bebas dari penghalang
     isFree(x, z, r) {
       return grid.isFree(x, z, r)
+    },
+    // penghalang terdekat yang tersentuh lingkaran (x, z, r) — mis. ayunan pedang; null bila tidak ada
+    hitAt(x, z, r) {
+      let best = null
+      let bestGap = r
+      grid.forEachNear(x, z, r, o => {
+        const gap = Math.hypot(o.x - x, o.z - z) - o.radius
+        if (gap < bestGap) {
+          bestGap = gap
+          best = o
+        }
+        return true
+      })
+      return best
     },
   }
 }

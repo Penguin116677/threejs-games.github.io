@@ -132,7 +132,9 @@ body {
   transition: opacity 1s;
 }
 
-#hud #btn-lompat {
+/* tombol aksi bulat di kanan bawah: Lompat di pojok, Pukul di sebelah kirinya */
+#hud #btn-lompat,
+#hud #btn-pukul {
   position: absolute;
   right: max(22px, env(safe-area-inset-right));
   bottom: max(26px, env(safe-area-inset-bottom));
@@ -153,15 +155,27 @@ body {
   transition: transform 0.08s, background 0.08s;
 }
 
-#btn-lompat svg {
+#btn-lompat svg,
+#btn-pukul svg {
   width: 30px;
   height: 30px;
   fill: #fff;
 }
 
-#hud #btn-lompat.ditekan {
+#hud #btn-lompat.ditekan,
+#hud #btn-pukul.ditekan {
   background: rgba(255, 255, 255, 0.45);
   transform: scale(0.93);
+}
+
+#hud #btn-pukul {
+  right: calc(max(22px, env(safe-area-inset-right)) + 100px);
+  border-color: rgba(255, 214, 190, 0.7);
+  background: rgba(255, 120, 80, 0.24);
+}
+
+#hud #btn-pukul.ditekan {
+  background: rgba(255, 140, 100, 0.5);
 }
 
 #pesan {

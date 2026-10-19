@@ -1,9 +1,8 @@
 import * as THREE from 'three'
 
-// Penanda gaya game strategi:
-// - cincin tujuan berdenyut di titik yang diketuk (kuning = bisa, merah = tidak bisa ke sana)
-// - cincin hijau di bawah prajurit, tetap terlihat walau tertutup tajuk pohon
-// Keduanya mengikuti kemiringan tanah dan digambar di atas objek lain (depthTest mati).
+// Penanda gaya game strategi: cincin tujuan berdenyut di titik yang diketuk
+// (kuning = bisa, merah = tidak bisa ke sana). Mengikuti kemiringan tanah dan digambar di atas
+// objek lain (depthTest mati) agar tetap terlihat walau tertutup tajuk pohon.
 
 function ringMaterial(color, opacity) {
   return new THREE.MeshBasicMaterial({
@@ -39,15 +38,11 @@ export function createMarkers(ground) {
   ring.renderOrder = 10
   dot.renderOrder = 10
 
-  // --- cincin prajurit (seperti unit terpilih di game strategi)
-  const self = new THREE.Mesh(new THREE.RingGeometry(0.55, 0.68, 40).rotateX(-Math.PI / 2), ringMaterial('#6dff8a', 0.85))
-  self.renderOrder = 9
-
   let t = 0
   let invalid = false
 
   return {
-    objects: [target, self],
+    objects: [target],
     // tunjukkan tujuan; ok = false → merah sebentar (tidak bisa ke sana)
     showTarget(x, z, ok = true) {
       placeOnGround(target, ground, x, z, 0.06)
@@ -60,9 +55,7 @@ export function createMarkers(ground) {
     hideTarget() {
       if (!invalid) target.visible = false
     },
-    update(dt, player) {
-      placeOnGround(self, ground, player.position.x, player.position.z, 0.05)
-      // saat melompat cincin tetap di tanah
+    update(dt) {
       if (!target.visible) return
       t += dt
       const s = 1 + 0.14 * Math.sin(t * 7)

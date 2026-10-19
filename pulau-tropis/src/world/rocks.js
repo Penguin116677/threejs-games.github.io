@@ -88,7 +88,7 @@ export function createRocks({ ground, grid, quality }) {
     instancedTiles('batu-b', rockGeometry(7.9), mat, all.filter((_, i) => i % 2 === 1), opts),
   )
   group.userData.occlusion = all.map(p => ({ x: p.x, z: p.z, radius: p.r * 1.6, strength: 0.3 }))
-  group.userData.colliders = all.map(p => ({ x: p.x, z: p.z, radius: p.r * 0.9 }))
+  group.userData.colliders = all.map(p => ({ x: p.x, z: p.z, radius: p.r * 0.9, kind: 'batu' }))
   group.userData.count = all.length
   return group
 }
