@@ -220,13 +220,25 @@ function bushGeometry(detail, flowers) {
 // ---------------------------------------------------------------------------
 const windTime = { value: 0 }
 
+// Tembus pandang: tajuk yang menghalangi garis kamera → prajurit diberi "lubang" berpola
+// (dithering) supaya prajurit tetap terlihat dari kamera atas saat berada di hutan.
+// a = posisi kamera, b = posisi prajurit, r = jari-jari lubang (0 = mati).
+export const seeThrough = {
+  a: { value: new THREE.Vector3() },
+  b: { value: new THREE.Vector3() },
+  r: { value: 0 },
+}
+
 // + pola noise di permukaan (gerombol daun / serat kayu) supaya dari dekat tidak polos
 export function windMaterial(noiseTexture) {
   const mat = new THREE.MeshLambertMaterial({ vertexColors: true, side: THREE.DoubleSide })
   mat.onBeforeCompile = shader => {
     shader.uniforms.uTime = windTime
     shader.uniforms.uNoise = { value: noiseTexture }
-    shader.vertexShader = 'uniform float uTime;\nvarying vec3 vLocal;\n' + shader.vertexShader.replace(
+    shader.uniforms.uSeeA = seeThrough.a
+    shader.uniforms.uSeeB = seeThrough.b
+    shader.uniforms.uSeeR = seeThrough.r
+    shader.vertexShader = 'uniform float uTime;\nvarying vec3 vLocal;\nvarying vec3 vSeeWorld;\n' + shader.vertexShader.replace(
       '#include <begin_vertex>',
       `#include <begin_vertex>
       float hh = max(position.y, 0.0);
@@ -234,9 +246,30 @@ export function windMaterial(noiseTexture) {
       float ph = ip.x * 0.13 + ip.z * 0.17;
       vLocal = position + ip * 0.05;
       transformed.x += sin(uTime * 1.3 + ph) * hh * hh * 0.0035;
-      transformed.z += cos(uTime * 1.1 + ph) * hh * hh * 0.0025;`
+      transformed.z += cos(uTime * 1.1 + ph) * hh * hh * 0.0025;
+      vSeeWorld = (modelMatrix * instanceMatrix * vec4(transformed, 1.0)).xyz;`
     )
-    shader.fragmentShader = 'uniform sampler2D uNoise;\nvarying vec3 vLocal;\n' + shader.fragmentShader.replace(
+    shader.fragmentShader = `uniform sampler2D uNoise;
+      uniform vec3 uSeeA;
+      uniform vec3 uSeeB;
+      uniform float uSeeR;
+      varying vec3 vLocal;
+      varying vec3 vSeeWorld;
+    ` + shader.fragmentShader.replace(
+      '#include <clipping_planes_fragment>',
+      `#include <clipping_planes_fragment>
+      if (uSeeR > 0.0) {
+        vec3 ab = uSeeB - uSeeA;
+        float tt = clamp(dot(vSeeWorld - uSeeA, ab) / max(dot(ab, ab), 1e-4), 0.0, 1.0);
+        float rr = uSeeR * (0.35 + 0.65 * tt); // makin dekat ke prajurit makin lebar
+        float dd = distance(vSeeWorld, uSeeA + ab * tt);
+        if (tt < 0.97 && dd < rr) {
+          // interleaved gradient noise: pola halus & aman untuk presisi GPU HP
+          float dither = fract(52.9829189 * fract(dot(gl_FragCoord.xy, vec2(0.06711056, 0.00583715))));
+          if (dither > smoothstep(rr * 0.55, rr, dd)) discard;
+        }
+      }`
+    ).replace(
       '#include <color_fragment>',
       `#include <color_fragment>
       float leaf = texture2D(uNoise, vLocal.xz * 0.42 + vLocal.y * 0.29).g;

@@ -8,12 +8,14 @@ import { createGround, createTerrain } from './world/terrain.js'
 import { createShoreData, waveTime } from './world/shore.js'
 import { createWater } from './world/water.js'
 import { createEnvironment } from './world/sky.js'
-import { createTrees } from './world/trees.js'
+import { createTrees, seeThrough } from './world/trees.js'
 import { createRocks } from './world/rocks.js'
 import { createGrass } from './world/grass.js'
 import { createColliders } from './world/colliders.js'
+import { createNavGrid } from './world/navgrid.js'
 import { createInput } from './player/input.js'
-import { createFollowCamera } from './player/camera.js'
+import { createStrategyCamera } from './player/camera.js'
+import { createMarkers } from './player/marker.js'
 import { createPlayer, loadPlayerModel } from './player/player.js'
 
 const $ = id => document.getElementById(id)
@@ -69,8 +71,12 @@ function findSpawn(ground, colliders) {
   return { x: -128, z: 128, heading: Math.atan2(128, -128) }
 }
 
-const HINT_TOUCH = 'Jempol kiri: jalan (dorong jauh = lari)<br>Geser layar kanan: putar kamera · Cubit: zoom<br>Tombol <b>Lompat</b> di kanan bawah'
-const HINT_KEYS = 'WASD / panah: jalan · Shift: pelan · Spasi: lompat<br>Seret mouse: putar kamera · Roda mouse: zoom'
+const HINT_TOUCH = '<b>Ketuk tanah</b> untuk berjalan ke sana (jauh = lari)<br>Geser: putar kamera · Cubit: zoom<br>Tombol <b>Lompat</b> di kanan bawah'
+const HINT_KEYS = '<b>Klik tanah</b> untuk berjalan ke sana · WASD / panah juga bisa<br>Seret mouse: putar kamera · Roda: zoom · Spasi: lompat'
+
+// FOV kamera: mode main (kamera atas) lebih sempit agar prajurit tidak terlalu kecil;
+// layar tegak butuh FOV lebih lebar agar sisi kiri-kanan tetap terlihat
+const FOV = { main: [55, 42], lihat: [70, 55] }
 
 function setupQualityMenu() {
   const btn = $('btn-kualitas')
@@ -146,6 +152,8 @@ async function start() {
     ...trees.userData.trunks,
     ...rocks.userData.colliders.filter(c => c.radius >= 0.8),
   ])
+  // peta jalan untuk "ketuk untuk berjalan" (memutari pohon, batu, tebing, laut dalam)
+  const nav = createNavGrid(ground, colliders)
 
   setStatus('Menumbuhkan rumput…')
   await nextFrame()
@@ -173,18 +181,60 @@ async function start() {
   const spawn = findSpawn(ground, colliders)
   player.placeAt(spawn.x, spawn.z, spawn.heading)
 
-  // Kamera orang ketiga (mode main) + input sentuh/keyboard
+  // Kamera strategi dari atas (mode main) + input ketuk/keyboard
   const touchUI = navigator.maxTouchPoints > 0 || 'ontouchstart' in window
-  const follow = createFollowCamera(camera, ground)
-  follow.lookFrom(spawn.heading + Math.PI, 0.3)
-  const input = createInput({
-    canvas,
-    joystick: $('joystick'),
-    knob: $('joystick-knob'),
-    jumpButton: $('btn-lompat'),
-    touch: touchUI,
-  })
-  const NO_INPUT = { moveX: 0, moveY: 0, jump: false, lookDX: 0, lookDY: 0, zoom: 1, lookRecent: false }
+  const cam = createStrategyCamera(camera, ground)
+  cam.lookFrom(spawn.heading + Math.PI) // di belakang prajurit, menghadap gunung
+  const input = createInput({ canvas, jumpButton: $('btn-lompat'), touch: touchUI })
+  const NO_INPUT = { moveX: 0, moveY: 0, jump: false, lookDX: 0, zoom: 1, taps: [] }
+  const markers = createMarkers(ground)
+  scene.add(...markers.objects)
+
+  // titik tanah/permukaan laut di bawah layar (x, y piksel): sinar dari kamera, maju bertahap
+  // sampai berada di bawah tanah, lalu dipersempit (bisection) agar tepat
+  const ray = new THREE.Raycaster()
+  const ndc = new THREE.Vector2()
+  const surfaceAt = (x, z) => Math.max(ground.heightAt(x, z), ISLAND.seaLevel)
+  function pickGround(x, y) {
+    const rect = canvas.getBoundingClientRect()
+    ndc.set(((x - rect.left) / rect.width) * 2 - 1, -((y - rect.top) / rect.height) * 2 + 1)
+    ray.setFromCamera(ndc, camera)
+    const { origin: o, direction: d } = ray.ray
+    let prev = 0
+    let t = 0
+    while (t < 1500) {
+      const above = o.y + d.y * t - surfaceAt(o.x + d.x * t, o.z + d.z * t)
+      if (above <= 0) {
+        let lo = prev
+        let hi = t
+        for (let i = 0; i < 14; i++) {
+          const mid = (lo + hi) / 2
+          if (o.y + d.y * mid > surfaceAt(o.x + d.x * mid, o.z + d.z * mid)) lo = mid
+          else hi = mid
+        }
+        return { x: o.x + d.x * hi, z: o.z + d.z * hi }
+      }
+      prev = t
+      t += THREE.MathUtils.clamp(above * 0.5, 0.3, 25)
+    }
+    return null // menunjuk ke langit
+  }
+
+  // ketukan di layar → cari jalan ke titik itu
+  function handleTap(tap) {
+    const hit = pickGround(tap.x, tap.y)
+    if (!hit) return
+    const path = nav.findPath(player.position, hit)
+    if (path) {
+      player.followPath(path)
+      const end = path[path.length - 1]
+      markers.showTarget(end.x, end.z, true)
+      hideHint()
+    } else {
+      markers.showTarget(hit.x, hit.z, false)
+      showMessage('Tidak ada jalan ke sana.', 1600)
+    }
+  }
 
   // Kamera orbit untuk mode "Lihat pulau" (melihat pulau dari atas, karakter diam)
   const controls = new OrbitControls(camera, canvas)
@@ -211,13 +261,13 @@ async function start() {
     controls.target.y = Math.max(ground.heightAt(controls.target.x, controls.target.z), 0) + 3
   }
 
+  let mode = 'main'
   function resize() {
     const w = window.innerWidth
     const h = window.innerHeight
     renderer.setSize(w, h, false)
     camera.aspect = w / h
-    // layar tegak (portrait) butuh FOV lebih lebar agar pulau tetap terlihat
-    camera.fov = w < h ? 70 : 55
+    camera.fov = FOV[mode][w < h ? 0 : 1]
     camera.updateProjectionMatrix()
   }
   window.addEventListener('resize', resize)
@@ -237,7 +287,6 @@ async function start() {
   setupQualityMenu()
 
   // mode "main" (mengendalikan karakter) ↔ "lihat" (kamera bebas melihat pulau)
-  let mode = 'main'
   function setMode(next) {
     const from = mode
     mode = next
@@ -250,11 +299,15 @@ async function start() {
       const p = player.position
       const dx = camera.position.x - p.x
       const dz = camera.position.z - p.z
-      follow.lookFrom(Math.atan2(dx, dz), 0.3, false)
+      cam.lookFrom(Math.atan2(dx, dz), false)
     } else if (!main) {
+      // karakter berhenti selama melihat-lihat
+      player.stop()
+      markers.hideTarget()
       controls.target.copy(player.position)
       controls.update()
     }
+    resize()
   }
   $('btn-mode').addEventListener('click', () => setMode(mode === 'main' ? 'lihat' : 'main'))
   setMode('main')
@@ -268,7 +321,7 @@ async function start() {
     $('tirai').classList.add('gelap')
     setTimeout(() => {
       player.respawn()
-      follow.lookFrom(player.heading + Math.PI, 0.3)
+      cam.lookFrom(player.heading + Math.PI)
       $('tirai').classList.remove('gelap')
       showMessage(reason === 'laut'
         ? 'Airnya terlalu dalam! Kamu kembali ke pantai.'
@@ -312,14 +365,22 @@ async function start() {
     const t = clock.elapsedTime
     if (mode === 'main') {
       const inp = input.read()
-      player.update(dt, inp, follow.yaw)
-      follow.update(dt, player, inp)
-      if (!hintGone && (player.speed > 0.5 || (hintTime += dt) > 12)) hideHint()
+      for (const tap of inp.taps) handleTap(tap)
+      player.update(dt, inp, cam.yaw)
+      if (!player.hasPath) markers.hideTarget()
+      cam.update(dt, player.position, inp)
+      if (!hintGone && (player.speed > 0.5 || (hintTime += dt) > 15)) hideHint()
+      // tajuk pohon di antara kamera dan prajurit dibuat berlubang
+      seeThrough.a.value.copy(camera.position)
+      seeThrough.b.value.copy(player.position).y += 1
+      seeThrough.r.value = 3.5
     } else {
-      player.update(dt, NO_INPUT, follow.yaw)
+      player.update(dt, NO_INPUT, cam.yaw)
       controls.update()
       keepCameraAboveGround()
+      seeThrough.r.value = 0
     }
+    markers.update(dt, player)
     env.update(t, camera, mode === 'main' ? player.position : controls.target)
     waveTime.value = t
     trees.userData.update(t)
@@ -339,6 +400,7 @@ async function start() {
       if (sampleTime > 6) {
         hinted = true
         if (sampleFrames / sampleTime < 24) {
+          hideHint() // jangan bertumpuk dengan petunjuk kontrol
           $('saran').hidden = false
           setTimeout(() => {
             $('saran').hidden = true
@@ -354,7 +416,8 @@ async function start() {
   // akses untuk debugging / pengujian otomatis
   window.__pulau = {
     renderer, scene, camera, controls, ground, shore, quality, trees, rocks, grass, water, env,
-    player, follow, input, colliders, setMode, getMode: () => mode, frames: () => frameCount,
+    player, cam, input, colliders, nav, markers, pickGround, setMode, getMode: () => mode,
+    frames: () => frameCount,
   }
 }
 

@@ -7,6 +7,7 @@ export function createColliders(list) {
   for (const c of list) grid.add(c.x, c.z, c.radius, 'blok')
 
   return {
+    list,
     count: list.length,
     // Dorong lingkaran pemain (pos.x, pos.z, r) keluar dari semua penghalang dan
     // hilangkan komponen kecepatan yang menembus penghalang. Kembalikan true bila menabrak.

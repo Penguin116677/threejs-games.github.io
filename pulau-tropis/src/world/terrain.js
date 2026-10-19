@@ -83,11 +83,12 @@ vec3 terrainColor() {
   float nF = texture2D(uNoise, p * 0.055).r;     // butiran ±0.5 m
   float nM = texture2D(uNoise, p * 0.0173).g;    // variasi ±10 m
   float nL = texture2D(uNoise, p * 0.0037).b;    // bercak besar ±60 m
+  float nD = texture2D(uNoise, p * 0.37).r;      // detail halus ±8 cm (tajam dari kamera atas)
 
   // pasir: basah di tepi air, kering di atasnya, lebih gelap di dasar laut
   vec3 sand = mix(WET_SAND, SAND, smoothstep(-0.2, 1.0, h + (nM - 0.5) * 0.8));
   sand = mix(DEEP_SAND, sand, smoothstep(-6.0, -0.3, h));
-  sand *= 0.9 + 0.2 * nF;
+  sand *= (0.9 + 0.2 * nF) * (0.92 + 0.16 * nD);
 #ifdef WAVE_WET_SAND
   // pasir yang baru dijilat ombak tetap gelap (basah) sebentar setelah air surut
   if (h > -0.4 && h < 1.0) {
@@ -102,11 +103,11 @@ vec3 terrainColor() {
   vec3 grass = mix(GRASS, GRASS_DARK, smoothstep(0.3, 0.75, nL + (nM - 0.5) * 0.4));
   grass = mix(grass, MEADOW, vSurface.y * 0.7);
   grass = mix(grass, DRY, vSurface.y * smoothstep(0.55, 0.85, nM) * 0.45);
-  grass *= 0.86 + 0.28 * nF;
+  grass *= (0.86 + 0.28 * nF) * (0.88 + 0.24 * nD);
 
   // batu: lereng curam dan dekat puncak
   vec3 rock = mix(ROCK, ROCK_DARK, smoothstep(0.3, 0.8, nM));
-  rock *= 0.8 + 0.4 * nF;
+  rock *= (0.8 + 0.4 * nF) * (0.9 + 0.2 * nD);
 
   float edge = uBeachTop + (nM - 0.5) * 1.6;
   vec3 col = mix(sand, grass, smoothstep(edge - 0.3, edge + 0.3, h));

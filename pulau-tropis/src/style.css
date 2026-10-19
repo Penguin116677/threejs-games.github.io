@@ -132,35 +132,6 @@ body {
   transition: opacity 1s;
 }
 
-/* joystick virtual: lingkaran dasar + knob; posisi diatur lewat transform dari JS */
-#joystick {
-  position: absolute;
-  left: 0;
-  top: 0;
-  width: 120px;
-  height: 120px;
-  border-radius: 50%;
-  border: 2px solid rgba(255, 255, 255, 0.55);
-  background: rgba(0, 30, 45, 0.18);
-  opacity: 0.4;
-  transition: opacity 0.2s;
-}
-
-#joystick.aktif {
-  opacity: 1;
-}
-
-#joystick-knob {
-  position: absolute;
-  left: 32px;
-  top: 32px;
-  width: 56px;
-  height: 56px;
-  border-radius: 50%;
-  background: rgba(255, 255, 255, 0.85);
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
-}
-
 #hud #btn-lompat {
   position: absolute;
   right: max(22px, env(safe-area-inset-right));

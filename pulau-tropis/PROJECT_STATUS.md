@@ -1,8 +1,8 @@
 # PROJECT_STATUS — Pulau Tropis
 
-**Milestone aktif:** 2 — Karakter dan eksplorasi (selesai diimplementasikan, menunggu umpan balik dari HP)
-**Versi:** 0.5.1
-**Terakhir diperbarui:** 2026-10-18
+**Milestone aktif:** 2 — Karakter dan eksplorasi (kamera & kontrol diubah ke gaya game strategi di v0.6.0, menunggu umpan balik dari HP)
+**Versi:** 0.6.0
+**Terakhir diperbarui:** 2026-10-19
 
 ## Kondisi awal repository (sebelum Milestone 1)
 - Repository `threejs-games.github.io` berisi koleksi contoh Three.js lama (folder `examples/`,
@@ -33,13 +33,38 @@
 | Item | Status |
 |---|---|
 | Karakter pemain: prajurit berpedang (Kenney CC0), animasi diam/jalan/lari/lompat/jatuh | ✅ selesai (diganti prajurit v0.5.1) |
-| Kamera orang ketiga (putar, zoom, tidak menembus bukit/air, ikut arah lari) | ✅ selesai |
-| Joystick virtual, tombol Lompat, geser kamera, cubit zoom | ✅ selesai |
-| Kontrol keyboard + mouse (komputer) | ✅ selesai |
+| Kamera strategi dari atas (putar, zoom 10–60 m, tidak menembus bukit) — menggantikan kamera orang ketiga | ✅ selesai (v0.6.0) |
+| Ketuk tanah untuk berjalan (jalur memutari pohon/batu/tebing/laut dalam) — menggantikan joystick | ✅ selesai (v0.6.0) |
+| Penanda tujuan + cincin prajurit, tajuk pohon tembus pandang di depan kamera | ✅ selesai (v0.6.0) |
+| Tombol Lompat, geser kamera, cubit zoom | ✅ selesai |
+| Kontrol mouse + keyboard (komputer): klik = jalan, WASD tetap bisa | ✅ selesai |
 | Gravitasi, lompat, batas lereng, tabrakan batang pohon & batu besar | ✅ selesai |
 | Respawn: laut dalam / terlalu jauh → kembali ke posisi aman | ✅ selesai |
 | Map bisa dijelajahi (pantai, hutan, padang, lereng gunung, puncak) | ✅ analisis + uji otomatis |
 | Dicoba di HP Android sungguhan | ⏳ menunggu laporan pengguna |
+
+## Yang sudah diperiksa (v0.6.0 — kamera strategi + ketuk untuk berjalan)
+- `npm run build` berhasil; ESLint (konfigurasi repo): 0 error, 0 warning.
+- Smoke test otomatis (Chromium headless, render software, 4 perangkat) — **LULUS**:
+  - HP portrait: ketuk tanah → berjalan 10 m, berhenti 0,21 m dari titik ketuk; ketuk di balik
+    batang pohon → memutar, jarak terdekat ke batang 1,73 m (tidak menembus); ketuk laut sedalam
+    2,1 m → berhenti di air 0,28 m (tidak kembali ke pantai); geser 1 jari memutar kamera 0,72 rad
+    tanpa menggerakkan pemain; cubit 22 → 10 m; tombol Lompat 1,06 m; Lihat pulau ↔ Main lagi;
+    menu Kualitas.
+  - Komputer: klik tanah → sampai 0,24 m dari titik klik; W, Spasi, tertahan batang pohon,
+    laut dalam → kembali ke pantai, mendaki +23,9 m dalam 120 frame (fitur lama tetap jalan).
+  - HP landscape & HP kualitas Rendah: termuat tanpa error, prajurit berdiri di tanah, rumput muncul.
+- Peta jalan diuji di Node dengan pohon & batu sungguhan: 400 tujuan acak di darat semuanya
+  terjangkau, 0 jalur menyerempet batang (dicek tiap 0,1 m), 674 batang hutan "ketuk di baliknya"
+  semuanya dilewati memutar; grid dibuat ±40 ms, cari jalur median 1,4 ms / maks ±20 ms (puncak).
+- Ketuk ke titik di dalam batang kelapa → tujuan mundur ke titik terdekat yang bisa diinjak
+  (ditemukan saat uji di kualitas Tinggi; perilaku yang diharapkan).
+- Screenshot diperiksa: tampilan awal (tegak & mendatar), cincin tujuan + prajurit berjalan,
+  hutan lebat (tajuk berlubang, prajurit terlihat), padang rumput, lereng gunung, zoom 60 m
+  (pantai–hutan–laut), berhenti di tepi air setelah mengetuk laut.
+- Halaman pratinjau (artifact) diuji dulu sebagai salinan lokal: termuat tanpa error, ketuk → jalan.
+- Segitiga per frame di tampilan awal kamera strategi: Rendah ±290 rb, Sedang ±410–425 rb,
+  Tinggi ±820 rb; 25–31 draw call.
 
 ## Yang sudah diperiksa (v0.5.0)
 - `npm run build` berhasil; ESLint dengan konfigurasi repo (`.eslintrc.json`, ESLint 8): 0 error, 0 warning.
@@ -61,6 +86,8 @@
   laut dalam → kembali ke pantai + pesan, mendaki lereng (+24 m dalam 120 frame).
 
 ## Yang BELUM diperiksa
+- **Rasa kontrol ketuk di HP sungguhan** (ketepatan titik ketuk, beda ketuk vs geser, cubit) dan
+  tampilan tembus pandang tajuk di GPU HP — hanya diuji dengan sentuhan tiruan di Chromium.
 - **Performa nyata di HP** — FPS di smoke test memakai render software, tidak mewakili HP.
 - Gestur cubit (pinch zoom) dua jari di perangkat sungguhan.
 - Menu Kualitas di dalam halaman preview (artifact) — memuat ulang halaman di dalam bingkai preview.
@@ -76,19 +103,22 @@ v0.3.0: Rendah ±300 rb, Sedang ±400 rb, Tinggi ±850 rb. Tambahan v0.4.0 beras
 yang lebih rapat (untuk ombak) dan buah kelapa. v0.2.0 (HP): ±230 ribu.
 
 ## Masalah yang diketahui
-- Ukuran bundle ±500 KB (sebagian besar Three.js). Bisa dikecilkan nanti bila loading lambat.
+- Ukuran bundle ±700 KB (sebagian besar Three.js). Bisa dikecilkan nanti bila loading lambat.
 - Tepi luar terrain (1000 × 1000 m) bisa terlihat samar di bawah air dari sudut tertentu.
-- Pohon dan batu belum punya collision (data batang/batu sudah disiapkan untuk Milestone 2).
 - Rumput hanya dibuat di sekitar kamera: saat kamera melompat jauh (zoom cepat), rumput "tumbuh"
   dalam ±1 detik. Dari jauh (> radius rumput) lereng hanya berwarna, tanpa helai.
 - Tajuk pohon tetap bergaya low-poly (bersegi) pada Rendah/Sedang.
-- Bayangan di Sedang (1024 px) agak kasar bila kamera sangat dekat ke batang pohon.
-- Ganti tingkat kualitas memuat ulang halaman (posisi kamera kembali ke awal).
+- Ganti tingkat kualitas memuat ulang halaman (posisi pemain kembali ke awal).
 - Ombak tidak memakai fisika sungguhan: bentuknya diatur fungsi (cukup untuk tampilan, belum untuk
   berenang/perahu). Di teluk yang sempit puncak ombak dari dua sisi bisa bertemu membentuk sudut.
 - Buah kelapa sama di semua pohon (satu bentuk tandan); belum ada kelapa jatuh di pasir.
-- Kamera orang ketiga bisa masuk ke dalam tajuk pohon (daun tidak transparan saat menghalangi).
-- Belum ada berenang: laut dalam langsung mengembalikan pemain ke pantai.
+- Belum ada berenang: dengan ketuk-berjalan pemain berhenti di air dangkal; laut dalam hanya bisa
+  dimasuki lewat keyboard (lalu kembali ke pantai).
 - Rumput dan semak belum bereaksi saat dilewati karakter.
 - Kecepatan animasi kaki disetel kira-kira (belum dicek per frame apakah kaki "meluncur").
-- Belum ada karakter, collision, atau gameplay (memang bagian Milestone 2+).
+- Kamera strategi selalu mengikuti prajurit (tidak bisa digeser bebas seperti peta); untuk
+  melihat-lihat pakai **Lihat pulau**. Titik yang bisa diketuk terbatas pada yang terlihat di layar
+  (zoom keluar untuk tujuan jauh).
+- Jalur dihitung di grid 2 m: celah sangat sempit di antara batang/batu (< ±1 m) dianggap tertutup;
+  mengetuk tajuk pohon memilih tanah di bawah/di balik tajuk.
+- Batu besar tidak ikut tembus pandang (jarang menutupi prajurit karena kamera dari atas).

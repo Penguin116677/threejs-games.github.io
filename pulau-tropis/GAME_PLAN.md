@@ -6,7 +6,8 @@ tanpa instalasi. Pemain menjelajahi pantai, hutan, desa, sungai, air terjun, gun
 reruntuhan, berinteraksi dengan NPC, mengumpulkan item, dan menyelesaikan quest eksplorasi ringan.
 
 ## Genre
-Eksplorasi / petualangan santai orang ketiga (third-person), tanpa pertarungan (untuk saat ini).
+Eksplorasi / petualangan santai dengan kamera gaya game strategi (dilihat dari atas, ketuk tanah
+untuk berjalan — sejak v0.6.0), tanpa pertarungan (untuk saat ini).
 
 ## Target perangkat
 - Utama: browser Chrome di HP Android (layar sentuh, portrait dan landscape).
@@ -24,8 +25,9 @@ dengan seed tetap, jadi bentuk pulau selalu sama setiap kali dibuka.
 
 ## Rencana milestone
 1. **Fondasi game** — Vite + Three.js, terrain pulau, pantai, laut, langit, bisa dibuka di browser HP.
-2. **Karakter & eksplorasi** — karakter pemain, kamera third-person, joystick virtual, tombol lompat,
-   kontrol kamera sentuh, collision, gravitasi, respawn.
+2. **Karakter & eksplorasi** — karakter pemain, kamera (v0.6.0: kamera strategi dari atas),
+   kontrol (v0.6.0: ketuk untuk berjalan, menggantikan joystick), tombol lompat, kontrol kamera
+   sentuh, collision, gravitasi, respawn.
 3. **Pembangunan dunia** — hutan tropis, desa, sungai & air terjun, gunung, gua, reruntuhan,
    pulau kecil, jalur eksplorasi, landmark.
 4. **Interaksi gameplay** — interaksi objek, item, inventory, NPC & dialog, quest sederhana.
@@ -37,4 +39,5 @@ Milestone adalah rencana, bukan kewajiban. Perubahan konsep dicatat di `DECISION
 
 Catatan: atas permintaan pengguna, pohon (v0.2.0), rumput di sekitar gunung, dan sebagian
 peningkatan visual Milestone 5 (bayangan, tanah bertekstur, awan, kaustik — v0.3.0) sudah
-dikerjakan lebih awal, sebelum Milestone 2. Milestone 2 (karakter & kontrol) dikerjakan di v0.5.0.
+dikerjakan lebih awal, sebelum Milestone 2. Milestone 2 (karakter & kontrol) dikerjakan di v0.5.0;
+kamera dan kontrolnya diubah ke gaya game strategi di v0.6.0 (permintaan pengguna).

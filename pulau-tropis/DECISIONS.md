@@ -24,7 +24,7 @@ tandai sebagai "diganti" bila berubah.
 8. **Kamera orbit sementara** — Milestone 1 memakai OrbitControls untuk melihat pulau;
    akan diganti kamera third-person di Milestone 2.
    *(Diperbarui v0.5.0: kamera orang ketiga menjadi kamera utama; orbit tetap ada sebagai mode
-   "Lihat pulau".)*
+   "Lihat pulau". Diperbarui v0.6.0: kamera utama menjadi kamera strategi dari atas — lihat no. 26.)*
 9. **Bahasa** — semua UI, pesan error, dan dokumentasi dalam bahasa Indonesia.
 10. **Pohon prosedural + instancing** — pohon dibuat dari geometri sederhana di kode (tanpa file
     model), digabung per jenis dan digambar dengan `InstancedMesh`. Goyangan angin di vertex shader.
@@ -86,7 +86,7 @@ tandai sebagai "diganti" bila berubah.
     (permukaan mesh yang persis), penghalang = lingkaran (batang pohon, batu ≥ 0,8 m) di grid ruang.
     Cukup untuk berjalan/lompat di pulau, jauh lebih ringan, dan tanpa unduhan tambahan. Engine
     fisika bisa dipertimbangkan bila nanti ada benda yang bisa didorong/dilempar.
-23. **Kontrol HP**: joystick dinamis (muncul di tempat jempol kiri menyentuh, 45% kiri layar),
+23. *(Diganti #26 di v0.6.0.)* **Kontrol HP**: joystick dinamis (muncul di tempat jempol kiri menyentuh, 45% kiri layar),
     besar dorongan = kecepatan (≥ 70% = lari); tombol Lompat besar (86 px) di kanan bawah; sisa
     layar kanan untuk kamera. Kamera otomatis kembali ke belakang pemain saat berjalan (bila
     pemain tidak sedang memutar kamera ±1,8 detik) supaya bisa main dengan satu jempol.
@@ -99,3 +99,23 @@ tandai sebagai "diganti" bila berubah.
     Pedang dipasang pada tulang `arm-right` di pusat balok tangan (dihitung dari data skin),
     bilah ke depan-bawah agar terlihat dari depan dan sedikit dari belakang. Pedang belum bisa dipakai
     menyerang (animasi `attack-melee-right` sudah tersedia untuk nanti).
+26. **Kamera strategi + ketuk untuk berjalan** (v0.6.0, permintaan pengguna) menggantikan kamera
+    orang ketiga + joystick (#23). Kamera melihat dari atas (±49°–64°, makin jauh makin tegak) dan
+    tidak berputar sendiri, supaya titik yang diketuk tetap di tempatnya di layar. Satu jari:
+    ketuk = jalan, geser = putar kamera (ketukan = bergeser < 12 px dan < 0,8 detik, diukur dari
+    `event.timeStamp`); dua jari = zoom. Kamera tidak bisa digeser (pan) bebas: selalu mengikuti
+    prajurit — untuk melihat-lihat ada mode **Lihat pulau**. Titik ketuk dicari dengan sinar dari
+    kamera yang maju bertahap di atas `max(ground.heightAt, permukaan laut)` lalu dipersempit
+    (bisection), bukan raycast ke mesh (mesh tanah 256² segitiga terlalu berat untuk raycast).
+    WASD/panah tetap ada di komputer (tidak mengganggu HP; fitur lama tidak dihapus).
+27. **Jalur = A* di grid 2 m** (250.000 sel) dengan cek collider tepat per ruas, bukan navmesh.
+    Sel tertutup bila air > 1 m, lereng > 1,25 (sedikit di bawah batas pemain 1,3), atau terlalu
+    dekat penghalang; ruas antar sel bertetangga yang menyerempet penghalang juga ditandai,
+    sehingga jalur hasil A* + pelurusan tidak menyentuh batang (diuji: 674 batang hutan + 400
+    tujuan acak, 0 menyerempet, semua terjangkau). Tujuan di laut dalam / batang / tebing
+    "mundur" sepanjang garis ke arah pemain sampai titik yang bisa diinjak (laut: air ≤ 0,4 m).
+    Pemain yang tersangkut > 1,2 detik melewati titik jalur itu (cadangan, mis. lereng berubah).
+28. **Tembus pandang tajuk = dither (discard berpola), bukan transparansi**: material pohon tetap
+    opaque (tanpa sorting, tanpa biaya blending), fragmen di silinder antara kamera dan prajurit
+    dibuang dengan pola interleaved gradient noise (aman untuk presisi GPU HP). Bayangan pohon
+    tetap utuh. Cincin hijau di bawah prajurit digambar tanpa depth test sebagai cadangan.

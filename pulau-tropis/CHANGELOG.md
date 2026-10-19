@@ -1,5 +1,36 @@
 # CHANGELOG — Pulau Tropis
 
+## [0.6.0] — 2026-10-19 — Kamera strategi + ketuk untuk berjalan (permintaan pengguna)
+### Diubah
+- **Kamera gaya game strategi** menggantikan kamera orang ketiga: prajurit dilihat dari atas dengan
+  sudut ±49° (dekat) sampai ±64° (jauh), arah kamera tidak berputar sendiri. Geser satu jari /
+  seret mouse = putar kamera; cubit / roda mouse = zoom 10–60 m (awal 22 m). FOV disesuaikan per
+  orientasi layar (tegak 55°, mendatar 42°); mode **Lihat pulau** tetap memakai FOV lama.
+- **Ketuk untuk berjalan** menggantikan joystick: ketuk tanah → prajurit berjalan ke titik itu
+  (jauh = lari, dekat = jalan, melambat menjelang tujuan) lewat jalur yang memutari batang pohon,
+  batu besar, lereng yang terlalu curam, dan laut dalam. Ketuk lagi = ganti tujuan.
+  Ketuk laut → berhenti di air dangkal (tidak tenggelam). Tidak ada jalan → cincin merah +
+  pesan "Tidak ada jalan ke sana.".
+- Joystick virtual dihapus. Tombol **Lompat** tetap ada. Komputer: klik kiri tanah = jalan,
+  klik kanan / seret = putar kamera, roda = zoom; WASD/panah tetap bisa (membatalkan jalur klik).
+- Ketukan dibedakan dari geseran: jari bergeser > 12 px atau ditahan > 0,8 detik = bukan ketukan;
+  waktu diambil dari event sentuhan itu sendiri (frame yang lambat tidak membatalkan ketukan).
+### Ditambahkan
+- **Peta jalan** (`src/world/navgrid.js`): grid 2 m di seluruh pulau, A* 8 arah lalu jalur
+  diluruskan; setiap ruas dicek langsung ke collider sehingga jalur tidak menyerempet batang.
+  Dibuat saat loading (±40 ms di komputer); mencari jalur ±1–20 ms per ketukan.
+- **Penanda** (`src/player/marker.js`): cincin kuning berdenyut di titik tujuan, cincin hijau di
+  bawah prajurit; keduanya mengikuti kemiringan tanah dan tetap terlihat walau tertutup pohon.
+- **Tajuk pohon tembus pandang** di antara kamera dan prajurit (pola titik halus), jadi prajurit
+  tetap terlihat saat berada di dalam hutan.
+- Detail halus tanah (butiran pasir/rumput ±8 cm) agar tanah tidak tampak buram dari kamera atas.
+### Diperbaiki
+- Saran "Terasa berat?" tidak lagi bertumpuk dengan kotak petunjuk kontrol.
+### Pengujian
+- Smoke test: ketuk tanah (sampai ke titik ketuk), memutari batang pohon tanpa menembus, ketuk laut
+  dalam → berhenti di air dangkal, geser kamera tanpa menggerakkan pemain, cubit, klik tanah di
+  komputer (menggantikan uji joystick).
+
 ## [0.5.1] — 2026-10-18 — Karakter diganti prajurit (permintaan pengguna)
 ### Diubah
 - Karakter pemain sekarang **prajurit**: Kenney "Mini Arena" `character-soldier` (CC0) — helm baja

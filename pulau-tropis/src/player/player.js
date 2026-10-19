@@ -3,7 +3,8 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js'
 import { ISLAND } from '../world/island.js'
 
 // Karakter pemain: prajurit Kenney "Mini Arena" (CC0) membawa pedang, dengan animasi
-// bawaan idle / walk / sprint / jump / fall, plus fisika sederhana:
+// bawaan idle / walk / sprint / jump / fall. Bergerak mengikuti jalur hasil ketukan layar
+// (atau keyboard di komputer), dengan fisika sederhana:
 // gravitasi, lompat, batas kemiringan lereng, tabrakan batang pohon & batu,
 // berjalan di air dangkal, dan kembali ke tempat aman bila masuk laut dalam.
 
@@ -141,6 +142,31 @@ export function createPlayer({ ground, colliders, quality, asset }) {
   let onRespawnNeeded = () => {}
   let frozen = false
 
+  // --- jalur dari "ketuk untuk berjalan": daftar titik { x, z } yang dituju berurutan
+  const path = []
+  let stuckTimer = 0
+  let stuckBest = Infinity
+
+  // arah & kecepatan menuju titik jalur berikutnya (null bila tidak ada jalur)
+  function pathDrive() {
+    while (path.length) {
+      const wp = path[0]
+      if (Math.hypot(wp.x - pos.x, wp.z - pos.z) > (path.length > 1 ? 0.8 : 0.25)) break
+      path.shift()
+      stuckBest = Infinity
+      stuckTimer = 0
+    }
+    if (!path.length) return null
+    const dx = path[0].x - pos.x
+    const dz = path[0].z - pos.z
+    const d = Math.hypot(dx, dz)
+    let remaining = d
+    for (let i = 1; i < path.length; i++) remaining += Math.hypot(path[i].x - path[i - 1].x, path[i].z - path[i - 1].z)
+    // jauh = lari, dekat = jalan; melambat menjelang tujuan
+    const speed = Math.min(remaining > 7 ? RUN_SPEED : WALK_SPEED * 1.4, 0.8 + remaining * 2.2)
+    return { dx: dx / d, dz: dz / d, speed }
+  }
+
   // arah naik lereng (gradien tinggi tanah)
   const grad = { x: 0, z: 0, len: 0 }
   function gradient(x, z) {
@@ -166,21 +192,32 @@ export function createPlayer({ ground, colliders, quality, asset }) {
   }
 
   function step(dt, input, camYaw) {
-    // arah dari input, relatif terhadap kamera
-    const fx = -Math.sin(camYaw)
-    const fz = -Math.cos(camYaw)
-    const rx = Math.cos(camYaw)
-    const rz = -Math.sin(camYaw)
-    let dx = rx * input.moveX + fx * input.moveY
-    let dz = rz * input.moveX + fz * input.moveY
-    const len = Math.hypot(dx, dz)
-    const m = Math.min(1, len)
-    if (len > 1e-3) {
+    let dx = 0
+    let dz = 0
+    let m = 0
+    let speed = 0
+    if (Math.abs(input.moveX) + Math.abs(input.moveY) > 0.01) {
+      // keyboard (komputer): arah relatif terhadap kamera; membatalkan jalur ketukan
+      path.length = 0
+      const fx = -Math.sin(camYaw)
+      const fz = -Math.cos(camYaw)
+      const rx = Math.cos(camYaw)
+      const rz = -Math.sin(camYaw)
+      dx = rx * input.moveX + fx * input.moveY
+      dz = rz * input.moveX + fz * input.moveY
+      const len = Math.hypot(dx, dz)
+      m = Math.min(1, len)
       dx /= len
       dz /= len
+      speed = m < 0.7 ? WALK_SPEED * (m / 0.7) : WALK_SPEED + (RUN_SPEED - WALK_SPEED) * (m - 0.7) / 0.3
+    } else {
+      const drive = pathDrive()
+      if (drive) {
+        ({ dx, dz, speed } = drive)
+        m = 1
+      }
     }
     const depth = ISLAND.seaLevel - ground.heightAt(pos.x, pos.z)
-    let speed = m < 0.7 ? WALK_SPEED * (m / 0.7) : WALK_SPEED + (RUN_SPEED - WALK_SPEED) * (m - 0.7) / 0.3
     if (depth > WADE_DEPTH) speed *= 0.55
 
     // percepat menuju kecepatan yang diinginkan
@@ -274,13 +311,27 @@ export function createPlayer({ ground, colliders, quality, asset }) {
     get usingModel() {
       return !!asset
     },
+    get hasPath() {
+      return path.length > 0
+    },
     placeAt,
+    // berjalan mengikuti jalur [{ x, z }, …] (hasil navgrid.findPath)
+    followPath(points) {
+      path.length = 0
+      path.push(...points)
+      stuckBest = Infinity
+      stuckTimer = 0
+    },
+    stop() {
+      path.length = 0
+    },
     onRespawnNeeded(fn) {
       onRespawnNeeded = fn
     },
     // kembali ke posisi aman terakhir di darat
     respawn() {
       placeAt(lastSafe.x, lastSafe.z, lastSafeHeading)
+      path.length = 0
       frozen = false
       play('idle', 0.05)
     },
@@ -295,6 +346,19 @@ export function createPlayer({ ground, colliders, quality, asset }) {
         for (let i = 0; i < n; i++) step(dt / n, i === 0 ? input : { ...input, jump: false }, camYaw)
       }
       root.rotation.y = heading
+
+      // tersangkut (mis. lereng terlalu curam di jalur): lewati titik ini setelah 1,2 detik
+      if (path.length && !frozen) {
+        const d = Math.hypot(path[0].x - pos.x, path[0].z - pos.z)
+        if (d < stuckBest - 0.25) {
+          stuckBest = d
+          stuckTimer = 0
+        } else if ((stuckTimer += dt) > 1.2) {
+          path.shift()
+          stuckBest = Infinity
+          stuckTimer = 0
+        }
+      }
 
       // laut dalam / terlalu jauh → kembali ke pantai
       const gy = ground.heightAt(pos.x, pos.z)

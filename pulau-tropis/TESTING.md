@@ -63,17 +63,28 @@ software dan **tidak** mencerminkan performa HP.
    pola cincin/garis-garis aneh.
 4. Bandingkan FPS dengan versi sebelumnya di tingkat kualitas yang sama.
 
-## Daftar uji manual — Milestone 2 (karakter & kontrol)
-1. Setelah loading, karakter berdiri di pantai barat daya, kamera di belakangnya menghadap gunung.
-2. Jempol kiri di layar kiri → joystick muncul; dorong sedikit = jalan, dorong jauh = lari.
-3. Ketuk tombol **Lompat** → karakter melompat; bisa lompat sambil berlari.
-4. Geser layar kanan → kamera berputar; cubit dua jari → kamera mendekat/menjauh.
-5. Jalan ke batang pohon atau batu besar → tertahan (tidak menembus).
-6. Jalan ke laut → di air dangkal melambat; terus ke laut dalam → layar meredup, kembali ke pantai
-   dengan pesan.
-7. Daki lereng gunung → bisa naik; di bagian sangat curam karakter tertahan/merosot.
-8. Tombol **Lihat pulau** → kamera bebas (geser/cubit seperti dulu); **Main lagi** → kembali.
-9. Putar HP portrait ↔ landscape → joystick dan tombol tetap di tempat yang pas.
-10. Komputer: WASD/panah, Shift (pelan), Spasi (lompat), seret mouse, roda mouse.
+## Daftar uji manual — Milestone 2 (karakter & fisika)
+(Kontrol joystick & kamera orang ketiga diganti di v0.6.0 — lihat daftar berikutnya.)
+1. Setelah loading, prajurit berdiri di pantai barat daya, kamera di belakangnya menghadap gunung.
+2. Ketuk tombol **Lompat** → prajurit melompat; bisa lompat sambil berlari.
+3. Jalan ke laut dalam (lewat keyboard di komputer) → layar meredup, kembali ke pantai dengan pesan.
+4. Daki lereng gunung → bisa naik; di bagian sangat curam prajurit tertahan/merosot.
+5. Tombol **Lihat pulau** → kamera bebas (geser/cubit seperti dulu); **Main lagi** → kembali.
+
+## Daftar uji manual — v0.6.0 (kamera strategi + ketuk untuk berjalan)
+1. Kamera melihat prajurit dari atas (seperti game strategi); ada cincin hijau di bawah prajurit.
+2. **Ketuk tanah** di dekat prajurit → cincin kuning muncul di titik itu, prajurit berjalan ke sana
+   lalu berhenti tepat di cincin. Ketuk jauh → prajurit berlari, melambat menjelang tujuan.
+3. Ketuk di balik pohon/batu besar → prajurit berjalan memutar, tidak menabrak/tersangkut.
+4. Ketuk tempat lain saat prajurit masih berjalan → langsung berganti tujuan.
+5. Ketuk laut yang jauh → prajurit berhenti di air dangkal (tidak tenggelam / tidak kembali ke pantai).
+6. Di lereng gunung (zoom keluar dulu), ketuk bagian lereng yang lebih tinggi → prajurit mendaki;
+   bila lereng terlalu curam ia mengambil jalur berkelok.
+7. **Geser satu jari** → kamera berputar, prajurit **tidak** ikut berjalan. **Cubit** → zoom.
+8. Masuk ke hutan lebat → tajuk pohon di depan kamera berlubang (pola titik), prajurit tetap terlihat.
+9. Ketuk tombol **Lompat** saat berjalan → prajurit melompat dan tetap melanjutkan jalannya.
+10. Putar HP portrait ↔ landscape → tampilan & tombol tetap pas; ketukan tetap tepat sasaran.
+11. Komputer: klik kiri tanah = jalan, seret / klik kanan = putar kamera, roda = zoom,
+    Spasi = lompat, WASD/panah juga bisa.
 
 Laporkan: model HP, angka FPS di tiap tingkat kualitas, screenshot, dan langkah yang gagal.
