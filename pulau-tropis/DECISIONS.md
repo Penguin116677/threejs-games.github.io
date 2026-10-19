@@ -141,3 +141,20 @@ tandai sebagai "diganti" bila berubah.
     serangan tidak bercampur. Masih tanpa musuh/kerusakan (Milestone 4). Komputer: F, 1/2/3 (Q/E/R).
     Langkah fisika kini dibagi mengikuti kecepatan (maks. ±0,3 m per langkah): pada ±10 FPS Serbuan
     bergerak 1,1 m per langkah dan sempat "menembus" batang pohon (ketahuan di smoke test).
+31. **Musuh = orc Kenney "Mini Dungeon" (CC0)** (v0.9.0; dibutuhkan jurus Penggal "memenggal
+    5 leher musuh"). Rig & animasinya sama persis dengan prajurit (posisi tulang dicek identik), jadi
+    animasi dan pose dipakai bersama. Kepalanya mesh terpisah yang 100% terikat ke tulang kepala,
+    sehingga "memenggal" cukup menyembunyikan head-mesh lalu melempar salinan kepala pada pose saat
+    itu (matriks dunia tulang kepala × invers ikatan × bindMatrix). Tiap orc = klon SkeletonUtils
+    dengan material sendiri (kedipan putih saat terkena). Orc > 60 m tidak digambar/dianimasikan;
+    dengan 5 orc terlihat draw call naik ±10. **Belum menyerang** dan pemain belum punya nyawa — itu
+    perlu sistem kesehatan (Milestone 6), jadi sengaja ditunda agar tidak mengubah terlalu banyak sekaligus.
+32. **Empat jurus persis permintaan pengguna** (v0.9.0): Cincang 10×, Hentak tancap, Cincang lalu
+    Putar, Penggal 5 leher; menggantikan Putar/Serbu/Hentak lama (Serbu dihapus, gerakan melesatnya
+    dipakai Penggal). combat.js hanya mengatur waktu & gerak dan melaporkan lingkaran sasaran;
+    main.js yang memutuskan apa yang kena (orc → nyawa & terpental, batang/batu → serpihan), sasaran
+    Penggal dipilih lewat "arena" (orc hidup terdekat, diurutkan menjadi jalur tetangga terdekat).
+    Paket animasi tidak punya gerakan menusuk ke bawah / memenggal, jadi: Hentak = pose ayunan
+    ditahan + pedang diputar lurus ke bawah di ruang tulang lengan + badan direndahkan saat menancap;
+    Penggal = kuda-kuda ditahan, lalu pindah posisi seketika per ruas (0,08 detik/ruas) dan jeda
+    0,35 detik sebelum semua kepala lepas bersamaan (gaya "iaido" anime).

@@ -110,4 +110,16 @@ software dan **tidak** mencerminkan performa HP.
 6. Ketuk Serbu di tepi pantai menghadap laut → prajurit berhenti sebelum air dalam.
 7. Komputer: F = pukul (kombo), 1/2/3 (atau Q/E/R) = Putar / Serbu / Hentak.
 
+## Daftar uji manual — v0.9.0 (musuh orc & 4 jurus)
+1. Dari titik mulai, sekelompok orc hijau terlihat ±16 m di depan (zoom keluar bila belum terlihat).
+2. Dekati orc lalu **Pukul** → orc berkedip putih, terpental, bar nyawa merah muncul di atas kepalanya.
+3. **Cincang** di depan orc → 10 cincangan cepat; orc roboh lalu tenggelam ke tanah.
+4. **Hentak** di tengah kelompok → prajurit melompat, pedang menghadap ke bawah, menancap ke tanah:
+   retakan, gelombang kejut, orc di sekitar terpental, layar berguncang.
+5. **Putar** di tengah kelompok → 3 cincangan lalu berputar sekali; orc di sekeliling terluka.
+6. **Penggal** dari ±7 m → tanda bidik merah di 5 orc, prajurit melesat melewati semuanya, lalu
+   kelima kepala terlepas bersamaan. Jauh dari orc → pesan "Tidak ada musuh dalam jangkauan".
+7. Tunggu ±20 detik → orc yang roboh muncul lagi di perkemahannya.
+8. Komputer: 1 / 2 / 3 / 4 (atau Q / E / R / T) = Cincang / Hentak / Putar / Penggal.
+
 Laporkan: model HP, angka FPS di tiap tingkat kualitas, screenshot, dan langkah yang gagal.

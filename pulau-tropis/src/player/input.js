@@ -1,16 +1,19 @@
 // Input pemain (gaya game strategi):
 // - HP: KETUK tanah untuk berjalan ke sana, geser satu jari untuk memutar kamera,
-//   cubit dua jari untuk zoom, tombol Pukul (kombo), 3 tombol jurus, dan Lompat.
+//   cubit dua jari untuk zoom, tombol Pukul (kombo), 4 tombol jurus, dan Lompat.
 // - Komputer: klik tanah untuk berjalan, seret mouse untuk memutar kamera, roda untuk zoom,
-//   F untuk memukul, 1/2/3 (atau Q/E/R) untuk jurus, Spasi untuk lompat; WASD/panah tetap bisa.
+//   F untuk memukul, 1–4 (atau Q/E/R/T) untuk jurus, Spasi untuk lompat; WASD/panah tetap bisa.
 // Ketukan dibedakan dari geseran: jari bergerak < TAP_MOVE px dan dilepas < TAP_TIME ms.
 // Dibaca sekali per frame lewat read().
 
 const TAP_MOVE = 12 // px
-const SKILL_KEYS = { Digit1: 'putar', KeyQ: 'putar', Digit2: 'serbu', KeyE: 'serbu', Digit3: 'hentak', KeyR: 'hentak' }
+const SKILL_KEYS = {
+  Digit1: 'cincang', KeyQ: 'cincang', Digit2: 'hentak', KeyE: 'hentak',
+  Digit3: 'putar', KeyR: 'putar', Digit4: 'penggal', KeyT: 'penggal',
+}
 const TAP_TIME = 800 // ms (lebih lama dari ini tanpa bergeser = bukan ketukan)
 
-// skillButtons: { putar, serbu, hentak } → elemen tombol jurus
+// skillButtons: { cincang, hentak, putar, penggal } → elemen tombol jurus
 export function createInput({ canvas, jumpButton, attackButton, skillButtons, touch }) {
   const keys = new Set()
   let enabled = true

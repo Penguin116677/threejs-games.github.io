@@ -185,25 +185,36 @@ body {
   background: rgba(255, 140, 100, 0.5);
 }
 
-/* layar tegak: busur berjari-jari 140 px dari pusat tombol Pukul */
-#hud #btn-putar {
-  right: calc(var(--r) + 152px);
-  bottom: calc(var(--b) + 12px);
+/* layar tegak: busur berjari-jari 165 px dari pusat tombol Pukul (jurus 1–4, lalu Lompat) */
+#hud .jurus,
+#hud #btn-lompat {
+  width: 56px;
+  height: 56px;
 }
 
-#hud #btn-serbu {
-  right: calc(var(--r) + 133px);
-  bottom: calc(var(--b) + 82px);
+#hud #btn-cincang {
+  right: calc(var(--r) + 179px);
+  bottom: calc(var(--b) + 14px);
 }
 
 #hud #btn-hentak {
-  right: calc(var(--r) + 82px);
-  bottom: calc(var(--b) + 133px);
+  right: calc(var(--r) + 166px);
+  bottom: calc(var(--b) + 77px);
+}
+
+#hud #btn-putar {
+  right: calc(var(--r) + 131px);
+  bottom: calc(var(--b) + 131px);
+}
+
+#hud #btn-penggal {
+  right: calc(var(--r) + 77px);
+  bottom: calc(var(--b) + 166px);
 }
 
 #hud #btn-lompat {
-  right: calc(var(--r) + 12px);
-  bottom: calc(var(--b) + 152px);
+  right: calc(var(--r) + 14px);
+  bottom: calc(var(--b) + 179px);
 }
 
 /* jurus: kebiruan; selama jeda pakai ada lapisan gelap yang menyusut + sisa detik */
@@ -214,6 +225,16 @@ body {
 
 #hud .jurus.siap {
   box-shadow: 0 0 10px rgba(140, 200, 255, 0.55);
+}
+
+/* jurus pamungkas (Penggal): kemerahan */
+#hud .jurus.pamungkas {
+  border-color: rgba(255, 190, 180, 0.8);
+  background: rgba(200, 40, 40, 0.3);
+}
+
+#hud .jurus.pamungkas.siap {
+  box-shadow: 0 0 12px rgba(255, 110, 90, 0.7);
 }
 
 #hud .jurus .cd {
@@ -325,27 +346,29 @@ body {
 /* layar mendatar: petunjuk di ruang kosong atas, di antara judul dan tombol;
    tombol jurus & Lompat sebaris di kiri tombol Pukul (tinggi layar terbatas) */
 @media (orientation: landscape) {
-  #hud #btn-putar,
-  #hud #btn-serbu,
-  #hud #btn-hentak,
+  #hud .jurus,
   #hud #btn-lompat {
-    bottom: calc(var(--b) + 12px);
+    bottom: calc(var(--b) + 14px);
   }
 
-  #hud #btn-putar {
+  #hud #btn-cincang {
     right: calc(var(--r) + 96px);
   }
 
-  #hud #btn-serbu {
-    right: calc(var(--r) + 168px);
+  #hud #btn-hentak {
+    right: calc(var(--r) + 162px);
   }
 
-  #hud #btn-hentak {
-    right: calc(var(--r) + 240px);
+  #hud #btn-putar {
+    right: calc(var(--r) + 228px);
+  }
+
+  #hud #btn-penggal {
+    right: calc(var(--r) + 294px);
   }
 
   #hud #btn-lompat {
-    right: calc(var(--r) + 312px);
+    right: calc(var(--r) + 360px);
   }
 
   #petunjuk {

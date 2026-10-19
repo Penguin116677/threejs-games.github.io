@@ -7,8 +7,8 @@ reruntuhan, berinteraksi dengan NPC, mengumpulkan item, dan menyelesaikan quest 
 
 ## Genre
 Eksplorasi / petualangan santai dengan kamera gaya game strategi (dilihat dari atas, ketuk tanah
-untuk berjalan — sejak v0.6.0). Prajurit punya kombo pukulan dan 3 jurus (v0.8.0), tetapi belum ada
-musuh/sistem pertarungan (untuk saat ini).
+untuk berjalan — sejak v0.6.0). Prajurit punya kombo pukulan dan 4 jurus (v0.9.0) melawan musuh orc
+di perkemahan; musuh belum menyerang balik (untuk saat ini).
 
 ## Target perangkat
 - Utama: browser Chrome di HP Android (layar sentuh, portrait dan landscape).
@@ -43,4 +43,4 @@ peningkatan visual Milestone 5 (bayangan, tanah bertekstur, awan, kaustik — v0
 dikerjakan lebih awal, sebelum Milestone 2. Milestone 2 (karakter & kontrol) dikerjakan di v0.5.0;
 kamera dan kontrolnya diubah ke gaya game strategi di v0.6.0 (permintaan pengguna).
 Tombol Pukul (bagian awal Milestone 4 — interaksi) ditambahkan lebih dulu di v0.7.0 atas permintaan,
-lalu dikembangkan menjadi kombo + 3 jurus (v0.8.0).
+lalu dikembangkan menjadi kombo + jurus (v0.8.0) dan 4 jurus melawan musuh orc (v0.9.0).

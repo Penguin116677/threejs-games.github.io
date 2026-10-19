@@ -1,5 +1,34 @@
 # CHANGELOG — Pulau Tropis
 
+## [0.9.0] — 2026-10-19 — Musuh orc + 4 jurus baru (permintaan pengguna)
+### Ditambahkan
+- **Musuh orc** (Kenney "Mini Dungeon", CC0 — rig & animasi sama dengan prajurit): 25 orc di 5
+  perkemahan (satu ±16 m di depan titik mulai; lainnya di padang barat gunung, timur, utara, selatan).
+  Berkeliaran pelan dan menoleh ke prajurit bila dekat; **belum menyerang**.
+  - Nyawa 6: bar merah muncul di atas kepala saat terkena; berkedip putih & terpental saat dipukul;
+    roboh (animasi jatuh), lalu tenggelam ke tanah dan muncul lagi di perkemahannya ±19 detik kemudian.
+  - Orc yang jauh (> 60 m) tidak digambar dan tidak dianimasikan (hemat untuk HP).
+- **4 jurus baru** (komputer: tombol 1–4 atau Q/E/R/T):
+  1. **Cincang** (jeda 6 detik): 10 cincangan beruntun ke depan sambil maju pelan.
+  2. **Hentak** (jeda 7 detik): melompat ±2 m, pedang dibalik menghadap ke bawah di puncak
+     lompatan, lalu menghentak turun dan menancapkan pedang ke tanah — retakan tanah, gelombang kejut
+     ±3,3 m (orc terluka & terpental), layar berguncang.
+  3. **Putar** (jeda 5 detik): 3 cincangan lalu berputar satu kali, mengenai semua di sekeliling ±2,4 m.
+  4. **Penggal** (jeda 15 detik): membidik leher maks. 5 orc terdekat (±14 m, tanda bidik merah),
+     lalu melesat secepat kilat melewati semuanya dan memenggal kelimanya bersamaan — jejak kilat
+     zig-zag, garis potong di leher, kepala terlepas & terlempar (bergaya kartun, tanpa darah).
+     Tanpa musuh dalam jangkauan: muncul pesan dan jeda pakai tidak terpakai.
+- Pukulan kombo (tebas / tinju / tendang) juga melukai orc.
+### Diubah
+- Tombol jurus: Cincang, Hentak, Putar, **Penggal** (merah, jurus pamungkas) + Lompat melingkari
+  tombol Pukul (layar tegak) atau sebaris di kirinya (layar mendatar).
+- Jurus lama diganti: Putar kini "cincang lalu putar", Hentak kini "menancapkan pedang", **Serbu dihapus**
+  (gerakan melesatnya kini bagian dari Penggal).
+### Pengujian
+- Smoke test: orc di 5 perkemahan dekat titik mulai; Cincang (10 cincangan, orc roboh); Hentak
+  (lompat, retakan, orc terluka); Putar (cincang → putar, ≥ 2 orc terluka); Penggal (5 leher dibidik
+  & dipenggal, prajurit melesat); orc hidup lagi; Penggal tanpa musuh; tombol 1–4 di komputer.
+
 ## [0.8.0] — 2026-10-19 — Variasi serangan: kombo + 3 jurus (permintaan pengguna)
 ### Ditambahkan
 - **Kombo Pukul**: tombol Pukul berganti gerakan setiap ditekan — tebasan pedang → tinju kiri →

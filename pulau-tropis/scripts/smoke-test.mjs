@@ -8,9 +8,11 @@ import { mkdirSync } from 'node:fs'
 //   laut dalam → kembali ke pantai, mendaki lereng gunung
 // - HP: ketuk tanah untuk berjalan (jalur memutari batang pohon), ketuk laut → berhenti di
 //   air dangkal, tombol Pukul (berhenti + mengayun, mengenai batang pohon → serpihan,
-//   kombo tebas → tinju → tendang), jurus Putar / Serbu / Hentak (+ jeda pakai),
-//   tombol Lompat, geser kamera (tanpa memicu jalan), cubit zoom, tombol Lihat pulau, menu Kualitas
-// - komputer: tombol F = pukul, 1 / 2 / 3 = jurus
+//   kombo tebas → tinju → tendang), jurus Cincang / Hentak / Putar / Penggal terhadap orc
+//   (+ jeda pakai, Penggal tanpa musuh, orc hidup lagi), tombol Lompat, geser kamera
+//   (tanpa memicu jalan), cubit zoom, tombol Lihat pulau, menu Kualitas
+// - musuh orc ada di perkemahan (satu dekat titik mulai)
+// - komputer: tombol F = pukul, 1–4 = jurus
 // - tidak ada lagi lingkaran hijau di bawah prajurit
 // Waktu tunggu dihitung dalam FRAME (fisika berjalan per frame), bukan detik, karena
 // render software jauh lebih lambat dari HP.
@@ -106,6 +108,26 @@ async function attackDone(page) {
   return page.evaluate(() => window.__pulau.effects.stats())
 }
 
+// prajurit `d` m dari orc ke-i perkemahan pertama (dari arah luar perkemahan), menghadapnya;
+// semua orc dihidupkan lagi dan jeda pakai jurus dikosongkan
+const nearOrc = (page, i, d) => page.evaluate(([i, d]) => {
+  const { enemies, player, cam } = window.__pulau
+  enemies.reviveAll()
+  for (const k in player.cooldowns) player.cooldowns[k] = 0
+  const camp = enemies.camps[0]
+  const e = enemies.list[i]
+  const ax = e.pos.x - camp.x
+  const az = e.pos.z - camp.z
+  const al = Math.hypot(ax, az) || 1
+  const x = e.pos.x + (ax / al) * d
+  const z = e.pos.z + (az / al) * d
+  const h = Math.atan2(e.pos.x - x, e.pos.z - z)
+  player.placeAt(x, z, h)
+  player.stop()
+  cam.lookFrom(h + Math.PI)
+}, [i, d])
+const orcStats = page => page.evaluate(() => window.__pulau.enemies.list.slice(0, 5).map(e => ({ hp: e.hp, state: e.state, headless: e.headless })))
+
 // batang pohon hutan yang kiri-kanannya lapang (untuk uji tabrakan & jalur memutar)
 const openTrunk = page => page.evaluate(() => {
   const { trees, colliders, nav } = window.__pulau
@@ -158,6 +180,18 @@ for (const [name, opts, query] of cases) {
     return found
   })
   if (greenRing) fail('lingkaran hijau di bawah prajurit masih ada')
+  const foes = await page.evaluate(() => {
+    const { enemies, player } = window.__pulau
+    if (!enemies) return null
+    const p = player.position
+    return {
+      n: enemies.list.length, camps: enemies.camps.length,
+      nearest: Math.min(...enemies.list.map(e => Math.hypot(e.pos.x - p.x, e.pos.z - p.z))),
+    }
+  })
+  if (!foes || foes.n < 20 || foes.camps < 4) fail(`musuh orc: ${JSON.stringify(foes)}`)
+  else if (foes.nearest > 20) fail(`perkemahan orc terlalu jauh dari titik mulai (${foes.nearest.toFixed(1)} m)`)
+  else ok(`musuh: ${foes.n} orc di ${foes.camps} perkemahan, terdekat ${foes.nearest.toFixed(1)} m dari titik mulai`)
 
   // rumput: pemain di padang lereng barat gunung, menghadap puncak
   await teleport(page, -50, -95, [70, -60])
@@ -237,18 +271,18 @@ for (const [name, opts, query] of cases) {
     if (!swingF || fxb.slashes !== fxa.slashes + 1) fail(`tombol F: mengayun ${swingF}, sabetan ${fxb.slashes - fxa.slashes}`)
     else ok('tombol F: prajurit mengayunkan pedang')
 
-    // jurus dengan tombol 1 / 2 / 3 (di tempat lapang)
+    // jurus dengan tombol 1–4 (dekat perkemahan orc agar Penggal punya sasaran)
     const keyed = []
-    for (const key of ['Digit1', 'Digit2', 'Digit3']) {
-      await teleport(page, -122, 122, [0, 0])
+    for (const key of ['Digit1', 'Digit2', 'Digit3', 'Digit4']) {
+      await nearOrc(page, 0, 6)
       await waitFrames(page, 3)
       await page.keyboard.press(key)
       await waitFrames(page, 2)
       keyed.push((await state(page)).move)
       await attackDone(page)
     }
-    if (keyed.join() !== 'putar,serbu,hentak') fail(`tombol 1/2/3: ${keyed.join(', ')}`)
-    else ok('tombol 1 / 2 / 3: jurus Putar, Serbu, Hentak')
+    if (keyed.join() !== 'cincang,hentak,putar,penggal') fail(`tombol 1–4: ${keyed.join(', ')}`)
+    else ok('tombol 1–4: jurus Cincang, Hentak, Putar, Penggal')
 
     // lompat dengan Spasi
     await waitFrames(page, 10)
@@ -423,51 +457,24 @@ for (const [name, opts, query] of cases) {
     if (combo.join() !== 'tebas,tinju,tendang') fail(`kombo Pukul: ${combo.join(' → ')}`)
     else ok('kombo Pukul: tebas → tinju → tendang')
 
-    // jurus Tebasan Putar di antara batang pohon: kena sekeliling, lalu jeda pakai
-    const spinSpot = await page.evaluate(() => {
-      const { trees, colliders } = window.__pulau
-      for (const t of trees.userData.trunks.filter(t => t.radius === 0.7))
-        if (colliders.isFree(t.x + 1.6, t.z, 0.45)) return [t.x + 1.6, t.z]
-      return null
-    })
-    await teleport(page, spinSpot[0], spinSpot[1], [spinSpot[0], spinSpot[1] + 5])
+    // jurus 1 Cincang: 10 cincangan ke orc di depan → orc roboh
+    await nearOrc(page, 0, 1.3)
     await waitFrames(page, 5)
-    const fs0 = await page.evaluate(() => window.__pulau.effects.stats())
-    await page.tap('#btn-putar')
+    const c0 = await page.evaluate(() => window.__pulau.effects.stats().slashes)
+    await page.tap('#btn-cincang')
     await waitFrames(page, 2)
-    const spin = await state(page)
-    const spinCd = await page.evaluate(() => window.__pulau.player.cooldowns.putar)
-    const fs1 = await attackDone(page)
-    await page.tap('#btn-putar')
-    await waitFrames(page, 2)
-    const spinAgain = (await state(page)).move
-    const cdText = await page.evaluate(() => document.querySelector('#btn-putar .cd').textContent)
-    if (spin.move !== 'putar' || fs1.spins !== fs0.spins + 1 || fs1.bursts <= fs0.bursts) fail(`jurus Putar: gerakan ${spin.move}, pusaran ${fs1.spins - fs0.spins}, serpihan ${fs1.bursts - fs0.bursts}`)
-    else if (spinCd < 3 || spinAgain !== null || !cdText) fail(`jurus Putar: jeda ${spinCd.toFixed(1)} s, ditekan lagi → ${spinAgain}, angka jeda "${cdText}"`)
-    else ok(`jurus Putar: berputar, kena batang di sekeliling, jeda ${spinCd.toFixed(1)} s (tombol menunjukkan "${cdText}")`)
+    const chopMove = (await state(page)).move
+    const c1 = await attackDone(page)
+    const o1 = await orcStats(page)
+    if (chopMove !== 'cincang' || c1.slashes - c0 !== 10) fail(`jurus Cincang: gerakan ${chopMove}, sabetan ${c1.slashes - c0}`)
+    else if (o1[0].state === 'hidup') fail(`jurus Cincang: orc di depan masih hidup (nyawa ${o1[0].hp})`)
+    else ok('jurus Cincang: 10 cincangan, orc di depan roboh')
+    await page.screenshot({ path: `${out}/${name}-cincang.png` })
 
-    // jurus Serbuan ke batang pohon 3,2 m di depan: melesat, berhenti di depan batang, menebasnya
-    const dashTo = await openTrunk(page)
-    await teleport(page, dashTo.x - 3.2, dashTo.z, [dashTo.x, dashTo.z])
+    // jurus 2 Hentak: melompat, menancapkan pedang, gelombang kejut melukai orc di sekitar
+    await nearOrc(page, 0, 1.8)
     await waitFrames(page, 5)
-    const fd0 = await page.evaluate(() => window.__pulau.effects.stats())
-    await page.tap('#btn-serbu')
-    let closest = Infinity
-    for (let i = 0; i < 60; i++) {
-      const s = await state(page)
-      closest = Math.min(closest, Math.hypot(s.x - dashTo.x, s.z - dashTo.z))
-      if (!s.attacking && i > 1) break
-      await waitFrames(page, 1)
-    }
-    const fd1 = await page.evaluate(() => window.__pulau.effects.stats())
-    if (fd1.streaks !== fd0.streaks + 1 || fd1.bursts <= fd0.bursts) fail(`jurus Serbu: jejak ${fd1.streaks - fd0.streaks}, serpihan ${fd1.bursts - fd0.bursts}`)
-    else if (closest < dashTo.radius + 0.35 - 0.03 || closest > 1.6) fail(`jurus Serbu: jarak terdekat ke batang ${closest.toFixed(2)} m`)
-    else ok(`jurus Serbu: melesat ke batang, berhenti ${closest.toFixed(2)} m dari pusatnya (tidak menembus), menebasnya`)
-
-    // jurus Hentakan: melompat lalu menghantam tanah (gelombang kejut)
-    await teleport(page, -122, 122, [0, 0])
-    await waitFrames(page, 5)
-    const fh0 = await page.evaluate(() => window.__pulau.effects.stats())
+    const h0 = await page.evaluate(() => window.__pulau.effects.stats())
     await page.tap('#btn-hentak')
     let top = 0
     for (let i = 0; i < 80; i++) {
@@ -477,9 +484,76 @@ for (const [name, opts, query] of cases) {
       await waitFrames(page, 1)
     }
     const landed = await state(page)
-    const fh1 = await page.evaluate(() => window.__pulau.effects.stats())
-    if (top < 0.8 || Math.abs(landed.h) > 0.05 || fh1.pulses < fh0.pulses + 2) fail(`jurus Hentak: tinggi ${top.toFixed(2)} m, di tanah ${landed.h.toFixed(2)}, cincin ${fh1.pulses - fh0.pulses}`)
-    else ok(`jurus Hentak: melompat ${top.toFixed(2)} m, mendarat, gelombang kejut muncul`)
+    const h1 = await page.evaluate(() => window.__pulau.effects.stats())
+    const o2 = await orcStats(page)
+    const hurt2 = o2.filter(o => o.hp < 6).length
+    if (top < 1.5 || Math.abs(landed.h) > 0.05 || h1.cracks !== h0.cracks + 1) fail(`jurus Hentak: tinggi ${top.toFixed(2)} m, di tanah ${landed.h.toFixed(2)}, retakan ${h1.cracks - h0.cracks}`)
+    else if (hurt2 < 1) fail('jurus Hentak: tidak ada orc yang terluka')
+    else ok(`jurus Hentak: melompat ${top.toFixed(2)} m, pedang menancap (retakan), ${hurt2} orc terluka`)
+
+    // jurus 3 Putar: cincang lalu berputar sekali di tengah kelompok orc
+    await nearOrc(page, 0, -1.6)
+    await waitFrames(page, 5)
+    const p0 = await page.evaluate(() => window.__pulau.effects.stats())
+    await page.tap('#btn-putar')
+    const phases = []
+    for (let i = 0; i < 80; i++) {
+      const s = await page.evaluate(() => window.__pulau.player.attackPhase)
+      if (s && phases[phases.length - 1] !== s) phases.push(s)
+      if (!s && i > 1) break
+      await waitFrames(page, 1)
+    }
+    const p1 = await page.evaluate(() => window.__pulau.effects.stats())
+    const hurt3 = (await orcStats(page)).filter(o => o.hp < 6).length
+    if (!phases.includes('cincang') || !phases.includes('putar') || p1.spins !== p0.spins + 1) fail(`jurus Putar: tahap ${phases.join(' → ')}, pusaran ${p1.spins - p0.spins}`)
+    else if (hurt3 < 2) fail(`jurus Putar: hanya ${hurt3} orc terluka`)
+    else ok(`jurus Putar: cincang → putar, ${hurt3} orc di sekeliling terluka`)
+
+    // jurus 4 Penggal: membidik 5 leher lalu memenggal semuanya dalam satu gerakan
+    await nearOrc(page, 0, 7)
+    await waitFrames(page, 5)
+    const pg0 = await state(page)
+    await page.tap('#btn-penggal')
+    await waitFrames(page, 2)
+    const aimed = await page.evaluate(() => window.__pulau.enemies.list.filter(e => e.marked).length)
+    await attackDone(page)
+    const pg1 = await state(page)
+    const o4 = await orcStats(page)
+    const fx4 = await page.evaluate(() => window.__pulau.effects.stats())
+    const cd4 = await page.evaluate(() => window.__pulau.player.cooldowns.penggal)
+    if (aimed !== 5) fail(`jurus Penggal: ${aimed} orc dibidik (harus 5)`)
+    else if (o4.filter(o => o.headless).length !== 5 || fx4.cuts < 5) fail(`jurus Penggal: kepala terpotong ${o4.filter(o => o.headless).length}, garis potong ${fx4.cuts}`)
+    else if (Math.hypot(pg1.x - pg0.x, pg1.z - pg0.z) < 3 || cd4 < 10) fail(`jurus Penggal: prajurit pindah ${Math.hypot(pg1.x - pg0.x, pg1.z - pg0.z).toFixed(1)} m, jeda ${cd4.toFixed(1)}`)
+    else ok(`jurus Penggal: 5 leher dibidik lalu dipenggal sekaligus, prajurit melesat ${Math.hypot(pg1.x - pg0.x, pg1.z - pg0.z).toFixed(1)} m`)
+    await waitFrames(page, 4)
+    await page.screenshot({ path: `${out}/${name}-penggal.png` })
+
+    // orc yang roboh muncul lagi di perkemahan (waktu dipercepat)
+    await page.evaluate(() => {
+      window.__pulau.debug.timeScale = 4
+    })
+    const back = await page.waitForFunction(() => window.__pulau.enemies.list.slice(0, 5).every(e => e.state === 'hidup'), null, { timeout: 120000 })
+      .then(() => true).catch(() => false)
+    await page.evaluate(() => {
+      window.__pulau.debug.timeScale = 1
+    })
+    if (!back) fail('orc yang roboh tidak muncul lagi')
+    else ok('orc yang roboh muncul lagi di perkemahan (kepala utuh lagi)')
+
+    // Penggal tanpa musuh di dekatnya → pesan, jeda pakai tidak terpakai
+    await teleport(page, 150, -60, [0, 0])
+    await page.evaluate(() => {
+      window.__pulau.player.cooldowns.penggal = 0
+    })
+    await waitFrames(page, 3)
+    await page.tap('#btn-penggal')
+    await waitFrames(page, 3)
+    const none = await page.evaluate(() => ({
+      move: window.__pulau.player.attackMove, cd: window.__pulau.player.cooldowns.penggal,
+      msg: document.getElementById('pesan').hidden ? '' : document.getElementById('pesan').textContent,
+    }))
+    if (none.move || none.cd > 0 || !none.msg.includes('Tidak ada musuh')) fail(`Penggal tanpa musuh: ${JSON.stringify(none)}`)
+    else ok(`Penggal tanpa musuh: "${none.msg}", jeda pakai tidak terpakai`)
 
     // tombol Lompat
     await teleport(page, -122, 122, [0, 0])

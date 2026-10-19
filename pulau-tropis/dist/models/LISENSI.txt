@@ -7,3 +7,8 @@ prajurit.glb, pedang.glb
 
 (Karakter sebelumnya — Kenney "Mini Characters" character-male-f, juga CC0 — masih ada di
 riwayat git, commit df66831, bila ingin dipakai lagi.)
+
+orc.glb
+  Sumber : Kenney "Mini Dungeon" 2.0 — character-orc (www.kenney.nl)
+  Lisensi: Creative Commons Zero (CC0 1.0).
+  Diubah : tekstur colormap.png digabung ke dalam GLB (scripts/embed-glb-texture.py).

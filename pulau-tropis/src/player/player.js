@@ -40,6 +40,7 @@ async function attachWeapon(model, load, weaponSource) {
     weapon.quaternion.setFromUnitVectors(new THREE.Vector3(0, -1, 0), blade)
     weapon.position.fromArray(WEAPON_GRIP.hand).addScaledVector(blade, WEAPON_GRIP.grip)
     model.getObjectByName('arm-right')?.add(weapon)
+    model.userData.sword = weapon // diputar saat jurus Hentak (pedang menghadap ke bawah)
   } catch (err) {
     console.warn('Senjata gagal dimuat:', err)
   }
@@ -194,9 +195,29 @@ export function createPlayer({ ground, colliders, quality, asset }) {
     }
   }
 
+  // pedang dibalik: orientasi dunia yang diinginkan diubah ke ruang tulang lengan kanan
+  const sword = model.userData.sword || null
+  const swordRest = sword ? sword.quaternion.clone() : null
+  const arm = model.getObjectByName('arm-right')
+  let swordDown = false
+  const qArm = new THREE.Quaternion()
+  const qWant = new THREE.Quaternion()
+  const qTilt = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1, 0, 0), -0.3) // ujung sedikit ke depan
+  const Y = new THREE.Vector3(0, 1, 0)
+  function orientSword() {
+    if (!sword) return
+    if (!swordDown) {
+      sword.quaternion.copy(swordRest)
+      return
+    }
+    arm.getWorldQuaternion(qArm)
+    qWant.setFromAxisAngle(Y, heading).multiply(qTilt)
+    sword.quaternion.copy(qArm.invert().multiply(qWant))
+  }
+
   // --- serangan (kombo pukulan + jurus): logikanya di combat.js, badan prajurit dipinjamkan di sini
   const combat = createCombat({
-    pos, vel, colliders,
+    pos, vel,
     get heading() {
       return heading
     },
@@ -209,19 +230,45 @@ export function createPlayer({ ground, colliders, quality, asset }) {
     depthAt: (x, z) => ISLAND.seaLevel - ground.heightAt(x, z),
     clipLength: name => actions[name]?.getClip().duration || 0,
     play,
-    // putar animasi serang dari awal (juga bila animasi yang sama sedang diputar)
-    playClip(name, speed) {
+    // putar animasi serang dari detik `from` (juga bila animasi yang sama sedang diputar)
+    playClip(name, speed, from = 0) {
       const a = actions[name]
       if (!a) return
       a.timeScale = speed
       if (current === a) a.reset().play()
       else play(name, 0.06)
+      a.time = from
+    },
+    // tahan satu pose: animasi berhenti di detik `time` sampai release()
+    pose(name, time) {
+      const a = actions[name]
+      if (!a) return
+      if (current !== a) play(name, 0.06)
+      a.time = time
+      a.paused = true
+    },
+    release() {
+      if (current) current.paused = false
     },
     launch(vx, vy, vz) {
       vel.set(vx, vy, vz)
       grounded = false
       coyote = 0
       airTime = 0
+    },
+    // pindah seketika (jurus Penggal melesat dari leher ke leher)
+    teleport(x, z) {
+      pos.set(x, ground.heightAt(x, z), z)
+      vel.set(0, 0, 0)
+      grounded = true
+    },
+    // pedang menghadap lurus ke bawah (jurus Hentak: ditancapkan ke tanah)
+    swordDown(on) {
+      swordDown = on
+    },
+    // badan direndahkan (kuda-kuda saat pedang tertancap)
+    crouch(amount) {
+      model.position.y = -amount
     },
     stopWalking() {
       path.length = 0
@@ -362,12 +409,15 @@ export function createPlayer({ ground, colliders, quality, asset }) {
     get attacking() {
       return combat.busy
     },
-    // gerakan serang yang sedang berjalan ('tebas', 'tinju', 'tendang', 'putar', 'serbu',
-    // 'hentak') atau null
+    // gerakan serang yang sedang berjalan ('tebas', 'tinju', 'tendang', 'cincang', 'hentak',
+    // 'putar', 'penggal') atau null
     get attackMove() {
       return combat.current
     },
-    // sisa jeda pakai jurus (detik): { putar, serbu, hentak }
+    get attackPhase() {
+      return combat.phase
+    },
+    // sisa jeda pakai jurus (detik): { cincang, hentak, putar, penggal }
     get cooldowns() {
       return combat.cooldown
     },
@@ -385,10 +435,14 @@ export function createPlayer({ ground, colliders, quality, asset }) {
     onRespawnNeeded(fn) {
       onRespawnNeeded = fn
     },
-    // fn(kejadian serangan) — lihat combat.js: { type: 'hit' | 'dash', move, x, y, z, heading,
-    // origin, targets: [{ x, z, radius, kind }], from }
+    // fn(kejadian serangan) — lihat combat.js: { type: 'hit' | 'dash' | 'aim' | 'execute' | 'gagal',
+    // move, heading, origin, … } — 'hit' membawa lingkaran sasaran (x, z, r), damage, knock
     onAttack(fn) {
       combat.onEvent(fn)
+    },
+    // sasaran jurus Penggal (musuh) — lihat combat.js setArena
+    setArena(arena) {
+      combat.setArena(arena)
     },
     // kembali ke posisi aman terakhir di darat
     respawn() {
@@ -456,6 +510,7 @@ export function createPlayer({ ground, colliders, quality, asset }) {
       if (actions.walk) actions.walk.timeScale = THREE.MathUtils.clamp(hs / 1.4, 0.6, 1.6)
       if (actions.sprint) actions.sprint.timeScale = THREE.MathUtils.clamp(hs / 3.6, 0.8, 1.6)
       mixer?.update(dt)
+      orientSword()
 
       if (blob) {
         const h = pos.y - gy

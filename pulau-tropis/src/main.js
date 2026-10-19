@@ -13,6 +13,7 @@ import { createRocks } from './world/rocks.js'
 import { createGrass } from './world/grass.js'
 import { createColliders } from './world/colliders.js'
 import { createNavGrid } from './world/navgrid.js'
+import { createEnemies } from './world/enemies.js'
 import { createInput } from './player/input.js'
 import { createStrategyCamera } from './player/camera.js'
 import { createMarkers } from './player/marker.js'
@@ -73,8 +74,8 @@ function findSpawn(ground, colliders) {
   return { x: -128, z: 128, heading: Math.atan2(128, -128) }
 }
 
-const HINT_TOUCH = '<b>Ketuk tanah</b> untuk berjalan ke sana (jauh = lari)<br>Geser: putar kamera · Cubit: zoom<br><b>Pukul</b> berulang = kombo · 3 tombol <b>jurus</b> di sekitarnya'
-const HINT_KEYS = '<b>Klik tanah</b> untuk berjalan ke sana · WASD / panah juga bisa<br>Seret mouse: putar kamera · Roda: zoom · Spasi: lompat<br>F: pukul (kombo) · 1 / 2 / 3: jurus Putar, Serbu, Hentak'
+const HINT_TOUCH = '<b>Ketuk tanah</b> untuk berjalan ke sana (jauh = lari)<br>Geser: putar kamera · Cubit: zoom<br><b>Pukul</b> berulang = kombo · 4 tombol <b>jurus</b> · musuh orc ada di depan'
+const HINT_KEYS = '<b>Klik tanah</b> untuk berjalan ke sana · WASD / panah juga bisa<br>Seret mouse: putar kamera · Roda: zoom · Spasi: lompat<br>F: pukul (kombo) · 1–4: jurus Cincang, Hentak, Putar, Penggal'
 
 // FOV kamera: mode main (kamera atas) lebih sempit agar prajurit tidak terlalu kecil;
 // layar tegak butuh FOV lebih lebar agar sisi kiri-kanan tetap terlihat
@@ -170,35 +171,72 @@ async function start() {
 
   setStatus('Menyiapkan karakter…')
   await nextFrame()
+  const modelUrl = name => new URL(`models/${name}`, document.baseURI).href
   let asset = null
   try {
-    const modelUrl = name => new URL(`models/${name}`, document.baseURI).href
     asset = await loadPlayerModel(modelUrl('prajurit.glb'), quality, modelUrl('pedang.glb'))
   } catch (err) {
     console.warn('Model karakter gagal dimuat:', err)
+  }
+  // musuh orc (model terpisah; bila gagal dimuat, game tetap jalan tanpa musuh)
+  let orcAsset = null
+  try {
+    orcAsset = await loadPlayerModel(modelUrl('orc.glb'), quality)
+  } catch (err) {
+    console.warn('Model musuh gagal dimuat:', err)
   }
   const player = createPlayer({ ground, colliders, quality, asset })
   scene.add(player.root)
   if (player.blob) scene.add(player.blob)
   const spawn = findSpawn(ground, colliders)
   player.placeAt(spawn.x, spawn.z, spawn.heading)
+  const enemies = orcAsset ? createEnemies({ ground, colliders, nav, asset: orcAsset, spawn }) : null
+  if (enemies) scene.add(enemies.object)
+  // sasaran jurus Penggal: orc hidup terdekat; titik akhir lesatan harus bisa diinjak
+  player.setArena({
+    pickTargets: (x, z, range, max) => (enemies ? enemies.pickTargets(x, z, range, max) : []),
+    position: id => (enemies ? enemies.position(id) : null),
+    standable: (x, z) => nav.walkableAt(x, z) && colliders.isFree(x, z, 0.45) && ground.heightAt(x, z) > -0.9,
+  })
 
   // Kamera strategi dari atas (mode main) + input ketuk/keyboard
   const touchUI = navigator.maxTouchPoints > 0 || 'ontouchstart' in window
   const cam = createStrategyCamera(camera, ground)
   cam.lookFrom(spawn.heading + Math.PI) // di belakang prajurit, menghadap gunung
-  const skillButtons = { putar: $('btn-putar'), serbu: $('btn-serbu'), hentak: $('btn-hentak') }
+  const skillButtons = { cincang: $('btn-cincang'), hentak: $('btn-hentak'), putar: $('btn-putar'), penggal: $('btn-penggal') }
   const input = createInput({ canvas, jumpButton: $('btn-lompat'), attackButton: $('btn-pukul'), skillButtons, touch: touchUI })
   const NO_INPUT = { moveX: 0, moveY: 0, jump: false, attack: false, skill: null, lookDX: 0, zoom: 1, taps: [] }
   const markers = createMarkers(ground)
   scene.add(...markers.objects)
 
-  // serangan: efek khas tiap gerakan (+ serpihan bila mengenai batang pohon / batu)
+  // serangan: yang terkena (orc → nyawa berkurang & terpental; batang/batu → serpihan) + efeknya
   const effects = createSwingEffects(ground)
   scene.add(effects.object)
   player.onAttack(ev => {
+    if (ev.type === 'gagal') {
+      showMessage('Tidak ada musuh dalam jangkauan Penggal (±14 m).', 1800)
+      return
+    }
+    if (ev.type === 'aim') {
+      enemies?.mark(ev.targets, true)
+      return
+    }
+    if (ev.type === 'execute') {
+      enemies?.mark(ev.targets, false)
+      const cut = enemies ? enemies.decapitate(ev.targets, player.position) : []
+      effects.execute(cut, player.position)
+      if (cut.length) cam.shake(0.22)
+      return
+    }
+    if (ev.type === 'hit') {
+      const shape = { x: ev.x, z: ev.z, r: ev.r }
+      const struck = enemies ? enemies.hit(shape, ev.damage, ev.knock, ev.origin) : []
+      effects.attack(ev, colliders.hitAll(ev.x, ev.z, ev.r, 5), struck)
+      if (ev.plant) cam.shake(0.4)
+      else if (struck.length && ev.spin) cam.shake(0.12)
+      return
+    }
     effects.attack(ev)
-    if (ev.type === 'hit' && ev.move === 'hentak') cam.shake(0.3)
   })
 
   // tombol jurus: lapisan gelap berputar + sisa detik selama jeda pakai
@@ -384,9 +422,10 @@ async function start() {
   let hinted = quality.level === 'rendah'
 
   let frameCount = 0
+  const debug = { timeScale: 1 } // pengujian: < 1 = gerak lambat (untuk memotret efek)
   renderer.setAnimationLoop(() => {
     frameCount++
-    const dt = Math.min(clock.getDelta(), 0.1)
+    const dt = Math.min(clock.getDelta(), 0.1) * debug.timeScale
     const t = clock.elapsedTime
     if (mode === 'main') {
       const inp = input.read()
@@ -406,7 +445,8 @@ async function start() {
       seeThrough.r.value = 0
     }
     markers.update(dt)
-    effects.update(dt)
+    enemies?.update(dt, camera, player)
+    effects.update(dt, camera)
     updateSkillButtons()
     env.update(t, camera, mode === 'main' ? player.position : controls.target)
     waveTime.value = t
@@ -443,8 +483,8 @@ async function start() {
   // akses untuk debugging / pengujian otomatis
   window.__pulau = {
     renderer, scene, camera, controls, ground, shore, quality, trees, rocks, grass, water, env,
-    player, cam, input, colliders, nav, markers, effects, pickGround, setMode, getMode: () => mode,
-    frames: () => frameCount,
+    player, cam, input, colliders, nav, markers, effects, enemies, pickGround, setMode, getMode: () => mode,
+    frames: () => frameCount, debug,
   }
 }
 

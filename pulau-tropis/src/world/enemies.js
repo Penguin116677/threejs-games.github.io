@@ -1,0 +1,451 @@
+import * as THREE from 'three'
+import { clone as cloneSkinned } from 'three/addons/utils/SkeletonUtils.js'
+
+// Musuh: orc (Kenney "Mini Dungeon" 2.0, CC0) — rig & animasi sama persis dengan prajurit.
+// - Berkelompok 5 ekor di beberapa perkemahan (satu ±16 m di depan titik mulai). Berkeliaran pelan
+//   di sekitar perkemahan dan menoleh ke prajurit bila dekat. Belum menyerang (belum ada nyawa
+//   pemain).
+// - Nyawa 6: bar merah muncul di atas kepala saat terkena; berkedip putih & terpental saat dipukul;
+//   roboh (animasi die) saat nyawa habis, terbaring sebentar, tenggelam ke tanah, lalu muncul lagi
+//   di perkemahan setelah RESPAWN detik.
+// - Jurus Penggal: tanda bidik merah di kepala, lalu kepala terlepas & terlempar (tanpa darah).
+// Hemat untuk HP: orc yang jauh (> VIEW m dari prajurit) tidak digambar dan tidak dianimasikan.
+
+export const MAX_HP = 6
+const RADIUS = 0.35
+const WALK_SPEED = 1.1 // m/s
+const WANDER = 4 // m dari pusat perkemahan
+const ALERT = 9 // m: menoleh ke prajurit
+const VIEW = 60 // m
+const DEAD_TIME = 2.6 // detik terbaring sebelum tenggelam
+const SINK_TIME = 1.0
+const RESPAWN = 15 // detik setelah hilang
+const PER_CAMP = 5
+const HEAD_Y = 1.3 // m: tinggi pusat kepala (kepala besar: leher ±0,8 m, ubun-ubun ±1,8 m)
+
+// tanda bidik: cincin + 4 garis pendek (bidang XY, menghadap kamera)
+function reticleGeometry() {
+  const ring = new THREE.RingGeometry(0.5, 0.58, 40)
+  const ticks = [0, 1, 2, 3].map(i => {
+    const g = new THREE.PlaneGeometry(0.07, 0.26)
+    g.translate(0, 0.66, 0)
+    g.rotateZ((i * Math.PI) / 2)
+    return g
+  })
+  const all = [ring, ...ticks].map(g => g.toNonIndexed())
+  const pos = all.flatMap(g => [...g.attributes.position.array])
+  const geo = new THREE.BufferGeometry()
+  geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3))
+  return geo
+}
+
+// titik lapang untuk orc: kering, tidak curam, bisa dilewati, jauh dari batang & batu
+function standable(ground, colliders, nav, x, z, r = 0.6) {
+  return ground.heightAt(x, z) > 0.5 && ground.slopeAt(x, z) < 0.6 && nav.walkableAt(x, z) && colliders.isFree(x, z, r)
+}
+
+// pusat perkemahan terdekat dari (x, z) yang cukup lapang untuk PER_CAMP orc (cari melingkar)
+function findCamp(ground, colliders, nav, x, z) {
+  for (let r = 0; r <= 40; r += 2)
+    for (let a = 0; a < Math.PI * 2; a += r ? 2 / r : 7) {
+      const cx = x + Math.cos(a) * r
+      const cz = z + Math.sin(a) * r
+      if (!standable(ground, colliders, nav, cx, cz, 0.8)) continue
+      const spots = []
+      for (let i = 0; i < PER_CAMP; i++) {
+        const b = (i / PER_CAMP) * Math.PI * 2
+        spots.push({ x: cx + Math.cos(b) * 2.6, z: cz + Math.sin(b) * 2.6 })
+      }
+      if (spots.every(s => standable(ground, colliders, nav, s.x, s.z))) return { x: cx, z: cz, spots }
+    }
+  return null
+}
+
+// asset: hasil loadPlayerModel untuk orc; spawn: titik mulai prajurit
+export function createEnemies({ ground, colliders, nav, asset, spawn }) {
+  const group = new THREE.Group()
+  group.name = 'musuh'
+  const list = []
+
+  // --- bahan bersama: bar nyawa & tanda bidik (selalu terlihat, di atas objek lain)
+  const barGeo = new THREE.PlaneGeometry(1, 1)
+  const barBack = new THREE.MeshBasicMaterial({ color: '#2a0d0d', transparent: true, opacity: 0.85, depthTest: false, depthWrite: false })
+  const barFill = new THREE.MeshBasicMaterial({ color: '#ff4636', depthTest: false, depthWrite: false, toneMapped: false })
+  const reticleGeo = reticleGeometry()
+  const reticleMat = new THREE.MeshBasicMaterial({
+    color: '#ff2a2a', transparent: true, opacity: 0.95, depthTest: false, depthWrite: false, toneMapped: false, side: THREE.DoubleSide,
+  })
+
+  // kepala yang terlempar: geometri kepala dipusatkan agar berputar di tengahnya
+  const templateHead = asset.model.getObjectByName('head-mesh')
+  const headCenter = new THREE.Vector3()
+  templateHead.geometry.computeBoundingBox()
+  templateHead.geometry.boundingBox.getCenter(headCenter)
+  const headGeo = templateHead.geometry.clone().translate(-headCenter.x, -headCenter.y, -headCenter.z)
+  headGeo.deleteAttribute('skinIndex')
+  headGeo.deleteAttribute('skinWeight')
+  const heads = []
+
+  const clipOf = name => THREE.AnimationClip.findByName(asset.clips, name)
+
+  function makeOrc(id, home) {
+    const root = new THREE.Group()
+    root.name = 'orc'
+    const model = cloneSkinned(asset.model)
+    const materials = []
+    model.traverse(o => {
+      if (!o.isMesh) return
+      o.material = o.material.clone() // kedipan putih per orc
+      materials.push(o.material)
+    })
+    root.add(model)
+    const mixer = new THREE.AnimationMixer(model)
+    const actions = {}
+    for (const name of ['idle', 'walk', 'die']) {
+      const a = mixer.clipAction(clipOf(name))
+      if (name === 'die') {
+        a.setLoop(THREE.LoopOnce, 1)
+        a.clampWhenFinished = true
+      }
+      actions[name] = a
+    }
+    actions.idle.play()
+    const bar = new THREE.Group()
+    const back = new THREE.Mesh(barGeo, barBack)
+    back.scale.set(1.08, 0.2, 1)
+    back.renderOrder = 11
+    const fill = new THREE.Mesh(barGeo, barFill)
+    fill.renderOrder = 12
+    bar.add(back, fill)
+    bar.visible = false
+    const reticle = new THREE.Mesh(reticleGeo, reticleMat)
+    reticle.visible = false
+    reticle.renderOrder = 13
+    group.add(root, bar, reticle)
+    root.position.set(home.x, ground.heightAt(home.x, home.z), home.z)
+    const heading = Math.random() * Math.PI * 2
+    root.rotation.y = heading
+    return {
+      id, root, model, mixer, actions, current: actions.idle, materials, bar, fill, reticle,
+      headMesh: model.getObjectByName('head-mesh'), headBone: model.getObjectByName('head'),
+      home, pos: root.position, heading, target: null, wait: Math.random() * 3,
+      hp: MAX_HP, kx: 0, kz: 0, flash: 0, barTime: 0, state: 'hidup', deadT: 0, headless: false, marked: false,
+    }
+  }
+
+  function play(e, name, fade = 0.2) {
+    const next = e.actions[name]
+    if (e.current === next) return
+    next.reset().play()
+    next.crossFadeFrom(e.current, fade, false)
+    e.current = next
+  }
+
+  // --- perkemahan: satu di depan titik mulai (menuju pusat pulau), sisanya tersebar
+  const toCenter = Math.atan2(-spawn.x, -spawn.z)
+  const wanted = [
+    { x: spawn.x + Math.sin(toCenter) * 16, z: spawn.z + Math.cos(toCenter) * 16 },
+    { x: -60, z: -80 }, // padang barat gunung
+    { x: 205, z: 25 }, // timur
+    { x: 40, z: -200 }, // utara
+    { x: 15, z: 190 }, // selatan
+  ]
+  const camps = []
+  for (const w of wanted) {
+    const camp = findCamp(ground, colliders, nav, w.x, w.z)
+    if (!camp) continue
+    camps.push(camp)
+    for (const s of camp.spots) list.push(makeOrc(list.length, { x: s.x, z: s.z, camp }))
+  }
+
+  function kill(e) {
+    e.state = 'mati'
+    e.deadT = 0
+    e.hp = 0
+    e.marked = false
+    e.target = null
+    play(e, 'die', 0.08)
+  }
+
+  function respawn(e) {
+    e.state = 'hidup'
+    e.hp = MAX_HP
+    e.headless = false
+    e.headMesh.visible = true
+    e.kx = e.kz = 0
+    e.flash = e.barTime = 0
+    e.model.position.y = 0
+    e.pos.set(e.home.x, ground.heightAt(e.home.x, e.home.z), e.home.z)
+    e.actions.die.stop()
+    e.current.stop()
+    e.current = e.actions.idle
+    e.current.reset().play()
+  }
+
+  // titik jalan-jalan acak di sekitar perkemahan
+  function pickWander(e) {
+    for (let k = 0; k < 4; k++) {
+      const a = Math.random() * Math.PI * 2
+      const r = Math.random() * WANDER
+      const x = e.home.camp.x + Math.cos(a) * r
+      const z = e.home.camp.z + Math.sin(a) * r
+      if (standable(ground, colliders, nav, x, z, 0.5)) return { x, z }
+    }
+    return null
+  }
+
+  function turn(e, want, dt) {
+    const diff = Math.atan2(Math.sin(want - e.heading), Math.cos(want - e.heading))
+    e.heading += diff * Math.min(1, 6 * dt)
+  }
+
+  // --- kepala terlempar
+  const m4 = new THREE.Matrix4()
+  const center = new THREE.Matrix4().makeTranslation(headCenter.x, headCenter.y, headCenter.z)
+  function launchHead(e, from) {
+    let h = heads.find(k => !k.mesh.visible)
+    if (!h) {
+      h = { mesh: new THREE.Mesh(headGeo), vel: new THREE.Vector3(), axis: new THREE.Vector3(), spin: 0, t: 0, s: 1 }
+      h.mesh.castShadow = true
+      group.add(h.mesh)
+      heads.push(h)
+    }
+    // pose kepala saat ini: tulang kepala × invers ikatan × matriks ikat (bobot kulit 100% ke kepala)
+    e.root.updateMatrixWorld(true)
+    const sk = e.headMesh.skeleton
+    m4.multiplyMatrices(e.headBone.matrixWorld, sk.boneInverses[sk.bones.indexOf(e.headBone)])
+      .multiply(e.headMesh.bindMatrix).multiply(center)
+    m4.decompose(h.mesh.position, h.mesh.quaternion, h.mesh.scale)
+    h.s = h.mesh.scale.x
+    h.mesh.material = e.headMesh.material
+    h.mesh.visible = true
+    // terlempar menjauhi prajurit, sedikit menyamping, berputar
+    let ax = e.pos.x - from.x
+    let az = e.pos.z - from.z
+    const al = Math.hypot(ax, az) || 1
+    ax /= al
+    az /= al
+    const side = (Math.random() - 0.5) * 1.6
+    const sp = 2 + Math.random() * 1.5
+    h.vel.set((ax - az * side) * sp, 4.5 + Math.random() * 1.5, (az + ax * side) * sp)
+    h.axis.set(Math.random() - 0.5, Math.random() - 0.5, Math.random() - 0.5).normalize()
+    h.spin = 7 + Math.random() * 6
+    h.t = 0
+    e.headMesh.visible = false
+    e.headless = true
+  }
+
+  function updateHeads(dt) {
+    for (const h of heads) {
+      if (!h.mesh.visible) continue
+      h.t += dt
+      const p = h.mesh.position
+      h.vel.y -= 14 * dt
+      p.addScaledVector(h.vel, dt)
+      h.mesh.rotateOnWorldAxis(h.axis, h.spin * dt)
+      const floor = Math.max(ground.heightAt(p.x, p.z), -0.2) + 0.4
+      if (p.y < floor) {
+        p.y = floor
+        if (h.vel.y < -2) {
+          // memantul, makin pelan
+          h.vel.set(h.vel.x * 0.55, -h.vel.y * 0.35, h.vel.z * 0.55)
+          h.spin *= 0.5
+        } else {
+          h.vel.set(0, 0, 0)
+          h.spin = 0
+        }
+      }
+      // setelah 3 detik mengecil lalu hilang
+      if (h.t > 3) h.mesh.scale.setScalar(h.s * Math.max(0, 1 - (h.t - 3) / 0.5))
+      if (h.t > 3.5) h.mesh.visible = false
+    }
+  }
+
+  let clock = 0
+  const tmp = new THREE.Vector3()
+
+  return {
+    object: group,
+    list,
+    camps,
+    get alive() {
+      return list.filter(e => e.state === 'hidup').length
+    },
+    // lingkaran (x, z, r): kenai semua orc hidup di dalamnya; from = posisi prajurit (arah terpental)
+    hit(shape, damage, knock, from) {
+      const out = []
+      for (const e of list) {
+        if (e.state !== 'hidup') continue
+        if (Math.hypot(e.pos.x - shape.x, e.pos.z - shape.z) > shape.r + RADIUS) continue
+        let ax = e.pos.x - from.x
+        let az = e.pos.z - from.z
+        const al = Math.hypot(ax, az) || 1
+        ax /= al
+        az /= al
+        e.kx = ax * knock
+        e.kz = az * knock
+        e.hp -= damage
+        e.flash = 0.15
+        e.barTime = 4
+        e.target = null
+        if (e.hp <= 0) kill(e)
+        out.push({ id: e.id, x: e.pos.x, y: e.pos.y, z: e.pos.z, dead: e.state !== 'hidup' })
+      }
+      return out
+    },
+    // potong leher orc-orc ini sekaligus (jurus Penggal)
+    decapitate(ids, from) {
+      const out = []
+      for (const id of ids) {
+        const e = list[id]
+        if (!e || e.state !== 'hidup') continue
+        launchHead(e, from)
+        kill(e)
+        out.push({ id, x: e.pos.x, y: e.pos.y, z: e.pos.z })
+      }
+      return out
+    },
+    // sasaran Penggal: maks. `max` orc hidup terdekat dalam `range`, diurutkan menjadi jalur
+    // terpendek (tetangga terdekat) mulai dari (x, z)
+    pickTargets(x, z, range, max) {
+      const near = list
+        .filter(e => e.state === 'hidup' && Math.hypot(e.pos.x - x, e.pos.z - z) <= range)
+        .sort((a, b) => Math.hypot(a.pos.x - x, a.pos.z - z) - Math.hypot(b.pos.x - x, b.pos.z - z))
+        .slice(0, max)
+      const out = []
+      let cx = x
+      let cz = z
+      while (near.length) {
+        let best = 0
+        for (let i = 1; i < near.length; i++)
+          if (Math.hypot(near[i].pos.x - cx, near[i].pos.z - cz) < Math.hypot(near[best].pos.x - cx, near[best].pos.z - cz)) best = i
+        const [e] = near.splice(best, 1)
+        out.push({ id: e.id, x: e.pos.x, z: e.pos.z })
+        cx = e.pos.x
+        cz = e.pos.z
+      }
+      return out
+    },
+    // posisi orc yang masih hidup (null bila sudah roboh)
+    position(id) {
+      const e = list[id]
+      return e && e.state === 'hidup' ? { x: e.pos.x, z: e.pos.z } : null
+    },
+    // hidupkan lagi semua orc di perkemahannya (untuk pengujian)
+    reviveAll() {
+      for (const e of list) respawn(e)
+    },
+    // tampilkan / sembunyikan tanda bidik
+    mark(ids, on) {
+      for (const id of ids) if (list[id]) list[id].marked = on && list[id].state === 'hidup'
+    },
+    update(dt, camera, player) {
+      clock += dt
+      const pp = player.position
+      // saat Penggal prajurit melesat menembus barisan orc — orc tidak didorong
+      const through = player.attackMove === 'penggal'
+      for (const e of list) {
+        const dx = e.pos.x - pp.x
+        const dz = e.pos.z - pp.z
+        const dist = Math.hypot(dx, dz)
+        const near = dist < VIEW
+        if (e.state === 'hilang') {
+          e.deadT += dt
+          if (e.deadT > RESPAWN) respawn(e)
+          e.root.visible = false
+          e.bar.visible = e.reticle.visible = false
+          continue
+        }
+        e.root.visible = near
+        if (e.state === 'mati') {
+          e.deadT += dt
+          // terbaring, lalu tenggelam perlahan ke tanah
+          if (e.deadT > DEAD_TIME) e.model.position.y = -((e.deadT - DEAD_TIME) / SINK_TIME) * 0.9
+          if (e.deadT > DEAD_TIME + SINK_TIME) {
+            e.state = 'hilang'
+            e.deadT = 0
+          }
+        } else {
+          let moving = false
+          if (Math.abs(e.kx) + Math.abs(e.kz) > 0.05) {
+            // terpental (tidak sampai masuk laut)
+            const nx = e.pos.x + e.kx * dt
+            const nz = e.pos.z + e.kz * dt
+            if (ground.heightAt(nx, nz) > -0.3) {
+              e.pos.x = nx
+              e.pos.z = nz
+            }
+            const f = Math.exp(-7 * dt)
+            e.kx *= f
+            e.kz *= f
+          } else if (dist < ALERT) {
+            // waspada: berhenti dan menghadap prajurit
+            turn(e, Math.atan2(-dx, -dz), dt)
+            e.target = null
+          } else if (e.target) {
+            const tx = e.target.x - e.pos.x
+            const tz = e.target.z - e.pos.z
+            const td = Math.hypot(tx, tz)
+            if (td < 0.3) {
+              e.target = null
+              e.wait = 1.5 + Math.random() * 3
+            } else {
+              turn(e, Math.atan2(tx, tz), dt)
+              e.pos.x += (tx / td) * WALK_SPEED * dt
+              e.pos.z += (tz / td) * WALK_SPEED * dt
+              moving = true
+            }
+          } else if ((e.wait -= dt) <= 0) {
+            e.target = pickWander(e)
+            e.wait = 2
+          }
+          // tidak menempel prajurit (orc yang bergeser), sesama orc, dan batang pohon
+          if (!through && dist < 0.75 && dist > 1e-4) {
+            e.pos.x = pp.x + (dx / dist) * 0.75
+            e.pos.z = pp.z + (dz / dist) * 0.75
+          }
+          for (const o of list) {
+            if (o === e || o.state !== 'hidup') continue
+            const ox = e.pos.x - o.pos.x
+            const oz = e.pos.z - o.pos.z
+            const od = Math.hypot(ox, oz)
+            if (od < 0.7 && od > 1e-4) {
+              e.pos.x += (ox / od) * (0.7 - od) * 0.5
+              e.pos.z += (oz / od) * (0.7 - od) * 0.5
+            }
+          }
+          colliders.resolve(e.pos, RADIUS, tmp.set(0, 0, 0))
+          e.pos.y = ground.heightAt(e.pos.x, e.pos.z)
+          play(e, moving ? 'walk' : 'idle')
+        }
+        e.root.rotation.y = e.heading
+
+        // kedipan putih saat terkena
+        if (e.flash > 0) {
+          e.flash = Math.max(0, e.flash - dt)
+          for (const m of e.materials) m.emissive.setScalar((e.flash / 0.15) * 0.8)
+        }
+        // bar nyawa (menghadap kamera) beberapa detik setelah terkena
+        e.barTime -= dt
+        e.bar.visible = near && e.state === 'hidup' && e.barTime > 0
+        if (e.bar.visible) {
+          e.bar.position.set(e.pos.x, e.pos.y + 2.05, e.pos.z)
+          e.bar.quaternion.copy(camera.quaternion)
+          const f = Math.max(0, e.hp / MAX_HP)
+          e.fill.scale.set(f, 0.13, 1)
+          e.fill.position.x = -(1 - f) / 2
+        }
+        // tanda bidik Penggal: berdenyut & berputar di sekitar kepala
+        e.reticle.visible = near && e.marked && e.state === 'hidup'
+        if (e.reticle.visible) {
+          e.reticle.position.set(e.pos.x, e.pos.y + HEAD_Y, e.pos.z)
+          e.reticle.quaternion.copy(camera.quaternion)
+          e.reticle.rotateZ(clock * 2.5)
+          e.reticle.scale.setScalar(1 + 0.12 * Math.sin(clock * 14))
+        }
+        if (near) e.mixer.update(dt)
+      }
+      updateHeads(dt)
+    },
+  }
+}

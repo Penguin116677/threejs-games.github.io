@@ -1,7 +1,7 @@
 # PROJECT_STATUS — Pulau Tropis
 
-**Milestone aktif:** 2 — Karakter dan eksplorasi (kamera strategi v0.6.0, Pukul v0.7.0, kombo + jurus v0.8.0 — menunggu umpan balik dari HP)
-**Versi:** 0.8.0
+**Milestone aktif:** 2 — Karakter dan eksplorasi (+ awal Milestone 4: musuh orc & 4 jurus di v0.9.0 — menunggu umpan balik dari HP)
+**Versi:** 0.9.0
 **Terakhir diperbarui:** 2026-10-19
 
 ## Kondisi awal repository (sebelum Milestone 1)
@@ -37,13 +37,33 @@
 | Ketuk tanah untuk berjalan (jalur memutari pohon/batu/tebing/laut dalam) — menggantikan joystick | ✅ selesai (v0.6.0) |
 | Penanda tujuan, tajuk pohon tembus pandang di depan kamera (lingkaran hijau dihapus v0.7.0) | ✅ selesai |
 | Tombol Pukul: ayunan pedang + efek sabetan/serpihan (belum ada musuh/kerusakan) | ✅ selesai (v0.7.0) |
-| Variasi serangan: kombo tebas → tinju → tendang + jurus Putar / Serbu / Hentak (jeda pakai) | ✅ selesai (v0.8.0) |
+| Variasi serangan: kombo tebas → tinju → tendang + jurus ber-jeda pakai | ✅ selesai (v0.8.0) |
+| Musuh orc (5 perkemahan, nyawa, terpental, roboh, muncul lagi) — belum menyerang | ✅ selesai (v0.9.0) |
+| 4 jurus: Cincang 10×, Hentak tancap, Cincang lalu Putar, Penggal 5 leher | ✅ selesai (v0.9.0) |
 | Tombol Lompat, geser kamera, cubit zoom | ✅ selesai |
 | Kontrol mouse + keyboard (komputer): klik = jalan, WASD tetap bisa | ✅ selesai |
 | Gravitasi, lompat, batas lereng, tabrakan batang pohon & batu besar | ✅ selesai |
 | Respawn: laut dalam / terlalu jauh → kembali ke posisi aman | ✅ selesai |
 | Map bisa dijelajahi (pantai, hutan, padang, lereng gunung, puncak) | ✅ analisis + uji otomatis |
 | Dicoba di HP Android sungguhan | ⏳ menunggu laporan pengguna |
+
+## Yang sudah diperiksa (v0.9.0 — musuh orc + 4 jurus)
+- `npm run build` berhasil; ESLint (konfigurasi repo): 0 error, 0 warning.
+- Smoke test otomatis (4 perangkat) — **LULUS**, termasuk uji baru:
+  - 25 orc di 5 perkemahan; yang terdekat ±13–15 m dari titik mulai (berkeliaran);
+  - HP: Cincang 10 cincangan → orc di depan roboh; Hentak melompat 1,97 m, pedang menancap
+    (retakan), 3 orc terluka; Putar cincang → putar, 3 orc di sekeliling terluka; Penggal 5 orc
+    dibidik lalu 5 kepala terpotong, prajurit melesat ±8 m; orc yang roboh muncul lagi utuh;
+    Penggal tanpa musuh → pesan, jeda tidak terpakai; semua uji lama tetap lulus;
+  - komputer: tombol 1–4 → Cincang, Hentak, Putar, Penggal; uji lama tetap lulus.
+- Uji perilaku terpisah: Hentak di 3 orc → 9 nyawa hilang, orc terpental; Putar → 3 orc kena;
+  pose Hentak dipotret dari samping: pedang menghadap ke bawah saat turun dan menancap saat mendarat.
+- Foto tiap jurus (gerak lambat): sabetan cincang, gelombang kejut + retakan, pusaran putar,
+  tanda bidik merah di 5 orc, jejak kilat zig-zag, garis potong di leher, kepala terlempar.
+- Ditemukan & diperbaiki saat uji: nama pedang diubah sehingga uji "pedang terpasang" gagal →
+  kini memakai referensi, nama asli tetap.
+- Performa: dengan satu perkemahan terlihat draw call 37 (sebelumnya 27); orc > 60 m tidak digambar.
+- Halaman pratinjau (artifact) diuji dulu sebagai salinan lokal: 25 orc, Penggal memenggal 5.
 
 ## Yang sudah diperiksa (v0.8.0 — kombo + 3 jurus)
 - `npm run build` berhasil; ESLint (konfigurasi repo): 0 error, 0 warning.
@@ -120,8 +140,8 @@
 ## Yang BELUM diperiksa
 - **Rasa kontrol ketuk di HP sungguhan** (ketepatan titik ketuk, beda ketuk vs geser, cubit) dan
   tampilan tembus pandang tajuk di GPU HP — hanya diuji dengan sentuhan tiruan di Chromium.
-- Rasa tombol Pukul & jurus di HP sungguhan (jangkauan jempol ke tombol busur, kecepatan ayunan,
-  lama jeda pakai).
+- Rasa tombol Pukul & jurus di HP sungguhan (jangkauan jempol ke 5 tombol busur, kecepatan ayunan,
+  lama jeda pakai) dan FPS dengan orc di layar.
 - **Performa nyata di HP** — FPS di smoke test memakai render software, tidak mewakili HP.
 - Gestur cubit (pinch zoom) dua jari di perangkat sungguhan.
 - Menu Kualitas di dalam halaman preview (artifact) — memuat ulang halaman di dalam bingkai preview.
@@ -162,4 +182,8 @@ yang lebih rapat (untuk ombak) dan buah kelapa. v0.2.0 (HP): ±230 ribu.
 - Paket animasi tidak punya gerakan berputar/melesat/menghantam: Putar memakai ayunan pedang yang
   diperlambat sambil badan diputar, Serbu memakai animasi lari, Hentak memakai animasi lompat +
   ayunan. Cukup terbaca dari kamera atas, tetapi dari dekat terlihat sederhana.
-- Jarak Serbuan sedikit bergantung FPS (±4,5–5,3 m) karena lesatan dihitung per frame.
+- Orc belum menyerang dan prajurit belum punya nyawa; orc juga belum mengejar — mereka hanya menoleh.
+- Orc di bawah tajuk pohon bisa tertutup dari kamera atas (bar nyawa & tanda bidik tetap terlihat).
+- Paket animasi tidak punya gerakan menusuk ke bawah/memenggal: Hentak & Penggal memakai pose yang
+  ditahan + pedang diputar di kode — terbaca dari atas, tetapi dari dekat masih sederhana.
+- Jalur kilat Penggal lurus antar-orc dan bisa melewati batang pohon (gerak seketika, tidak tertahan).
