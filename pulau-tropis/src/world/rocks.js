@@ -55,11 +55,11 @@ function rockMatrix(it, m, col) {
   col.setRGB(k * (1 + warm), k, k * (1 - warm))
 }
 
-export function createRocks({ ground, grid, quality }) {
+export function createRocks({ ground, grid, quality, reserved = null }) {
   const d = quality.treeDensity
   // bongkahan di lereng gunung (lebih banyak di bagian curam/berbatu)
   const boulders = scatter({
-    ground, grid, kind: 'batu', seed: 606,
+    ground, grid, kind: 'batu', seed: 606, reserved,
     count: Math.round(160 * d),
     radius: rand => 1 + rand() * 1.8,
     accept: (x, z, h, slope, rand) => {
@@ -70,7 +70,7 @@ export function createRocks({ ground, grid, quality }) {
   })
   // batu kecil di padang dan pantai
   const pebbles = scatter({
-    ground, grid, kind: 'batu', seed: 707,
+    ground, grid, kind: 'batu', seed: 707, reserved,
     count: Math.round(110 * d),
     radius: rand => 0.4 + rand() * 0.6,
     accept: (x, z, h, slope, rand) => (h > 0.3 && h < ISLAND.beachTop + 0.5 && rand() < 0.25)

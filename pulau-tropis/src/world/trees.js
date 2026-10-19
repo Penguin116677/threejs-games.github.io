@@ -97,7 +97,7 @@ function frondGeometry(length, droop) {
   return g
 }
 
-function palmGeometry() {
+export function palmGeometry() {
   const parts = []
   const height = 8
   const bend = 0.035 // batang kelapa melengkung
@@ -148,7 +148,7 @@ function palmGeometry() {
   return mergeGeometries(parts)
 }
 
-function jungleGeometry(detail) {
+export function jungleGeometry(detail) {
   const parts = []
   // batang tertutup: dari kamera atas (tajuk tembus pandang) ujungnya tidak tampak berlubang
   const trunk = new THREE.CylinderGeometry(0.3, 0.55, 6.6, 6, 2, false)
@@ -175,7 +175,7 @@ function jungleGeometry(detail) {
 }
 
 // pohon payung (mirip ketapang/akasia): batang tinggi, tajuk lebar dan pipih
-function umbrellaGeometry(detail) {
+export function umbrellaGeometry(detail) {
   const parts = []
   const trunk = new THREE.CylinderGeometry(0.3, 0.6, 9, 6, 3, false)
   trunk.translate(0, 4.5, 0)
@@ -198,7 +198,7 @@ function umbrellaGeometry(detail) {
   return mergeGeometries(parts)
 }
 
-function bushGeometry(detail, flowers) {
+export function bushGeometry(detail, flowers) {
   const parts = []
   const center = new THREE.Vector3(0, 0.5, 0)
   for (const [x, y, z, r, col] of [[0, 0.65, 0, 0.95, '#3f8a2e'], [0.75, 0.5, 0.3, 0.7, '#4b9a35'], [-0.6, 0.45, -0.4, 0.65, '#45922f']]) {
@@ -212,6 +212,94 @@ function bushGeometry(detail, flowers) {
       f.translate(x, y, z)
       parts.push(part(f, flowers[i % flowers.length], { dark: 0.9, light: 1.1 }))
     })
+  }
+  return mergeGeometries(parts)
+}
+
+// beringin (banyan) alun-alun: batang besar berbanir, akar gantung melingkar, tajuk payung raksasa
+export function beringinGeometry(detail) {
+  const parts = []
+  const trunk = new THREE.CylinderGeometry(0.85, 1.7, 9, 9, 3, false)
+  trunk.translate(0, 4.5, 0)
+  parts.push(part(trunk, '#5d4a3a', { dark: 0.5, light: 0.95 }))
+  for (let i = 0; i < 6; i++) {
+    // banir (akar papan) di pangkal batang
+    const b = new THREE.BoxGeometry(0.35, 1.6, 2.2)
+    b.translate(0, 0.6, 1.4)
+    b.rotateY((i / 6) * TAU + 0.3)
+    parts.push(part(b, '#5d4a3a', { dark: 0.55, light: 0.9 }))
+  }
+  for (let i = 0; i < 22; i++) {
+    const a = (i / 22) * TAU + (i % 3) * 0.37
+    const r = 2.6 + (i % 5) * 0.6 // di dalam pagar kurung (±6 m)
+    const len = 9.5 - (i % 4) * 0.8
+    const root = new THREE.CylinderGeometry(0.05, 0.1, len, 4, 1, true)
+    root.translate(Math.cos(a) * r, len / 2, Math.sin(a) * r)
+    parts.push(part(root, '#6e5a46', { dark: 0.7, light: 1 }))
+  }
+  const center = new THREE.Vector3(0, 12.5, 0)
+  const crown = [[0, 13.5, 0, 6.5, '#2c6a26']]
+  for (let i = 0; i < 9; i++) {
+    const a = (i / 9) * TAU
+    crown.push([Math.cos(a) * 7.2, 11.6 + (i % 2) * 0.8, Math.sin(a) * 7.2, 4.6, i % 2 ? '#35782d' : '#2a6324'])
+  }
+  for (let i = 0; i < 5; i++) {
+    const a = (i / 5) * TAU + 0.6
+    crown.push([Math.cos(a) * 3.6, 15.6, Math.sin(a) * 3.6, 3.8, '#3d8433'])
+  }
+  for (const [x, y, z, r, col] of crown) {
+    const g = blob(r, detail, [x, y, z], 0.62)
+    parts.push(part(g, col, { centers: [[center, 0.6], [new THREE.Vector3(x, y, z), 0.4]], dark: 0.6, light: 1.1 }))
+  }
+  return mergeGeometries(parts)
+}
+
+// kamboja (frangipani): batang pendek bercabang, gerombol daun di ujung cabang + bunga putih-kuning
+export function kambojaGeometry() {
+  const parts = []
+  const trunk = new THREE.CylinderGeometry(0.16, 0.26, 2.2, 6, 1, true)
+  trunk.translate(0, 1.1, 0)
+  parts.push(part(trunk, '#8d7c69', { dark: 0.7, light: 1.05 }))
+  for (let i = 0; i < 5; i++) {
+    const a = (i / 5) * TAU + 0.4
+    const tip = new THREE.Vector3(Math.cos(a) * 1.7, 3.6 + (i % 2) * 0.5, Math.sin(a) * 1.7)
+    const from = new THREE.Vector3(0, 2.1, 0)
+    const dir = tip.clone().sub(from)
+    const br = new THREE.CylinderGeometry(0.07, 0.12, dir.length(), 5, 1, true)
+    br.applyQuaternion(new THREE.Quaternion().setFromUnitVectors(UP, dir.clone().normalize()))
+    br.translate((from.x + tip.x) / 2, (from.y + tip.y) / 2, (from.z + tip.z) / 2)
+    parts.push(part(br, '#8d7c69', { dark: 0.75, light: 1.05 }))
+    const leaves = blob(0.95, 0, [tip.x, tip.y + 0.35, tip.z], 0.6)
+    parts.push(part(leaves, '#3e8a35', { centers: [[tip, 1]], dark: 0.75, light: 1.15 }))
+    for (let k = 0; k < 4; k++) {
+      const f = new THREE.IcosahedronGeometry(0.14, 0)
+      f.translate(tip.x + Math.cos(k * 1.7) * 0.6, tip.y + 0.75, tip.z + Math.sin(k * 1.7) * 0.6)
+      parts.push(part(f, k % 2 ? '#fbf6e8' : '#f6e08a', { dark: 0.95, light: 1.05 }))
+    }
+  }
+  return mergeGeometries(parts)
+}
+
+// pisang: batang semu + daun lebar panjang melengkung keluar
+export function pisangGeometry() {
+  const parts = []
+  const stem = new THREE.CylinderGeometry(0.13, 0.2, 2.6, 6, 1, true)
+  stem.translate(0, 1.3, 0)
+  parts.push(part(stem, '#7f8f3c', { dark: 0.7, light: 1.05 }))
+  for (let i = 0; i < 7; i++) {
+    const leaf = new THREE.PlaneGeometry(0.75, 2.6, 1, 4)
+    const p = leaf.attributes.position
+    for (let k = 0; k < p.count; k++) {
+      const t = (p.getY(k) + 1.3) / 2.6 // 0 pangkal → 1 ujung
+      p.setY(k, t * 2.4)
+      p.setZ(k, t * t * 1.6) // melengkung keluar & turun di ujung
+      p.setY(k, p.getY(k) - t * t * 1.2)
+    }
+    leaf.computeVertexNormals()
+    leaf.rotateX(-0.25)
+    leaf.rotateY((i / 7) * TAU + (i % 2) * 0.4)
+    leaf.translate(0, 2.4, 0)
+    parts.push(part(leaf, i % 3 ? '#5ea83a' : '#7bbf45', { dark: 0.8, light: 1.1 }))
   }
   return mergeGeometries(parts)
 }
@@ -318,7 +406,7 @@ const pos = new THREE.Vector3()
 const scl = new THREE.Vector3()
 
 // matriks standar: putar acak, sedikit miring, skala acak, warna sedikit bervariasi
-function standardMatrix({ scaleMin, scaleMax, tilt, tint, sink = 0.15 }) {
+export function standardMatrix({ scaleMin, scaleMax, tilt, tint, sink = 0.15 }) {
   return (it, m, col) => {
     e.set((it.b - 0.5) * tilt, it.a * TAU, (it.c - 0.5) * tilt)
     q.setFromEuler(e)
@@ -333,26 +421,26 @@ function standardMatrix({ scaleMin, scaleMax, tilt, tint, sink = 0.15 }) {
 }
 
 // ---------------------------------------------------------------------------
-export function createTrees({ ground, grid, quality, noiseTexture }) {
+export function createTrees({ ground, grid, quality, noiseTexture, reserved = null }) {
   const d = quality.treeDensity
   const detail = quality.canopyDetail
   const { shadows } = quality
 
   // kelapa: di pasir pantai, sedikit di atas air, tidak di lereng curam
   const palms = scatter({
-    ground, grid, kind: 'kelapa', seed: 101, radius: 1.8,
+    ground, grid, kind: 'kelapa', seed: 101, radius: 1.8, reserved,
     count: Math.round(170 * d),
     accept: (x, z, h, slope, rand) => h > 0.9 && h < 4.2 && slope < 0.3 && rand() < 0.55,
   })
   // pohon hutan: berkelompok (noise) → hutan lebat dan padang terbuka
   const jungle = scatter({
-    ground, grid, kind: 'pohon', seed: 202, radius: 2.3,
+    ground, grid, kind: 'pohon', seed: 202, radius: 2.3, reserved,
     count: Math.round(900 * d),
     accept: (x, z, h, slope) => h > 4 && h < 44 && slope < 0.6 && forestMask(x, z) > 0.47,
   })
   // pohon payung: menyendiri di padang dan tepi hutan, terutama di sekitar gunung
   const umbrella = scatter({
-    ground, grid, kind: 'pohon', seed: 303, radius: 4.5,
+    ground, grid, kind: 'pohon', seed: 303, radius: 4.5, reserved,
     count: Math.round(110 * d),
     accept: (x, z, h, slope, rand) => {
       if (h < 5 || h > 42 || slope > 0.45) return false
@@ -362,7 +450,7 @@ export function createTrees({ ground, grid, quality, noiseTexture }) {
   })
   // semak: tepi hutan dan sesekali di padang
   const bushes = scatter({
-    ground, grid, kind: 'semak', seed: 404, radius: 1.1,
+    ground, grid, kind: 'semak', seed: 404, radius: 1.1, reserved,
     count: Math.round(700 * d),
     accept: (x, z, h, slope, rand) => {
       if (h < ISLAND.beachTop + 0.6 || h > 46 || slope > 0.7) return false
@@ -372,7 +460,7 @@ export function createTrees({ ground, grid, quality, noiseTexture }) {
   })
   // semak berbunga (kembang sepatu): titik warna di padang dan dekat pantai
   const flowers = scatter({
-    ground, grid, kind: 'semak', seed: 505, radius: 1.0,
+    ground, grid, kind: 'semak', seed: 505, radius: 1.0, reserved,
     count: Math.round(150 * d),
     accept: (x, z, h, slope, rand) => h > ISLAND.beachTop + 0.4 && h < 30 && slope < 0.5
       && forestMask(x, z) < 0.5 && rand() < 0.5,

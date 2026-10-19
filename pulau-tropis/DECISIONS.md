@@ -158,3 +158,48 @@ tandai sebagai "diganti" bila berubah.
     ditahan + pedang diputar lurus ke bawah di ruang tulang lengan + badan direndahkan saat menancap;
     Penggal = kuda-kuda ditahan, lalu pindah posisi seketika per ruas (0,08 detik/ruas) dan jeda
     0,35 detik sebelum semua kepala lepas bersamaan (gaya "iaido" anime).
+33. **Dunia diperluas dengan batas umum `WORLD`, bukan "wilayah tempelan"** (v0.10.0, permintaan
+    "kepulauan baru di barat"). Terrain, data pantai (ombak), laut, dan peta jalan kini dibentangkan
+    ke persegi panjang dunia (x −1125…500, z −500…500) yang tepinya kelipatan 125 m dari tepi lama,
+    sehingga grid lama (langkah 5 / 3,906 / 2,604 m dan sel jalan 2 m) tetap sejajar dan Pulau Tropis
+    tidak bergeser. Bentuk tanah = maks(Pulau Tropis, pulau-pulau barat). Supaya beban HP tidak
+    naik: terrain dipecah petak 64 sel (petak yang seluruhnya lebih dalam dari −12 m tidak dibuat;
+    gantinya satu bidang dasar laut), laut dipecah petak 48 sel — petak di luar layar tidak digambar.
+    Pohon & batu Pulau Tropis ditebar di atas grid khusus pulau tengah (bentuk lama, area lama),
+    jadi letaknya sama persis; tempat yang "dicadangkan" (kepala Jembatan Agung) tetap memakai angka
+    acak & ruangnya, hanya objeknya tidak dibuat, sehingga pohon lain tidak bergeser. Dicek di Node:
+    tinggi tanah, 1.074 batang pohon, batu, sel jalan, dan 60 jalur acak identik dengan v0.9.0.
+    Wilayah berikutnya cukup menambah bentuk tanah + rencana di `src/world/<wilayah>/`.
+34. **Gaya kerajaan Nusantara (Majapahit/Jawa–Bali), bangunan prosedural** — pengguna meminta
+    "kerajaan besar" tanpa menyebut gaya; di dunia tropis berbahasa Indonesia dipilih bata merah,
+    candi bentar, paduraksa, pendopo/joglo, meru, alun-alun dengan beringin kurung, pasar, dan
+    candi batu (bisa diganti bila pengguna ingin gaya lain). Kit Kenney (Castle/Fantasy Town)
+    bergaya Eropa, jadi bangunan dibuat di kode (`buildings.js`) dengan gaya low-poly yang sama
+    dengan pohon. Semua bangunan digabung menjadi satu mesh per petak 128 m (± 22 draw call untuk
+    ±340 bangunan, ±225 ribu titik); pola bata/genteng/jerami/papan/batu/anyaman digambar shader
+    dari posisi dunia + kode pola per titik (tanpa tekstur gambar, tanpa moiré dari jauh).
+35. **Lantai bangunan terpisah dari tanah**: `ground.heightAt` tetap tinggi mesh tanah (dipakai
+    ombak, laut, rumput, penebaran), `ground.surfaceAt` = tanah + lantai yang bisa diinjak
+    (jembatan melengkung, dermaga, batur, tangga). Pemain, penanda tujuan, kamera, efek, dan
+    pencari titik ketuk memakai `surfaceAt`; peta jalan menimpa sel yang pusatnya di atas lantai.
+    Tepi lantai yang tinggi (langkan jembatan, langkan batur) adalah collider kotak, jadi pemain
+    hanya bisa naik lewat tangga dan tidak jatuh dari jembatan.
+36. **Collider kotak (berputar) selain lingkaran**: dinding rumah, tembok, menara, pagar, langkan.
+    Setiap penghalang dimasukkan ke semua sel 8 m yang tersentuh kotak batasnya (tembok panjang tetap
+    murah dicari); pukulan yang mengenai kotak menghasilkan titik sentuh (serpihan bata/kayu).
+37. **Penduduk = animasi dipanggang ke tekstur + instancing, bukan SkinnedMesh per orang**. Semua
+    karakter Kenney "Mini" memakai rangka 7 tulang yang sama (posisi tulang dicek identik ±1 mm)
+    dan kulit kaku (1 tulang per titik), jadi saat dimuat setiap bingkai klip (30/detik) diubah
+    menjadi 7 matriks dalam satu tekstur float; shader membaca matriks untuk bingkai milik tiap
+    orang (+ peralihan antar klip). Satu InstancedMesh per jenis orang (8 penduduk + raja + penjaga
+    = 10 draw call untuk ±300 orang di Sedang); hanya orang dalam ±110 m dari kamera dan di dalam layar yang
+    ditulis ke buffer. Penduduk berjalan di jaringan jalan (simpul di pertemuan jalan), bukan A*
+    per orang. Tombak penjaga & mahkota raja ditempel ke tulang tangan/kepala di ruang "pose diam".
+    Penduduk tidak bisa diserang (bukan musuh) — pukulan melewati mereka.
+38. **Jalan, lantai batu, rumput alun-alun, dan sawah = masker 1 m/piksel** (830 × 950 texel RGBA)
+    yang dibaca shader tanah, bukan geometri tambahan: tepi jalan tajam walau grid tanah 2,6–5 m,
+    dan petak sawah/pematang/padi dihitung per piksel. Masker yang sama menjauhkan pohon dari jalan,
+    sawah, dan bangunan.
+39. **Peta dunia & spanduk wilayah dibuat lebih awal** (bagian Milestone 6) karena dunia kini
+    beberapa pulau: peta digambar sekali dari tinggi tanah + masker + jejak bangunan (2 m/piksel),
+    lalu hanya penanda prajurit yang digambar ulang saat dibuka.

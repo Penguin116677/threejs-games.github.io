@@ -56,23 +56,26 @@ export class PlacementGrid {
   }
 }
 
-// Sebar objek secara deterministik di atas tanah, di dalam lingkaran `area` (meter)
-// yang mencakup seluruh daratan pulau.
+// Sebar objek secara deterministik di atas tanah, di dalam lingkaran `area` (meter) berpusat
+// di (cx, cz) — bawaan: seluruh daratan pulau tengah.
 // accept(x, z, h, slope, rand) → boolean. Hasil: [{ x, y, z, r, a, b, c }] (a, b, c = acak 0..1)
-export function scatter({ ground, grid, kind, count, seed, radius, accept, area = 370 }) {
+// reserved(x, z, r) → true = tempat ini dipakai jalan/bangunan: objeknya tidak dibuat, tapi angka
+// acak & ruangnya tetap terpakai, jadi letak objek lain sama persis seperti tanpa cadangan itu.
+export function scatter({ ground, grid, kind, count, seed, radius, accept, area = 370, cx = 0, cz = 0, reserved = null }) {
   const rand = rng(seed)
   const out = []
   for (let tries = 0; out.length < count && tries < count * 150; tries++) {
     const d = area * Math.sqrt(rand())
     const ang = rand() * Math.PI * 2
-    const x = Math.cos(ang) * d
-    const z = Math.sin(ang) * d
+    const x = cx + Math.cos(ang) * d
+    const z = cz + Math.sin(ang) * d
     const h = ground.heightAt(x, z)
     if (!accept(x, z, h, ground.slopeAt(x, z), rand)) continue
     const r = typeof radius === 'function' ? radius(rand) : radius
     if (!grid.isFree(x, z, r)) continue
     grid.add(x, z, r, kind)
-    out.push({ x, y: h, z, r, a: rand(), b: rand(), c: rand() })
+    const item = { x, y: h, z, r, a: rand(), b: rand(), c: rand() }
+    if (!reserved?.(x, z, r)) out.push(item)
   }
   return out
 }

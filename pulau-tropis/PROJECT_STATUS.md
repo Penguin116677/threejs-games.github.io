@@ -1,7 +1,8 @@
 # PROJECT_STATUS — Pulau Tropis
 
-**Milestone aktif:** 2 — Karakter dan eksplorasi (+ awal Milestone 4: musuh orc & 4 jurus di v0.9.0 — menunggu umpan balik dari HP)
-**Versi:** 0.9.0
+**Milestone aktif:** 3 — Pembangunan dunia (v0.10.0: Kepulauan Kencana, kerajaan di barat — menunggu umpan balik dari HP).
+Pengembangan karakter/jurus dihentikan sementara atas permintaan pengguna.
+**Versi:** 0.10.0
 **Terakhir diperbarui:** 2026-10-19
 
 ## Kondisi awal repository (sebelum Milestone 1)
@@ -46,6 +47,42 @@
 | Respawn: laut dalam / terlalu jauh → kembali ke posisi aman | ✅ selesai |
 | Map bisa dijelajahi (pantai, hutan, padang, lereng gunung, puncak) | ✅ analisis + uji otomatis |
 | Dicoba di HP Android sungguhan | ⏳ menunggu laporan pengguna |
+
+## Milestone 3 — status
+| Item | Status |
+|---|---|
+| Dunia diperluas ke barat (terrain, laut, ombak, peta jalan untuk beberapa pulau) | ✅ selesai (v0.10.0) |
+| Pulau Kencana + Kotaraja Kencana: tembok, gerbang, ±160 rumah, keraton, alun-alun, pasar, candi | ✅ selesai (v0.10.0) |
+| Pulau kecil: Pulau Sawah, Pulau Nelayan, Pulau Pura | ✅ selesai (v0.10.0) |
+| Jembatan Agung + 3 jembatan kayu, dermaga & pelabuhan (bisa diinjak) | ✅ selesai (v0.10.0) |
+| Penduduk kerajaan (berjalan, berdagang, bertani, penjaga, raja) | ✅ selesai (v0.10.0) |
+| Jalan, sawah, lantai batu, rumput alun-alun; pohon khas (beringin, kamboja, pisang, mangga) | ✅ selesai (v0.10.0) |
+| Peta dunia + spanduk nama wilayah (bagian Milestone 6, dibuat lebih awal) | ✅ selesai (v0.10.0) |
+| Sungai & air terjun, gua, reruntuhan | ⏳ belum |
+| Dicoba di HP Android sungguhan | ⏳ menunggu laporan pengguna |
+
+## Yang sudah diperiksa (v0.10.0 — Kepulauan Kencana)
+- `npm run build` berhasil; ESLint (konfigurasi repo): 0 error, 0 warning.
+- **Pulau Tropis tidak berubah** (dicek di Node terhadap kode v0.9.0, kualitas Rendah/Sedang/Tinggi):
+  tinggi tanah di daratan sama, batang pohon 885 / 1.074 / 1.203 sama letaknya kecuali 1–2 kelapa
+  tepat di kepala Jembatan Agung, batu sama semua, 60 jalur ketuk acak identik.
+- **Bisa dicapai berjalan kaki** dari titik mulai (peta jalan + collider sungguhan, di Node):
+  kepala jembatan → seberang Jembatan Agung → gerbang timur → alun-alun → pendopo → pasar → candi →
+  gerbang utara → Pulau Sawah → pelabuhan → gerbang barat → Pura Segara → Kampung Nelayan; semua
+  sampai di tujuan, cari jalur ≤ 42 ms. Jaringan jalan penduduk 82 simpul, semuanya tersambung
+  (sempat terputus di 3 gerbang — ditemukan oleh cek ini dan diperbaiki).
+- Uji jalan di browser: menyeberangi Jembatan Agung (pijakan terendah 2,15 m, tidak pernah jatuh ke
+  laut), naik tangga pendopo (berdiri di lantai batur 6,5 m), Jembatan Sawah, dorong ke menara/rumah
+  → tertahan.
+- Percepatan waktu muat yang hasilnya dicek identik: peta jalan 410 → 218 ms (sel & 150 jalur acak
+  sama persis), pembuatan bangunan ±540 → ±430 ms (jumlah titik sama: 224.172).
+- Dipotret & diperiksa: kepulauan dari udara; gerbang timur dengan penjaga bertombak; pasar dengan
+  pedagang & pembeli; alun-alun & beringin; raja bermahkota di singgasana diapit penjaga; deretan
+  rumah; candi; Jembatan Agung; peta dunia (komputer & HP); spanduk "Kotaraja Kencana".
+- Ditemukan & diperbaiki saat uji: tombak penjaga mendatar (ikut putaran lengan) → kini dipasang pada
+  pose diam sehingga tegak; atap pendopo menutupi prajurit → lubang tembus pandang diperlebar di
+  bawah atap besar; spanduk/peta bertumpuk dengan petunjuk kontrol → petunjuk disembunyikan; uji
+  "Penggal tanpa musuh" sensitif kecepatan render → pesan kini dicatat saat muncul.
 
 ## Yang sudah diperiksa (v0.9.0 — musuh orc + 4 jurus)
 - `npm run build` berhasil; ESLint (konfigurasi repo): 0 error, 0 warning.
@@ -138,6 +175,10 @@
   laut dalam → kembali ke pantai + pesan, mendaki lereng (+24 m dalam 120 frame).
 
 ## Yang BELUM diperiksa
+- **FPS di kota kerajaan pada HP sungguhan** (bagian paling berat: ±300 penduduk, ±340 bangunan) dan
+  waktu loading tambahan untuk membangun kerajaan di HP.
+- Apakah ukuran kota, panjang Jembatan Agung (±160 m, ±30 detik berlari), dan jumlah penduduk terasa
+  pas saat dimainkan.
 - **Rasa kontrol ketuk di HP sungguhan** (ketepatan titik ketuk, beda ketuk vs geser, cubit) dan
   tampilan tembus pandang tajuk di GPU HP — hanya diuji dengan sentuhan tiruan di Chromium.
 - Rasa tombol Pukul & jurus di HP sungguhan (jangkauan jempol ke 5 tombol busur, kecepatan ayunan,
@@ -148,6 +189,18 @@
 - Apakah URL hosting (githack / GitHub Pages) terbuka di HP — tidak bisa diakses dari lingkungan pengembangan.
 
 ## Performa (segitiga per frame termasuk bayangan, dari smoke test)
+v0.10.0, layar HP tegak (Pixel 7), kamera strategi 22 m — kota kerajaan tidak lebih berat dari
+Pulau Tropis karena terrain, laut, dan bangunan kini dipecah per petak:
+| Tingkat | Titik mulai | Gerbang timur | Pasar | Alun-alun | Deret rumah | Jembatan Agung |
+|---|---|---|---|---|---|---|
+| Rendah | 252 rb / 53 dc | 252 rb / 40 dc | 160 rb / 31 dc | 244 rb / 41 dc | 182 rb / 32 dc | 159 rb / 26 dc |
+| Sedang | 277 rb / 48 dc | 292 rb / 42 dc | 193 rb / 29 dc | 296 rb / 44 dc | 259 rb / 39 dc | 191 rb / 27 dc |
+| Tinggi | 548 rb / 52 dc | 495 rb / 37 dc | 284 rb / 25 dc | 511 rb / 42 dc | 408 rb / 39 dc | 373 rb / 30 dc |
+(dc = draw call). Titik mulai Sedang turun dari ±420 rb (v0.9.0) ke 277 rb. Waktu membangun dunia
+di komputer (Node): terrain 137 ms, data pantai 174 ms, rencana+masker kerajaan ±110 ms, bangunan &
+pohon kerajaan ±430 ms, peta jalan 218 ms — di HP diperkirakan 3–5× lebih lama (belum diukur).
+
+Sebelumnya (seluruh pulau terlihat):
 | Tingkat | Pulau penuh | Draw call |
 |---|---|---|
 | Rendah | ±330 ribu | ±31 |
@@ -157,8 +210,19 @@ v0.3.0: Rendah ±300 rb, Sedang ±400 rb, Tinggi ±850 rb. Tambahan v0.4.0 beras
 yang lebih rapat (untuk ombak) dan buah kelapa. v0.2.0 (HP): ±230 ribu.
 
 ## Masalah yang diketahui
-- Ukuran bundle ±700 KB (sebagian besar Three.js). Bisa dikecilkan nanti bila loading lambat.
-- Tepi luar terrain (1000 × 1000 m) bisa terlihat samar di bawah air dari sudut tertentu.
+- (v0.10.0) Penduduk tidak saling menghindar (bisa berpapasan menembus satu sama lain) dan berjalan
+  di jaringan jalan saja (tidak masuk rumah). Rumah belum bisa dimasuki (tanpa interior).
+- (v0.10.0) Penduduk tidak bereaksi terhadap pukulan/jurus (bukan musuh — pukulan menembus mereka);
+  belum bisa diajak bicara (dialog = Milestone 4).
+- (v0.10.0) Sawah digambar di permukaan tanah (petak & pematang dari shader), belum bertingkat
+  (terasering) dan belum ada airnya yang memantulkan langit.
+- (v0.10.0) Dari kamera atas, bangunan tinggi di dekat kamera dibuat berlubang (dithering) seperti
+  tajuk pohon; atap rumah biasa tidak bisa disembunyikan seluruhnya.
+- (v0.10.0) Peta dunia hanya untuk dilihat (belum bisa mengetuk peta untuk berjalan ke sana).
+- Ukuran unduhan ±1,6 MB: bundle ±800 KB (±230 KB gzip, sebagian besar Three.js; v0.9.0 ±720 KB)
+  + model .glb ±790 KB (penduduk.glb 365 KB baru di v0.10.0). Bisa dikecilkan nanti bila loading lambat.
+- Tepi luar dunia (1.625 × 1.000 m) bisa terlihat samar di bawah air dari sudut tertentu (mode Lihat
+  pulau dari jauh); di luar tepi itu laut datar tanpa ombak.
 - Rumput hanya dibuat di sekitar kamera: saat kamera melompat jauh (zoom cepat), rumput "tumbuh"
   dalam ±1 detik. Dari jauh (> radius rumput) lereng hanya berwarna, tanpa helai.
 - Tajuk pohon tetap bergaya low-poly (bersegi) pada Rendah/Sedang.

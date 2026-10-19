@@ -62,7 +62,7 @@ export function createStrategyCamera(camera, ground) {
         target.z + Math.cos(state.yaw) * cp * state.dist,
       )
       // tetap di atas bukit (mis. saat prajurit di kaki gunung)
-      const floor = Math.max(ground.heightAt(desired.x, desired.z), 0) + 3
+      const floor = Math.max(ground.surfaceAt(desired.x, desired.z), 0) + 3
       if (desired.y < floor) desired.y = floor
 
       if (snap) camera.position.copy(desired)

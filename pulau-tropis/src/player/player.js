@@ -1,12 +1,14 @@
 import * as THREE from 'three'
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js'
 import { ISLAND } from '../world/island.js'
+import { insideWorld } from '../world/world.js'
 import { ATTACK_CLIPS, createCombat } from './combat.js'
 
 // Karakter pemain: prajurit Kenney "Mini Arena" (CC0) membawa pedang, dengan animasi bawaan
 // idle / walk / sprint / jump / fall + animasi serang (tebasan, tinju, tendangan — lihat combat.js).
 // Bergerak mengikuti jalur hasil ketukan layar (atau keyboard di komputer), dengan fisika sederhana:
-// gravitasi, lompat, batas kemiringan lereng, tabrakan batang pohon & batu,
+// gravitasi, lompat, batas kemiringan lereng, tabrakan batang pohon, batu & dinding bangunan,
+// berpijak di tanah atau lantai bangunan (jembatan, dermaga, batur — ground.surfaceAt),
 // berjalan di air dangkal, dan kembali ke tempat aman bila masuk laut dalam.
 
 const MODEL_SCALE = 2.3 // tinggi model asli ±0,67 (tanpa jambul helm) → ±1,55 m
@@ -22,7 +24,7 @@ const JUMP_BUFFER = 0.15 // tombol lompat yang ditekan sesaat sebelum mendarat t
 const MAX_SLOPE = 1.3 // kemiringan maksimum yang bisa didaki (±52°)
 const WADE_DEPTH = 0.35 // mulai melambat di air
 const DEEP_DEPTH = 1.3 // lebih dalam dari ini = kembali ke pantai
-const MAX_DISTANCE = 430 // dari pusat pulau
+const WORLD_MARGIN = 30 // m dari tepi dunia (data laut & pantai berakhir di sana)
 
 // Pedang di tangan kanan, dalam ruang lokal tulang lengan kanan (satuan model asli).
 // hand = pusat balok tangan (dihitung dari data skin model); blade = arah bilah:
@@ -40,7 +42,9 @@ async function attachWeapon(model, load, weaponSource) {
     weapon.quaternion.setFromUnitVectors(new THREE.Vector3(0, -1, 0), blade)
     weapon.position.fromArray(WEAPON_GRIP.hand).addScaledVector(blade, WEAPON_GRIP.grip)
     model.getObjectByName('arm-right')?.add(weapon)
-    model.userData.sword = weapon // diputar saat jurus Hentak (pedang menghadap ke bawah)
+    // diputar saat jurus Hentak (pedang menghadap ke bawah). Tidak "enumerable": Object3D.clone
+    // menyalin userData lewat JSON, dan menyalin pedang (+ teksturnya) ke JSON itu lambat
+    Object.defineProperty(model.userData, 'sword', { value: weapon, enumerable: false })
   } catch (err) {
     console.warn('Senjata gagal dimuat:', err)
   }
@@ -175,14 +179,14 @@ export function createPlayer({ ground, colliders, quality, asset }) {
   const grad = { x: 0, z: 0, len: 0 }
   function gradient(x, z) {
     const e = 0.5
-    grad.x = (ground.heightAt(x + e, z) - ground.heightAt(x - e, z)) / (2 * e)
-    grad.z = (ground.heightAt(x, z + e) - ground.heightAt(x, z - e)) / (2 * e)
+    grad.x = (ground.surfaceAt(x + e, z) - ground.surfaceAt(x - e, z)) / (2 * e)
+    grad.z = (ground.surfaceAt(x, z + e) - ground.surfaceAt(x, z - e)) / (2 * e)
     grad.len = Math.hypot(grad.x, grad.z)
     return grad
   }
 
   function placeAt(x, z, h) {
-    pos.set(x, ground.heightAt(x, z), z)
+    pos.set(x, ground.surfaceAt(x, z), z)
     vel.set(0, 0, 0)
     heading = h
     root.rotation.y = h
@@ -227,7 +231,7 @@ export function createPlayer({ ground, colliders, quality, asset }) {
     get grounded() {
       return grounded
     },
-    depthAt: (x, z) => ISLAND.seaLevel - ground.heightAt(x, z),
+    depthAt: (x, z) => ISLAND.seaLevel - ground.surfaceAt(x, z),
     clipLength: name => actions[name]?.getClip().duration || 0,
     play,
     // putar animasi serang dari detik `from` (juga bila animasi yang sama sedang diputar)
@@ -258,7 +262,7 @@ export function createPlayer({ ground, colliders, quality, asset }) {
     },
     // pindah seketika (jurus Penggal melesat dari leher ke leher)
     teleport(x, z) {
-      pos.set(x, ground.heightAt(x, z), z)
+      pos.set(x, ground.surfaceAt(x, z), z)
       vel.set(0, 0, 0)
       grounded = true
     },
@@ -307,7 +311,7 @@ export function createPlayer({ ground, colliders, quality, asset }) {
         m = 1
       }
     }
-    const depth = ISLAND.seaLevel - ground.heightAt(pos.x, pos.z)
+    const depth = ISLAND.seaLevel - ground.surfaceAt(pos.x, pos.z)
     if (depth > WADE_DEPTH && !atk) speed *= 0.55
 
     // percepat menuju kecepatan yang diinginkan
@@ -371,7 +375,7 @@ export function createPlayer({ ground, colliders, quality, asset }) {
     }
 
     // tanah
-    const gy = ground.heightAt(pos.x, pos.z)
+    const gy = ground.surfaceAt(pos.x, pos.z)
     if (pos.y <= gy) {
       pos.y = gy
       if (vel.y < 0) vel.y = 0
@@ -485,11 +489,11 @@ export function createPlayer({ ground, colliders, quality, asset }) {
       }
 
       // laut dalam / terlalu jauh → kembali ke pantai
-      const gy = ground.heightAt(pos.x, pos.z)
+      const gy = ground.surfaceAt(pos.x, pos.z)
       const depth = ISLAND.seaLevel - gy
       deepTime = depth > DEEP_DEPTH ? deepTime + dt : 0
       if (!frozen && deepTime > 0.6) onRespawnNeeded('laut')
-      else if (!frozen && Math.hypot(pos.x, pos.z) > MAX_DISTANCE) onRespawnNeeded('jauh')
+      else if (!frozen && !insideWorld(pos.x, pos.z, WORLD_MARGIN)) onRespawnNeeded('jauh')
 
       // simpan posisi aman (di darat, tidak curam) secara berkala
       safeTimer += dt

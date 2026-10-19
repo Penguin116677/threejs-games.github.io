@@ -1,9 +1,11 @@
 import * as THREE from 'three'
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js'
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js'
 import { quality, setQualityLevel } from './core/quality.js'
 import { createNoiseTexture, createWaterNormalTexture } from './core/noiseTexture.js'
 import { PlacementGrid } from './core/spatial.js'
-import { ISLAND } from './world/island.js'
+import { ISLAND, heightAt as islandHeight } from './world/island.js'
+import { WORLD } from './world/world.js'
 import { createGround, createTerrain } from './world/terrain.js'
 import { createShoreData, waveTime } from './world/shore.js'
 import { createWater } from './world/water.js'
@@ -14,6 +16,11 @@ import { createGrass } from './world/grass.js'
 import { createColliders } from './world/colliders.js'
 import { createNavGrid } from './world/navgrid.js'
 import { createEnemies } from './world/enemies.js'
+import { planKencana } from './world/kencana/plan.js'
+import { createRegionMask } from './world/kencana/mask.js'
+import { createKencana } from './world/kencana/kingdom.js'
+import { createVillagers } from './world/kencana/villagers.js'
+import { createWorldMap, createRegionBanner } from './ui/peta.js'
 import { createInput } from './player/input.js'
 import { createStrategyCamera } from './player/camera.js'
 import { createMarkers } from './player/marker.js'
@@ -74,8 +81,8 @@ function findSpawn(ground, colliders) {
   return { x: -128, z: 128, heading: Math.atan2(128, -128) }
 }
 
-const HINT_TOUCH = '<b>Ketuk tanah</b> untuk berjalan ke sana (jauh = lari)<br>Geser: putar kamera · Cubit: zoom<br><b>Pukul</b> berulang = kombo · 4 tombol <b>jurus</b> · musuh orc ada di depan'
-const HINT_KEYS = '<b>Klik tanah</b> untuk berjalan ke sana · WASD / panah juga bisa<br>Seret mouse: putar kamera · Roda: zoom · Spasi: lompat<br>F: pukul (kombo) · 1–4: jurus Cincang, Hentak, Putar, Penggal'
+const HINT_TOUCH = '<b>Ketuk tanah</b> untuk berjalan ke sana (jauh = lari)<br>Geser: putar kamera · Cubit: zoom<br><b>Pukul</b> berulang = kombo · 4 tombol <b>jurus</b> · musuh orc ada di depan<br><b>Peta</b>: Kerajaan Kencana ada di barat, lewat Jembatan Agung'
+const HINT_KEYS = '<b>Klik tanah</b> untuk berjalan ke sana · WASD / panah juga bisa<br>Seret mouse: putar kamera · Roda: zoom · Spasi: lompat<br>F: pukul (kombo) · 1–4: jurus Cincang, Hentak, Putar, Penggal<br>M: peta — Kerajaan Kencana ada di barat, lewat Jembatan Agung'
 
 // FOV kamera: mode main (kamera atas) lebih sempit agar prajurit tidak terlalu kecil;
 // layar tegak butuh FOV lebih lebar agar sisi kiri-kanan tetap terlihat
@@ -136,24 +143,39 @@ async function start() {
   await nextFrame()
   const env = createEnvironment(scene, shared)
 
-  setStatus('Membentuk pulau…')
+  setStatus('Membentuk pulau-pulau…')
   await nextFrame()
   const ground = createGround(quality.terrainSegments)
   const shore = createShoreData(ground, quality.water.shoreRes)
-  const terrain = createTerrain(ground, shared)
+  // rencana Kepulauan Kencana (kota, jalan, sawah) dulu: catnya ikut digambar shader tanah
+  const plan = planKencana(ground)
+  const region = createRegionMask(plan, ground)
+  const terrain = createTerrain(ground, { ...shared, region })
   scene.add(terrain)
 
   setStatus('Menanam pohon dan menebar batu…')
   await nextFrame()
   const grid = new PlacementGrid(8)
-  const trees = createTrees({ ground, grid, quality, noiseTexture })
-  const rocks = createRocks({ ground, grid, quality })
+  // pohon & batu Pulau Tropis ditebar di atas bentuk pulau tengah saja (area lama 1000 m),
+  // jadi letaknya sama persis seperti sebelum Kepulauan Kencana ada; kepala Jembatan Agung
+  // di pantai barat dikosongkan
+  const centralGround = createGround(quality.terrainSegments, { heightFn: islandHeight, rect: { minX: -500, maxX: 500, minZ: -500, maxZ: 500 } })
+  const trees = createTrees({ ground: centralGround, grid, quality, noiseTexture, reserved: region.reserved })
+  const rocks = createRocks({ ground: centralGround, grid, quality, reserved: region.reserved })
   scene.add(trees, rocks)
-  terrain.userData.applyOcclusion([...trees.userData.occlusion, ...rocks.userData.occlusion])
-  // batang pohon + batu besar menghalangi pemain; batu kecil bisa dilangkahi
+
+  setStatus('Membangun Kerajaan Kencana…')
+  await nextFrame()
+  const kencana = createKencana({ ground, plan, mask: region, grid, quality, noiseTexture })
+  scene.add(kencana.object)
+  // lantai jembatan, dermaga, batur pendopo, tangga: bisa diinjak
+  ground.setSurfaces(kencana.surfaces)
+  terrain.userData.applyOcclusion([...trees.userData.occlusion, ...rocks.userData.occlusion, ...kencana.occlusion])
+  // batang pohon + batu besar + dinding bangunan menghalangi pemain; batu kecil bisa dilangkahi
   const colliders = createColliders([
     ...trees.userData.trunks,
     ...rocks.userData.colliders.filter(c => c.radius >= 0.8),
+    ...kencana.colliders,
   ])
   // peta jalan untuk "ketuk untuk berjalan" (memutari pohon, batu, tebing, laut dalam)
   const nav = createNavGrid(ground, colliders)
@@ -184,6 +206,17 @@ async function start() {
     orcAsset = await loadPlayerModel(modelUrl('orc.glb'), quality)
   } catch (err) {
     console.warn('Model musuh gagal dimuat:', err)
+  }
+  // penduduk Kepulauan Kencana (bila gagal dimuat, kota tetap ada tanpa penduduk)
+  setStatus('Mengundang penduduk kerajaan…')
+  await nextFrame()
+  let villagers = null
+  try {
+    const villagerGltf = await new GLTFLoader().loadAsync(modelUrl('penduduk.glb'))
+    villagers = createVillagers({ ground, routes: kencana.routes, spots: kencana.spots, quality, villagerGltf, soldier: asset })
+    scene.add(villagers.object)
+  } catch (err) {
+    console.warn('Penduduk gagal dimuat:', err)
   }
   const player = createPlayer({ ground, colliders, quality, asset })
   scene.add(player.root)
@@ -257,7 +290,7 @@ async function start() {
   // sampai berada di bawah tanah, lalu dipersempit (bisection) agar tepat
   const ray = new THREE.Raycaster()
   const ndc = new THREE.Vector2()
-  const surfaceAt = (x, z) => Math.max(ground.heightAt(x, z), ISLAND.seaLevel)
+  const surfaceAt = (x, z) => Math.max(ground.surfaceAt(x, z), ISLAND.seaLevel)
   function pickGround(x, y) {
     const rect = canvas.getBoundingClientRect()
     ndc.set(((x - rect.left) / rect.width) * 2 - 1, -((y - rect.top) / rect.height) * 2 + 1)
@@ -307,21 +340,20 @@ async function start() {
   controls.enableDamping = true
   controls.dampingFactor = 0.08
   controls.minDistance = 12
-  controls.maxDistance = 900
+  controls.maxDistance = 1500
   controls.maxPolarAngle = Math.PI * 0.47
   controls.rotateSpeed = quality.isMobile ? 0.6 : 0.8
   controls.zoomSpeed = 0.9
   controls.screenSpacePanning = false
   controls.touches = { ONE: THREE.TOUCH.ROTATE, TWO: THREE.TOUCH.DOLLY_PAN }
 
-  // jaga kamera tetap di atas tanah / air
+  // jaga kamera tetap di atas tanah / air, dan titik pandangnya di dalam dunia
   function keepCameraAboveGround() {
-    const ground0 = Math.max(ground.heightAt(camera.position.x, camera.position.z), ISLAND.seaLevel)
+    const ground0 = Math.max(ground.surfaceAt(camera.position.x, camera.position.z), ISLAND.seaLevel)
     if (camera.position.y < ground0 + 3) camera.position.y = ground0 + 3
-    const half = ISLAND.size * 0.9
-    controls.target.x = THREE.MathUtils.clamp(controls.target.x, -half, half)
-    controls.target.z = THREE.MathUtils.clamp(controls.target.z, -half, half)
-    controls.target.y = Math.max(ground.heightAt(controls.target.x, controls.target.z), 0) + 3
+    controls.target.x = THREE.MathUtils.clamp(controls.target.x, WORLD.minX + 50, WORLD.maxX - 50)
+    controls.target.z = THREE.MathUtils.clamp(controls.target.z, WORLD.minZ + 50, WORLD.maxZ - 50)
+    controls.target.y = Math.max(ground.surfaceAt(controls.target.x, controls.target.z), 0) + 3
   }
 
   let mode = 'main'
@@ -373,6 +405,27 @@ async function start() {
     resize()
   }
   $('btn-mode').addEventListener('click', () => setMode(mode === 'main' ? 'lihat' : 'main'))
+
+  // peta dunia + spanduk nama wilayah
+  const worldMap = createWorldMap({ ground, plan, region, camps: enemies ? enemies.camps : [] })
+  const banner = createRegionBanner({ ground, spans: plan.spans })
+  function toggleMap() {
+    if (worldMap.open) worldMap.hide()
+    else {
+      $('panel-kualitas').hidden = true
+      hideHint()
+      worldMap.show(player.position, player.heading)
+    }
+  }
+  $('btn-peta').addEventListener('click', toggleMap)
+  $('btn-tutup-peta').addEventListener('click', () => worldMap.hide())
+  $('peta').addEventListener('click', e => {
+    if (e.target.id === 'peta') worldMap.hide() // ketuk di luar kartu peta
+  })
+  window.addEventListener('keydown', e => {
+    if (e.code === 'KeyM' && !e.repeat) toggleMap()
+    else if (e.code === 'Escape') worldMap.hide()
+  })
   setMode('main')
 
   // masuk laut dalam / terlalu jauh → layar meredup, kembali ke tempat aman terakhir
@@ -431,13 +484,17 @@ async function start() {
       const inp = input.read()
       for (const tap of inp.taps) handleTap(tap)
       player.update(dt, inp, cam.yaw)
+      villagers?.pushOut(player.position)
       if (!player.hasPath) markers.hideTarget()
       cam.update(dt, player.position, inp)
       if (!hintGone && (player.speed > 0.5 || (hintTime += dt) > 15)) hideHint()
-      // tajuk pohon di antara kamera dan prajurit dibuat berlubang
+      // tajuk pohon & bangunan di antara kamera dan prajurit dibuat berlubang;
+      // di bawah atap besar (pendopo, bale, gerbang) lubangnya diperlebar
       seeThrough.a.value.copy(camera.position)
       seeThrough.b.value.copy(player.position).y += 1
-      seeThrough.r.value = 3.5
+      const p = player.position
+      const roof = kencana.roofs.find(r => Math.abs(p.x - r.x) < r.hx && Math.abs(p.z - r.z) < r.hz)
+      seeThrough.r.value += ((roof ? roof.r : 3.5) - seeThrough.r.value) * (1 - Math.exp(-6 * dt))
     } else {
       player.update(dt, NO_INPUT, cam.yaw)
       controls.update()
@@ -446,11 +503,14 @@ async function start() {
     }
     markers.update(dt)
     enemies?.update(dt, camera, player)
+    if (banner.update(dt, player.position, mode === 'main')) hideHint()
+    villagers?.update(dt, camera, mode === 'main' ? player.position : controls.target, player.position, mode === 'main' ? 110 : 260)
     effects.update(dt, camera)
     updateSkillButtons()
     env.update(t, camera, mode === 'main' ? player.position : controls.target)
     waveTime.value = t
     trees.userData.update(t)
+    kencana.update(t)
     grass.userData.update(camera, t)
     renderer.render(scene, camera)
 
@@ -482,7 +542,7 @@ async function start() {
 
   // akses untuk debugging / pengujian otomatis
   window.__pulau = {
-    renderer, scene, camera, controls, ground, shore, quality, trees, rocks, grass, water, env,
+    renderer, scene, camera, controls, ground, shore, quality, trees, rocks, grass, water, env, kencana, region, plan, villagers, worldMap, banner,
     player, cam, input, colliders, nav, markers, effects, enemies, pickGround, setMode, getMode: () => mode,
     frames: () => frameCount, debug,
   }

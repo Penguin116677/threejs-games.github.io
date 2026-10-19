@@ -1,5 +1,6 @@
 import * as THREE from 'three'
 import { ISLAND } from './island.js'
+import { WORLD } from './world.js'
 import { SHORE_GLSL, waveTime } from './shore.js'
 
 // Laut:
@@ -15,7 +16,7 @@ const vertexShader = /* glsl */`
 uniform sampler2D uShore;
 uniform sampler2D uNoise;
 uniform float uWaveTime;
-uniform float uIslandSize;
+uniform vec4 uWorld; // minX, minZ, maxX, maxZ (area data pantai)
 varying vec3 vWorld;
 varying float vFogDepth;
 varying vec2 vLocal; // fase & kekuatan ombak lokal (berubah pelan, cukup per vertex)
@@ -24,7 +25,7 @@ ${SHORE_GLSL}
 void main() {
   vec4 world = modelMatrix * vec4(position, 1.0);
   vec2 p = world.xz;
-  vec2 uv = p / uIslandSize + 0.5;
+  vec2 uv = (p - uWorld.xy) / (uWorld.zw - uWorld.xy);
   bool inside = uv.x > 0.0 && uv.x < 1.0 && uv.y > 0.0 && uv.y < 1.0;
   float s = inside ? textureLod(uShore, uv, 0.0).g : 600.0;
   vec2 local = waveLocal(uNoise, p, uWaveTime);
@@ -45,8 +46,9 @@ void main() {
   // alun lembut di laut lepas
   y += (sin(dot(p, vec2(0.021, 0.008)) + uWaveTime * 0.7) * 0.16
     + sin(dot(p, vec2(-0.012, 0.023)) + uWaveTime * 0.55) * 0.1) * smoothstep(30.0, 120.0, s);
-  // di luar area pulau (sel grid makin besar) air dibuat datar
-  float edge = 1.0 - smoothstep(0.44, 0.5, max(abs(uv.x - 0.5), abs(uv.y - 0.5)));
+  // di luar area dunia (sel grid makin besar) air dibuat datar (60 m terakhir memudar)
+  vec2 out2 = max(uWorld.xy - p, p - uWorld.zw);
+  float edge = 1.0 - smoothstep(-60.0, 0.0, max(out2.x, out2.y));
   world.y += y * edge;
 
   vWorld = world.xyz;
@@ -61,7 +63,7 @@ uniform sampler2D uShore;
 uniform sampler2D uNoise;
 uniform sampler2D uNormal;
 uniform float uWaveTime;
-uniform float uIslandSize;
+uniform vec4 uWorld;
 uniform vec3 uShallow;
 uniform vec3 uDeep;
 uniform vec3 uZenith;
@@ -90,7 +92,7 @@ vec3 skyReflection(vec3 r) {
 
 void main() {
   vec2 p = vWorld.xz;
-  vec2 uv = p / uIslandSize + 0.5;
+  vec2 uv = (p - uWorld.xy) / (uWorld.zw - uWorld.xy);
   vec4 sh = vec4(-18.0, 600.0, 0.0, 1.0);
   if (uv.x > 0.0 && uv.x < 1.0 && uv.y > 0.0 && uv.y < 1.0) sh = texture2D(uShore, uv);
   float ground = sh.r;                        // tinggi dasar/pasir di bawah air
@@ -184,13 +186,26 @@ void main() {
 }
 `
 
-// Grid laut: rapat di area pulau, makin renggang ke cakrawala (satu mesh, tanpa celah).
+// Grid laut: rapat di area dunia, makin renggang ke cakrawala (satu mesh, tanpa celah).
 // Sel yang seluruhnya daratan (di luar jangkauan ombak) tidak dibuat.
-function waterGeometry(ground, inner) {
-  const half = ISLAND.size / 2
+// inner = jumlah sel per 1000 m (ukuran sel sama seperti sebelum dunia diperluas).
+function axisCoords(min, max, step, OUTER, r) {
+  const coords = []
+  for (let k = OUTER; k >= 1; k--) coords.push(min - step * (Math.pow(r, k) - 1) / (r - 1))
+  const n = Math.round((max - min) / step)
+  for (let i = 0; i <= n; i++) coords.push(min + i * step)
+  for (let k = 1; k <= OUTER; k++) coords.push(max + step * (Math.pow(r, k) - 1) / (r - 1))
+  return coords
+}
+
+const TILE_CELLS = 48 // sel per sisi petak laut (±250 m di Sedang): petak di luar layar dilewati
+
+// Hasil: [{ geometry, culled }] — satu per petak area dunia + satu cincin luar (selalu digambar).
+// Semua petak berbagi satu atribut posisi; tiap petak hanya punya indeks segitiganya sendiri.
+function waterGeometries(ground, inner) {
   const OUTER = 12
-  const step = (2 * half) / inner
-  // rasio pertumbuhan sel di luar pulau agar tepi grid mencapai ±6000 m
+  const step = ISLAND.size / inner
+  // rasio pertumbuhan sel di luar dunia agar tepi grid mencapai ±5500 m lebih jauh
   let lo = 1.01
   let hi = 4
   for (let it = 0; it < 60; it++) {
@@ -199,38 +214,59 @@ function waterGeometry(ground, inner) {
     else hi = r
   }
   const r = (lo + hi) / 2
-  const coords = []
-  for (let k = OUTER; k >= 1; k--) coords.push(-half - step * (Math.pow(r, k) - 1) / (r - 1))
-  for (let i = 0; i <= inner; i++) coords.push(-half + i * step)
-  for (let k = 1; k <= OUTER; k++) coords.push(half + step * (Math.pow(r, k) - 1) / (r - 1))
+  const xs = axisCoords(WORLD.minX, WORLD.maxX, step, OUTER, r)
+  const zs = axisCoords(WORLD.minZ, WORLD.maxZ, step, OUTER, r)
 
-  const n = coords.length
-  const pos = new Float32Array(n * n * 3)
-  const land = new Float32Array(n * n)
-  for (let j = 0; j < n; j++)
-    for (let i = 0; i < n; i++) {
-      const k = j * n + i
-      const x = coords[i]
-      const z = coords[j]
+  const nx = xs.length
+  const nz = zs.length
+  const pos = new Float32Array(nx * nz * 3)
+  const land = new Float32Array(nx * nz)
+  for (let j = 0; j < nz; j++)
+    for (let i = 0; i < nx; i++) {
+      const k = j * nx + i
+      const x = xs[i]
+      const z = zs[j]
       pos[k * 3] = x
       pos[k * 3 + 2] = z
-      land[k] = Math.abs(x) < half && Math.abs(z) < half ? ground.heightAt(x, z) : -18
+      land[k] = x > WORLD.minX && x < WORLD.maxX && z > WORLD.minZ && z < WORLD.maxZ ? ground.heightAt(x, z) : -18
     }
-  const index = []
-  for (let j = 0; j < n - 1; j++)
-    for (let i = 0; i < n - 1; i++) {
-      const a = j * n + i
+  const innerX = nx - 1 - 2 * OUTER // jumlah sel area dunia
+  const innerZ = nz - 1 - 2 * OUTER
+  const tiles = new Map()
+  for (let j = 0; j < nz - 1; j++)
+    for (let i = 0; i < nx - 1; i++) {
+      const a = j * nx + i
       const b = a + 1
-      const c = a + n
+      const c = a + nx
       const d = c + 1
       if (Math.min(land[a], land[b], land[c], land[d]) > 1.6) continue
-      index.push(a, c, b, b, c, d)
+      const ti = i - OUTER
+      const tj = j - OUTER
+      const key = ti >= 0 && tj >= 0 && ti < innerX && tj < innerZ ? `${Math.floor(ti / TILE_CELLS)},${Math.floor(tj / TILE_CELLS)}` : 'luar'
+      let list = tiles.get(key)
+      if (!list) tiles.set(key, list = [])
+      list.push(a, c, b, b, c, d)
     }
-  const geo = new THREE.BufferGeometry()
-  geo.setAttribute('position', new THREE.BufferAttribute(pos, 3))
-  geo.setIndex(index)
-  geo.computeBoundingSphere()
-  return geo
+  const position = new THREE.BufferAttribute(pos, 3)
+  const out = []
+  for (const [key, index] of tiles) {
+    const geo = new THREE.BufferGeometry()
+    geo.setAttribute('position', position)
+    geo.setIndex(index)
+    if (key === 'luar') {
+      out.push({ geometry: geo, culled: false })
+      continue
+    }
+    // bola batas petak (dihitung dari kotaknya; ombak menaikkan permukaan ±1 m)
+    const [ti, tj] = key.split(',').map(Number)
+    const x0 = xs[OUTER + ti * TILE_CELLS]
+    const x1 = xs[Math.min(nx - 1, OUTER + (ti + 1) * TILE_CELLS)]
+    const z0 = zs[OUTER + tj * TILE_CELLS]
+    const z1 = zs[Math.min(nz - 1, OUTER + (tj + 1) * TILE_CELLS)]
+    geo.boundingSphere = new THREE.Sphere(new THREE.Vector3((x0 + x1) / 2, 0, (z0 + z1) / 2), Math.hypot(x1 - x0, z1 - z0) / 2 + 2)
+    out.push({ geometry: geo, culled: true })
+  }
+  return out
 }
 
 export function createWater({ ground, shore, env, noiseTexture, normalTexture, quality }) {
@@ -250,7 +286,7 @@ export function createWater({ ground, shore, env, noiseTexture, normalTexture, q
       uNoise: { value: noiseTexture },
       uNormal: { value: normalTexture },
       uWaveTime: waveTime,
-      uIslandSize: { value: ISLAND.size },
+      uWorld: { value: new THREE.Vector4(WORLD.minX, WORLD.minZ, WORLD.maxX, WORLD.maxZ) },
       uShallow: { value: new THREE.Color('#3fd6c6') },
       uDeep: { value: new THREE.Color('#0a4a82') },
       uZenith: { value: env.zenith },
@@ -263,11 +299,16 @@ export function createWater({ ground, shore, env, noiseTexture, normalTexture, q
     },
   })
 
-  const mesh = new THREE.Mesh(waterGeometry(ground, cfg.segments), mat)
-  mesh.name = 'laut'
-  mesh.position.y = ISLAND.seaLevel
-  mesh.frustumCulled = false
-  // air digambar setelah terrain agar transparansi benar
-  mesh.renderOrder = 1
-  return mesh
+  const group = new THREE.Group()
+  group.name = 'laut'
+  group.position.y = ISLAND.seaLevel
+  for (const { geometry, culled } of waterGeometries(ground, cfg.segments)) {
+    const mesh = new THREE.Mesh(geometry, mat)
+    mesh.frustumCulled = culled
+    // air digambar setelah terrain agar transparansi benar
+    mesh.renderOrder = 1
+    group.add(mesh)
+  }
+  group.userData.material = mat
+  return group
 }

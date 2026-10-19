@@ -14,6 +14,9 @@ import { mkdirSync } from 'node:fs'
 // - musuh orc ada di perkemahan (satu dekat titik mulai)
 // - komputer: tombol F = pukul, 1–4 = jurus
 // - tidak ada lagi lingkaran hijau di bawah prajurit
+// - Kepulauan Kencana: kota lengkap (rumah, tembok, pendopo, Jembatan Agung), penduduk berjalan,
+//   menyeberangi Jembatan Agung, spanduk wilayah di gerbang kota, naik tangga pendopo,
+//   dinding rumah menahan prajurit, tombol Peta
 // Waktu tunggu dihitung dalam FRAME (fisika berjalan per frame), bukan detik, karena
 // render software jauh lebih lambat dari HP.
 // Pemakaian: npm run build && npm run preview (terminal lain) && npm run test:smoke
@@ -29,12 +32,14 @@ const fail = msg => {
 const ok = msg => console.log('  ok:', msg)
 
 const browser = await chromium.launch({ args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist'] })
+// SMOKE_CASES=hp-portrait,desktop → hanya kasus itu (bawaan: semua)
+const only = process.env.SMOKE_CASES ? process.env.SMOKE_CASES.split(',') : null
 const cases = [
   ['hp-portrait', { ...devices['Pixel 7'] }, ''],
   ['hp-landscape', { ...devices['Pixel 7 landscape'] }, ''],
   ['hp-rendah', { ...devices['Pixel 7'] }, '?kualitas=rendah'],
   ['desktop', { viewport: { width: 1280, height: 720 } }, ''],
-]
+].filter(([name]) => !only || only.includes(name))
 
 const waitFrames = (page, n) => page.evaluate(n => new Promise(resolve => {
   const f0 = window.__pulau.frames()
@@ -158,6 +163,14 @@ for (const [name, opts, query] of cases) {
     calls: window.__pulau?.renderer.info.render.calls,
   }))
   console.log(name, 'load', loadMs, 'ms', JSON.stringify(info))
+  // catat setiap pesan yang muncul (pesan hanya tampil ±2 detik; render software bisa lebih lambat)
+  await page.evaluate(() => {
+    window.__pesanLog = []
+    const el = document.getElementById('pesan')
+    new MutationObserver(() => {
+      if (!el.hidden) window.__pesanLog.push(el.textContent)
+    }).observe(el, { attributes: true, childList: true, characterData: true, subtree: true })
+  })
   if (info.err) {
     fail(`error di layar: ${info.err}`)
     await ctx.close()
@@ -227,6 +240,114 @@ for (const [name, opts, query] of cases) {
   await waitFrames(page, 10)
   await page.screenshot({ path: `${out}/${name}-kelapa.png` })
   await page.evaluate(() => window.__pulau.setMode('main'))
+
+  // ===== Kepulauan Kencana (wilayah barat): kota, penduduk, jembatan, keraton, peta
+  const k = await page.evaluate(() => {
+    const { kencana, villagers } = window.__pulau
+    return { ...kencana.stats, warga: villagers ? villagers.stats() : null }
+  })
+  if (k.rumah < 150 || !k.jenis.pendopo || !k.jenis['jembatan-batu'] || (k.jenis.tembok || 0) < 8)
+    fail(`Kerajaan Kencana tidak lengkap: ${JSON.stringify(k)}`)
+  else ok(`Kerajaan Kencana: ${k.rumah} rumah, ${k.bangunan} bangunan, ${k.pohon} pohon, ${k.perahu} perahu`)
+  if (!k.warga || k.warga.total < 150) fail(`penduduk: ${JSON.stringify(k.warga)}`)
+  else ok(`penduduk: ${k.warga.total} orang (${k.warga.fixed} di tempat tetap)`)
+
+  // penduduk berjalan dan terlihat di dekat pasar
+  await teleport(page, -470, 44, [-465, 66])
+  await waitFrames(page, 4)
+  const walkersAt = () => page.evaluate(() => window.__pulau.villagers.agents.filter(a => !a.fixed).map(a => [a.x, a.z]))
+  const w0 = await walkersAt()
+  await waitFrames(page, 20)
+  const w1 = await walkersAt()
+  const seen = await page.evaluate(() => window.__pulau.villagers.stats().visible)
+  const moved = w0.filter((p, i) => Math.hypot(p[0] - w1[i][0], p[1] - w1[i][1]) > 0.3).length
+  if (moved < 20 || seen < 3) fail(`penduduk: ${moved} bergerak, ${seen} terlihat di pasar`)
+  else ok(`penduduk berjalan: ${moved} orang bergerak, ${seen} terlihat di dekat pasar`)
+  await page.screenshot({ path: `${out}/${name}-pasar.png` })
+
+  // Jembatan Agung: dari pantai barat Pulau Tropis ke Pulau Kencana, selalu di atas lantai jembatan
+  // (waktu dipercepat 4×; fisika tetap memakai langkah kecil)
+  async function walkTo(x, z, maxFrames) {
+    const n = await page.evaluate(([x, z]) => {
+      window.__pesanLog.length = 0
+      const { nav, player } = window.__pulau
+      const path = nav.findPath(player.position, { x, z })
+      if (path) player.followPath(path)
+      return path ? path.length : 0
+    }, [x, z])
+    let s = await state(page)
+    let minY = s.y
+    for (let f = 0; f < maxFrames && s.path; f += 3) {
+      await waitFrames(page, 3)
+      s = await state(page)
+      minY = Math.min(minY, s.y)
+    }
+    return { n, s, minY, msg: await page.evaluate(() => window.__pesanLog.join(' | ')) }
+  }
+  await page.evaluate(() => {
+    window.__pulau.debug.timeScale = 4
+  })
+  await teleport(page, -160, 40, [-352, 40])
+  await waitFrames(page, 2)
+  const br = await walkTo(-352, 40, 600)
+  if (!br.n) fail('tidak ada jalur menyeberangi Jembatan Agung')
+  else if (Math.hypot(br.s.x + 352, br.s.z - 40) > 3 || br.minY < 1.5 || br.msg) fail(`Jembatan Agung: berhenti di (${br.s.x.toFixed(1)}, ${br.s.z.toFixed(1)}), terendah ${br.minY.toFixed(2)} m, pesan "${br.msg}"`)
+  else ok(`Jembatan Agung: menyeberang ±190 m, pijakan terendah ${br.minY.toFixed(2)} m di atas laut`)
+  // masuk lewat gerbang timur → spanduk "Kotaraja Kencana"
+  const gate = await walkTo(-445, 40, 400)
+  await waitFrames(page, 6)
+  const banner = await page.evaluate(() => ({ shown: document.getElementById('wilayah').classList.contains('tampil'), text: document.querySelector('.wilayah-nama').textContent }))
+  if (Math.hypot(gate.s.x + 445, gate.s.z - 40) > 3) fail(`gerbang timur: berhenti di (${gate.s.x.toFixed(1)}, ${gate.s.z.toFixed(1)})`)
+  else if (banner.text !== 'Kotaraja Kencana') fail(`spanduk wilayah: "${banner.text}" (tampil ${banner.shown})`)
+  else ok('masuk gerbang timur: spanduk "Kotaraja Kencana" muncul')
+  await page.screenshot({ path: `${out}/${name}-gerbang.png` })
+  // naik tangga pendopo keraton (lantai batur 1 m di atas halaman)
+  await teleport(page, -598, 40, [-628, 40])
+  await waitFrames(page, 2)
+  const pd = await walkTo(-628, 44, 300)
+  if (Math.abs(pd.s.y - 6.5) > 0.15 || Math.hypot(pd.s.x + 628, pd.s.z - 44) > 2) fail(`tangga pendopo: berhenti di (${pd.s.x.toFixed(1)}, ${pd.s.y.toFixed(2)}, ${pd.s.z.toFixed(1)})`)
+  else ok(`naik tangga pendopo: berdiri di lantai batur (y ${pd.s.y.toFixed(2)} m)`)
+  await page.screenshot({ path: `${out}/${name}-pendopo.png` })
+  // dinding rumah tidak bisa ditembus: berjalan lurus ke tengah rumah
+  const house = await page.evaluate(() => {
+    const { colliders, player } = window.__pulau
+    const h = colliders.list.find(c => c.hx !== undefined && c.kind === 'bata' && c.hx > 2.8 && c.hx < 5 && c.x > -690 && c.x < -620 && c.z > -50 && c.z < -10)
+    player.placeAt(h.x, h.z + h.hz + 2.5, Math.PI)
+    player.followPath([{ x: h.x, z: h.z }])
+    return h
+  })
+  await waitFrames(page, 40)
+  const inHouse = await page.evaluate(h => {
+    const { colliders, player } = window.__pulau
+    return colliders.probe(h, player.position.x, player.position.z, {}).gap
+  }, house)
+  if (inHouse < 0.2) fail(`menembus dinding rumah (jarak ke dinding ${inHouse.toFixed(2)} m)`)
+  else ok(`dinding rumah menahan prajurit (berhenti ${inHouse.toFixed(2)} m dari dinding)`)
+  await page.evaluate(() => {
+    window.__pulau.player.stop()
+    window.__pulau.debug.timeScale = 1
+  })
+  // peta dunia: tombol Peta → kartu peta, tombol Tutup → tertutup
+  await page.click('#btn-peta')
+  await waitFrames(page, 2)
+  const mapOpen = await page.isVisible('#peta')
+  await page.screenshot({ path: `${out}/${name}-peta.png` })
+  await page.click('#btn-tutup-peta')
+  const mapClosed = await page.isHidden('#peta')
+  if (!mapOpen || !mapClosed) fail(`peta: terbuka ${mapOpen}, tertutup ${mapClosed}`)
+  else ok('tombol Peta membuka peta dunia, Tutup menutupnya')
+  // pemandangan kerajaan dari udara
+  await page.evaluate(() => {
+    const { camera, controls, setMode } = window.__pulau
+    setMode('lihat')
+    controls.target.set(-560, 5, 40)
+    camera.position.set(-330, 300, 330)
+    controls.update()
+  })
+  await waitFrames(page, 4)
+  await page.screenshot({ path: `${out}/${name}-kerajaan.png` })
+  await page.evaluate(() => window.__pulau.setMode('main'))
+  await teleport(page, -122, 122, [-170, 170])
 
   if (name === 'desktop') {
     // klik tanah → berjalan ke titik itu (klik lewat CDP dengan cap waktu eksplisit, tombol
@@ -546,11 +667,14 @@ for (const [name, opts, query] of cases) {
       window.__pulau.player.cooldowns.penggal = 0
     })
     await waitFrames(page, 3)
+    await page.evaluate(() => {
+      window.__pesanLog.length = 0
+    })
     await page.tap('#btn-penggal')
     await waitFrames(page, 3)
     const none = await page.evaluate(() => ({
       move: window.__pulau.player.attackMove, cd: window.__pulau.player.cooldowns.penggal,
-      msg: document.getElementById('pesan').hidden ? '' : document.getElementById('pesan').textContent,
+      msg: window.__pesanLog.join(' | '),
     }))
     if (none.move || none.cd > 0 || !none.msg.includes('Tidak ada musuh')) fail(`Penggal tanpa musuh: ${JSON.stringify(none)}`)
     else ok(`Penggal tanpa musuh: "${none.msg}", jeda pakai tidak terpakai`)

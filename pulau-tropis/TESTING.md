@@ -25,7 +25,12 @@ npm run preview    # menyajikan dist/ di http://localhost:4173
 npm run test:smoke # (dengan preview berjalan) tes otomatis + screenshot ke screenshots/
 ```
 Smoke test butuh Chromium untuk Playwright. FPS yang dilaporkan smoke test berasal dari render
-software dan **tidak** mencerminkan performa HP.
+software dan **tidak** mencerminkan performa HP. Untuk menjalankan sebagian kasus saja:
+`SMOKE_CASES=hp-portrait,desktop npm run test:smoke` (kasus: hp-portrait, hp-landscape, hp-rendah,
+desktop). Satu putaran penuh ±1 jam di render software.
+
+Penduduk kerajaan (`public/models/penduduk.glb`) dibuat ulang dari paket Kenney "Mini Characters"
+dengan `python3 scripts/pack-penduduk.py "<folder GLB format>" public/models/penduduk.glb`.
 
 ## Kualitas grafis
 - Di game: tombol **Kualitas** (kanan atas) → Rendah / Sedang / Tinggi. Pilihan disimpan.
@@ -121,5 +126,26 @@ software dan **tidak** mencerminkan performa HP.
    kelima kepala terlepas bersamaan. Jauh dari orc → pesan "Tidak ada musuh dalam jangkauan".
 7. Tunggu ±20 detik → orc yang roboh muncul lagi di perkemahannya.
 8. Komputer: 1 / 2 / 3 / 4 (atau Q / E / R / T) = Cincang / Hentak / Putar / Penggal.
+
+## Daftar uji manual — v0.10.0 (Kepulauan Kencana, kerajaan di barat)
+1. Ketuk **Peta** (komputer: M) → peta dunia: Pulau Tropis di kanan, Kepulauan Kencana di kiri,
+   panah kuning = posisi & arah prajurit, titik merah = perkemahan orc. Tutup lewat **Tutup** atau
+   ketuk di luar peta.
+2. Dari titik mulai berjalan ke pantai barat Pulau Tropis (sedikit ke utara) → gapura candi bentar
+   dan **Jembatan Agung**. Seberangi jembatan (ketuk lantai jembatan) → prajurit berjalan di atas
+   lantai, tidak jatuh ke laut; lampu & langkan bata di kedua sisi.
+3. Masuk **gerbang timur** kota → spanduk "Kotaraja Kencana" muncul sebentar; penjaga bertombak
+   berdiri di kiri-kanan gerbang dan menoleh ke prajurit.
+4. Jalan-jalan di kota: rumah beratap genteng/joglo/jerami di setiap blok, penduduk berjalan di
+   jalan, pasar ramai (lapak warna-warni, pedagang), alun-alun dengan dua beringin berpagar.
+   Dekati penduduk → mereka berhenti, menoleh, dan melambai. Prajurit tidak bisa menembus rumah,
+   tembok, maupun penduduk.
+5. Ke barat lewat alun-alun → gerbang **Keraton** (spanduk "Keraton Kencana") → naik tangga
+   **Pendopo Agung**: raja bermahkota duduk di singgasana diapit dua penjaga. Di bawah atap pendopo
+   atap dibuat tembus pandang lebih lebar supaya prajurit tetap terlihat.
+6. Keluar lewat gerbang selatan → **pelabuhan**: dermaga bisa dinaiki, perahu & kapal jong mengapung.
+7. Kunjungi pulau lain lewat jembatan kayu: **Pulau Sawah** (utara, sawah & lumbung), **Pulau Nelayan**
+   (barat daya, rumah panggung & perahu di pasir), **Pura Segara** (barat, meru di puncak bukit).
+8. Catat FPS di kota (paling ramai) dan di Pulau Tropis untuk tiap tingkat kualitas.
 
 Laporkan: model HP, angka FPS di tiap tingkat kualitas, screenshot, dan langkah yang gagal.

@@ -1,5 +1,52 @@
 # CHANGELOG — Pulau Tropis
 
+## [0.10.0] — 2026-10-19 — Kepulauan Kencana: kerajaan besar di barat (Milestone 3, permintaan pengguna)
+### Ditambahkan
+- **Dunia diperluas ke barat** (1.625 × 1.000 m): Pulau Tropis tetap di tengah, di baratnya
+  **Kepulauan Kencana** — empat pulau baru yang dihubungkan jembatan:
+  - **Pulau Kencana** (pulau terbesar) dengan **Kotaraja Kencana**, ibu kota kerajaan bergaya
+    Nusantara (Majapahit/Jawa–Bali): tembok kota bata merah 280 × 200 m dengan 12 menara dan
+    4 gerbang candi bentar, ±160 rumah dalam blok-blok jalan, **Keraton** bertembok (gerbang
+    paduraksa, Pendopo Agung di atas batur dengan singgasana raja, bangsal, 2 meru, 4 bale),
+    **alun-alun** dengan dua beringin berpagar, **pasar** 14 lapak warna-warni, kompleks **candi**
+    batu dengan 4 candi perwara, sawah di luar tembok, desa di tepi jalan, dan **pelabuhan**
+    (3 dermaga kayu, gudang, perahu bercadik, kapal jong).
+  - **Pulau Sawah** (utara): hamparan sawah berpetak, dukuh petani dengan lumbung, dangau.
+  - **Pulau Nelayan** (barat daya): kampung rumah panggung, jemuran ikan, dermaga, perahu di pasir.
+  - **Pulau Pura** (barat): pura di puncak bukit — meru bertingkat 11, 7, 3, bale, candi bentar,
+    jalan naik berhias umbul-umbul.
+- **Jembatan Agung** (±160 m, batu andesit, langkan bata, lampu, gapura candi bentar di kedua ujung)
+  dari pantai barat Pulau Tropis ke Pulau Kencana; 3 jembatan kayu ke pulau-pulau lain. Jembatan,
+  dermaga, batur, dan tangga bisa diinjak (lantai bangunan), bangunan & tembok tidak bisa ditembus.
+- **Penduduk kerajaan** (±200 / ±300 / ±400 orang di kualitas Rendah / Sedang / Tinggi): berjalan di jalan-jalan kota dan
+  antarpulau, sesekali berhenti; pedagang di pasar, petani di sawah, nelayan di dermaga, warga
+  bersantai di alun-alun, pendeta di candi & pura, **raja bermahkota** di singgasana, **penjaga
+  bertombak** di setiap gerbang. Penduduk menoleh dan melambai saat prajurit mendekat, dan tidak bisa
+  ditembus. Model: Kenney "Mini Characters" (CC0, 8 karakter dalam satu file 365 KB).
+- **Peta dunia** (tombol **Peta**, komputer: **M**): semua pulau, kota, jalan, jembatan, perkemahan
+  orc, dan posisi + arah prajurit.
+- **Spanduk nama wilayah** saat memasuki pulau / kota / keraton / jembatan baru
+  (mis. "Kotaraja Kencana — Ibu kota Kerajaan Kencana").
+- Jalan tanah, lantai batu, rumput halus alun-alun, dan sawah berpetak (pematang, padi muda–menguning)
+  digambar shader tanah dari masker 1 m per piksel.
+- Pepohonan baru: beringin, kamboja, pisang, mangga; kelapa, hutan kecil, semak & bunga di pulau-pulau
+  barat.
+### Diubah
+- Judul HUD: Milestone 3. Petunjuk kontrol menyebut Peta dan arah ke kerajaan.
+- Terrain, laut, dan bangunan kini dipecah per petak: bagian di luar layar tidak digambar. Walau
+  dunia 1,6× lebih luas, segitiga per frame di titik mulai justru turun (Rendah ±290 → 252 rb,
+  Sedang ±420 → 277 rb, Tinggi ±820 → 548 rb); draw call naik dari ±30 ke ±50.
+- Tajuk/atap tembus pandang kini juga berlaku untuk bangunan; di bawah atap besar (pendopo, bale,
+  gerbang keraton) lubangnya diperlebar.
+- Batas "terlalu jauh" kini tepi dunia (bukan 430 m dari pusat Pulau Tropis).
+### Tidak berubah
+- Pulau Tropis sama persis: bentuk tanah, ±1.000 pohon, batu, perkemahan orc, titik mulai, dan jalur
+  ketuk-berjalan dicek identik dengan versi 0.9.0 (kecuali beberapa pohon di kepala Jembatan Agung).
+### Pengujian
+- Smoke test ditambah: kerajaan lengkap (rumah, tembok, pendopo, jembatan), penduduk bergerak &
+  terlihat di pasar, menyeberangi Jembatan Agung tanpa jatuh, spanduk wilayah di gerbang timur,
+  naik tangga pendopo, dinding rumah menahan prajurit, tombol Peta.
+
 ## [0.9.0] — 2026-10-19 — Musuh orc + 4 jurus baru (permintaan pengguna)
 ### Ditambahkan
 - **Musuh orc** (Kenney "Mini Dungeon", CC0 — rig & animasi sama dengan prajurit): 25 orc di 5

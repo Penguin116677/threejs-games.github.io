@@ -16,10 +16,10 @@ const normal = new THREE.Vector3()
 // letakkan penanda di tanah, miring mengikuti lereng
 function placeOnGround(obj, ground, x, z, lift) {
   const e = 0.6
-  const h = Math.max(ground.heightAt(x, z), 0)
+  const h = Math.max(ground.surfaceAt(x, z), 0)
   normal.set(
-    -(ground.heightAt(x + e, z) - ground.heightAt(x - e, z)) / (2 * e), 1,
-    -(ground.heightAt(x, z + e) - ground.heightAt(x, z - e)) / (2 * e),
+    -(ground.surfaceAt(x + e, z) - ground.surfaceAt(x - e, z)) / (2 * e), 1,
+    -(ground.surfaceAt(x, z + e) - ground.surfaceAt(x, z - e)) / (2 * e),
   ).normalize()
   if (h <= 0.001) normal.copy(UP) // di air: datar mengikuti permukaan laut
   obj.position.set(x, h + lift, z)

@@ -1,5 +1,6 @@
 import * as THREE from 'three'
 import { ISLAND } from './island.js'
+import { WORLD } from './world.js'
 
 // ---------------------------------------------------------------------------
 // Data pantai untuk ombak. Tekstur half-float, per titik:
@@ -36,76 +37,80 @@ function edt1d(f, n, d, v, z) {
   }
 }
 
-// jarak kuadrat (dalam texel) ke titik "fitur" terdekat (nilai 0) — di tempat
-function edt2d(grid, size) {
-  const f = new Float64Array(size)
-  const d = new Float64Array(size)
-  const v = new Int32Array(size)
-  const z = new Float64Array(size + 1)
-  for (let x = 0; x < size; x++) {
-    for (let y = 0; y < size; y++) f[y] = grid[y * size + x]
-    edt1d(f, size, d, v, z)
-    for (let y = 0; y < size; y++) grid[y * size + x] = d[y]
+// jarak kuadrat (dalam texel) ke titik "fitur" terdekat (nilai 0) — di tempat; grid w × h
+function edt2d(grid, w, h) {
+  const n = Math.max(w, h)
+  const f = new Float64Array(n)
+  const d = new Float64Array(n)
+  const v = new Int32Array(n)
+  const z = new Float64Array(n + 1)
+  for (let x = 0; x < w; x++) {
+    for (let y = 0; y < h; y++) f[y] = grid[y * w + x]
+    edt1d(f, h, d, v, z)
+    for (let y = 0; y < h; y++) grid[y * w + x] = d[y]
   }
-  for (let y = 0; y < size; y++) {
-    for (let x = 0; x < size; x++) f[x] = grid[y * size + x]
-    edt1d(f, size, d, v, z)
-    for (let x = 0; x < size; x++) grid[y * size + x] = d[x]
+  for (let y = 0; y < h; y++) {
+    for (let x = 0; x < w; x++) f[x] = grid[y * w + x]
+    edt1d(f, w, d, v, z)
+    for (let x = 0; x < w; x++) grid[y * w + x] = d[x]
   }
 }
 
+// res = jumlah texel per 1000 m (ukuran pulau lama): texel tetap sebesar sebelumnya,
+// tekstur dibentangkan ke seluruh WORLD
 export function createShoreData(ground, res = 512) {
-  const half = ISLAND.size / 2
   const cell = ISLAND.size / res
-  const n = res * res
+  const w = Math.round(WORLD.width / cell)
+  const hgt = Math.round(WORLD.depth / cell)
+  const n = w * hgt
   const h = new Float32Array(n)
   const toLand = new Float64Array(n)
   const toWater = new Float64Array(n)
-  for (let j = 0; j < res; j++)
-    for (let i = 0; i < res; i++) {
-      const k = j * res + i
-      const y = ground.heightAt(-half + (i + 0.5) * cell, -half + (j + 0.5) * cell)
+  for (let j = 0; j < hgt; j++)
+    for (let i = 0; i < w; i++) {
+      const k = j * w + i
+      const y = ground.heightAt(WORLD.minX + (i + 0.5) * cell, WORLD.minZ + (j + 0.5) * cell)
       h[k] = y
       toLand[k] = y > 0 ? 0 : INF
       toWater[k] = y > 0 ? INF : 0
     }
-  edt2d(toLand, res)
-  edt2d(toWater, res)
+  edt2d(toLand, w, hgt)
+  edt2d(toWater, w, hgt)
 
   const s = new Float32Array(n)
   for (let k = 0; k < n; k++)
     s[k] = h[k] > 0 ? -(Math.sqrt(toWater[k]) - 0.5) * cell : (Math.sqrt(toLand[k]) - 0.5) * cell
 
   // dekat garis pantai: perkiraan linear −h / |∇h| (lebih halus daripada ukuran texel)
-  for (let j = 1; j < res - 1; j++)
-    for (let i = 1; i < res - 1; i++) {
-      const k = j * res + i
+  for (let j = 1; j < hgt - 1; j++)
+    for (let i = 1; i < w - 1; i++) {
+      const k = j * w + i
       if (Math.abs(s[k]) > 3 * cell) continue
       const gx = (h[k + 1] - h[k - 1]) / (2 * cell)
-      const gz = (h[k + res] - h[k - res]) / (2 * cell)
+      const gz = (h[k + w] - h[k - w]) / (2 * cell)
       const g = Math.hypot(gx, gz)
       if (g > 0.02) s[k] = Math.max(-3 * cell, Math.min(3 * cell, -h[k] / g))
     }
 
   const toHalf = THREE.DataUtils.toHalfFloat
   const data = new Uint16Array(n * 4)
-  for (let j = 0; j < res; j++)
-    for (let i = 0; i < res; i++) {
-      const k = j * res + i
-      const dx = s[Math.min(res - 1, i + 1) + j * res] - s[Math.max(0, i - 1) + j * res]
-      const dz = s[i + Math.min(res - 1, j + 1) * res] - s[i + Math.max(0, j - 1) * res]
+  for (let j = 0; j < hgt; j++)
+    for (let i = 0; i < w; i++) {
+      const k = j * w + i
+      const dx = s[Math.min(w - 1, i + 1) + j * w] - s[Math.max(0, i - 1) + j * w]
+      const dz = s[i + Math.min(hgt - 1, j + 1) * w] - s[i + Math.max(0, j - 1) * w]
       const len = Math.hypot(dx, dz) || 1
       data[k * 4] = toHalf(h[k])
       data[k * 4 + 1] = toHalf(Math.max(-60, Math.min(600, s[k])))
       data[k * 4 + 2] = toHalf(dx / len)
       data[k * 4 + 3] = toHalf(dz / len)
     }
-  const texture = new THREE.DataTexture(data, res, res, THREE.RGBAFormat, THREE.HalfFloatType)
+  const texture = new THREE.DataTexture(data, w, hgt, THREE.RGBAFormat, THREE.HalfFloatType)
   texture.magFilter = THREE.LinearFilter
   texture.minFilter = THREE.LinearFilter
   texture.wrapS = texture.wrapT = THREE.ClampToEdgeWrapping
   texture.needsUpdate = true
-  return { texture, res, cell, heights: h, distance: s }
+  return { texture, width: w, height: hgt, cell, heights: h, distance: s }
 }
 
 // Waktu ombak bersama (shader laut dan shader tanah memakai objek uniform yang sama).

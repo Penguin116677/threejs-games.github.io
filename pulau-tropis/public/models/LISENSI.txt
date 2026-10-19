@@ -12,3 +12,12 @@ orc.glb
   Sumber : Kenney "Mini Dungeon" 2.0 — character-orc (www.kenney.nl)
   Lisensi: Creative Commons Zero (CC0 1.0).
   Diubah : tekstur colormap.png digabung ke dalam GLB (scripts/embed-glb-texture.py).
+
+penduduk.glb
+  Sumber : Kenney "Mini Characters" 1.0 — character-male-a/b/e/f & character-female-a/b/c/f
+           (www.kenney.nl)
+  Lisensi: Creative Commons Zero (CC0 1.0).
+  Diubah : delapan karakter digabung jadi satu file dengan satu rangka bersama, hanya animasi
+           idle/walk/sit/interact-right/pick-up/emote-yes, atribut dipadatkan, tekstur colormap.png
+           ikut di dalam file (scripts/pack-penduduk.py). Dipakai untuk penduduk Kerajaan Kencana;
+           penjaga kerajaan memakai prajurit.glb dengan tombak buatan kode.

@@ -15,6 +15,8 @@ const COLORS = {
   pohon: ['#6b4423', '#8a5a2e', '#a8743f', '#4f8f2f', '#6fb03a'],
   batu: ['#7d7a74', '#a19d96', '#c9c5bd', '#ffd27a'],
   debu: ['#d8c497', '#c4ab7a', '#a88f63', '#e6d8b0'],
+  bata: ['#9c4a30', '#b8603c', '#7e3a26', '#d9b48a'],
+  kayu: ['#6b4423', '#8a5a2e', '#a8743f', '#c99a5f'],
 }
 
 const effectMaterial = (opts = {}) => new THREE.MeshBasicMaterial({
@@ -223,7 +225,7 @@ export function createSwingEffects(ground) {
         [bx - Math.cos(a) * w, bz + Math.sin(a) * w],
         [x + Math.sin(a) * len, z + Math.cos(a) * len],
       ]
-      pts.forEach(([px, pz], k) => p.setXYZ(i * 3 + k, px, Math.max(ground.heightAt(px, pz), 0) + lift, pz))
+      pts.forEach(([px, pz], k) => p.setXYZ(i * 3 + k, px, Math.max(ground.surfaceAt(px, pz), 0) + lift, pz))
     }
     p.needsUpdate = true
     c.t = 0
@@ -295,7 +297,7 @@ export function createSwingEffects(ground) {
     const d = Math.hypot(dx, dz) || 1
     const x = target.x + (dx / d) * target.radius
     const z = target.z + (dz / d) * target.radius
-    burst(x, y, z, target.kind, n, Math.atan2(dx, dz), 2.4, ground.heightAt(x, z))
+    burst(x, y, z, target.kind, n, Math.atan2(dx, dz), 2.4, ground.surfaceAt(x, z))
   }
 
   let camQuat = new THREE.Quaternion()
@@ -343,7 +345,7 @@ export function createSwingEffects(ground) {
       } else if (ev.move === 'tendang') {
         // cincin hangat setinggi kaki + kepulan debu dari tanah yang tersapu kaki
         pulse(x, y, z, 0.2, 0.95, 0.24, '#ffe3a0', 1)
-        const gy = ground.heightAt(x, z)
+        const gy = ground.surfaceAt(x, z)
         if (gy > -0.3) burst(x, Math.max(gy, 0) + 0.15, z, 'debu', 5, ev.heading, 1.6, gy)
         chipCount = 10
       } else if (ev.spin) {
@@ -352,7 +354,7 @@ export function createSwingEffects(ground) {
         chipCount = 10
       } else if (ev.plant) {
         // pedang menancap: retakan + kilatan di titik tancap, dua gelombang kejut, debu
-        const gy = ground.heightAt(o.x, o.z)
+        const gy = ground.surfaceAt(o.x, o.z)
         const wy = Math.max(gy, 0) + 0.08
         crack(ev.plant.x, ev.plant.z)
         pulse(ev.plant.x, wy + 0.05, ev.plant.z, 0.1, 1.2, 0.25, '#ffffff', 1)
