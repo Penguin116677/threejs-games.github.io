@@ -150,7 +150,8 @@ function palmGeometry() {
 
 function jungleGeometry(detail) {
   const parts = []
-  const trunk = new THREE.CylinderGeometry(0.3, 0.55, 6.6, 6, 2, true)
+  // batang tertutup: dari kamera atas (tajuk tembus pandang) ujungnya tidak tampak berlubang
+  const trunk = new THREE.CylinderGeometry(0.3, 0.55, 6.6, 6, 2, false)
   trunk.translate(0, 3.3, 0)
   parts.push(part(trunk, '#6b4f33', { dark: 0.55, light: 1 }))
   for (const s of [-1, 1]) {
@@ -176,7 +177,7 @@ function jungleGeometry(detail) {
 // pohon payung (mirip ketapang/akasia): batang tinggi, tajuk lebar dan pipih
 function umbrellaGeometry(detail) {
   const parts = []
-  const trunk = new THREE.CylinderGeometry(0.3, 0.6, 9, 6, 3, true)
+  const trunk = new THREE.CylinderGeometry(0.3, 0.6, 9, 6, 3, false)
   trunk.translate(0, 4.5, 0)
   const p = trunk.attributes.position
   for (let i = 0; i < p.count; i++) p.setX(i, p.getX(i) + 0.006 * p.getY(i) * p.getY(i))

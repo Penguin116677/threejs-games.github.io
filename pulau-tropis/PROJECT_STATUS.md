@@ -1,7 +1,7 @@
 # PROJECT_STATUS — Pulau Tropis
 
-**Milestone aktif:** 2 — Karakter dan eksplorasi (kamera strategi v0.6.0, tombol Pukul v0.7.0 — menunggu umpan balik dari HP)
-**Versi:** 0.7.0
+**Milestone aktif:** 2 — Karakter dan eksplorasi (kamera strategi v0.6.0, Pukul v0.7.0, kombo + jurus v0.8.0 — menunggu umpan balik dari HP)
+**Versi:** 0.8.0
 **Terakhir diperbarui:** 2026-10-19
 
 ## Kondisi awal repository (sebelum Milestone 1)
@@ -37,12 +37,29 @@
 | Ketuk tanah untuk berjalan (jalur memutari pohon/batu/tebing/laut dalam) — menggantikan joystick | ✅ selesai (v0.6.0) |
 | Penanda tujuan, tajuk pohon tembus pandang di depan kamera (lingkaran hijau dihapus v0.7.0) | ✅ selesai |
 | Tombol Pukul: ayunan pedang + efek sabetan/serpihan (belum ada musuh/kerusakan) | ✅ selesai (v0.7.0) |
+| Variasi serangan: kombo tebas → tinju → tendang + jurus Putar / Serbu / Hentak (jeda pakai) | ✅ selesai (v0.8.0) |
 | Tombol Lompat, geser kamera, cubit zoom | ✅ selesai |
 | Kontrol mouse + keyboard (komputer): klik = jalan, WASD tetap bisa | ✅ selesai |
 | Gravitasi, lompat, batas lereng, tabrakan batang pohon & batu besar | ✅ selesai |
 | Respawn: laut dalam / terlalu jauh → kembali ke posisi aman | ✅ selesai |
 | Map bisa dijelajahi (pantai, hutan, padang, lereng gunung, puncak) | ✅ analisis + uji otomatis |
 | Dicoba di HP Android sungguhan | ⏳ menunggu laporan pengguna |
+
+## Yang sudah diperiksa (v0.8.0 — kombo + 3 jurus)
+- `npm run build` berhasil; ESLint (konfigurasi repo): 0 error, 0 warning.
+- Smoke test otomatis (4 perangkat) — **LULUS**, termasuk uji baru:
+  - HP: kombo Pukul tebas → tinju → tendang; Putar kena batang di sekeliling, jeda 3,9 s, tombol
+    menunjukkan "3", ditekan lagi saat jeda tidak berbuat apa-apa; Serbu ke batang 3,2 m di depan →
+    berhenti 1,05 m dari pusat batang (tidak menembus) dan menebasnya; Hentak melompat 1,19 m,
+    mendarat, gelombang kejut; semua uji lama tetap lulus;
+  - komputer: F, lalu 1 / 2 / 3 → Putar, Serbu, Hentak; uji lama tetap lulus.
+- Ditemukan & diperbaiki saat uji: pada ±10 FPS Serbuan menembus batang pohon (berakhir 2,28 m di
+  belakang batang) → langkah fisika kini maks. ±0,3 m; diulang di 3 batang: berhenti di depan, kena.
+- Serbu menghadap laut dari 1 m / 3 m di darat → berhenti di air 0,44 m / 0,20 m, tidak "tenggelam".
+- Tata letak tombol diukur: layar tegak (busur) & mendatar (sebaris) tidak menumpuk tombol lain.
+- Efek tiap gerakan dipotret pada waktu efek yang tepat; cincin tinju/tendangan dipertebal dan diberi
+  tepi gelap setelah terlihat terlalu samar di pasir.
+- Halaman pratinjau (artifact) diuji dulu sebagai salinan lokal: Pukul & jurus Putar berjalan.
 
 ## Yang sudah diperiksa (v0.7.0 — tombol Pukul, lingkaran hijau dihapus)
 - `npm run build` berhasil; ESLint (konfigurasi repo): 0 error, 0 warning.
@@ -103,7 +120,8 @@
 ## Yang BELUM diperiksa
 - **Rasa kontrol ketuk di HP sungguhan** (ketepatan titik ketuk, beda ketuk vs geser, cubit) dan
   tampilan tembus pandang tajuk di GPU HP — hanya diuji dengan sentuhan tiruan di Chromium.
-- Rasa tombol Pukul di HP sungguhan (posisi tombol untuk jempol, kecepatan ayunan).
+- Rasa tombol Pukul & jurus di HP sungguhan (jangkauan jempol ke tombol busur, kecepatan ayunan,
+  lama jeda pakai).
 - **Performa nyata di HP** — FPS di smoke test memakai render software, tidak mewakili HP.
 - Gestur cubit (pinch zoom) dua jari di perangkat sungguhan.
 - Menu Kualitas di dalam halaman preview (artifact) — memuat ulang halaman di dalam bingkai preview.
@@ -138,6 +156,10 @@ yang lebih rapat (untuk ombak) dan buah kelapa. v0.2.0 (HP): ±230 ribu.
 - Jalur dihitung di grid 2 m: celah sangat sempit di antara batang/batu (< ±1 m) dianggap tertutup;
   mengetuk tajuk pohon memilih tanah di bawah/di balik tajuk.
 - Batu besar tidak ikut tembus pandang (jarang menutupi prajurit karena kamera dari atas).
-- Pukulan belum berpengaruh pada apa pun (belum ada musuh, nyawa, atau kerusakan) dan belum ada
-  suara; serpihan hanya efek sesaat. Prajurit memukul ke arah hadapnya (tidak otomatis menghadap
-  sasaran terdekat). Rumput, semak, dan bunga tidak bereaksi saat dipukul.
+- Pukulan & jurus belum berpengaruh pada apa pun (belum ada musuh, nyawa, atau kerusakan) dan belum
+  ada suara; serpihan hanya efek sesaat. Prajurit menyerang ke arah hadapnya (tidak otomatis
+  menghadap sasaran terdekat). Rumput, semak, dan bunga tidak bereaksi saat dipukul.
+- Paket animasi tidak punya gerakan berputar/melesat/menghantam: Putar memakai ayunan pedang yang
+  diperlambat sambil badan diputar, Serbu memakai animasi lari, Hentak memakai animasi lompat +
+  ayunan. Cukup terbaca dari kamera atas, tetapi dari dekat terlihat sederhana.
+- Jarak Serbuan sedikit bergantung FPS (±4,5–5,3 m) karena lesatan dihitung per frame.

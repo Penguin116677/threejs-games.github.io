@@ -97,4 +97,17 @@ software dan **tidak** mencerminkan performa HP.
    daun berhamburan. Di dekat batu besar → debu & percikan.
 7. Komputer: tombol **F** = pukul.
 
+## Daftar uji manual — v0.8.0 (kombo & jurus)
+1. Tombol: **Pukul** besar di pojok kanan bawah; Putar, Serbu, Hentak (biru), dan Lompat di sekitarnya.
+   Putar HP ke mendatar → tombol-tombol itu sebaris di kiri Pukul, tidak menutupi tombol lain.
+2. Ketuk **Pukul** berulang-ulang → tebasan pedang, tinju, tendangan, lalu tebasan lagi.
+3. **Putar** di dekat pohon-pohon → prajurit berputar, serpihan dari batang di sekelilingnya. Tombol
+   Putar lalu gelap dengan hitungan mundur 4 → 1; selama itu menekannya tidak berbuat apa-apa.
+4. Hadapkan prajurit ke pohon ±3 m di depannya (ketuk tanah di depan pohon dari jauh), lalu **Serbu**
+   → prajurit melesat, berhenti tepat di depan batang, dan menebasnya.
+5. **Hentak** → prajurit melompat ke depan lalu menghantam tanah: cincin gelombang kejut, debu, layar
+   sedikit berguncang.
+6. Ketuk Serbu di tepi pantai menghadap laut → prajurit berhenti sebelum air dalam.
+7. Komputer: F = pukul (kombo), 1/2/3 (atau Q/E/R) = Putar / Serbu / Hentak.
+
 Laporkan: model HP, angka FPS di tiap tingkat kualitas, screenshot, dan langkah yang gagal.

@@ -1,19 +1,22 @@
 // Input pemain (gaya game strategi):
 // - HP: KETUK tanah untuk berjalan ke sana, geser satu jari untuk memutar kamera,
-//   cubit dua jari untuk zoom, tombol Pukul dan Lompat.
+//   cubit dua jari untuk zoom, tombol Pukul (kombo), 3 tombol jurus, dan Lompat.
 // - Komputer: klik tanah untuk berjalan, seret mouse untuk memutar kamera, roda untuk zoom,
-//   F untuk memukul, Spasi untuk lompat; WASD/panah tetap bisa dipakai.
+//   F untuk memukul, 1/2/3 (atau Q/E/R) untuk jurus, Spasi untuk lompat; WASD/panah tetap bisa.
 // Ketukan dibedakan dari geseran: jari bergerak < TAP_MOVE px dan dilepas < TAP_TIME ms.
 // Dibaca sekali per frame lewat read().
 
 const TAP_MOVE = 12 // px
+const SKILL_KEYS = { Digit1: 'putar', KeyQ: 'putar', Digit2: 'serbu', KeyE: 'serbu', Digit3: 'hentak', KeyR: 'hentak' }
 const TAP_TIME = 800 // ms (lebih lama dari ini tanpa bergeser = bukan ketukan)
 
-export function createInput({ canvas, jumpButton, attackButton, touch }) {
+// skillButtons: { putar, serbu, hentak } → elemen tombol jurus
+export function createInput({ canvas, jumpButton, attackButton, skillButtons, touch }) {
   const keys = new Set()
   let enabled = true
   let jumpQueued = false
   let attackQueued = false
+  let skillQueued = null
   let lookDX = 0
   let zoom = 1
   const taps = []
@@ -95,6 +98,10 @@ export function createInput({ canvas, jumpButton, attackButton, touch }) {
   actionButton(attackButton, () => {
     attackQueued = true
   })
+  for (const [name, button] of Object.entries(skillButtons))
+    actionButton(button, () => {
+      skillQueued = name
+    })
 
   const GAME_KEYS = ['KeyW', 'KeyA', 'KeyS', 'KeyD', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Space']
   window.addEventListener('keydown', e => {
@@ -102,6 +109,7 @@ export function createInput({ canvas, jumpButton, attackButton, touch }) {
     if (GAME_KEYS.includes(e.code)) e.preventDefault()
     if (e.code === 'Space' && !e.repeat) jumpQueued = true
     if (e.code === 'KeyF' && !e.repeat) attackQueued = true
+    if (SKILL_KEYS[e.code] && !e.repeat) skillQueued = SKILL_KEYS[e.code]
     keys.add(e.code)
   })
   window.addEventListener('keyup', e => keys.delete(e.code))
@@ -118,7 +126,7 @@ export function createInput({ canvas, jumpButton, attackButton, touch }) {
   const key = (...codes) => codes.some(c => keys.has(c))
 
   return {
-    // nilai input frame ini; ketukan, putaran kamera, zoom, lompat & pukul di-reset setelah dibaca
+    // nilai input frame ini; ketukan, putaran kamera, zoom, lompat, pukul & jurus di-reset setelah dibaca
     read() {
       let mx = 0
       let my = 0
@@ -130,9 +138,12 @@ export function createInput({ canvas, jumpButton, attackButton, touch }) {
         mx = (kx / len) * slow
         my = (ky / len) * slow
       }
-      const out = { moveX: mx, moveY: my, jump: jumpQueued, attack: attackQueued, lookDX, zoom, taps: taps.splice(0) }
+      const out = {
+        moveX: mx, moveY: my, jump: jumpQueued, attack: attackQueued, skill: skillQueued, lookDX, zoom, taps: taps.splice(0),
+      }
       jumpQueued = false
       attackQueued = false
+      skillQueued = null
       lookDX = 0
       zoom = 1
       return out
@@ -140,8 +151,8 @@ export function createInput({ canvas, jumpButton, attackButton, touch }) {
     setEnabled(on) {
       enabled = on
       if (!on) resetAll()
-      // tombol aksi hanya untuk layar sentuh (komputer memakai Spasi dan F)
-      jumpButton.hidden = attackButton.hidden = !on || !touch
+      // tombol aksi hanya untuk layar sentuh (komputer memakai tombol keyboard)
+      for (const b of [jumpButton, attackButton, ...Object.values(skillButtons)]) b.hidden = !on || !touch
     },
   }
 }

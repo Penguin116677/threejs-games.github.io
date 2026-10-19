@@ -7,9 +7,10 @@ import { mkdirSync } from 'node:fs'
 // - komputer: klik tanah untuk berjalan, jalan (W), lompat (Spasi), tabrakan batang pohon,
 //   laut dalam → kembali ke pantai, mendaki lereng gunung
 // - HP: ketuk tanah untuk berjalan (jalur memutari batang pohon), ketuk laut → berhenti di
-//   air dangkal, tombol Pukul (berhenti + mengayun, mengenai batang pohon → serpihan),
+//   air dangkal, tombol Pukul (berhenti + mengayun, mengenai batang pohon → serpihan,
+//   kombo tebas → tinju → tendang), jurus Putar / Serbu / Hentak (+ jeda pakai),
 //   tombol Lompat, geser kamera (tanpa memicu jalan), cubit zoom, tombol Lihat pulau, menu Kualitas
-// - komputer: tombol F = pukul
+// - komputer: tombol F = pukul, 1 / 2 / 3 = jurus
 // - tidak ada lagi lingkaran hijau di bawah prajurit
 // Waktu tunggu dihitung dalam FRAME (fisika berjalan per frame), bukan detik, karena
 // render software jauh lebih lambat dari HP.
@@ -46,6 +47,7 @@ const state = page => page.evaluate(() => {
   return {
     x: p.x, y: p.y, z: p.z, ground: g, h: p.y - g, speed: player.speed, grounded: player.grounded,
     yaw: cam.yaw, model: player.usingModel, path: player.hasPath, attacking: player.attacking,
+    move: player.attackMove,
   }
 })
 
@@ -88,6 +90,15 @@ const openSpot = (page, x, z, toward) => page.evaluate(([x, z, toward]) => {
   }
   return null
 }, [x, z, toward])
+
+// tunggu waktu permainan ≥ detik (dt per frame dibatasi 0,1 s, jadi hitung frame dan waktu nyata)
+const waitGameTime = (page, seconds) => page.evaluate(seconds => new Promise(resolve => {
+  const f0 = window.__pulau.frames()
+  const t0 = performance.now()
+  const tick = () => (window.__pulau.frames() - f0 >= seconds * 10 && performance.now() - t0 >= seconds * 1000
+    ? resolve() : requestAnimationFrame(tick))
+  tick()
+}), seconds)
 
 // tunggu sampai ayunan pedang selesai; kembalikan statistik efek pukulan
 async function attackDone(page) {
@@ -225,6 +236,19 @@ for (const [name, opts, query] of cases) {
     const fxb = await attackDone(page)
     if (!swingF || fxb.slashes !== fxa.slashes + 1) fail(`tombol F: mengayun ${swingF}, sabetan ${fxb.slashes - fxa.slashes}`)
     else ok('tombol F: prajurit mengayunkan pedang')
+
+    // jurus dengan tombol 1 / 2 / 3 (di tempat lapang)
+    const keyed = []
+    for (const key of ['Digit1', 'Digit2', 'Digit3']) {
+      await teleport(page, -122, 122, [0, 0])
+      await waitFrames(page, 3)
+      await page.keyboard.press(key)
+      await waitFrames(page, 2)
+      keyed.push((await state(page)).move)
+      await attackDone(page)
+    }
+    if (keyed.join() !== 'putar,serbu,hentak') fail(`tombol 1/2/3: ${keyed.join(', ')}`)
+    else ok('tombol 1 / 2 / 3: jurus Putar, Serbu, Hentak')
 
     // lompat dengan Spasi
     await waitFrames(page, 10)
@@ -381,6 +405,81 @@ for (const [name, opts, query] of cases) {
     if (fx2.bursts !== fx1.bursts + 1 || fx2.lastKind !== 'pohon') fail(`Pukul batang pohon: serpihan ${fx2.bursts - fx1.bursts}, jenis ${fx2.lastKind}`)
     else ok('Pukul batang pohon: kena, serpihan kayu & daun muncul')
     await page.screenshot({ path: `${out}/${name}-pukul.png` })
+
+    // kombo: Pukul ditekan lagi selagi gerakan berjalan → gerakan berikutnya menyusul
+    await teleport(page, -122, 122, [0, 0])
+    await waitGameTime(page, 1)
+    const combo = []
+    await page.tap('#btn-pukul')
+    for (let i = 0; i < 60 && combo.length < 3; i++) {
+      const mv = (await state(page)).move
+      if (mv && mv !== combo[combo.length - 1]) {
+        combo.push(mv)
+        if (combo.length < 3) await page.tap('#btn-pukul')
+      }
+      await waitFrames(page, 1)
+    }
+    await attackDone(page)
+    if (combo.join() !== 'tebas,tinju,tendang') fail(`kombo Pukul: ${combo.join(' → ')}`)
+    else ok('kombo Pukul: tebas → tinju → tendang')
+
+    // jurus Tebasan Putar di antara batang pohon: kena sekeliling, lalu jeda pakai
+    const spinSpot = await page.evaluate(() => {
+      const { trees, colliders } = window.__pulau
+      for (const t of trees.userData.trunks.filter(t => t.radius === 0.7))
+        if (colliders.isFree(t.x + 1.6, t.z, 0.45)) return [t.x + 1.6, t.z]
+      return null
+    })
+    await teleport(page, spinSpot[0], spinSpot[1], [spinSpot[0], spinSpot[1] + 5])
+    await waitFrames(page, 5)
+    const fs0 = await page.evaluate(() => window.__pulau.effects.stats())
+    await page.tap('#btn-putar')
+    await waitFrames(page, 2)
+    const spin = await state(page)
+    const spinCd = await page.evaluate(() => window.__pulau.player.cooldowns.putar)
+    const fs1 = await attackDone(page)
+    await page.tap('#btn-putar')
+    await waitFrames(page, 2)
+    const spinAgain = (await state(page)).move
+    const cdText = await page.evaluate(() => document.querySelector('#btn-putar .cd').textContent)
+    if (spin.move !== 'putar' || fs1.spins !== fs0.spins + 1 || fs1.bursts <= fs0.bursts) fail(`jurus Putar: gerakan ${spin.move}, pusaran ${fs1.spins - fs0.spins}, serpihan ${fs1.bursts - fs0.bursts}`)
+    else if (spinCd < 3 || spinAgain !== null || !cdText) fail(`jurus Putar: jeda ${spinCd.toFixed(1)} s, ditekan lagi → ${spinAgain}, angka jeda "${cdText}"`)
+    else ok(`jurus Putar: berputar, kena batang di sekeliling, jeda ${spinCd.toFixed(1)} s (tombol menunjukkan "${cdText}")`)
+
+    // jurus Serbuan ke batang pohon 3,2 m di depan: melesat, berhenti di depan batang, menebasnya
+    const dashTo = await openTrunk(page)
+    await teleport(page, dashTo.x - 3.2, dashTo.z, [dashTo.x, dashTo.z])
+    await waitFrames(page, 5)
+    const fd0 = await page.evaluate(() => window.__pulau.effects.stats())
+    await page.tap('#btn-serbu')
+    let closest = Infinity
+    for (let i = 0; i < 60; i++) {
+      const s = await state(page)
+      closest = Math.min(closest, Math.hypot(s.x - dashTo.x, s.z - dashTo.z))
+      if (!s.attacking && i > 1) break
+      await waitFrames(page, 1)
+    }
+    const fd1 = await page.evaluate(() => window.__pulau.effects.stats())
+    if (fd1.streaks !== fd0.streaks + 1 || fd1.bursts <= fd0.bursts) fail(`jurus Serbu: jejak ${fd1.streaks - fd0.streaks}, serpihan ${fd1.bursts - fd0.bursts}`)
+    else if (closest < dashTo.radius + 0.35 - 0.03 || closest > 1.6) fail(`jurus Serbu: jarak terdekat ke batang ${closest.toFixed(2)} m`)
+    else ok(`jurus Serbu: melesat ke batang, berhenti ${closest.toFixed(2)} m dari pusatnya (tidak menembus), menebasnya`)
+
+    // jurus Hentakan: melompat lalu menghantam tanah (gelombang kejut)
+    await teleport(page, -122, 122, [0, 0])
+    await waitFrames(page, 5)
+    const fh0 = await page.evaluate(() => window.__pulau.effects.stats())
+    await page.tap('#btn-hentak')
+    let top = 0
+    for (let i = 0; i < 80; i++) {
+      const s = await state(page)
+      top = Math.max(top, s.h)
+      if (!s.attacking && i > 1) break
+      await waitFrames(page, 1)
+    }
+    const landed = await state(page)
+    const fh1 = await page.evaluate(() => window.__pulau.effects.stats())
+    if (top < 0.8 || Math.abs(landed.h) > 0.05 || fh1.pulses < fh0.pulses + 2) fail(`jurus Hentak: tinggi ${top.toFixed(2)} m, di tanah ${landed.h.toFixed(2)}, cincin ${fh1.pulses - fh0.pulses}`)
+    else ok(`jurus Hentak: melompat ${top.toFixed(2)} m, mendarat, gelombang kejut muncul`)
 
     // tombol Lompat
     await teleport(page, -122, 122, [0, 0])

@@ -7,7 +7,7 @@ reruntuhan, berinteraksi dengan NPC, mengumpulkan item, dan menyelesaikan quest 
 
 ## Genre
 Eksplorasi / petualangan santai dengan kamera gaya game strategi (dilihat dari atas, ketuk tanah
-untuk berjalan — sejak v0.6.0). Prajurit bisa mengayunkan pedang (v0.7.0), tetapi belum ada
+untuk berjalan — sejak v0.6.0). Prajurit punya kombo pukulan dan 3 jurus (v0.8.0), tetapi belum ada
 musuh/sistem pertarungan (untuk saat ini).
 
 ## Target perangkat
@@ -42,4 +42,5 @@ Catatan: atas permintaan pengguna, pohon (v0.2.0), rumput di sekitar gunung, dan
 peningkatan visual Milestone 5 (bayangan, tanah bertekstur, awan, kaustik — v0.3.0) sudah
 dikerjakan lebih awal, sebelum Milestone 2. Milestone 2 (karakter & kontrol) dikerjakan di v0.5.0;
 kamera dan kontrolnya diubah ke gaya game strategi di v0.6.0 (permintaan pengguna).
-Tombol Pukul (bagian awal Milestone 4 — interaksi) ditambahkan lebih dulu di v0.7.0 atas permintaan.
+Tombol Pukul (bagian awal Milestone 4 — interaksi) ditambahkan lebih dulu di v0.7.0 atas permintaan,
+lalu dikembangkan menjadi kombo + 3 jurus (v0.8.0).

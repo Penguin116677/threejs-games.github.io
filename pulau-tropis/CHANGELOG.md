@@ -1,5 +1,34 @@
 # CHANGELOG — Pulau Tropis
 
+## [0.8.0] — 2026-10-19 — Variasi serangan: kombo + 3 jurus (permintaan pengguna)
+### Ditambahkan
+- **Kombo Pukul**: tombol Pukul berganti gerakan setiap ditekan — tebasan pedang → tinju kiri →
+  tendangan, lalu kembali ke tebasan. Tekan lagi selagi bergerak atau ≤ 0,7 detik setelahnya untuk
+  melanjutkan kombo; jeda lebih lama → mulai lagi dari tebasan.
+- **3 jurus dengan jeda pakai** (tombol bulat biru di sekitar tombol Pukul; komputer: 1/2/3 atau Q/E/R):
+  - **Putar** — Tebasan Putar (jeda 4 detik): berputar satu lingkaran sambil menebas, mengenai semua
+    batang/batu dalam ±2 m di sekeliling.
+  - **Serbu** — Serbuan (jeda 5 detik): melesat ±5 m ke depan lalu menebas; berhenti di depan
+    batang/batu atau sebelum air dalam.
+  - **Hentak** — Hentakan (jeda 7 detik): melompat ke depan (±1,2 m tinggi, ±2,7 m maju) lalu
+    menghantam tanah; gelombang kejut mengenai sekeliling ±3 m dan layar sedikit berguncang.
+  - Selama jeda, tombol jurus gelap dengan sisa detik; jurus yang siap bercahaya.
+- Efek khas tiap gerakan: cincin putih (tinju), cincin hangat + debu (tendangan), pusaran putih
+  (Putar), jejak lesatan (Serbu), gelombang kejut + debu (Hentak). Cincin bertepi gelap tipis agar
+  terlihat di pasir maupun di hutan.
+### Diubah
+- Tata letak tombol aksi: **Pukul** (besar) di pojok kanan bawah; Putar, Serbu, Hentak, dan **Lompat**
+  melingkarinya (layar tegak) atau sebaris di kirinya (layar mendatar). Tombol Lompat pindah dari pojok.
+- Tombol serang/jurus yang ditekan saat masih menyerang disimpan, lalu langsung dijalankan.
+- Logika serangan dipindah ke `src/player/combat.js` (player.js tetap untuk fisika & animasi).
+### Diperbaiki
+- Batang pohon hutan & pohon payung tidak lagi tampak berlubang dari atas saat tajuk di depan kamera
+  dibuat tembus pandang (ujung batang kini tertutup).
+### Pengujian
+- Smoke test: kombo tebas → tinju → tendang; jurus Putar (kena sekeliling, jeda pakai, sisa detik di
+  tombol, tidak bisa dipakai saat jeda); Serbu ke batang pohon (berhenti tanpa menembus, menebas);
+  Hentak (melompat, mendarat, gelombang kejut); tombol 1/2/3 di komputer.
+
 ## [0.7.0] — 2026-10-19 — Tombol Pukul, lingkaran hijau dihapus (permintaan pengguna)
 ### Ditambahkan
 - **Tombol Pukul** (ikon pedang, kanan bawah di sebelah kiri tombol Lompat): prajurit berhenti di

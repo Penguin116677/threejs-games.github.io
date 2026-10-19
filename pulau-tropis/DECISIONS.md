@@ -129,3 +129,15 @@ tandai sebagai "diganti" bila berubah.
     pohon/batu (`colliders.hitAt`, collider kini membawa `kind`). Belum ada nyawa/kerusakan/musuh —
     itu bagian Milestone 4 — jadi pukulan baru memberi efek visual (sabetan + serpihan, 1 mesh +
     1 InstancedMesh 40 keping, tanpa bayangan). Di komputer: tombol F (klik kiri dipakai berjalan).
+30. **Variasi serangan = kombo di tombol Pukul + 3 jurus ber-jeda pakai** (v0.8.0, permintaan
+    "skill pukulnya bervariasi"), mengikuti pola game aksi/MOBA di HP: serangan dasar besar di pojok,
+    jurus di sekelilingnya. Semua gerakan memakai animasi bawaan model (attack-melee-right/left,
+    attack-kick-right, jump, sprint) — tidak ada animasi putar/lesat/hantam di paket, jadi:
+    Putar = ayunan pedang diperlambat + badan diputar 360° di kode; Serbu = kecepatan 22 m/s selama
+    0,24 detik lewat fisika biasa (tertahan collider, berhenti bila gerak < 35% atau air dalam di
+    depan) lalu tebasan; Hentak = lompatan fisika biasa + ayunan di puncak + gelombang kejut saat
+    mendarat. Jurus area memakai `colliders.hitAll`. Logika serangan dipisah ke `combat.js` dengan
+    antarmuka "badan" kecil dari player.js (posisi, kecepatan, arah, animasi) supaya fisika dan
+    serangan tidak bercampur. Masih tanpa musuh/kerusakan (Milestone 4). Komputer: F, 1/2/3 (Q/E/R).
+    Langkah fisika kini dibagi mengikuti kecepatan (maks. ±0,3 m per langkah): pada ±10 FPS Serbuan
+    bergerak 1,1 m per langkah dan sempat "menembus" batang pohon (ketahuan di smoke test).

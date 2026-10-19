@@ -132,14 +132,14 @@ body {
   transition: opacity 1s;
 }
 
-/* tombol aksi bulat di kanan bawah: Lompat di pojok, Pukul di sebelah kirinya */
-#hud #btn-lompat,
-#hud #btn-pukul {
+/* tombol aksi bulat di kanan bawah: Pukul (besar) di pojok, jurus & Lompat melingkarinya */
+#hud .aksi {
+  --r: max(20px, env(safe-area-inset-right));
+  --b: max(22px, env(safe-area-inset-bottom));
   position: absolute;
-  right: max(22px, env(safe-area-inset-right));
-  bottom: max(26px, env(safe-area-inset-bottom));
-  width: 86px;
-  height: 86px;
+  width: 60px;
+  height: 60px;
+  min-height: 0;
   padding: 0;
   border-radius: 50%;
   border: 2px solid rgba(255, 255, 255, 0.6);
@@ -148,34 +148,88 @@ body {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 2px;
-  font-size: 12px;
+  gap: 1px;
+  font-size: 10px;
   font-weight: 600;
   touch-action: none;
   transition: transform 0.08s, background 0.08s;
 }
 
-#btn-lompat svg,
-#btn-pukul svg {
-  width: 30px;
-  height: 30px;
+#hud .aksi svg {
+  width: 24px;
+  height: 24px;
   fill: #fff;
 }
 
-#hud #btn-lompat.ditekan,
-#hud #btn-pukul.ditekan {
+#hud .aksi.ditekan {
   background: rgba(255, 255, 255, 0.45);
   transform: scale(0.93);
 }
 
 #hud #btn-pukul {
-  right: calc(max(22px, env(safe-area-inset-right)) + 100px);
+  right: var(--r);
+  bottom: var(--b);
+  width: 84px;
+  height: 84px;
+  font-size: 12px;
   border-color: rgba(255, 214, 190, 0.7);
   background: rgba(255, 120, 80, 0.24);
 }
 
+#hud #btn-pukul svg {
+  width: 30px;
+  height: 30px;
+}
+
 #hud #btn-pukul.ditekan {
   background: rgba(255, 140, 100, 0.5);
+}
+
+/* layar tegak: busur berjari-jari 140 px dari pusat tombol Pukul */
+#hud #btn-putar {
+  right: calc(var(--r) + 152px);
+  bottom: calc(var(--b) + 12px);
+}
+
+#hud #btn-serbu {
+  right: calc(var(--r) + 133px);
+  bottom: calc(var(--b) + 82px);
+}
+
+#hud #btn-hentak {
+  right: calc(var(--r) + 82px);
+  bottom: calc(var(--b) + 133px);
+}
+
+#hud #btn-lompat {
+  right: calc(var(--r) + 12px);
+  bottom: calc(var(--b) + 152px);
+}
+
+/* jurus: kebiruan; selama jeda pakai ada lapisan gelap yang menyusut + sisa detik */
+#hud .jurus {
+  border-color: rgba(190, 225, 255, 0.7);
+  background: rgba(70, 140, 255, 0.22);
+}
+
+#hud .jurus.siap {
+  box-shadow: 0 0 10px rgba(140, 200, 255, 0.55);
+}
+
+#hud .jurus .cd {
+  position: absolute;
+  inset: -2px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-size: 20px;
+  font-weight: 700;
+  background: conic-gradient(rgba(0, 20, 30, 0.66) calc(var(--cd, 0) * 1turn), rgba(0, 20, 30, 0.3) 0);
+  pointer-events: none;
+}
+
+#hud .jurus .cd:empty {
+  display: none;
 }
 
 #pesan {
@@ -268,8 +322,32 @@ body {
   text-align: center;
 }
 
-/* layar mendatar: petunjuk di ruang kosong atas, di antara judul dan tombol */
+/* layar mendatar: petunjuk di ruang kosong atas, di antara judul dan tombol;
+   tombol jurus & Lompat sebaris di kiri tombol Pukul (tinggi layar terbatas) */
 @media (orientation: landscape) {
+  #hud #btn-putar,
+  #hud #btn-serbu,
+  #hud #btn-hentak,
+  #hud #btn-lompat {
+    bottom: calc(var(--b) + 12px);
+  }
+
+  #hud #btn-putar {
+    right: calc(var(--r) + 96px);
+  }
+
+  #hud #btn-serbu {
+    right: calc(var(--r) + 168px);
+  }
+
+  #hud #btn-hentak {
+    right: calc(var(--r) + 240px);
+  }
+
+  #hud #btn-lompat {
+    right: calc(var(--r) + 312px);
+  }
+
   #petunjuk {
     top: max(12px, env(safe-area-inset-top));
     max-width: 46%;

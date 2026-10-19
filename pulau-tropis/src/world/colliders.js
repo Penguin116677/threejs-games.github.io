@@ -52,5 +52,16 @@ export function createColliders(list) {
       })
       return best
     },
+    // semua penghalang yang tersentuh lingkaran (x, z, r), terdekat lebih dulu (maks. max) —
+    // untuk serangan yang mengenai sekeliling (Tebasan Putar, Hentakan)
+    hitAll(x, z, r, max = 8) {
+      const hits = []
+      grid.forEachNear(x, z, r, o => {
+        const gap = Math.hypot(o.x - x, o.z - z) - o.radius
+        if (gap < r) hits.push({ o, gap })
+        return true
+      })
+      return hits.sort((a, b) => a.gap - b.gap).slice(0, max).map(h => h.o)
+    },
   }
 }

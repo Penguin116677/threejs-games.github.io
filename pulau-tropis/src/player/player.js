@@ -1,9 +1,10 @@
 import * as THREE from 'three'
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js'
 import { ISLAND } from '../world/island.js'
+import { ATTACK_CLIPS, createCombat } from './combat.js'
 
-// Karakter pemain: prajurit Kenney "Mini Arena" (CC0) membawa pedang, dengan animasi
-// bawaan idle / walk / sprint / jump / fall / attack-melee-right (memukul dengan pedang).
+// Karakter pemain: prajurit Kenney "Mini Arena" (CC0) membawa pedang, dengan animasi bawaan
+// idle / walk / sprint / jump / fall + animasi serang (tebasan, tinju, tendangan — lihat combat.js).
 // Bergerak mengikuti jalur hasil ketukan layar (atau keyboard di komputer), dengan fisika sederhana:
 // gravitasi, lompat, batas kemiringan lereng, tabrakan batang pohon & batu,
 // berjalan di air dangkal, dan kembali ke tempat aman bila masuk laut dalam.
@@ -22,14 +23,6 @@ const MAX_SLOPE = 1.3 // kemiringan maksimum yang bisa didaki (±52°)
 const WADE_DEPTH = 0.35 // mulai melambat di air
 const DEEP_DEPTH = 1.3 // lebih dalam dari ini = kembali ke pantai
 const MAX_DISTANCE = 430 // dari pusat pulau
-
-// Pukulan pedang (animasi attack-melee-right, 0,42 s): diperlambat sedikit agar terbaca dari
-// kamera atas. Bilah mengenai sasaran di puncak ayunan (±0,24 s pada animasi asli).
-const ATTACK_SPEED = 0.9 // kecepatan animasi
-const ATTACK_HIT = 0.24 // detik (waktu animasi asli) saat bilah mengenai
-const ATTACK_REACH = 1.0 // m, dari pusat badan ke tengah bilah
-const ATTACK_RADIUS = 0.7 // m, lebar sapuan bilah
-const ATTACK_FALLBACK = 0.45 // lama pukulan karakter cadangan (tanpa animasi)
 
 // Pedang di tangan kanan, dalam ruang lokal tulang lengan kanan (satuan model asli).
 // hand = pusat balok tangan (dihitung dari data skin model); blade = arah bilah:
@@ -96,28 +89,19 @@ export function createPlayer({ ground, colliders, quality, asset }) {
   // --- animasi
   const mixer = asset ? new THREE.AnimationMixer(model) : null
   const actions = {}
+  // lompat & serangan diputar sekali lalu berhenti di pose akhir sampai berganti animasi
+  const once = ['jump', ...ATTACK_CLIPS]
   if (mixer)
-    for (const name of ['idle', 'walk', 'sprint', 'jump', 'fall']) {
+    for (const name of ['idle', 'walk', 'sprint', 'fall', ...once]) {
       const clip = THREE.AnimationClip.findByName(asset.clips, name)
       if (!clip) continue
       const a = mixer.clipAction(clip)
-      if (name === 'jump') {
+      if (once.includes(name)) {
         a.setLoop(THREE.LoopOnce, 1)
         a.clampWhenFinished = true
       }
       actions[name] = a
     }
-  // pukulan: diputar sekali lalu berhenti di pose akhir sampai berganti animasi
-  const attackClip = asset ? THREE.AnimationClip.findByName(asset.clips, 'attack-melee-right') : null
-  if (attackClip) {
-    const a = mixer.clipAction(attackClip)
-    a.setLoop(THREE.LoopOnce, 1)
-    a.clampWhenFinished = true
-    a.timeScale = ATTACK_SPEED
-    actions.attack = a
-  }
-  const attackDuration = attackClip ? attackClip.duration / ATTACK_SPEED : ATTACK_FALLBACK
-  const attackHitAt = attackClip ? ATTACK_HIT / ATTACK_SPEED : ATTACK_FALLBACK * 0.55
   let current = null
   function play(name, fade = 0.15) {
     const next = actions[name]
@@ -160,12 +144,6 @@ export function createPlayer({ ground, colliders, quality, asset }) {
   let safeTimer = 0
   let onRespawnNeeded = () => {}
   let frozen = false
-
-  // --- pukulan pedang
-  let attackLeft = 0 // sisa waktu ayunan (detik); > 0 = sedang memukul
-  let attackStruck = false // bilah sudah mengenai pada ayunan ini
-  let attackAgain = false // ditekan lagi saat masih mengayun → ayun sekali lagi
-  let onAttackHit = () => {}
 
   // --- jalur dari "ketuk untuk berjalan": daftar titik { x, z } yang dituju berurutan
   const path = []
@@ -216,31 +194,51 @@ export function createPlayer({ ground, colliders, quality, asset }) {
     }
   }
 
-  // mulai mengayunkan pedang; prajurit berhenti di tempat (ketuk tanah lagi untuk berjalan)
-  function startAttack() {
-    attackLeft = attackDuration
-    attackStruck = false
-    attackAgain = false
-    path.length = 0
-    const a = actions.attack
-    if (a && current === a) a.reset().play() // ayunan berikutnya langsung dari awal
-    else play('attack', 0.06)
-  }
-
-  // bilah mengenai: titik di depan prajurit; laporkan batang pohon / batu yang kena (bila ada)
-  function strike() {
-    const x = pos.x + Math.sin(heading) * ATTACK_REACH
-    const z = pos.z + Math.cos(heading) * ATTACK_REACH
-    onAttackHit({ x, y: pos.y + 0.9, z, heading, target: colliders.hitAt(x, z, ATTACK_RADIUS) })
-  }
+  // --- serangan (kombo pukulan + jurus): logikanya di combat.js, badan prajurit dipinjamkan di sini
+  const combat = createCombat({
+    pos, vel, colliders,
+    get heading() {
+      return heading
+    },
+    set heading(h) {
+      heading = h
+    },
+    get grounded() {
+      return grounded
+    },
+    depthAt: (x, z) => ISLAND.seaLevel - ground.heightAt(x, z),
+    clipLength: name => actions[name]?.getClip().duration || 0,
+    play,
+    // putar animasi serang dari awal (juga bila animasi yang sama sedang diputar)
+    playClip(name, speed) {
+      const a = actions[name]
+      if (!a) return
+      a.timeScale = speed
+      if (current === a) a.reset().play()
+      else play(name, 0.06)
+    },
+    launch(vx, vy, vz) {
+      vel.set(vx, vy, vz)
+      grounded = false
+      coyote = 0
+      airTime = 0
+    },
+    stopWalking() {
+      path.length = 0
+    },
+  })
 
   function step(dt, input, camYaw) {
     let dx = 0
     let dz = 0
     let m = 0
     let speed = 0
-    if (attackLeft > 0) {
-      // sedang memukul: berdiri di tempat (melambat sampai berhenti)
+    // sedang menyerang: kecepatan datar diatur gerakan serang (berhenti, melesat, atau melayang)
+    const atk = combat.drive()
+    if (atk) {
+      dx = atk.vx || 0
+      dz = atk.vz || 0
+      speed = 1
     } else if (Math.abs(input.moveX) + Math.abs(input.moveY) > 0.01) {
       // keyboard (komputer): arah relatif terhadap kamera; membatalkan jalur ketukan
       path.length = 0
@@ -263,7 +261,7 @@ export function createPlayer({ ground, colliders, quality, asset }) {
       }
     }
     const depth = ISLAND.seaLevel - ground.heightAt(pos.x, pos.z)
-    if (depth > WADE_DEPTH) speed *= 0.55
+    if (depth > WADE_DEPTH && !atk) speed *= 0.55
 
     // percepat menuju kecepatan yang diinginkan
     const accel = (grounded ? ACCEL_GROUND : ACCEL_AIR) * dt
@@ -272,7 +270,9 @@ export function createPlayer({ ground, colliders, quality, asset }) {
     const ddx = tvx - vel.x
     const ddz = tvz - vel.z
     const dl = Math.hypot(ddx, ddz)
-    if (dl <= accel) {
+    if (atk?.keep) {
+      // melayang (Hentakan): kecepatan datar dipertahankan
+    } else if (dl <= accel || atk?.instant) {
       vel.x = tvx
       vel.z = tvz
     } else {
@@ -290,7 +290,7 @@ export function createPlayer({ ground, colliders, quality, asset }) {
     // lompat (dengan coyote time dan buffer tombol)
     coyote = grounded ? COYOTE_TIME : coyote - dt
     jumpBuffer = input.jump ? JUMP_BUFFER : jumpBuffer - dt
-    if (jumpBuffer > 0 && coyote > 0 && depth < DEEP_DEPTH * 0.8 && attackLeft <= 0) {
+    if (jumpBuffer > 0 && coyote > 0 && depth < DEEP_DEPTH * 0.8 && !atk) {
       vel.y = JUMP_SPEED
       grounded = false
       coyote = 0
@@ -360,7 +360,16 @@ export function createPlayer({ ground, colliders, quality, asset }) {
       return path.length > 0
     },
     get attacking() {
-      return attackLeft > 0
+      return combat.busy
+    },
+    // gerakan serang yang sedang berjalan ('tebas', 'tinju', 'tendang', 'putar', 'serbu',
+    // 'hentak') atau null
+    get attackMove() {
+      return combat.current
+    },
+    // sisa jeda pakai jurus (detik): { putar, serbu, hentak }
+    get cooldowns() {
+      return combat.cooldown
     },
     placeAt,
     // berjalan mengikuti jalur [{ x, z }, …] (hasil navgrid.findPath)
@@ -376,16 +385,16 @@ export function createPlayer({ ground, colliders, quality, asset }) {
     onRespawnNeeded(fn) {
       onRespawnNeeded = fn
     },
-    // fn({ x, y, z, heading, target }) saat bilah mengenai; target = { x, z, radius, kind } atau null
-    onAttackHit(fn) {
-      onAttackHit = fn
+    // fn(kejadian serangan) — lihat combat.js: { type: 'hit' | 'dash', move, x, y, z, heading,
+    // origin, targets: [{ x, z, radius, kind }], from }
+    onAttack(fn) {
+      combat.onEvent(fn)
     },
     // kembali ke posisi aman terakhir di darat
     respawn() {
       placeAt(lastSafe.x, lastSafe.z, lastSafeHeading)
       path.length = 0
-      attackLeft = 0
-      attackAgain = false
+      combat.reset()
       frozen = false
       play('idle', 0.05)
     },
@@ -394,30 +403,22 @@ export function createPlayer({ ground, colliders, quality, asset }) {
       vel.set(0, 0, 0)
     },
     update(dt, input, camYaw) {
-      // pukul (tombol Pukul / F); ditekan lagi saat masih mengayun = ayun sekali lagi setelahnya
-      if (input.attack && !frozen && attackLeft > 0) attackAgain = true
-      else if (input.attack && !frozen) startAttack()
+      // pukulan (kombo) & jurus — sebelum fisika agar gerak langsung berhenti saat mulai menyerang
+      if (!frozen) combat.update(dt, input)
       if (!frozen) {
-        // dua langkah kecil saat frame lambat agar tabrakan tetap stabil
-        const n = dt > 1 / 45 ? 2 : 1
+        // langkah kecil saat frame lambat atau bergerak cepat (Serbuan 22 m/s): maks. ±0,3 m per
+        // langkah, kalau tidak prajurit bisa "menembus" batang pohon dalam satu langkah
+        const atk = combat.drive()
+        const want = atk && !atk.keep ? Math.hypot(atk.vx, atk.vz) : 0
+        const fast = Math.max(Math.hypot(vel.x, vel.z), want)
+        const n = Math.min(12, Math.max(dt > 1 / 45 ? 2 : 1, Math.ceil((fast * dt) / 0.3)))
         for (let i = 0; i < n; i++) step(dt / n, i === 0 ? input : { ...input, jump: false }, camYaw)
       }
       root.rotation.y = heading
 
-      if (attackLeft > 0) {
-        attackLeft -= dt
-        if (!attackStruck && attackDuration - attackLeft >= attackHitAt) {
-          attackStruck = true
-          strike()
-        }
-        if (attackLeft <= 0) {
-          attackLeft = 0
-          if (attackAgain) startAttack()
-        }
-      }
-
       // tersangkut (mis. lereng terlalu curam di jalur): lewati titik ini setelah 1,2 detik
-      if (path.length && !frozen) {
+      // (tidak dihitung selama menyerang — saat itu prajurit memang diam)
+      if (path.length && !frozen && !combat.busy) {
         const d = Math.hypot(path[0].x - pos.x, path[0].z - pos.z)
         if (d < stuckBest - 0.25) {
           stuckBest = d
@@ -444,9 +445,9 @@ export function createPlayer({ ground, colliders, quality, asset }) {
         lastSafeHeading = heading
       }
 
-      // animasi menurut keadaan (animasi pukulan dibiarkan selesai dulu)
+      // animasi menurut keadaan (animasi serangan dibiarkan selesai dulu)
       const hs = Math.hypot(vel.x, vel.z)
-      if (attackLeft <= 0) {
+      if (!combat.busy) {
         let anim = null
         if (grounded) anim = hs < 0.3 ? 'idle' : hs < 3.6 ? 'walk' : 'sprint'
         else if (airTime > 0.12) anim = vel.y > 0 && current === actions.jump ? 'jump' : 'fall'

@@ -17,6 +17,7 @@ import { createInput } from './player/input.js'
 import { createStrategyCamera } from './player/camera.js'
 import { createMarkers } from './player/marker.js'
 import { createSwingEffects } from './player/effects.js'
+import { SKILLS } from './player/combat.js'
 import { createPlayer, loadPlayerModel } from './player/player.js'
 
 const $ = id => document.getElementById(id)
@@ -72,8 +73,8 @@ function findSpawn(ground, colliders) {
   return { x: -128, z: 128, heading: Math.atan2(128, -128) }
 }
 
-const HINT_TOUCH = '<b>Ketuk tanah</b> untuk berjalan ke sana (jauh = lari)<br>Geser: putar kamera · Cubit: zoom<br>Tombol <b>Pukul</b> dan <b>Lompat</b> di kanan bawah'
-const HINT_KEYS = '<b>Klik tanah</b> untuk berjalan ke sana · WASD / panah juga bisa<br>Seret mouse: putar kamera · Roda: zoom · F: pukul · Spasi: lompat'
+const HINT_TOUCH = '<b>Ketuk tanah</b> untuk berjalan ke sana (jauh = lari)<br>Geser: putar kamera · Cubit: zoom<br><b>Pukul</b> berulang = kombo · 3 tombol <b>jurus</b> di sekitarnya'
+const HINT_KEYS = '<b>Klik tanah</b> untuk berjalan ke sana · WASD / panah juga bisa<br>Seret mouse: putar kamera · Roda: zoom · Spasi: lompat<br>F: pukul (kombo) · 1 / 2 / 3: jurus Putar, Serbu, Hentak'
 
 // FOV kamera: mode main (kamera atas) lebih sempit agar prajurit tidak terlalu kecil;
 // layar tegak butuh FOV lebih lebar agar sisi kiri-kanan tetap terlihat
@@ -186,27 +187,33 @@ async function start() {
   const touchUI = navigator.maxTouchPoints > 0 || 'ontouchstart' in window
   const cam = createStrategyCamera(camera, ground)
   cam.lookFrom(spawn.heading + Math.PI) // di belakang prajurit, menghadap gunung
-  const input = createInput({ canvas, jumpButton: $('btn-lompat'), attackButton: $('btn-pukul'), touch: touchUI })
-  const NO_INPUT = { moveX: 0, moveY: 0, jump: false, attack: false, lookDX: 0, zoom: 1, taps: [] }
+  const skillButtons = { putar: $('btn-putar'), serbu: $('btn-serbu'), hentak: $('btn-hentak') }
+  const input = createInput({ canvas, jumpButton: $('btn-lompat'), attackButton: $('btn-pukul'), skillButtons, touch: touchUI })
+  const NO_INPUT = { moveX: 0, moveY: 0, jump: false, attack: false, skill: null, lookDX: 0, zoom: 1, taps: [] }
   const markers = createMarkers(ground)
   scene.add(...markers.objects)
 
-  // pukulan pedang: busur sabetan, + serpihan bila mengenai batang pohon / batu
-  const effects = createSwingEffects()
+  // serangan: efek khas tiap gerakan (+ serpihan bila mengenai batang pohon / batu)
+  const effects = createSwingEffects(ground)
   scene.add(effects.object)
-  player.onAttackHit(hit => {
-    const p = player.position
-    effects.slash(p.x, hit.y, p.z, hit.heading)
-    const t = hit.target
-    if (!t) return
-    // titik di permukaan batang/batu yang menghadap prajurit
-    const dx = p.x - t.x
-    const dz = p.z - t.z
-    const d = Math.hypot(dx, dz) || 1
-    const x = t.x + (dx / d) * t.radius
-    const z = t.z + (dz / d) * t.radius
-    effects.burst(x, hit.y, z, t.kind, dx / d, dz / d, ground.heightAt(x, z))
+  player.onAttack(ev => {
+    effects.attack(ev)
+    if (ev.type === 'hit' && ev.move === 'hentak') cam.shake(0.3)
   })
+
+  // tombol jurus: lapisan gelap berputar + sisa detik selama jeda pakai
+  const shownCooldown = {}
+  function updateSkillButtons() {
+    for (const [name, el] of Object.entries(skillButtons)) {
+      const left = player.cooldowns[name]
+      const key = left > 0 ? Math.ceil(left * 10) : 0 // perbarui ±10× per detik saja
+      if (shownCooldown[name] === key) continue
+      shownCooldown[name] = key
+      el.style.setProperty('--cd', (left / SKILLS[name]).toFixed(3))
+      el.querySelector('.cd').textContent = left > 0 ? Math.ceil(left) : ''
+      el.classList.toggle('siap', left <= 0)
+    }
+  }
 
   // titik tanah/permukaan laut di bawah layar (x, y piksel): sinar dari kamera, maju bertahap
   // sampai berada di bawah tanah, lalu dipersempit (bisection) agar tepat
@@ -400,6 +407,7 @@ async function start() {
     }
     markers.update(dt)
     effects.update(dt)
+    updateSkillButtons()
     env.update(t, camera, mode === 'main' ? player.position : controls.target)
     waveTime.value = t
     trees.userData.update(t)
