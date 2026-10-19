@@ -63,6 +63,16 @@ Pengembangan karakter/jurus dihentikan sementara atas permintaan pengguna.
 
 ## Yang sudah diperiksa (v0.10.0 — Kepulauan Kencana)
 - `npm run build` berhasil; ESLint (konfigurasi repo): 0 error, 0 warning.
+- Smoke test otomatis (4 perangkat: HP tegak, HP mendatar, HP Rendah, komputer) — **LULUS** (74 cek),
+  termasuk uji baru:
+  - kerajaan lengkap: 197 rumah, 340 bangunan (342 di Tinggi: 2 umbul-umbul lagi karena tanah lebih
+    halus), 16 perahu; penduduk 203 / 303 / 403 orang (Rendah / Sedang / Tinggi), 115–316 bergerak,
+    4–14 terlihat di dekat pasar;
+  - menyeberangi Jembatan Agung ±190 m (pijakan terendah 2,15 m di atas laut), spanduk "Kotaraja
+    Kencana" di gerbang timur, naik tangga pendopo (lantai 6,5 m), dinding rumah menahan prajurit
+    (berhenti 0,35 m), tombol Peta buka/tutup;
+  - uji lama (karakter, ketuk-berjalan, memutari pohon, laut dalam, Pukul & 4 jurus, orc, mendaki)
+    tetap lulus. Siap dimainkan ±1,2–1,7 detik setelah halaman dibuka (komputer, render software).
 - **Pulau Tropis tidak berubah** (dicek di Node terhadap kode v0.9.0, kualitas Rendah/Sedang/Tinggi):
   tinggi tanah di daratan sama, batang pohon 885 / 1.074 / 1.203 sama letaknya kecuali 1–2 kelapa
   tepat di kepala Jembatan Agung, batu sama semua, 60 jalur ketuk acak identik.
