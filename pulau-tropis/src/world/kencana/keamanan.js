@@ -64,6 +64,7 @@ export function createSecurity({ soldiers, enemies, player, dialog, bubbles, mes
   const orcTargets = new Map() // id orc → sasaran
   const timers = []
   let raidAnnounced = false
+  let raidsOn = true // serbuan berkala (pengujian bisa mematikannya; raid() tetap bisa memicu)
 
   const later = (sec, fn) => timers.push({ t: sec, fn })
   const free = a => a.state === 'ronda' || a.state === 'jaga' || a.state === 'kembali'
@@ -289,9 +290,15 @@ export function createSecurity({ soldiers, enemies, player, dialog, bubbles, mes
   }
 
   // ---------------------------------------------------------------- serbuan orc
+  function orcTarget(id) {
+    let t = orcTargets.get(id)
+    if (!t) orcTargets.set(id, t = { kind: 'orc', id })
+    return t
+  }
+
   function manageRaid(dt) {
     if (!enemies) return
-    S.raidT -= dt
+    if (raidsOn || S.raidT <= 0) S.raidT -= dt
     if (S.raidT <= 0 && !enemies.raidActive) {
       S.raidT = RAID_EVERY[0] + Math.random() * (RAID_EVERY[1] - RAID_EVERY[0])
       if (enemies.startRaid(pp)) {
@@ -300,13 +307,13 @@ export function createSecurity({ soldiers, enemies, player, dialog, bubbles, mes
       }
     }
     for (const r of enemies.raiders()) {
-      if (!inKingdom(r.x, r.z)) continue
+      // dihadang begitu masuk wilayah, atau bila sudah dekat prajurit (mis. di separuh timur jembatan)
+      if (!inKingdom(r.x, r.z) && !soldiers.nearest(r.x, r.z, 15, free)) continue
       if (!raidAnnounced) {
         raidAnnounced = true
         if (Math.hypot(r.x - pp.x, r.z - pp.z) < 300) message('Gerombolan orc menyerbu Jembatan Agung! Prajurit Kencana menghadang mereka.', 4200)
       }
-      let t = orcTargets.get(r.id)
-      if (!t) orcTargets.set(r.id, t = { kind: 'orc', id: r.id })
+      const t = orcTarget(r.id)
       let n = 0
       for (const a of soldiers.list) if (a.state === 'serang' && a.order?.target === t) n++
       if (n >= 2) continue
@@ -456,6 +463,16 @@ export function createSecurity({ soldiers, enemies, player, dialog, bubbles, mes
       const v = visitors.find(o => o.phase === 'tunggu')
       if (v) v.t = 0
     },
+    // prajurit diserang orc: membalas, dibantu pasangannya (di mana pun, juga di luar wilayah)
+    defend(a, orcId) {
+      const t = orcTarget(orcId)
+      const helpers = [a, ...(a.squad ? a.squad.members.filter(m => m !== a) : [])]
+      helpers.forEach((m, i) => {
+        if (!soldiers.alive(m) || (m.state === 'serang' && m.order?.target?.kind === 'orc') || !(free(m) || m === a)) return
+        soldiers.command(m, { do: 'serang', target: t })
+        if (i === 0) say(m, pick(['Orc! Lawan!', 'Serang balik!', 'Hadang orc ini!']))
+      })
+    },
     // pemain memukul prajurit (daftar yang kena) → dilawan
     playerStruck(list) {
       if (!list.length) return
@@ -479,9 +496,12 @@ export function createSecurity({ soldiers, enemies, player, dialog, bubbles, mes
       calmDown(null)
       Object.assign(S, { record: 0, visits: 0, cooldown: 0, chaseT: 0, scanT: 0 })
     },
-    // untuk pengujian: serbuan orc sekarang juga
+    // untuk pengujian: serbuan orc sekarang juga / serbuan berkala hidup-mati
     raid() {
       S.raidT = 0
+    },
+    setRaids(on) {
+      raidsOn = on
     },
   }
 }

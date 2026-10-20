@@ -304,8 +304,10 @@ async function start() {
       },
       pos: t => (soldiers.alive(t.ref) ? t.ref : null),
       strike(orc, t, damage) {
-        if (t.kind === 'prajurit') soldiers.damage(t.ref, damage, orc.pos)
-        else player.damage(damage, orc.pos)
+        if (t.kind === 'prajurit') {
+          soldiers.damage(t.ref, damage, orc.pos)
+          security?.defend(t.ref, orc.id)
+        } else player.damage(damage, orc.pos)
       },
     })
 
@@ -652,7 +654,7 @@ async function start() {
       seeThrough.r.value = 0
     }
     markers.update(dt)
-    enemies?.update(dt, camera, player)
+    enemies?.update(dt, camera, player, mode === 'main' ? player.position : controls.target)
     if (banner.update(dt, player.position, mode === 'main')) hideHint()
     villagers?.update(dt, camera, mode === 'main' ? player.position : controls.target, player.position, mode === 'main' ? 110 : 260)
     army?.update(dt, camera, mode === 'main' ? player.position : controls.target)

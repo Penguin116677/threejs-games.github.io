@@ -1,8 +1,8 @@
 # PROJECT_STATUS — Pulau Tropis
 
-**Milestone aktif:** 3 — Pembangunan dunia (v0.11.0: bala tentara 25.000 prajurit di Pulau Wira — menunggu umpan balik dari HP).
+**Milestone aktif:** 3 — Pembangunan dunia (v0.12.0: penjagaan Kerajaan Kencana — peronda, cegat & tanya, dilawan — menunggu umpan balik dari HP).
 Pengembangan karakter/jurus dihentikan sementara atas permintaan pengguna.
-**Versi:** 0.11.0
+**Versi:** 0.12.0
 **Terakhir diperbarui:** 2026-10-20
 
 ## Kondisi awal repository (sebelum Milestone 1)
@@ -60,8 +60,41 @@ Pengembangan karakter/jurus dihentikan sementara atas permintaan pengguna.
 | Peta dunia + spanduk nama wilayah (bagian Milestone 6, dibuat lebih awal) | ✅ selesai (v0.10.0) |
 | Pulau Wira + Jembatan Wira, Siti Hinggil, perkemahan (tenda, kandang kuda) | ✅ selesai (v0.11.0) |
 | Bala tentara 25.000 prajurit siap tempur (5 pasukan × 5.000) + 7 senapati | ✅ selesai (v0.11.0) |
+| Prajurit peronda di semua wilayah kerajaan + penjaga pos yang bertugas | ✅ selesai (v0.12.0) |
+| Orang asing dicegat & ditanyai (kartu tanya-jawab), dilawan bila bermusuhan; nyawa pemain | ✅ selesai (v0.12.0) |
+| Serbuan orc lewat Jembatan Agung dihadang prajurit; pendatang ditanyai di gerbang | ✅ selesai (v0.12.0) |
 | Sungai & air terjun, gua, reruntuhan | ⏳ belum |
 | Dicoba di HP Android sungguhan | ⏳ menunggu laporan pengguna |
+
+## Yang sudah diperiksa (v0.12.0 — penjagaan Kerajaan Kencana)
+- `npm run build` berhasil; ESLint (konfigurasi repo): 0 error, 0 warning.
+- SMOKE_V012
+- **Uji terpisah di browser** (Chromium, render software, layar HP tegak & komputer):
+  - pencegatan: menyeberangi Jembatan Agung → sepasang peronda mencegat begitu pemain lewat batas
+    wilayah → dua pertanyaan → jawaban damai → tamu; prajurit mengangguk lalu kembali bertugas;
+  - bermusuhan: jawaban kasar → 3 prajurit menyerang (nyawa 100 → 77 dalam ±6 detik waktu game);
+    jurus Putar mengenai ketiganya (nyawa 10→8, 8→3, 9→7), satu roboh dan prajurit lain
+    menggantikan; nyawa habis → "Bawa dia keluar dari wilayah kerajaan!" → bangun di ujung timur
+    Jembatan Agung (x −158,8) dengan nyawa 100, status asing lagi;
+  - serbuan: 3 orc dari perkemahan dekat titik mulai menyeberangi Jembatan Agung; begitu lewat batas
+    (x −273) 6 prajurit menghadang dan ketiga orc tumbang;
+  - pendatang: dihentikan penjaga di gerbang barat Jembatan Agung, menjawab ("Saya mau mengantar
+    ikan asin ke pasar kota."), lalu masuk ke kota.
+- **Ditemukan & diperbaiki saat uji**:
+  - game membeku saat pukulan prajurit membuat pemain roboh (prajurit ditarik mundur di tengah
+    ayunannya sendiri);
+  - terlalu kejam: 4 prajurit sekaligus, nyawa 100 → 35 dalam ±6 detik → kini paling banyak 3
+    penyerang, 4–5 per pukulan, jeda 1,8–2,6 detik;
+  - penjaga pos berjambul merah, sama dengan pemain → kini berjambul hitam;
+  - peronda yang diserang orc di separuh timur jembatan (di luar wilayah) tidak membalas → kini
+    membela diri dan dibantu pasangannya; orc yang mendekati prajurit langsung dihadang;
+  - orc penyerbu terus mengejar prajurit yang sudah pergi, sambil dipukuli → kini selalu menyerang
+    lawan terdekat;
+  - orc tidak tergambar di mode Lihat pulau bila jauh dari pemain → kini mengikuti titik pandang;
+  - kartu tanya-jawab menutupi prajurit → kamera bergeser; di layar mendatar kartu di kanan;
+  - jaringan jalan Pulau Wira terputus dari jalan utama → disambung khusus untuk peronda (jalan yang
+    dicat & isi dunia tidak berubah).
+- PERF_V012
 
 ## Yang sudah diperiksa (v0.11.0 — bala tentara di Pulau Wira)
 - `npm run build` berhasil; ESLint (konfigurasi repo): 0 error, 0 warning.
@@ -231,6 +264,9 @@ Pengembangan karakter/jurus dihentikan sementara atas permintaan pengguna.
   laut dalam → kembali ke pantai + pesan, mendaki lereng (+24 m dalam 120 frame).
 
 ## Yang BELUM diperiksa
+- **Rasa penjagaan di HP sungguhan**: apakah prajurit terlalu kuat/lemah, apakah tanya-jawab
+  terlalu sering (ditanyai lagi tiap masuk setelah ±20 detik di luar wilayah), apakah tombol
+  pilihan jawaban mudah diketuk, dan FPS saat dikeroyok atau saat serbuan orc.
 - **FPS di dekat bala tentara pada HP sungguhan**.
   - Bagian terberat: lorong di tengah barisan (Sedang: 160 prajurit 3D + ±25.000 impostor).
   - Waktu memotret atlas impostor saat dimuat di HP (di komputer ±60 ms CPU; GPU HP belum diukur).
@@ -286,6 +322,13 @@ v0.3.0: Rendah ±300 rb, Sedang ±400 rb, Tinggi ±850 rb. Tambahan v0.4.0 beras
 yang lebih rapat (untuk ombak) dan buah kelapa. v0.2.0 (HP): ±230 ribu.
 
 ## Masalah yang diketahui
+- (v0.12.0) Prajurit, orc, dan pemain hanya saling mendorong sederhana: saat ramai mereka bisa
+  berdesakan rapat. Prajurit belum punya serangan jarak jauh (pemanah di barisan tetap diam).
+- (v0.12.0) Penduduk tidak bereaksi pada perkelahian (tidak lari menjauh). Orc penyerbu yang lolos
+  ke kota hanya berkeliaran sebentar lalu pulang.
+- (v0.12.0) Selama ditanyai pemain tidak bisa bergerak sampai memilih jawaban (disengaja).
+- (v0.12.0) Status tamu/musuh dan nyawa kembali ke awal bila halaman dimuat ulang (belum ada simpan
+  progres). Belum ada suara.
 - (v0.11.0) Prajurit jauh = potret (impostor): saat kamera diputar, potretnya berganti tiap 22,5°;
   di pita peralihan bentuknya sedikit bercampur.
 - (v0.11.0) Bala tentara berdiri di tempat: belum berbaris jalan, belum bereaksi pada prajurit, dan

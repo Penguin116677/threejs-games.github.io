@@ -29,10 +29,10 @@ const PATROL = { rendah: 40, sedang: 64, tinggi: 96 } // peronda (berpasangan)
 // porsi pasangan peronda per wilayah tugas (paling sedikit satu pasangan per wilayah)
 const ZONE_SHARE = { kota: 0.28, wira: 0.22, kencana: 0.2, agung: 0.08, sawah: 0.08, nelayan: 0.07, pura: 0.07 }
 
-// jenis seragam: jaga (penjaga pos, jambul merah, tombak), tombak (peronda, jambul biru),
-// pedang (peronda, jambul hijau, pedang + perisai). reach = jangkauan serang (m)
+// jenis seragam: jaga (penjaga pos, jambul hitam — beda dari jambul merah pemain), tombak (peronda,
+// jambul biru), pedang (peronda, jambul hijau, pedang + perisai). reach = jangkauan serang (m)
 export const TYPES = [
-  { id: 'jaga', weapon: 'tombak', dye: null, hp: 10, reach: 1.9, damage: 4 },
+  { id: 'jaga', weapon: 'tombak', dye: [1, 6], hp: 10, reach: 1.9, damage: 4 },
   { id: 'tombak', weapon: 'tombak', dye: [5, 4], hp: 8, reach: 1.9, damage: 4 },
   { id: 'pedang', weapon: 'pedang', dye: [1, 4], hp: 9, reach: 1.45, damage: 5 },
 ]

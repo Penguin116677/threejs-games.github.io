@@ -218,10 +218,12 @@ export function createEnemies({ ground, colliders, nav, asset, spawn }) {
       const tp = R.target === ME ? pp : foes.pos(R.target)
       if (!tp || (R.target === ME && Math.hypot(tp.x - e.pos.x, tp.z - e.pos.z) > 25)) R.target = null
     }
+    // selalu menyerang lawan terdekat (pemain yang memukulnya tetap dikejar selama dekat)
     R.scan -= dt
-    if (!R.target && R.scan <= 0) {
+    if (R.scan <= 0) {
       R.scan = 0.4
-      R.target = foes.near(e.pos.x, e.pos.z, RAID.sight)
+      const keepPlayer = R.target === ME && Math.hypot(pp.x - e.pos.x, pp.z - e.pos.z) < 8
+      if (!keepPlayer) R.target = foes.near(e.pos.x, e.pos.z, RAID.sight)
     }
     R.cd -= dt
     if (R.atk) {
@@ -467,7 +469,8 @@ export function createEnemies({ ground, colliders, nav, asset, spawn }) {
     mark(ids, on) {
       for (const id of ids) if (list[id]) list[id].marked = on && list[id].state === 'hidup'
     },
-    update(dt, camera, player) {
+    // focus = titik pandang kamera (mode "Lihat pulau": orc digambar di sekitar titik itu)
+    update(dt, camera, player, focus = player.position) {
       clock += dt
       const pp = player.position
       // saat Penggal prajurit melesat menembus barisan orc — orc tidak didorong
@@ -476,7 +479,7 @@ export function createEnemies({ ground, colliders, nav, asset, spawn }) {
         const dx = e.pos.x - pp.x
         const dz = e.pos.z - pp.z
         const dist = Math.hypot(dx, dz)
-        const near = dist < (e.raid ? RAID.view : VIEW)
+        const near = Math.hypot(e.pos.x - focus.x, e.pos.z - focus.z) < (e.raid ? RAID.view : VIEW)
         if (e.state === 'hilang') {
           e.deadT += dt
           if (e.deadT > RESPAWN) respawn(e)
