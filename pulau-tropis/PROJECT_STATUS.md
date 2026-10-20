@@ -320,7 +320,7 @@ v0.12.0, layar HP tegak (Pixel 7), kamera strategi 22 m, pemain sebagai tamu (ta
 - Prajurit bertugas: Rendah 72 / Sedang 96 / Tinggi 128 orang, hanya yang dekat & di layar yang
   digambar (biasanya 0–6). Logika semuanya tetap berjalan tiap frame (ringan: gerak sepanjang
   ruas jalan; pencarian jalur dibatasi 2 per frame).
-- Waktu siap di komputer (render software, smoke test): 2,5–4,2 detik (v0.11.0: 2,2–3,7 detik),
+- Waktu siap di komputer (render software, smoke test): 2,5–4,2 detik (v0.11.0: 1,9–3,7 detik),
   termasuk menyiapkan shader prajurit bertugas.
 
 v0.11.0 di sekitar bala tentara, layar HP tegak (Pixel 7), kamera strategi 22 m:
@@ -333,7 +333,7 @@ v0.11.0 di sekitar bala tentara, layar HP tegak (Pixel 7), kamera strategi 22 m:
   tidak di layar, barisan tidak digambar sama sekali.
 - Titik mulai: Rendah 262 rb, Sedang 296 rb, Tinggi 574 rb (v0.10.0: 252 / 277 / 548 rb).
 - Kota kerajaan (Sedang): gerbang timur 311 rb, pasar 309 rb, alun-alun 312 rb.
-- Waktu siap di komputer (render software, smoke test): ±2–3,5 detik (v0.10.0: ±1,2–1,7 detik).
+- Waktu siap di komputer (render software, smoke test): 1,9–3,7 detik (v0.10.0: ±1,2–1,7 detik).
   Tambahannya terutama pemotretan atlas impostor yang dikerjakan CPU di render software.
 
 v0.10.0, layar HP tegak (Pixel 7), kamera strategi 22 m — kota kerajaan tidak lebih berat dari
