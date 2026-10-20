@@ -602,6 +602,16 @@ async function start() {
     showError('Grafis HP kehilangan konteks WebGL (biasanya karena memori penuh).\nMuat ulang halaman, lalu pilih Kualitas: Rendah.')
   })
 
+  // shader prajurit bertugas (dan bayangannya) disiapkan di layar loading, supaya tidak tersendat
+  // saat prajurit pertama kali terlihat
+  if (soldiers) {
+    cam.update(0.016, player.position, NO_INPUT)
+    env.update(0, camera, player.position)
+    soldiers.warmUp(player.position)
+    renderer.render(scene, camera)
+    soldiers.warmUp(null)
+  }
+
   const clock = new THREE.Clock()
   let frames = 0
   let fpsTime = 0

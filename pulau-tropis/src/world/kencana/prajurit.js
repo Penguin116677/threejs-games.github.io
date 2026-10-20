@@ -844,6 +844,21 @@ export function createSoldiers({ ground, colliders, nav, plan, spots, quality, s
         pos.z = a.z + (dz / d) * min
       }
     },
+    // shader disiapkan saat loading, bukan saat prajurit pertama kali terlihat (menyusun shader
+    // di HP bisa ratusan milidetik): satu prajurit tiap jenis di `pos` untuk satu kali render;
+    // null = kembalikan
+    warmUp(pos) {
+      for (const m of meshes) {
+        if (!pos) {
+          m.mesh.count = 0
+          continue
+        }
+        p.set(pos.x, pos.y, pos.z)
+        m.mesh.setMatrixAt(0, _m.compose(p, _q.identity(), sv))
+        m.mesh.count = 1
+        m.mesh.instanceMatrix.needsUpdate = true
+      }
+    },
     // kembalikan semua prajurit ke tugasnya, utuh (untuk pengujian)
     resetAll() {
       for (const a of agents) {
