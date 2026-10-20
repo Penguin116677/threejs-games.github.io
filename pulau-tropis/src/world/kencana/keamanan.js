@@ -93,6 +93,7 @@ export function createSecurity({ soldiers, enemies, player, dialog, bubbles, mes
 
   function startQuestion(lead, partner) {
     q = { lead, partner, reason: null }
+    for (const a of pursuers) if (a !== lead && a !== partner) soldiers.release(a)
     pursuers.length = 0
     player.stop()
     player.face(lead.x, lead.z)
@@ -265,28 +266,35 @@ export function createSecurity({ soldiers, enemies, player, dialog, bubbles, mes
       return
     }
     if (S.cooldown > 0) return
-    if (!pursuers.length) {
-      S.scanT -= dt
-      if (S.scanT > 0) return
+    S.scanT -= dt
+    if (S.scanT <= 0) {
       S.scanT = SCAN
-      const lead = soldiers.nearest(pp.x, pp.z, DETECT, free)
-      if (!lead) return
-      pursuers.push(lead)
-      soldiers.command(lead, { do: 'cegat', target: PLAYER, near: 2.2 })
-      say(lead, S.record ? 'Kamu lagi! Berhenti di situ!' : 'Hei, kamu! Berhenti!')
-      const partner = soldiers.nearest(lead.x, lead.z, 25, a => free(a) && a !== lead)
-      if (partner) {
-        pursuers.push(partner)
-        soldiers.command(partner, { do: 'cegat', target: PLAYER, near: 3.4 })
+      // prajurit bebas terdekat; selama mengejar, yang jauh lebih dekat ke pemain (mis. penjaga
+      // gerbang di depannya) ikut mencegat — pengejar dari belakang tidak akan tersusul
+      const dLead = pursuers.length ? Math.hypot(pursuers[0].x - pp.x, pursuers[0].z - pp.z) : Infinity
+      const lead = soldiers.nearest(pp.x, pp.z, Math.min(DETECT, dLead - 6), free)
+      if (lead) {
+        if (!pursuers.length) {
+          S.chaseT = 0
+          say(lead, S.record ? 'Kamu lagi! Berhenti di situ!' : 'Hei, kamu! Berhenti!')
+          const partner = soldiers.nearest(lead.x, lead.z, 25, a => free(a) && a !== lead)
+          if (partner) {
+            pursuers.push(partner)
+            soldiers.command(partner, { do: 'cegat', target: PLAYER, near: 3.4 })
+          }
+        } else say(lead, 'Berhenti!', 1600)
+        pursuers.unshift(lead)
+        soldiers.command(lead, { do: 'cegat', target: PLAYER, near: 2.2 })
+        // paling banyak 3 pengejar; yang lain kembali bertugas
+        while (pursuers.length > 3) soldiers.release(pursuers.pop())
       }
-      S.chaseT = 0
-      return
     }
-    S.chaseT += dt
-    const lead = pursuers[0]
-    const d = Math.hypot(lead.x - pp.x, lead.z - pp.z)
-    if (lead.arrived && d < 3 && !player.attacking && player.grounded) startQuestion(lead, pursuers[1] || null)
-    else if (S.chaseT > CHASE_LIMIT) becomeHostile(lead, 'Dia kabur! Tangkap!')
+    if (!pursuers.length) return
+    // "kabur" = terus bergerak menjauh saat dicegat; berdiri menunggu tidak dihitung
+    if (player.speed > 1) S.chaseT += dt
+    const lead = pursuers.find(a => a.arrived && Math.hypot(a.x - pp.x, a.z - pp.z) < 3)
+    if (lead && !player.attacking && player.grounded) startQuestion(lead, pursuers.find(a => a !== lead) || null)
+    else if (S.chaseT > CHASE_LIMIT) becomeHostile(pursuers[0], 'Dia kabur! Tangkap!')
   }
 
   // ---------------------------------------------------------------- serbuan orc

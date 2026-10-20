@@ -20,7 +20,7 @@ const RADIUS = 0.35
 const WALK_ANIM = 1.4 // m/s yang cocok dengan klip walk pada kecepatan 1×
 const RUN_ANIM = 3.6 // … klip sprint
 const FADE = 0.2 // detik peralihan antar animasi
-const SPEED = { ronda: 1.15, kembali: 1.6, lari: 4.0, kejar: 4.4 }
+const SPEED = { ronda: 1.15, kembali: 1.6, lari: 5.0, kejar: 5.2 } // m/s; pemain berlari 5,6
 const DOWN_TIME = 9 // detik terbaring setelah roboh
 const SINK_TIME = 1
 const RESPAWN = 30 // detik menghilang sebelum kembali bertugas
@@ -214,7 +214,7 @@ export function createSoldiers({ ground, colliders, nav, plan, spots, quality, s
       hp: T.hp, maxHp: T.hp, flash: 0, kx: 0, kz: 0, stagger: 0, barT: 0,
       atkCd: Math.random(), atk: null,
       clip: 'idle', t: Math.random() * 2, prev: null, prevT: 0, fade: 0, animSpeed: 1,
-      path: null, navT: 0, goalX: 0, goalZ: 0, moved: 0, downT: 0, waitT: 0,
+      path: null, navT: 0, goalX: 0, goalZ: 0, moved: 0, downT: 0, waitT: 0, tpx: null, tpz: null, tvx: 0, tvz: 0,
       ...extra,
     }
     agents.push(a)
@@ -582,8 +582,26 @@ export function createSoldiers({ ground, colliders, nav, plan, spots, quality, s
       return
     }
     if (st === 'cegat') {
-      // berlari ke sasaran, berhenti di depannya
-      a.arrived = moveToward(a, tp.x, tp.z, SPEED.lari, o.near ?? 2.3, dt)
+      // berlari memotong jalan sasaran: menuju titik di depannya (perkiraan posisinya sebentar
+      // lagi, dari kecepatannya), lalu berhenti menghadang di depannya
+      if (a.tpx !== null && dt > 0) {
+        const k = 1 - Math.exp(-4 * dt)
+        a.tvx += ((tp.x - a.tpx) / dt - a.tvx) * k
+        a.tvz += ((tp.z - a.tpz) / dt - a.tvz) * k
+        // sasaran berpindah seketika (mis. dikembalikan ke pantai): jangan percaya lonjakannya
+        const sp = Math.hypot(a.tvx, a.tvz)
+        if (sp > 8) {
+          a.tvx *= 8 / sp
+          a.tvz *= 8 / sp
+        }
+      }
+      a.tpx = tp.x
+      a.tpz = tp.z
+      const near = o.near ?? 2.3
+      const d = Math.hypot(tp.x - a.x, tp.z - a.z)
+      const ahead = Math.min(2.5, d / SPEED.lari)
+      moveToward(a, tp.x + a.tvx * ahead, tp.z + a.tvz * ahead, SPEED.lari, near, dt)
+      a.arrived = Math.hypot(tp.x - a.x, tp.z - a.z) <= near + 0.8
       if (a.arrived) face(a, tp.x, tp.z, dt)
       return
     }
@@ -772,7 +790,11 @@ export function createSoldiers({ ground, colliders, nav, plan, spots, quality, s
     // perintah: { do: 'cegat' | 'tanya' | 'awasi' | 'serang', target, near?, side? }
     command(a, order) {
       if (!alive(a)) return
-      if (a.state !== order.do || a.order?.target !== order.target) a.arrived = false
+      if (a.state !== order.do || a.order?.target !== order.target) {
+        a.arrived = false
+        a.tpx = a.tpz = null
+        a.tvx = a.tvz = 0
+      }
       a.order = order
       a.state = order.do
       if (order.do !== 'serang') a.atk = null

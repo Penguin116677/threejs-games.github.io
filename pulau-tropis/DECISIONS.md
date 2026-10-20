@@ -266,13 +266,17 @@ tandai sebagai "diganti" bila berubah.
       perisai dikunci supaya senjata tetap tegak saat berjalan.
 44. **Orang asing yang masuk wilayah kerajaan dicegat lalu ditanyai lewat kartu tanya-jawab**.
     - Wilayah kerajaan (`wilayah.js`) = semua pulau Kencana + separuh barat Jembatan Agung.
-    - Prajurit terdekat (≤ 40 m) berlari mencegat bersama pasangannya. Kartu tanya-jawab muncul
+    - Prajurit terdekat (≤ 40 m) berlari mencegat bersama pasangannya, memotong jalan pemain (menuju
+      titik di depannya, 5 m/s; pemain berlari 5,6 m/s). Selama mengejar, prajurit bebas yang ≥ 6 m
+      lebih dekat ke pemain (mis. penjaga gerbang di depan) ikut mencegat — dulu hanya pengejar
+      pertama, dan pengejar dari belakang tidak pernah tersusul. Kartu tanya-jawab muncul
       di bawah layar (di layar mendatar: di kanan) dengan pilihan jawaban besar untuk jari; kamera
       bergeser supaya pemain & prajurit tidak tertutup kartu.
     - Pertemuan pertama: dua pertanyaan (siapa / mau apa, lalu untuk apa pedangnya). Jawaban damai →
       tamu (disapa peronda, tidak dicegat lagi). Datang lagi → ditanyai singkat. Pernah bermusuhan
       → ditanyai dengan curiga.
-    - Dilawan bila: menjawab kasar, terus menghindar saat dicegat (30 detik), atau memukul prajurit
+    - Dilawan bila: menjawab kasar, terus bergerak menghindar saat dicegat (30 detik; berdiri
+      menunggu tidak dihitung), atau memukul prajurit
       (termasuk tak sengaja kena jurus Putar/Hentak). Paling banyak 3 prajurit menyerang
       bersamaan; yang lain bergantian masuk.
     - Lari keluar wilayah ±25 detik → pengejaran berhenti; tamu yang keluar ±20 detik ditanyai lagi

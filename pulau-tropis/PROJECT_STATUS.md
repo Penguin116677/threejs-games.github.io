@@ -93,7 +93,12 @@ Pengembangan karakter/jurus dihentikan sementara atas permintaan pengguna.
   - orc tidak tergambar di mode Lihat pulau bila jauh dari pemain → kini mengikuti titik pandang;
   - kartu tanya-jawab menutupi prajurit → kamera bergeser; di layar mendatar kartu di kanan;
   - jaringan jalan Pulau Wira terputus dari jalan utama → disambung khusus untuk peronda (jalan yang
-    dicat & isi dunia tidak berubah).
+    dicat & isi dunia tidak berubah);
+  - smoke test pertama GAGAL di HP mendatar: pemain tidak dicegat di Jembatan Agung. Pengejar
+    (sepasang peronda) datang dari belakang dan lebih lambat dari pemain yang berlari, sementara
+    penjaga gerbang di depan tidak ikut; setelah 30 detik pemain dianggap kabur, dikeroyok, dan
+    dibawa keluar. Kini pencegat memotong jalan pemain, lebih cepat, prajurit yang lebih dekat ikut
+    mencegat, dan berdiri menunggu tidak dihitung kabur (diulang: dicegat setelah 5 detik, bukan 25).
 - Beban gambar (segitiga & draw call) diukur setelah smoke test selesai.
 
 ## Yang sudah diperiksa (v0.11.0 — bala tentara di Pulau Wira)
