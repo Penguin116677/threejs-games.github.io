@@ -114,7 +114,10 @@ Pengembangan karakter/jurus dihentikan sementara atas permintaan pengguna.
     penjaga gerbang di depan tidak ikut; setelah 30 detik pemain dianggap kabur, dikeroyok, dan
     dibawa keluar. Kini pencegat memotong jalan pemain, lebih cepat, prajurit yang lebih dekat ikut
     mencegat, dan berdiri menunggu tidak dihitung kabur (diulang: dicegat setelah 5 detik, bukan 25).
-- Beban gambar (segitiga & draw call) diukur setelah smoke test selesai.
+- **Beban gambar** (build, layar HP tegak, kamera 22 m): penjagaan hampir tidak menambah beban —
+  Sedang gerbang timur 313 rb segitiga (v0.11.0: 311 rb), pasar 308 rb (309 rb), alun-alun 313 rb
+  (312 rb), titik mulai 296 rb (sama). Prajurit bertugas = 3 draw call (+3 bayangan) bila terlihat.
+  Tabel lengkap di bagian Performa.
 
 ## Yang sudah diperiksa (v0.11.0 — bala tentara di Pulau Wira)
 - `npm run build` berhasil; ESLint (konfigurasi repo): 0 error, 0 warning.
@@ -308,6 +311,18 @@ Pengembangan karakter/jurus dihentikan sementara atas permintaan pengguna.
 - Apakah URL hosting (githack / GitHub Pages) terbuka di HP — tidak bisa diakses dari lingkungan pengembangan.
 
 ## Performa (segitiga per frame termasuk bayangan, dari smoke test)
+v0.12.0, layar HP tegak (Pixel 7), kamera strategi 22 m, pemain sebagai tamu (tanpa tanya-jawab):
+| Tingkat | Titik mulai | Jembatan Agung | Gerbang timur | Pasar | Alun-alun | Depan barisan |
+|---|---|---|---|---|---|---|
+| Rendah | 262 rb / 56 dc | 177 rb / 30 dc | 269 rb / 42 dc | 272 rb / 45 dc | 260 rb / 42 dc | 253 rb / 31 dc |
+| Sedang | 296 rb / 51 dc | 210 rb / 28 dc | 313 rb / 44 dc | 308 rb / 37 dc | 313 rb / 45 dc | 326 rb / 26 dc |
+| Tinggi | 574 rb / 59 dc | 402 rb / 33 dc | 524 rb / 41 dc | 458 rb / 44 dc | 524 rb / 44 dc | 526 rb / 39 dc |
+- Prajurit bertugas: Rendah 72 / Sedang 96 / Tinggi 128 orang, hanya yang dekat & di layar yang
+  digambar (biasanya 0–6). Logika semuanya tetap berjalan tiap frame (ringan: gerak sepanjang
+  ruas jalan; pencarian jalur dibatasi 2 per frame).
+- Waktu siap di komputer (render software, smoke test): 2,5–4,2 detik (v0.11.0: 2,2–3,7 detik),
+  termasuk menyiapkan shader prajurit bertugas.
+
 v0.11.0 di sekitar bala tentara, layar HP tegak (Pixel 7), kamera strategi 22 m:
 | Tingkat | Ujung Jembatan Wira | Depan barisan | Lorong tengah | Sayap kavaleri | Zoom jauh 60 m |
 |---|---|---|---|---|---|
