@@ -43,7 +43,12 @@
 - Uji jalan menyeberangi Jembatan Agung di smoke test menyesuaikan penjagaan baru (dicegat,
   menjawab damai, lalu lanjut).
 ### Pengujian
-- Smoke test ditambah: <SMOKE_V012>
+- Smoke test ditambah:
+  - peronda di semua 7 wilayah tugas dan benar-benar berjalan;
+  - menyeberangi Jembatan Agung → dicegat & ditanyai, jawaban damai → tamu, lalu lanjut menyeberang;
+  - (HP tegak & komputer) jawaban kasar → dilawan; jurus Putar mengenai prajurit; nyawa habis →
+    dibawa keluar wilayah dengan nyawa penuh; serbuan orc dihadang & dikalahkan prajurit; pendatang
+    ditanyai penjaga di gerbang lalu boleh masuk.
 
 ## [0.11.0] — 2026-10-20 — Bala tentara Kencana: 25.000 prajurit siap tempur (permintaan pengguna)
 ### Ditambahkan

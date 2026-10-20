@@ -233,7 +233,7 @@ export function createEnemies({ ground, colliders, nav, asset, spawn }) {
       if (tp) turn(e, Math.atan2(tp.x - e.pos.x, tp.z - e.pos.z), dt)
       if (!atk.hit && atk.t >= RAID.hit) {
         atk.hit = true
-        if (tp && Math.hypot(tp.x - e.pos.x, tp.z - e.pos.z) < RAID.reach + 0.6) foes.strike(e, R.target, R.target === ME ? 6 : 2)
+        if (tp && Math.hypot(tp.x - e.pos.x, tp.z - e.pos.z) < RAID.reach + 0.6) foes.strike(e, R.target, R.target === ME ? 6 : 1)
       }
       if (atk.t >= RAID.dur && R.atk === atk) R.atk = null
       return false

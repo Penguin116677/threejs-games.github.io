@@ -68,7 +68,7 @@ Pengembangan karakter/jurus dihentikan sementara atas permintaan pengguna.
 
 ## Yang sudah diperiksa (v0.12.0 — penjagaan Kerajaan Kencana)
 - `npm run build` berhasil; ESLint (konfigurasi repo): 0 error, 0 warning.
-- SMOKE_V012
+- Smoke test otomatis (4 perangkat) — sedang dijalankan; hasilnya dicatat begitu selesai.
 - **Uji terpisah di browser** (Chromium, render software, layar HP tegak & komputer):
   - pencegatan: menyeberangi Jembatan Agung → sepasang peronda mencegat begitu pemain lewat batas
     wilayah → dua pertanyaan → jawaban damai → tamu; prajurit mengangguk lalu kembali bertugas;
@@ -94,7 +94,7 @@ Pengembangan karakter/jurus dihentikan sementara atas permintaan pengguna.
   - kartu tanya-jawab menutupi prajurit → kamera bergeser; di layar mendatar kartu di kanan;
   - jaringan jalan Pulau Wira terputus dari jalan utama → disambung khusus untuk peronda (jalan yang
     dicat & isi dunia tidak berubah).
-- PERF_V012
+- Beban gambar (segitiga & draw call) diukur setelah smoke test selesai.
 
 ## Yang sudah diperiksa (v0.11.0 — bala tentara di Pulau Wira)
 - `npm run build` berhasil; ESLint (konfigurasi repo): 0 error, 0 warning.

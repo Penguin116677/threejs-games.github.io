@@ -81,7 +81,7 @@ export function createSecurity({ soldiers, enemies, player, dialog, bubbles, mes
   // serangan prajurit mengenai sasarannya
   soldiers.onStrike((a, target, damage) => {
     if (target === PLAYER) player.damage(damage, a)
-    else if (target.kind === 'orc') enemies?.damage(target.id, 2, a)
+    else if (target.kind === 'orc') enemies?.damage(target.id, 3, a) // orc (6 nyawa) tumbang dalam dua pukulan
   })
 
   // ---------------------------------------------------------------- tanya-jawab dengan pemain

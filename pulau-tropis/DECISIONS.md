@@ -288,8 +288,13 @@ tandai sebagai "diganti" bila berubah.
 46. **Serbuan orc lewat Jembatan Agung** (supaya "musuh yang masuk langsung dihadang" benar-benar
     terjadi): tiap 150–210 detik tiga orc dari perkemahan terdekat (yang tidak sedang didekati
     pemain) berjalan ke gerbang timur Kotaraja. Begitu masuk wilayah, dua prajurit per orc
-    menghadang dan melawan tanpa bertanya. Orc penyerbu membalas prajurit dan pemain yang
-    memukulnya; orc di perkemahan tetap tidak menyerang (seperti v0.9.0).
+    menghadang dan melawan tanpa bertanya; orc yang mendekati prajurit di luar wilayah (mis. di
+    separuh timur jembatan) juga dihadang, dan prajurit yang diserang selalu membela diri dibantu
+    pasangannya. Orc penyerbu membalas prajurit dan pemain yang memukulnya, selalu ke lawan
+    terdekat; orc di perkemahan tetap tidak menyerang (seperti v0.9.0).
+    - Kekuatan: prajurit → orc 3 (orc tumbang dalam dua pukulan), orc → prajurit 1, orc → pemain 6.
+      Dengan 2 per pukulan ke prajurit, tiga orc sempat merobohkan empat prajurit sebelum kalah —
+      kerajaan terlihat lemah.
 47. **Pendatang ditanyai di gerbang**: dua penduduk dari seberang bergantian datang lewat Jembatan
     Agung, dihentikan penjaga pos di kepala barat jembatan, menjawab keperluannya (gelembung
     ucapan), lalu boleh lewat ke pasar dan pulang lagi. Gelembung ucapan = teks HTML yang mengikuti
