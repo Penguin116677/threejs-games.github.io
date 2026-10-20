@@ -68,7 +68,22 @@ Pengembangan karakter/jurus dihentikan sementara atas permintaan pengguna.
 
 ## Yang sudah diperiksa (v0.12.0 — penjagaan Kerajaan Kencana)
 - `npm run build` berhasil; ESLint (konfigurasi repo): 0 error, 0 warning.
-- Smoke test otomatis (4 perangkat) — sedang dijalankan; hasilnya dicatat begitu selesai.
+- Smoke test otomatis (4 perangkat: HP tegak, HP mendatar, HP Rendah, komputer) — **LULUS** (118 cek,
+  0 gagal; v0.11.0: 90 cek). Cek baru:
+  - semua perangkat: peronda di 7 wilayah (Rendah 40 / Sedang 64 / Tinggi 96 + 32 penjaga pos) dan
+    semuanya berpindah tempat; dicegat & ditanyai di Jembatan Agung (x −266 sampai −306, 5 pilihan
+    jawaban); jawaban damai → tamu, lalu lanjut menyeberang;
+  - HP tegak & komputer: jawaban kasar → 2–3 prajurit menyerang (nyawa turun ke 92); jurus Putar
+    mengenai prajurit (nyawa 10 → 7); kalah → dibawa keluar ke ujung timur Jembatan Agung dengan
+    nyawa penuh; serbuan orc dihadang di ujung jembatan dan ketiga orc dikalahkan; pendatang
+    ditanyai di gerbang lalu boleh masuk.
+  Isi dunia tidak berubah dibanding v0.11.0: 197 rumah, 497 bangunan (500 di Tinggi), 1.668 pohon
+  Kencana (2.381 di Tinggi), 16 perahu. Penduduk yang tercatat turun 32 (penjaga pindah ke prajurit).
+  Sebelum lulus, smoke test sempat GAGAL dua kali:
+  - HP mendatar tidak dicegat (lihat di bawah, sudah diperbaiki);
+  - komputer: tangkapan layar kelapa kehabisan waktu sekali; diduga shader prajurit baru disusun saat
+    prajurit pertama kali terlihat. Shader kini disiapkan di layar loading (di render software
+    pemuatan 0,2–0,6 detik lebih lama: 2,5–4,2 detik), dan putaran berikutnya lulus.
 - **Uji terpisah di browser** (Chromium, render software, layar HP tegak & komputer):
   - pencegatan: menyeberangi Jembatan Agung → sepasang peronda mencegat begitu pemain lewat batas
     wilayah → dua pertanyaan → jawaban damai → tamu; prajurit mengangguk lalu kembali bertugas;
