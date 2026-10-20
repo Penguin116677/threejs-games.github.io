@@ -26,7 +26,9 @@ const UV = { emas: [0.3125, 0.5625], kayu: [0.8125, 0.8125], besi: [0.4375, 0.81
 const _m = new THREE.Matrix4()
 
 // villagerGltf: hasil GLTFLoader untuk penduduk.glb; soldier: aset prajurit pemain ({ model, clips })
-export function createVillagers({ ground, routes, spots, quality, villagerGltf, soldier }) {
+// scripted = banyak orang yang digerakkan modul lain (pendatang, keamanan.js): disembunyikan sampai
+// dipakai, lalu posisi/arah/animasinya diatur dari luar
+export function createVillagers({ ground, routes, spots, quality, villagerGltf, soldier, scripted = 0 }) {
   const group = new THREE.Group()
   group.name = 'penduduk'
   const rows = []
@@ -119,6 +121,12 @@ export function createVillagers({ ground, routes, spots, quality, villagerGltf, 
       clip: 'walk', anim: 'walk', t: Math.random(), prev: null, prevT: 0, fade: 0, init: true,
     })
   }
+
+  for (let i = 0; i < scripted; i++)
+    agents.push({
+      type: randomType(), fixed: false, scripted: true, hidden: true, x: 0, z: 0, y: null, heading: 0, speed: 1.2,
+      clip: 'idle', anim: 'idle', t: 0, prev: null, prevT: 0, fade: 0,
+    })
 
   // --- InstancedMesh per jenis orang
   const perType = types.map(() => 0)
@@ -250,7 +258,10 @@ export function createVillagers({ ground, routes, spots, quality, villagerGltf, 
     visible = 0
     const r2 = range * range
     for (const a of agents) {
-      if (a.fixed) stepFixed(a, dt, playerPos)
+      if (a.hidden) continue
+      if (a.scripted) {
+        // digerakkan dari luar
+      } else if (a.fixed) stepFixed(a, dt, playerPos)
       else stepWalker(a, dt, playerPos)
       const speedScale = a.clip === 'walk' ? (a.speed || 1) / WALK_ANIM_SPEED : 1
       a.t += dt * speedScale
@@ -286,6 +297,7 @@ export function createVillagers({ ground, routes, spots, quality, villagerGltf, 
   // dorong prajurit keluar dari badan penduduk (tidak bisa menembus orang)
   function pushOut(pos, radius = 0.35) {
     for (const a of agents) {
+      if (a.hidden) continue
       const dx = pos.x - a.x
       const dz = pos.z - a.z
       const min = radius + BODY
@@ -302,6 +314,8 @@ export function createVillagers({ ground, routes, spots, quality, villagerGltf, 
     agents,
     update,
     pushOut,
-    stats: () => ({ total: agents.length, fixed: agents.filter(a => a.fixed).length, visible, jenis: types.length }),
+    setClip,
+    scripted: agents.filter(a => a.scripted),
+    stats: () => ({ total: agents.filter(a => !a.scripted).length, fixed: agents.filter(a => a.fixed).length, visible, jenis: types.length }),
   }
 }

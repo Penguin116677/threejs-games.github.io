@@ -1,5 +1,50 @@
 # CHANGELOG — Pulau Tropis
 
+## [0.12.0] — 2026-10-20 — Penjagaan Kerajaan Kencana: peronda, cegat & tanya, dilawan (permintaan pengguna)
+### Ditambahkan
+- **Prajurit peronda di semua wilayah**: Rendah 40 / Sedang 64 / Tinggi 96 prajurit berjalan
+  berpasangan (satu bertombak berjambul biru, satu berpedang & berperisai berjambul hijau) di
+  Kotaraja & keraton, luar kota & pelabuhan, Jembatan Agung, Pulau Sawah, Pulau Nelayan, Pulau Pura,
+  dan Pulau Wira (jalan depan, sisi, dan belakang barisan). Mereka menunggu bila jalan dihalangi
+  pemain, sesekali berhenti, lalu lanjut meronda.
+- **Penjaga pos** (32 orang di gerbang kota, gerbang keraton, pendopo, kepala jembatan, Siti
+  Hinggil) kini ikut bertugas: mencegat, menanyai, dan bertarung — dulu hanya berdiri.
+- **Orang asing yang masuk wilayah kerajaan langsung dihadang dan ditanyai**: begitu pemain
+  melewati tengah Jembatan Agung (atau muncul di pulau Kencana mana pun), prajurit terdekat berlari
+  mencegat bersama pasangannya. Muncul **kartu tanya-jawab** dengan pilihan jawaban:
+  - "Siapa kamu? Ada keperluan apa?" → pengembara / menghadap raja / pemburu orc / kasar / pergi
+  - "Pedang itu untuk apa?" → untuk melawan orc (boleh masuk) / untuk menebas siapa pun (dilawan)
+  - jawaban damai → menjadi **tamu**: prajurit mengangguk, mempersilakan lewat, dan peronda
+    menyapa saat berpapasan. Datang lagi → ditanyai singkat; pernah membuat onar → ditanyai curiga.
+- **Dilawan**: jawaban kasar, terus kabur saat dicegat, atau memukul prajurit → "Penyusup!
+  Serang!" — paling banyak 3 prajurit menyerang sekaligus, yang lain bergantian datang. Prajurit
+  bisa dipukul balik (berkedip, terpental, bar nyawa), roboh, lalu kembali bertugas ±40 detik
+  kemudian. Jurus Penggal juga menyasar prajurit yang bermusuhan (mereka roboh, tidak dipenggal).
+- **Nyawa pemain** (bar merah di kiri atas, kilatan merah di tepi layar saat terkena), pulih
+  perlahan setelah aman. Habis → roboh, lalu dibawa keluar wilayah kerajaan ke ujung timur Jembatan
+  Agung (atau bangun di titik mulai bila dikeroyok orc). Lari keluar wilayah ±25 detik →
+  pengejaran berhenti.
+- **Serbuan orc**: tiap ±3 menit tiga orc dari perkemahan terdekat berjalan ke Kotaraja lewat
+  Jembatan Agung. Begitu masuk wilayah kerajaan mereka langsung dihadang dan dilawan prajurit
+  (tanpa ditanya). Orc penyerbu membalas prajurit, dan pemain yang memukulnya.
+- **Pendatang**: penduduk dari Pulau Tropis datang lewat Jembatan Agung, dihentikan penjaga di
+  gerbang ("Berhenti! Siapa kamu dan mau ke mana?"), menjawab keperluannya, lalu boleh lewat ke
+  pasar dan kemudian pulang.
+- **Gelembung ucapan** di atas kepala prajurit & pendatang ("Hei, kamu! Berhenti!", "Silakan
+  lewat.", "Orc menyerbu! Hadang!", …).
+### Diubah
+- Penjaga gerbang/keraton/jembatan pindah dari penduduk ke prajurit bertugas (jumlah penduduk
+  yang tercatat turun 32; jumlah orang di dunia tetap).
+- Petunjuk kontrol menyebut bahwa prajurit Kencana akan menanyaimu.
+- Model kuda & perisai (`bala.glb`) dimuat sekali untuk bala tentara dan prajurit bertugas.
+### Diperbaiki (ditemukan saat uji)
+- Game berhenti (layar membeku) bila pukulan prajurit membuat pemain roboh: prajurit yang sedang
+  mengayun ditarik mundur di tengah ayunannya sendiri. Ayunan kini dipegang terpisah.
+- Uji jalan menyeberangi Jembatan Agung di smoke test menyesuaikan penjagaan baru (dicegat,
+  menjawab damai, lalu lanjut).
+### Pengujian
+- Smoke test ditambah: <SMOKE_V012>
+
 ## [0.11.0] — 2026-10-20 — Bala tentara Kencana: 25.000 prajurit siap tempur (permintaan pengguna)
 ### Ditambahkan
 - **Pulau Wira** — pulau baru di selatan pelabuhan Pulau Kencana, markas bala tentara kerajaan.

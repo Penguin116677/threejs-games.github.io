@@ -9,6 +9,10 @@ import { clone as cloneSkinned } from 'three/addons/utils/SkeletonUtils.js'
 //   roboh (animasi die) saat nyawa habis, terbaring sebentar, tenggelam ke tanah, lalu muncul lagi
 //   di perkemahan setelah RESPAWN detik.
 // - Jurus Penggal: tanda bidik merah di kepala, lalu kepala terlepas & terlempar (tanpa darah).
+// - SERBUAN: sesekali (diatur keamanan.js) tiga orc dari perkemahan terdekat berjalan ke Kotaraja
+//   Kencana lewat Jembatan Agung. Orc penyerbu menyerang prajurit kerajaan yang menghadang (dan
+//   pemain yang memukulnya); yang selamat pulang ke perkemahan. Orc di perkemahan tetap tidak
+//   menyerang.
 // Hemat untuk HP: orc yang jauh (> VIEW m dari prajurit) tidak digambar dan tidak dianimasikan.
 
 export const MAX_HP = 6
@@ -22,6 +26,10 @@ const SINK_TIME = 1.0
 const RESPAWN = 15 // detik setelah hilang
 const PER_CAMP = 5
 const HEAD_Y = 1.3 // m: tinggi pusat kepala (kepala besar: leher ±0,8 m, ubun-ubun ±1,8 m)
+const RAID = { size: 3, speed: 2.4, sight: 7, reach: 1.3, hit: 0.24, dur: 0.42, linger: 25, view: 150 }
+const RAID_GOAL = { x: -425, z: 40 } // tepat di dalam gerbang timur Kotaraja Kencana
+const BRIDGE_HEAD = { x: -160, z: 40 } // ujung timur Jembatan Agung (perkemahan terdekat yang menyerbu)
+const ME = { kind: 'pemain' }
 
 // tanda bidik: cincin + 4 garis pendek (bidang XY, menghadap kamera)
 function reticleGeometry() {
@@ -101,9 +109,9 @@ export function createEnemies({ ground, colliders, nav, asset, spawn }) {
     root.add(model)
     const mixer = new THREE.AnimationMixer(model)
     const actions = {}
-    for (const name of ['idle', 'walk', 'die']) {
-      const a = mixer.clipAction(clipOf(name))
-      if (name === 'die') {
+    for (const name of ['idle', 'walk', 'sprint', 'die', 'attack']) {
+      const a = mixer.clipAction(clipOf(name === 'attack' ? 'attack-melee-right' : name))
+      if (name === 'die' || name === 'attack') {
         a.setLoop(THREE.LoopOnce, 1)
         a.clampWhenFinished = true
       }
@@ -129,7 +137,7 @@ export function createEnemies({ ground, colliders, nav, asset, spawn }) {
       id, root, model, mixer, actions, current: actions.idle, materials, bar, fill, reticle,
       headMesh: model.getObjectByName('head-mesh'), headBone: model.getObjectByName('head'),
       home, pos: root.position, heading, target: null, wait: Math.random() * 3,
-      hp: MAX_HP, kx: 0, kz: 0, flash: 0, barTime: 0, state: 'hidup', deadT: 0, headless: false, marked: false,
+      hp: MAX_HP, kx: 0, kz: 0, flash: 0, barTime: 0, state: 'hidup', deadT: 0, headless: false, marked: false, raid: null,
     }
   }
 
@@ -164,6 +172,7 @@ export function createEnemies({ ground, colliders, nav, asset, spawn }) {
     e.hp = 0
     e.marked = false
     e.target = null
+    e.raid = null
     play(e, 'die', 0.08)
   }
 
@@ -197,6 +206,77 @@ export function createEnemies({ ground, colliders, nav, asset, spawn }) {
   function turn(e, want, dt) {
     const diff = Math.atan2(Math.sin(want - e.heading), Math.cos(want - e.heading))
     e.heading += diff * Math.min(1, 6 * dt)
+  }
+
+  // --- serbuan: lawan (prajurit kerajaan / pemain) dicari & diserang lewat foes (dari main.js):
+  // near(x, z, r) → sasaran | null, pos(sasaran) → { x, z } | null, strike(orc, sasaran, kerusakan)
+  let foes = { near: () => null, pos: () => null, strike: () => {} }
+  // langkah orc penyerbu; true = bergerak (animasi lari)
+  function stepRaider(e, dt, pp) {
+    const R = e.raid
+    if (R.target) {
+      const tp = R.target === ME ? pp : foes.pos(R.target)
+      if (!tp || (R.target === ME && Math.hypot(tp.x - e.pos.x, tp.z - e.pos.z) > 25)) R.target = null
+    }
+    R.scan -= dt
+    if (!R.target && R.scan <= 0) {
+      R.scan = 0.4
+      R.target = foes.near(e.pos.x, e.pos.z, RAID.sight)
+    }
+    R.cd -= dt
+    if (R.atk) {
+      const { atk } = R // strike() bisa mengubah keadaan di sekitarnya (lihat prajurit.js)
+      atk.t += dt
+      const tp = R.target ? (R.target === ME ? pp : foes.pos(R.target)) : null
+      if (tp) turn(e, Math.atan2(tp.x - e.pos.x, tp.z - e.pos.z), dt)
+      if (!atk.hit && atk.t >= RAID.hit) {
+        atk.hit = true
+        if (tp && Math.hypot(tp.x - e.pos.x, tp.z - e.pos.z) < RAID.reach + 0.6) foes.strike(e, R.target, R.target === ME ? 6 : 2)
+      }
+      if (atk.t >= RAID.dur && R.atk === atk) R.atk = null
+      return false
+    }
+    let goal = null
+    let { speed } = RAID
+    if (R.target) {
+      const tp = R.target === ME ? pp : foes.pos(R.target)
+      const d = Math.hypot(tp.x - e.pos.x, tp.z - e.pos.z)
+      if (d <= RAID.reach) {
+        turn(e, Math.atan2(tp.x - e.pos.x, tp.z - e.pos.z), dt)
+        if (R.cd <= 0) {
+          R.atk = { t: 0, hit: false }
+          R.cd = 1.5 + Math.random() * 0.5
+          e.actions.attack.reset()
+          play(e, 'attack', 0.05)
+        }
+        return false
+      }
+      goal = tp
+      if (d < 4) speed = 1.6
+    } else if (R.i < R.path.length) {
+      goal = R.path[R.i]
+      if (Math.hypot(goal.x - e.pos.x, goal.z - e.pos.z) < 1.2) R.i++
+    } else if (!R.back) {
+      // sampai tujuan: berkeliaran sebentar, lalu pulang lewat jalan yang sama
+      R.idle += dt
+      if (R.idle > RAID.linger) {
+        R.back = true
+        R.path = [...R.path].reverse()
+        R.path.push({ x: e.home.x, z: e.home.z })
+        R.i = 0
+      }
+      return false
+    } else {
+      e.raid = null // pulang ke perkemahan
+      return false
+    }
+    const dx = goal.x - e.pos.x
+    const dz = goal.z - e.pos.z
+    const d = Math.hypot(dx, dz) || 1
+    turn(e, Math.atan2(dx, dz), dt)
+    e.pos.x += (dx / d) * Math.min(speed * dt, d)
+    e.pos.z += (dz / d) * Math.min(speed * dt, d)
+    return speed
   }
 
   // --- kepala terlempar
@@ -288,6 +368,7 @@ export function createEnemies({ ground, colliders, nav, asset, spawn }) {
         e.flash = 0.15
         e.barTime = 4
         e.target = null
+        if (e.raid) e.raid.target = ME
         if (e.hp <= 0) kill(e)
         out.push({ id: e.id, x: e.pos.x, y: e.pos.y, z: e.pos.z, dead: e.state !== 'hidup' })
       }
@@ -331,6 +412,53 @@ export function createEnemies({ ground, colliders, nav, asset, spawn }) {
       const e = list[id]
       return e && e.state === 'hidup' ? { x: e.pos.x, z: e.pos.z } : null
     },
+    // kerusakan pada satu orc (serangan prajurit kerajaan); from = posisi penyerang
+    damage(id, amount, from) {
+      const e = list[id]
+      if (!e || e.state !== 'hidup') return
+      let ax = e.pos.x - from.x
+      let az = e.pos.z - from.z
+      const al = Math.hypot(ax, az) || 1
+      ax /= al
+      az /= al
+      e.kx = ax * 1.6
+      e.kz = az * 1.6
+      e.hp -= amount
+      e.flash = 0.15
+      e.barTime = 4
+      if (e.hp <= 0) kill(e)
+    },
+    setFoes(f) {
+      foes = f
+    },
+    // mulai serbuan ke Kotaraja dari perkemahan terdekat dengan Jembatan Agung yang tidak sedang
+    // didekati pemain (avoid); false bila tidak ada jalan / orc
+    startRaid(avoid) {
+      const ok = camps
+        .filter(c => Math.hypot(c.x - avoid.x, c.z - avoid.z) > 60)
+        .map(c => ({ c, members: list.filter(e => e.home.camp === c && e.state === 'hidup' && !e.raid) }))
+        .filter(o => o.members.length >= 2)
+        .sort((a, b) => Math.hypot(a.c.x - BRIDGE_HEAD.x, a.c.z - BRIDGE_HEAD.z) - Math.hypot(b.c.x - BRIDGE_HEAD.x, b.c.z - BRIDGE_HEAD.z))
+      for (const { c, members } of ok) {
+        const path = nav.findPath({ x: c.x, z: c.z }, RAID_GOAL)
+        if (!path) continue
+        members.slice(0, RAID.size).forEach((e, k) => {
+          e.target = null
+          e.raid = { path: path.slice(), i: 0, target: null, scan: k * 0.13, cd: 0, atk: null, idle: 0, back: false }
+          // berangkat berurutan (beberapa langkah di belakang yang di depan)
+          e.raid.delay = k * 0.9
+        })
+        return true
+      }
+      return false
+    },
+    get raidActive() {
+      return list.some(e => e.raid && e.state === 'hidup')
+    },
+    // orc penyerbu yang masih hidup
+    raiders() {
+      return list.filter(e => e.raid && e.state === 'hidup').map(e => ({ id: e.id, x: e.pos.x, z: e.pos.z }))
+    },
     // hidupkan lagi semua orc di perkemahannya (untuk pengujian)
     reviveAll() {
       for (const e of list) respawn(e)
@@ -348,7 +476,7 @@ export function createEnemies({ ground, colliders, nav, asset, spawn }) {
         const dx = e.pos.x - pp.x
         const dz = e.pos.z - pp.z
         const dist = Math.hypot(dx, dz)
-        const near = dist < VIEW
+        const near = dist < (e.raid ? RAID.view : VIEW)
         if (e.state === 'hilang') {
           e.deadT += dt
           if (e.deadT > RESPAWN) respawn(e)
@@ -367,6 +495,8 @@ export function createEnemies({ ground, colliders, nav, asset, spawn }) {
           }
         } else {
           let moving = false
+          let raidMove = 0
+          if (e.raid && e.raid.delay > 0) e.raid.delay -= dt
           if (Math.abs(e.kx) + Math.abs(e.kz) > 0.05) {
             // terpental (tidak sampai masuk laut)
             const nx = e.pos.x + e.kx * dt
@@ -378,6 +508,8 @@ export function createEnemies({ ground, colliders, nav, asset, spawn }) {
             const f = Math.exp(-7 * dt)
             e.kx *= f
             e.kz *= f
+          } else if (e.raid) {
+            if (e.raid.delay <= 0) raidMove = stepRaider(e, dt, pp)
           } else if (dist < ALERT) {
             // waspada: berhenti dan menghadap prajurit
             turn(e, Math.atan2(-dx, -dz), dt)
@@ -415,8 +547,13 @@ export function createEnemies({ ground, colliders, nav, asset, spawn }) {
             }
           }
           colliders.resolve(e.pos, RADIUS, tmp.set(0, 0, 0))
-          e.pos.y = ground.heightAt(e.pos.x, e.pos.z)
-          play(e, moving ? 'walk' : 'idle')
+          e.pos.y = ground.surfaceAt(e.pos.x, e.pos.z)
+          if (e.raid?.atk) {
+            // ayunan serangan sedang diputar
+          } else if (raidMove) {
+            play(e, raidMove > 2 ? 'sprint' : 'walk')
+            e.actions.sprint.timeScale = raidMove / 3.6
+          } else play(e, moving ? 'walk' : 'idle')
         }
         e.root.rotation.y = e.heading
 

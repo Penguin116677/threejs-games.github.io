@@ -249,3 +249,48 @@ tandai sebagai "diganti" bila berubah.
     - Kuda (Kenney Prototype Kit, 8 bagian kaku → 8 "tulang" tambahan) dan perisai (Mini Dungeon)
       dikemas ke `bala.glb`, uv-nya dipetakan ke palet yang sama.
     - Tombak, busur, tabung panah, panji, pelana dibuat di kode.
+43. **Prajurit yang bertugas = peronda + penjaga pos dalam satu sistem (`prajurit.js`)**, terpisah
+    dari 25.000 prajurit yang berbaris (yang tetap diam).
+    - Peronda berjalan berpasangan (satu bertombak, satu berpedang & berperisai): Rendah 40 /
+      Sedang 64 / Tinggi 96 orang. Tiap pasangan punya wilayah tugas: kota, luar kota & pelabuhan,
+      Jembatan Agung, Pulau Sawah, Pulau Nelayan, Pulau Pura, Pulau Wira (paling sedikit satu
+      pasangan per wilayah), jadi semua wilayah selalu dironda dan peronda tidak menumpuk di kota.
+    - Jalur ronda = jaringan jalan penduduk + keliling barisan di Pulau Wira. Jaringan jalan Pulau
+      Wira ternyata terputus dari jalan utama (jalan dermaga → Jembatan Wira berhenti 3 m dan 12 m
+      dari jalan lain); untuk peronda disambung ke simpul terdekat yang garis lurusnya lapang, tanpa
+      mengubah jalan yang dicat, jadi isi dunia tidak bergeser.
+    - 32 penjaga gerbang/keraton/jembatan pindah dari `villagers.js` ke sistem ini, supaya bisa
+      ikut mencegat dan bertarung (dulu hanya patung yang menoleh).
+    - Gambar: rangka dipanggang seperti penduduk (satu InstancedMesh per seragam, 3 draw call);
+      klip jalan, lari, serang, roboh, angguk, geleng, isyarat berhenti — lengan pemegang tombak &
+      perisai dikunci supaya senjata tetap tegak saat berjalan.
+44. **Orang asing yang masuk wilayah kerajaan dicegat lalu ditanyai lewat kartu tanya-jawab**.
+    - Wilayah kerajaan (`wilayah.js`) = semua pulau Kencana + separuh barat Jembatan Agung.
+    - Prajurit terdekat (≤ 40 m) berlari mencegat bersama pasangannya. Kartu tanya-jawab muncul
+      di bawah layar (di layar mendatar: di kanan) dengan pilihan jawaban besar untuk jari; kamera
+      bergeser supaya pemain & prajurit tidak tertutup kartu.
+    - Pertemuan pertama: dua pertanyaan (siapa / mau apa, lalu untuk apa pedangnya). Jawaban damai →
+      tamu (disapa peronda, tidak dicegat lagi). Datang lagi → ditanyai singkat. Pernah bermusuhan
+      → ditanyai dengan curiga.
+    - Dilawan bila: menjawab kasar, terus menghindar saat dicegat (30 detik), atau memukul prajurit
+      (termasuk tak sengaja kena jurus Putar/Hentak). Paling banyak 3 prajurit menyerang
+      bersamaan; yang lain bergantian masuk.
+    - Lari keluar wilayah ±25 detik → pengejaran berhenti; tamu yang keluar ±20 detik ditanyai lagi
+      saat kembali.
+45. **Pemain punya nyawa (100)**, pulih 5/detik setelah 6 detik tidak terkena.
+    - Pukulan prajurit 4–5 (jeda 1,8–2,6 detik) — dikeroyok 3 prajurit ±15 detik sampai roboh, jadi
+      masih sempat melawan (Cincang menumbangkan satu prajurit) atau lari.
+    - Roboh oleh prajurit → layar meredup → dibawa keluar ke ujung timur Jembatan Agung; roboh oleh
+      orc → bangun di titik mulai. Tidak ada "game over".
+    - Prajurit Kencana tidak dipenggal: jurus Penggal hanya menyasar mereka saat bermusuhan, dan
+      mereka roboh tersabet (kepala tetap utuh). Prajurit yang roboh menghilang lalu kembali bertugas
+      ±40 detik kemudian, tidak di depan mata pemain.
+46. **Serbuan orc lewat Jembatan Agung** (supaya "musuh yang masuk langsung dihadang" benar-benar
+    terjadi): tiap 150–210 detik tiga orc dari perkemahan terdekat (yang tidak sedang didekati
+    pemain) berjalan ke gerbang timur Kotaraja. Begitu masuk wilayah, dua prajurit per orc
+    menghadang dan melawan tanpa bertanya. Orc penyerbu membalas prajurit dan pemain yang
+    memukulnya; orc di perkemahan tetap tidak menyerang (seperti v0.9.0).
+47. **Pendatang ditanyai di gerbang**: dua penduduk dari seberang bergantian datang lewat Jembatan
+    Agung, dihentikan penjaga pos di kepala barat jembatan, menjawab keperluannya (gelembung
+    ucapan), lalu boleh lewat ke pasar dan pulang lagi. Gelembung ucapan = teks HTML yang mengikuti
+    titik 3D (tajam di layar HP, tanpa tekstur).

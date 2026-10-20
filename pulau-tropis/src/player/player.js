@@ -10,6 +10,8 @@ import { ATTACK_CLIPS, createCombat } from './combat.js'
 // gravitasi, lompat, batas kemiringan lereng, tabrakan batang pohon, batu & dinding bangunan,
 // berpijak di tanah atau lantai bangunan (jembatan, dermaga, batur — ground.surfaceAt),
 // berjalan di air dangkal, dan kembali ke tempat aman bila masuk laut dalam.
+// Nyawa: berkurang bila terkena serangan (prajurit Kencana yang bermusuhan, orc penyerbu), pulih
+// perlahan setelah beberapa detik aman; habis = roboh (main.js memindahkan pemain ke tempat aman).
 
 const MODEL_SCALE = 2.3 // tinggi model asli ±0,67 (tanpa jambul helm) → ±1,55 m
 const RADIUS = 0.35 // jari-jari badan untuk tabrakan
@@ -25,6 +27,8 @@ const MAX_SLOPE = 1.3 // kemiringan maksimum yang bisa didaki (±52°)
 const WADE_DEPTH = 0.35 // mulai melambat di air
 const DEEP_DEPTH = 1.3 // lebih dalam dari ini = kembali ke pantai
 const WORLD_MARGIN = 30 // m dari tepi dunia (data laut & pantai berakhir di sana)
+export const MAX_HP = 100
+const REGEN = { delay: 6, rate: 5 } // pulih 5 nyawa/detik setelah 6 detik tidak terkena
 
 // Pedang di tangan kanan, dalam ruang lokal tulang lengan kanan (satuan model asli).
 // hand = pusat balok tangan (dihitung dari data skin model); blade = arah bilah:
@@ -95,7 +99,7 @@ export function createPlayer({ ground, colliders, quality, asset }) {
   const mixer = asset ? new THREE.AnimationMixer(model) : null
   const actions = {}
   // lompat & serangan diputar sekali lalu berhenti di pose akhir sampai berganti animasi
-  const once = ['jump', ...ATTACK_CLIPS]
+  const once = ['jump', 'die', ...ATTACK_CLIPS]
   if (mixer)
     for (const name of ['idle', 'walk', 'sprint', 'fall', ...once]) {
       const clip = THREE.AnimationClip.findByName(asset.clips, name)
@@ -149,6 +153,11 @@ export function createPlayer({ ground, colliders, quality, asset }) {
   let safeTimer = 0
   let onRespawnNeeded = () => {}
   let frozen = false
+  let hp = MAX_HP
+  let calmT = 0 // detik sejak terakhir terkena
+  let defeated = false
+  let onHurt = () => {}
+  let onDefeated = () => {}
 
   // --- jalur dari "ketuk untuk berjalan": daftar titik { x, z } yang dituju berurutan
   const path = []
@@ -413,6 +422,52 @@ export function createPlayer({ ground, colliders, quality, asset }) {
     get attacking() {
       return combat.busy
     },
+    get hp() {
+      return hp
+    },
+    get defeated() {
+      return defeated
+    },
+    // terkena serangan sebesar `amount` dari arah `from` ({ x, z }): terdorong menjauh
+    damage(amount, from) {
+      if (defeated || frozen) return
+      hp = Math.max(0, hp - amount)
+      calmT = 0
+      if (from) {
+        const dx = pos.x - from.x
+        const dz = pos.z - from.z
+        const d = Math.hypot(dx, dz) || 1
+        vel.x += (dx / d) * 3.5
+        vel.z += (dz / d) * 3.5
+      }
+      onHurt(amount)
+      if (hp <= 0) {
+        defeated = true
+        path.length = 0
+        combat.reset()
+        play('die', 0.1)
+        onDefeated()
+      }
+    },
+    // bangun lagi dengan nyawa penuh (setelah roboh)
+    revive() {
+      hp = MAX_HP
+      calmT = 0
+      defeated = false
+      frozen = false
+      play('idle', 0.05)
+    },
+    onHurt(fn) {
+      onHurt = fn
+    },
+    onDefeated(fn) {
+      onDefeated = fn
+    },
+    // menghadap titik (x, z)
+    face(x, z) {
+      heading = Math.atan2(x - pos.x, z - pos.z)
+      root.rotation.y = heading
+    },
     // gerakan serang yang sedang berjalan ('tebas', 'tinju', 'tendang', 'cincang', 'hentak',
     // 'putar', 'penggal') atau null
     get attackMove() {
@@ -461,6 +516,12 @@ export function createPlayer({ ground, colliders, quality, asset }) {
       vel.set(0, 0, 0)
     },
     update(dt, input, camYaw) {
+      if (defeated) {
+        // roboh: terbaring sampai main.js memindahkan & membangunkan
+        mixer?.update(dt)
+        return
+      }
+      if (hp < MAX_HP && (calmT += dt) > REGEN.delay) hp = Math.min(MAX_HP, hp + REGEN.rate * dt)
       // pukulan (kombo) & jurus — sebelum fisika agar gerak langsung berhenti saat mulai menyerang
       if (!frozen) combat.update(dt, input)
       if (!frozen) {

@@ -174,3 +174,31 @@ Model kuda & perisai (`public/models/bala.glb`) dibuat ulang dari aset Kenney de
 `python3 scripts/pack-bala.py "<folder Kenney 3D assets>" public/models/prajurit.glb public/models/bala.glb`.
 
 Laporkan: model HP, angka FPS di tiap tingkat kualitas, screenshot, dan langkah yang gagal.
+
+## Daftar uji manual — v0.12.0 (penjagaan Kerajaan Kencana)
+1. Dari titik mulai, berjalan ke Jembatan Agung lalu seberangi ke barat. Begitu lewat tengah
+   jembatan, prajurit Kencana berlari mencegat ("Hei, kamu! Berhenti!") dan **kartu tanya-jawab**
+   muncul di bawah layar (HP mendatar: di kanan). Pemain dan prajurit harus tetap terlihat.
+2. Jawab damai (mis. "Aku pengembara…", lalu "Hanya untuk melawan orc…") → prajurit mengangguk,
+   "Silakan lewat." Kamu kini tamu: peronda yang berpapasan menyapa, tidak mencegat lagi.
+3. Jelajahi kota, keraton, pelabuhan, Pulau Sawah/Nelayan/Pura, Pulau Wira: di tiap wilayah ada
+   pasangan peronda (tombak + pedang-perisai) yang berjalan. Berdiri di tengah jalan → mereka
+   menunggu, lalu berbalik arah.
+4. Keluar wilayah (kembali ke Pulau Tropis) ±20 detik, lalu masuk lagi → ditanyai singkat
+   ("Kamu lagi, pengembara…").
+5. Uji bermusuhan (lakukan sekali saja, nyawamu bisa habis):
+   - jawab "Bukan urusanmu! Minggir!" → "Lancang!…" → 2–3 prajurit menyerang, bar nyawa turun,
+     tepi layar berkedip merah;
+   - lawan balik dengan Pukul / jurus: prajurit berkedip, terpental, bar nyawa jingga, lalu roboh;
+   - biarkan nyawa habis → roboh, layar meredup, bangun di ujung timur Jembatan Agung dengan nyawa
+     penuh. Atau lari keluar wilayah: ±25 detik kemudian pengejaran berhenti.
+6. Pukul prajurit saat sedang menjadi tamu → langsung dilawan ("Penyerang! Lawan dia!").
+7. Tunggu ±3 menit di dekat kepala Jembatan Agung → tiga orc menyerbu menyeberangi jembatan
+   (pesan "Gerombolan orc menyerbu…"), prajurit menghadang dan bertarung. Bantu prajurit: orc yang
+   kamu pukul akan balik menyerangmu.
+8. Di kepala barat Jembatan Agung, sesekali pendatang dari seberang dihentikan penjaga
+   ("Berhenti! Siapa kamu dan mau ke mana?"), menjawab, lalu berjalan ke pasar.
+9. Catat FPS di kota (banyak penduduk + peronda) dan saat dikeroyok, untuk tiap tingkat kualitas.
+
+Laporkan: model HP, FPS, apakah prajurit terlalu kuat / terlalu lemah, apakah tanya-jawab terasa
+mengganggu (terlalu sering), dan langkah yang gagal.
