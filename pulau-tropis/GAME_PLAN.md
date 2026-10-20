@@ -15,8 +15,11 @@ di perkemahan; musuh belum menyerang balik (untuk saat ini).
 - **Kepulauan Kencana** (barat), dihubungkan Jembatan Agung: **Pulau Kencana** dengan Kotaraja
   Kencana (ibu kota kerajaan Nusantara: keraton, alun-alun, pasar, candi, pelabuhan, ±160 rumah
   di dalam tembok, ratusan penduduk), **Pulau Sawah** (utara), **Pulau Nelayan** (barat daya), **Pulau Pura** (barat).
-- Wilayah berikutnya bisa ditambahkan di sisi lain (utara/selatan/timur): batas dunia, terrain, laut,
-  dan peta jalan sudah dibuat umum (lihat DECISIONS #33).
+- **Pulau Wira** (sejak v0.11.0, selatan pelabuhan Pulau Kencana, lewat Jembatan Wira): markas
+  bala tentara Kencana — 25.000 prajurit siap tempur di Tegal Wira (5.000 perisai, 5.000 tombak,
+  5.000 pedang, 5.000 pemanah, 5.000 penunggang kuda bertombak) + 7 senapati, Siti Hinggil, perkemahan.
+- Wilayah berikutnya bisa ditambahkan di sisi lain (utara/timur): batas dunia, terrain, laut,
+  dan peta jalan sudah dibuat umum (lihat DECISIONS #33, #40).
 
 ## Target perangkat
 - Utama: browser Chrome di HP Android (layar sentuh, portrait dan landscape).
@@ -30,7 +33,8 @@ dengan seed tetap, jadi bentuk pulau selalu sama setiap kali dibuka.
 ## Kredit aset
 - Karakter pemain (prajurit + pedang): Kenney — "Mini Arena" (CC0), www.kenney.nl, kredit tambahan
   Tony Schär. Musuh orc: Kenney "Mini Dungeon" (CC0). Penduduk kerajaan: Kenney "Mini Characters"
-  (CC0). Lihat `public/models/LISENSI.txt`.
+  (CC0). Kuda bala tentara: Kenney "Prototype Kit" (CC0); perisai: Kenney "Mini Dungeon" (CC0).
+  Lihat `public/models/LISENSI.txt`.
 - Semua aset lain (pulau, pohon, rumput, air, langit, bangunan kerajaan, perahu) dibuat prosedural
   di kode.
 
@@ -57,4 +61,5 @@ lalu dikembangkan menjadi kombo + jurus (v0.8.0) dan 4 jurus melawan musuh orc (
 Milestone 3 dimulai di v0.10.0 dengan wilayah pilihan pengguna: kepulauan baru di barat berisi
 kerajaan besar dengan banyak penduduk (desa & bangunan, pulau kecil, jalur, landmark). Sungai, air
 terjun, gua, dan reruntuhan belum dibuat. Peta dunia (bagian Milestone 6) ikut dibuat lebih awal
-karena dunia kini terdiri dari beberapa pulau.
+karena dunia kini terdiri dari beberapa pulau. Di v0.11.0 (permintaan pengguna) kerajaan mendapat
+bala tentara 25.000 prajurit di pulau baru, Pulau Wira.

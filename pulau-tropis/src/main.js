@@ -20,6 +20,7 @@ import { planKencana } from './world/kencana/plan.js'
 import { createRegionMask } from './world/kencana/mask.js'
 import { createKencana } from './world/kencana/kingdom.js'
 import { createVillagers } from './world/kencana/villagers.js'
+import { createArmy, balaParts } from './world/kencana/pasukan.js'
 import { createWorldMap, createRegionBanner } from './ui/peta.js'
 import { createInput } from './player/input.js'
 import { createStrategyCamera } from './player/camera.js'
@@ -81,8 +82,8 @@ function findSpawn(ground, colliders) {
   return { x: -128, z: 128, heading: Math.atan2(128, -128) }
 }
 
-const HINT_TOUCH = '<b>Ketuk tanah</b> untuk berjalan ke sana (jauh = lari)<br>Geser: putar kamera · Cubit: zoom<br><b>Pukul</b> berulang = kombo · 4 tombol <b>jurus</b> · musuh orc ada di depan<br><b>Peta</b>: Kerajaan Kencana ada di barat, lewat Jembatan Agung'
-const HINT_KEYS = '<b>Klik tanah</b> untuk berjalan ke sana · WASD / panah juga bisa<br>Seret mouse: putar kamera · Roda: zoom · Spasi: lompat<br>F: pukul (kombo) · 1–4: jurus Cincang, Hentak, Putar, Penggal<br>M: peta — Kerajaan Kencana ada di barat, lewat Jembatan Agung'
+const HINT_TOUCH = '<b>Ketuk tanah</b> untuk berjalan ke sana (jauh = lari)<br>Geser: putar kamera · Cubit: zoom<br><b>Pukul</b> berulang = kombo · 4 tombol <b>jurus</b> · musuh orc ada di depan<br><b>Peta</b>: Kerajaan Kencana di barat (Jembatan Agung), bala tentaranya di Pulau Wira'
+const HINT_KEYS = '<b>Klik tanah</b> untuk berjalan ke sana · WASD / panah juga bisa<br>Seret mouse: putar kamera · Roda: zoom · Spasi: lompat<br>F: pukul (kombo) · 1–4: jurus Cincang, Hentak, Putar, Penggal<br>M: peta — Kerajaan Kencana di barat (Jembatan Agung), bala tentaranya di Pulau Wira'
 
 // FOV kamera: mode main (kamera atas) lebih sempit agar prajurit tidak terlalu kecil;
 // layar tegak butuh FOV lebih lebar agar sisi kiri-kanan tetap terlihat
@@ -218,6 +219,19 @@ async function start() {
   } catch (err) {
     console.warn('Penduduk gagal dimuat:', err)
   }
+  // bala tentara di Tegal Wira (Pulau Wira): butuh model prajurit + kuda & perisai (bala.glb)
+  setStatus('Membariskan 25.000 prajurit…')
+  await nextFrame()
+  let army = null
+  if (asset)
+    try {
+      const balaGltf = await new GLTFLoader().loadAsync(modelUrl('bala.glb'))
+      army = createArmy({ ground, plan, quality, soldier: asset, bala: balaParts(balaGltf), renderer, env })
+      scene.add(army.object)
+    } catch (err) {
+      console.warn('Bala tentara gagal dimuat:', err)
+    }
+
   const player = createPlayer({ ground, colliders, quality, asset })
   scene.add(player.root)
   if (player.blob) scene.add(player.blob)
@@ -505,6 +519,7 @@ async function start() {
     enemies?.update(dt, camera, player)
     if (banner.update(dt, player.position, mode === 'main')) hideHint()
     villagers?.update(dt, camera, mode === 'main' ? player.position : controls.target, player.position, mode === 'main' ? 110 : 260)
+    army?.update(dt, camera, mode === 'main' ? player.position : controls.target)
     effects.update(dt, camera)
     updateSkillButtons()
     env.update(t, camera, mode === 'main' ? player.position : controls.target)
@@ -542,7 +557,7 @@ async function start() {
 
   // akses untuk debugging / pengujian otomatis
   window.__pulau = {
-    renderer, scene, camera, controls, ground, shore, quality, trees, rocks, grass, water, env, kencana, region, plan, villagers, worldMap, banner,
+    renderer, scene, camera, controls, ground, shore, quality, trees, rocks, grass, water, env, kencana, region, plan, villagers, army, worldMap, banner,
     player, cam, input, colliders, nav, markers, effects, enemies, pickGround, setMode, getMode: () => mode,
     frames: () => frameCount, debug,
   }

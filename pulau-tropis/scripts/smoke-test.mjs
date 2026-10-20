@@ -17,6 +17,8 @@ import { mkdirSync } from 'node:fs'
 // - Kepulauan Kencana: kota lengkap (rumah, tembok, pendopo, Jembatan Agung), penduduk berjalan,
 //   menyeberangi Jembatan Agung, spanduk wilayah di gerbang kota, naik tangga pendopo,
 //   dinding rumah menahan prajurit, tombol Peta
+// - Pulau Wira: 25.000 prajurit (5 pasukan × 5.000) + senapati, menyeberangi Jembatan Wira,
+//   spanduk "Tegal Wira" di depan barisan, prajurit 3D di dekat pemain, barisan menahan prajurit
 // Waktu tunggu dihitung dalam FRAME (fisika berjalan per frame), bukan detik, karena
 // render software jauh lebih lambat dari HP.
 // Pemakaian: npm run build && npm run preview (terminal lain) && npm run test:smoke
@@ -346,6 +348,57 @@ for (const [name, opts, query] of cases) {
   })
   await waitFrames(page, 4)
   await page.screenshot({ path: `${out}/${name}-kerajaan.png` })
+  await page.evaluate(() => window.__pulau.setMode('main'))
+
+  // ===== Bala tentara di Tegal Wira (Pulau Wira)
+  const army = await page.evaluate(() => window.__pulau.army?.stats())
+  const per = army ? army.pasukan.map(p => p.count) : []
+  if (!army || army.total !== 25000 || per.length !== 5 || per.some(n => n !== 5000) || army.perwira < 5)
+    fail(`bala tentara: ${JSON.stringify(army)}`)
+  else ok(`bala tentara: ${army.total} prajurit (${army.pasukan.map(p => `${p.count} ${p.id}`).join(', ')}) + ${army.perwira} senapati, atlas ${army.atlas}`)
+  await page.evaluate(() => {
+    window.__pulau.debug.timeScale = 4
+  })
+  // Jembatan Wira: dari ujung timur dermaga pelabuhan ke Pulau Wira
+  await teleport(page, -505, 258, [-470, 362])
+  await waitFrames(page, 2)
+  const bw = await walkTo(-470, 362, 600)
+  if (!bw.n) fail('tidak ada jalur menyeberangi Jembatan Wira')
+  else if (Math.hypot(bw.s.x + 470, bw.s.z - 362) > 3 || bw.minY < 1.5 || bw.msg) fail(`Jembatan Wira: berhenti di (${bw.s.x.toFixed(1)}, ${bw.s.z.toFixed(1)}), terendah ${bw.minY.toFixed(2)} m, pesan "${bw.msg}"`)
+  else ok(`Jembatan Wira: menyeberang ke Pulau Wira, pijakan terendah ${bw.minY.toFixed(2)} m`)
+  // ke depan barisan perisai → spanduk "Tegal Wira"; prajurit terdekat digambar 3D
+  const fr = await walkTo(-268, 396.5, 900)
+  await waitFrames(page, 8)
+  const tegal = await page.evaluate(() => ({ text: document.querySelector('.wilayah-nama').textContent, army: window.__pulau.army.stats() }))
+  if (Math.hypot(fr.s.x + 268, fr.s.z - 396.5) > 3) fail(`depan barisan: berhenti di (${fr.s.x.toFixed(1)}, ${fr.s.z.toFixed(1)})`)
+  else if (tegal.text !== 'Tegal Wira') fail(`spanduk Tegal Wira: "${tegal.text}"`)
+  else if (tegal.army.dekat < 10 || tegal.army.impostor < 24000) fail(`prajurit 3D/impostor: ${JSON.stringify(tegal.army)}`)
+  else ok(`depan barisan: spanduk "Tegal Wira", ${tegal.army.dekat} prajurit 3D di dekat pemain, ${tegal.army.impostor} impostor`)
+  await page.screenshot({ path: `${out}/${name}-bala.png` })
+  // barisan tidak bisa ditembus: berjalan lurus ke tengah barisan perisai
+  await page.evaluate(() => window.__pulau.player.followPath([{ x: -268, z: 412 }]))
+  await waitFrames(page, 40)
+  const gapArmy = await page.evaluate(() => {
+    const { colliders, player, plan } = window.__pulau
+    const b = plan.army.blocks.find(o => o.type === 0 && o.x0 < -268 && o.x1 > -268)
+    return colliders.probe({ x: (b.x0 + b.x1) / 2, z: (b.z0 + b.z1) / 2, hx: (b.x1 - b.x0) / 2, hz: (b.z1 - b.z0) / 2, rot: 0, cos: 1, sin: 0, radius: Math.hypot(b.x1 - b.x0, b.z1 - b.z0) / 2 }, player.position.x, player.position.z, {}).gap
+  })
+  if (gapArmy < 0.2) fail(`menembus barisan prajurit (jarak ${gapArmy.toFixed(2)} m)`)
+  else ok(`barisan perisai menahan prajurit (berhenti ${gapArmy.toFixed(2)} m dari barisan)`)
+  await page.evaluate(() => {
+    window.__pulau.player.stop()
+    window.__pulau.debug.timeScale = 1
+  })
+  // pemandangan Pulau Wira dari udara
+  await page.evaluate(() => {
+    const { camera, controls, setMode } = window.__pulau
+    setMode('lihat')
+    controls.target.set(-270, 4, 470)
+    camera.position.set(-270, 230, 255)
+    controls.update()
+  })
+  await waitFrames(page, 4)
+  await page.screenshot({ path: `${out}/${name}-wira.png` })
   await page.evaluate(() => window.__pulau.setMode('main'))
   await teleport(page, -122, 122, [-170, 170])
 

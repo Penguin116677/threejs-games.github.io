@@ -1,9 +1,9 @@
 # PROJECT_STATUS — Pulau Tropis
 
-**Milestone aktif:** 3 — Pembangunan dunia (v0.10.0: Kepulauan Kencana, kerajaan di barat — menunggu umpan balik dari HP).
+**Milestone aktif:** 3 — Pembangunan dunia (v0.11.0: bala tentara 25.000 prajurit di Pulau Wira — menunggu umpan balik dari HP).
 Pengembangan karakter/jurus dihentikan sementara atas permintaan pengguna.
-**Versi:** 0.10.0
-**Terakhir diperbarui:** 2026-10-19
+**Versi:** 0.11.0
+**Terakhir diperbarui:** 2026-10-20
 
 ## Kondisi awal repository (sebelum Milestone 1)
 - Repository `threejs-games.github.io` berisi koleksi contoh Three.js lama (folder `examples/`,
@@ -58,8 +58,46 @@ Pengembangan karakter/jurus dihentikan sementara atas permintaan pengguna.
 | Penduduk kerajaan (berjalan, berdagang, bertani, penjaga, raja) | ✅ selesai (v0.10.0) |
 | Jalan, sawah, lantai batu, rumput alun-alun; pohon khas (beringin, kamboja, pisang, mangga) | ✅ selesai (v0.10.0) |
 | Peta dunia + spanduk nama wilayah (bagian Milestone 6, dibuat lebih awal) | ✅ selesai (v0.10.0) |
+| Pulau Wira + Jembatan Wira, Siti Hinggil, perkemahan (tenda, kandang kuda) | ✅ selesai (v0.11.0) |
+| Bala tentara 25.000 prajurit siap tempur (5 pasukan × 5.000) + 7 senapati | ✅ selesai (v0.11.0) |
 | Sungai & air terjun, gua, reruntuhan | ⏳ belum |
 | Dicoba di HP Android sungguhan | ⏳ menunggu laporan pengguna |
+
+## Yang sudah diperiksa (v0.11.0 — bala tentara di Pulau Wira)
+- `npm run build` berhasil; ESLint (konfigurasi repo): 0 error, 0 warning.
+- Smoke test otomatis (4 perangkat) — sedang dijalankan ulang setelah perbaikan barisan bolong;
+  hasilnya dicatat begitu selesai.
+- **Jumlah prajurit** (dihitung di game): 25.000 = 5.000 perisai + 5.000 tombak + 5.000 pedang +
+  5.000 pemanah + 5.000 penunggang kuda, ditambah 7 senapati. Semuanya berdiri di tanah rata 4,2 m.
+- **Isi pulau lain tidak berubah** (dicek di Node terhadap v0.10.0, kualitas Rendah/Sedang/Tinggi):
+  - tinggi tanah di setiap daratan lama sama persis (selisih 0,000 m);
+  - batang pohon Pulau Tropis 885 / 1.074 / 1.203 dan batunya sama letaknya;
+  - semua 340 bangunan dan 83 orang di Kencana sama;
+  - 80 jalur ketuk acak identik;
+  - di Pulau Kencana hanya 0 / 1 / 3 pohon di dekat jalan baru ke Jembatan Wira yang bergeser.
+- **Jalan kaki** (browser, peta jalan + collider sungguhan):
+  - menyeberangi Jembatan Wira (pijakan terendah 2,28 m);
+  - jalur dari titik mulai sampai depan Siti Hinggil ditemukan (12 belokan, 78 ms);
+  - jalur juga ditemukan menyusuri lorong tengah sampai belakang barisan, menembus celah antar-pasukan,
+    dan ke perkemahan tenda & kandang;
+  - berjalan lurus ke barisan perisai → tertahan di tepinya.
+- **Dipotret & diperiksa**:
+  - barisan dari depan, samping, rendah, dan udara;
+  - tiap jenis dari dekat (perisai, tombak, pedang, busur, kuda + tombak, senapati + panji);
+  - Siti Hinggil, perkemahan, Jembatan Wira, peta dunia (HP tegak & mendatar).
+- **Ditemukan & diperbaiki saat uji**:
+  - lingkaran gelap di sekitar pemain — bayangan asli prajurit 3D yang rapat; kini semua prajurit
+    memakai bayangan kontak yang sama;
+  - prajurit impostor tampak pudar/tembus pandang di pita peralihan — kini 16 arah × 4 sudut
+    pandang, dicampur di pita sempit dengan keburaman penuh;
+  - prajurit 3D dari kamera jauh tidak perlu — kini hanya bila kamera < 32–55 m;
+  - **bolong di barisan saat zoom setengah jauh** (kamera ±30–60 m): ratusan prajurit di sisi jauh
+    pemain hilang, hanya bayangannya tersisa (disimulasikan: hingga 380 prajurit di Sedang, 771 di
+    Tinggi). Penyebabnya: impostor disembunyikan menurut lingkaran saja, padahal model 3D juga
+    dibatasi jarak kamera. Kini shader memakai uji yang sama — 0 bolong di 4 posisi × 26 zoom ×
+    16 arah kamera × 3 kualitas, dan dipotret sebelum/sesudah;
+  - kuda tampak kemerahan → cokelat tua berkaki gelap;
+  - pohon Kencana bisa tumbuh di pantai Pulau Wira → tiap pulau menebar pohon di pulau sendiri saja.
 
 ## Yang sudah diperiksa (v0.10.0 — Kepulauan Kencana)
 - `npm run build` berhasil; ESLint (konfigurasi repo): 0 error, 0 warning.
@@ -185,6 +223,13 @@ Pengembangan karakter/jurus dihentikan sementara atas permintaan pengguna.
   laut dalam → kembali ke pantai + pesan, mendaki lereng (+24 m dalam 120 frame).
 
 ## Yang BELUM diperiksa
+- **FPS di dekat bala tentara pada HP sungguhan**.
+  - Bagian terberat: lorong di tengah barisan (Sedang: 160 prajurit 3D + ±25.000 impostor).
+  - Waktu memotret atlas impostor saat dimuat di HP (di komputer ±60 ms CPU; GPU HP belum diukur).
+  - Memori tekstur atlas: Rendah 896 × 1.120, Sedang 1.280 × 1.600, Tinggi 1.792 × 2.240 piksel
+    + mipmap.
+- Apakah pergantian potret impostor saat kamera diputar (pita/lompatan kecil di prajurit jauh) terasa
+  mengganggu di layar HP.
 - **FPS di kota kerajaan pada HP sungguhan** (bagian paling berat: ±300 penduduk, ±340 bangunan) dan
   waktu loading tambahan untuk membangun kerajaan di HP.
 - Apakah ukuran kota, panjang Jembatan Agung (±160 m, ±30 detik berlari), dan jumlah penduduk terasa
@@ -199,6 +244,19 @@ Pengembangan karakter/jurus dihentikan sementara atas permintaan pengguna.
 - Apakah URL hosting (githack / GitHub Pages) terbuka di HP — tidak bisa diakses dari lingkungan pengembangan.
 
 ## Performa (segitiga per frame termasuk bayangan, dari smoke test)
+v0.11.0 di sekitar bala tentara, layar HP tegak (Pixel 7), kamera strategi 22 m:
+| Tingkat | Ujung Jembatan Wira | Depan barisan | Lorong tengah | Sayap kavaleri | Zoom jauh 60 m |
+|---|---|---|---|---|---|
+| Rendah | 273 rb / 36 dc | 221 rb / 34 dc | 240 rb / 30 dc (70 prajurit 3D) | 254 rb / 33 dc | 224 rb / 35 dc |
+| Sedang | 296 rb / 30 dc | 245 rb / 29 dc | 320 rb / 26 dc (160 prajurit 3D) | 296 rb / 27 dc | 265 rb / 30 dc |
+| Tinggi | 467 rb / 42 dc | 386 rb / 44 dc | 492 rb / 39 dc (320 prajurit 3D) | 523 rb / 37 dc | 393 rb / 46 dc |
+- Seluruh barisan: 1 draw call impostor + 1 bayangan kontak + 6 jenis prajurit 3D. Bila Pulau Wira
+  tidak di layar, barisan tidak digambar sama sekali.
+- Titik mulai: Rendah 262 rb, Sedang 296 rb, Tinggi 574 rb (v0.10.0: 252 / 277 / 548 rb).
+- Kota kerajaan (Sedang): gerbang timur 311 rb, pasar 309 rb, alun-alun 312 rb.
+- Waktu siap di komputer (render software, smoke test): ±2–3,5 detik (v0.10.0: ±1,2–1,7 detik).
+  Tambahannya terutama pemotretan atlas impostor yang dikerjakan CPU di render software.
+
 v0.10.0, layar HP tegak (Pixel 7), kamera strategi 22 m — kota kerajaan tidak lebih berat dari
 Pulau Tropis karena terrain, laut, dan bangunan kini dipecah per petak:
 | Tingkat | Titik mulai | Gerbang timur | Pasar | Alun-alun | Deret rumah | Jembatan Agung |
@@ -220,6 +278,13 @@ v0.3.0: Rendah ±300 rb, Sedang ±400 rb, Tinggi ±850 rb. Tambahan v0.4.0 beras
 yang lebih rapat (untuk ombak) dan buah kelapa. v0.2.0 (HP): ±230 ribu.
 
 ## Masalah yang diketahui
+- (v0.11.0) Prajurit jauh = potret (impostor): saat kamera diputar, potretnya berganti tiap 22,5°;
+  di pita peralihan bentuknya sedikit bercampur.
+- (v0.11.0) Bala tentara berdiri di tempat: belum berbaris jalan, belum bereaksi pada prajurit, dan
+  belum bisa diajak bicara atau diperintah. Pukulan ke barisan hanya memercikkan percikan logam.
+- (v0.11.0) Dari depan persis, kepala kuda menutupi badan penunggangnya (kuda Kenney sempit dan
+  tinggi lehernya); dari samping/atas terlihat jelas.
+- (v0.11.0) Pemuatan bertambah ±1 detik di komputer.
 - (v0.10.0) Penduduk tidak saling menghindar (bisa berpapasan menembus satu sama lain) dan berjalan
   di jaringan jalan saja (tidak masuk rumah). Rumah belum bisa dimasuki (tanpa interior).
 - (v0.10.0) Penduduk tidak bereaksi terhadap pukulan/jurus (bukan musuh — pukulan menembus mereka);

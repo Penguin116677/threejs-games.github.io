@@ -2,12 +2,15 @@
 // kota, jalan, dan jembatan. Murni data + fungsi kecil (tanpa Three.js), dipakai bentuk tanah,
 // masker jalan, bangunan, peta, dan penduduk. Satuan meter; sumbu −x = barat, −z = utara.
 
-// Pulau-pulau: pusat, jari-jari pantai, seberapa berkelok garis pantainya, tinggi bukit pedalaman
+// Pulau-pulau: pusat, jari-jari pantai (r, atau rx × rz untuk pulau lonjong), seberapa berkelok garis
+// pantainya, tinggi bukit pedalaman
 export const ISLANDS = [
   { id: 'kencana', name: 'Pulau Kencana', x: -560, z: 40, r: 255, wobble: 0.07, hills: 7, seed: 51 },
   { id: 'sawah', name: 'Pulau Sawah', x: -660, z: -345, r: 100, wobble: 0.1, hills: 3, seed: 52 },
   { id: 'nelayan', name: 'Pulau Nelayan', x: -760, z: 360, r: 88, wobble: 0.1, hills: 3, seed: 53 },
   { id: 'pura', name: 'Pulau Pura', x: -890, z: 110, r: 50, wobble: 0.12, hills: 13, seed: 54 },
+  // markas bala tentara: pulau lonjong datar di selatan pelabuhan
+  { id: 'wira', name: 'Pulau Wira', x: -270, z: 470, rx: 360, rz: 185, r: 360, wobble: 0.05, hills: 2, seed: 55, forest: 0.25 },
 ]
 
 // Kotaraja: kota bertembok bata (garis tengah tembok) di atas dataran yang diratakan
@@ -29,6 +32,15 @@ export const PASAR = { x0: -500, x1: -430, z0: 47, z1: 82 }
 export const HARBOR = { x: -553, z: 292 } // ujung jalan selatan di pantai (dermaga menjorok ke laut)
 // puncak Pulau Pura diratakan untuk halaman pura
 export const PURA = { x: -893, z: 110, r: 21 }
+// Tegal Wira: lapangan Pulau Wira tempat bala tentara berbaris, diratakan setinggi y
+export const TEGAL = { x0: -490, x1: -50, z0: 370, z1: 577, y: 4.2 }
+// tiang Bangsal Witana di atas Siti Hinggil (relatif pusat batur): 4 saka guru lalu tiang pinggir
+export const SITI_COLS = [[-4.6, -3.2], [4.6, -3.2], [4.6, 3.2], [-4.6, 3.2], [-10.6, -5.3], [0, -5.3], [10.6, -5.3], [-10.6, 0], [10.6, 0], [-10.6, 5.3], [10.6, 5.3]]
+// perkemahan prajurit di ujung barat (tenda) dan timur (kandang kuda) Pulau Wira
+export const CAMPS = [
+  { id: 'tenda', x0: -578, x1: -508, z0: 392, z1: 556 },
+  { id: 'kandang', x0: -32, x1: 34, z0: 392, z1: 540 },
+]
 
 // Jalan: [ax, az, bx, bz, lebar]. Dalam tembok = jalan kota, di luar = jalan tanah antardesa.
 const ring = [[-694, -54], [-426, -54], [-426, 134], [-694, 134]]
@@ -58,6 +70,7 @@ export const BRIDGES = [
   { id: 'sawah', name: 'Jembatan Sawah', axis: 'z', at: -646, from: -150, to: -280, width: 4.6, rise: 1.2 },
   { id: 'pura', name: 'Jembatan Pura', axis: 'x', at: 110, from: -770, to: -880, width: 4.6, rise: 1.2 },
   { id: 'nelayan', name: 'Jembatan Nelayan', axis: 'z', at: -730, from: 200, to: 300, width: 4.6, rise: 1.2 },
+  { id: 'wira', name: 'Jembatan Wira', axis: 'z', at: -470, from: 230, to: 360, width: 6, rise: 1.6 },
 ]
 
 // Nama wilayah untuk spanduk "memasuki …" dan peta (diperiksa berurutan: yang pertama cocok menang)
@@ -68,6 +81,8 @@ export const REGIONS = [
   { id: 'sawah', name: 'Pulau Sawah', sub: 'Lumbung padi kerajaan', island: 'sawah' },
   { id: 'nelayan', name: 'Kampung Nelayan', sub: 'Pulau Nelayan', island: 'nelayan' },
   { id: 'pura', name: 'Pura Segara', sub: 'Pulau Pura', island: 'pura' },
+  { id: 'tegal', name: 'Tegal Wira', sub: 'Bala tentara Kencana siap tempur', rect: TEGAL },
+  { id: 'wira', name: 'Pulau Wira', sub: 'Markas bala tentara Kencana', island: 'wira' },
 ]
 
 export const island = id => ISLANDS.find(i => i.id === id)

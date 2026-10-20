@@ -1,5 +1,54 @@
 # CHANGELOG — Pulau Tropis
 
+## [0.11.0] — 2026-10-20 — Bala tentara Kencana: 25.000 prajurit siap tempur (permintaan pengguna)
+### Ditambahkan
+- **Pulau Wira** — pulau baru di selatan pelabuhan Pulau Kencana, markas bala tentara kerajaan.
+  Dihubungkan **Jembatan Wira** (±85 m) dari ujung timur dermaga pelabuhan.
+- **25.000 prajurit siap tempur** berbaris dalam gelar perang di **Tegal Wira** (lapangan
+  440 × 207 m), menghadap Siti Hinggil:
+  - 5.000 **pemegang perisai** — barisan paling depan, jambul merah, perisai besar;
+  - 5.000 **pemegang tombak** — jambul biru, tombak tegak;
+  - 5.000 **pemegang pedang** — jambul hijau, pedang terhunus;
+  - 5.000 **pemanah** — jambul kuning, busur di tangan, tabung panah di punggung;
+  - 5.000 **penunggang kuda bertombak** — jambul putih, di sayap kiri dan kanan;
+  - ditambah 7 **senapati** berkuda putih dengan panji ungu (di luar hitungan 25.000).
+  Prajurit di dekat pemain bernapas pelan (animasi diam, waktunya berbeda-beda).
+- **Lorong** 4–6 m di antara barisan bisa dilewati; barisannya sendiri tidak bisa ditembus.
+- **Siti Hinggil** (panggung kehormatan): batur bata dengan Bangsal Witana, dampar emas, payung
+  kebesaran, dan tangga; dijaga 4 penjaga.
+- **Perkemahan**:
+  - barat: 113 tenda prajurit + 2 gudang senjata;
+  - timur: 6 kandang kuda + tumpukan jerami;
+  - umbul-umbul berwarna pasukan di sepanjang jalan depan dan di sudut-sudut barisan.
+- **Peta dunia**: Pulau Wira, kotak warna tiap pasukan, label "Tegal Wira · 25.000 prajurit".
+  **Spanduk wilayah** "Pulau Wira" dan "Tegal Wira".
+- Model kuda (Kenney "Prototype Kit") dan perisai (Kenney "Mini Dungeon"), CC0, dikemas menjadi
+  `public/models/bala.glb` (42 KB) oleh `scripts/pack-bala.py`.
+### Cara kerjanya (supaya ringan di HP)
+- **Dekat pemain**: 70 / 160 / 320 prajurit terdekat (Rendah / Sedang / Tinggi) digambar sebagai model
+  3D beranimasi lengkap dengan senjatanya, selama kamera cukup dekat (< 32 / 42 / 55 m).
+- **Selebihnya — "impostor"**: tiap jenis prajurit dipotret sekali saat dimuat, dari 16 arah × 4 sudut
+  pandang. Tiap prajurit lalu menjadi satu kotak yang memakai potret paling cocok.
+- Seluruh 25.000 prajurit = 1 draw call, ditambah 1 draw call untuk bayangan kontak.
+- Segitiga per frame di layar HP saat di dekat barisan: Rendah ±220–270 rb, Sedang ±245–320 rb,
+  Tinggi ±390–520 rb.
+### Diubah
+- Dunia diperluas 250 m ke selatan (kini 1.625 × 1.250 m).
+- Pulau Tropis dan isi Kepulauan Kencana lama tidak berubah, dicek terhadap v0.10.0:
+  - tinggi tanah setiap daratan, semua bangunan, dan penduduk sama persis;
+  - pohon & batu Pulau Tropis sama semua;
+  - di Pulau Kencana hanya 0–3 pohon di dekat jalan baru ke Jembatan Wira yang bergeser.
+- Petunjuk kontrol menyebut Pulau Wira.
+- Fungsi rangka yang dipanggang dipindah dari `villagers.js` ke `rig.js` (dipakai penduduk dan prajurit).
+### Pengujian
+- Smoke test ditambah:
+  - jumlah prajurit tiap pasukan dan senapati;
+  - menyeberangi Jembatan Wira;
+  - spanduk "Tegal Wira";
+  - prajurit 3D di dekat pemain + impostor;
+  - barisan menahan prajurit;
+  - foto barisan dan Pulau Wira dari udara.
+
 ## [0.10.0] — 2026-10-19 — Kepulauan Kencana: kerajaan besar di barat (Milestone 3, permintaan pengguna)
 ### Ditambahkan
 - **Dunia diperluas ke barat** (1.625 × 1.000 m): Pulau Tropis tetap di tengah, di baratnya

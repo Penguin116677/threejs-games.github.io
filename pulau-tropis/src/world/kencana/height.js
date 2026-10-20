@@ -1,25 +1,43 @@
 import { fbm, smoothstep } from '../../core/noise.js'
-import { ISLANDS, CITY, PURA, BRIDGES, rectDistance } from './layout.js'
+import { ISLANDS, CITY, PURA, TEGAL, CAMPS, BRIDGES, rectDistance } from './layout.js'
 
 // Bentuk tanah Kepulauan Kencana. Profil pantainya sama dengan Pulau Tropis (dasar laut → paparan
 // dangkal → pantai pasir landai) supaya ombak, pasir basah, dan warna air berlaku sama.
 const SEA_FLOOR = -18
 // kotak yang memuat semua pulau barat + paparannya (di luar ini = dasar laut, tanpa noise)
-const BOX = { x0: -1000, x1: -180, z0: -500, z1: 500 }
+const BOX = { x0: -1000, x1: 240, z0: -500, z1: 750 }
 // ujung jembatan: tempat tanah turun di bawah tinggi ini (±tepi atas pantai pasir)
 export const BRIDGE_END_Y = 2.0
 // tinggi halaman pura: sedikit di bawah puncak alami bukitnya
 const PURA_Y = 8.5
+// dataran Pulau Wira yang diratakan setinggi Tegal Wira: lapangan + halaman Siti Hinggil di
+// utaranya + kedua perkemahan
+const WIRA_FLAT = [{ ...TEGAL, z0: TEGAL.z0 - 42 }, ...CAMPS]
+
+// jarak ternormalisasi ke pusat pulau (1 = garis pantai rata-rata), sebelum garis pantai dibuat berkelok
+export function islandDistance(isl, x, z) {
+  if (isl.rx) return Math.hypot((x - isl.x) / isl.rx, (z - isl.z) / isl.rz)
+  return Math.sqrt((x - isl.x) ** 2 + (z - isl.z) ** 2) / isl.r
+}
 
 function islandHeight(isl, x, z) {
-  const dx = x - isl.x
-  const dz = z - isl.z
-  const reach = isl.r * (1 + isl.wobble) * 1.38
-  const d2 = dx * dx + dz * dz
-  if (d2 > reach * reach) return SEA_FLOOR
-  // garis pantai sedikit berkelok (noise), bukan lingkaran sempurna
-  const shape = fbm(x * 0.009 + isl.seed * 1.7, z * 0.009 - isl.seed, 3, isl.seed)
-  const t = Math.sqrt(d2) / (isl.r * (1 + (shape - 0.5) * 2 * isl.wobble))
+  let t
+  if (isl.rx) {
+    // pulau lonjong (elips rx × rz)
+    const u = islandDistance(isl, x, z)
+    if (u > (1 + isl.wobble) * 1.38) return SEA_FLOOR
+    const shape = fbm(x * 0.009 + isl.seed * 1.7, z * 0.009 - isl.seed, 3, isl.seed)
+    t = u / (1 + (shape - 0.5) * 2 * isl.wobble)
+  } else {
+    const dx = x - isl.x
+    const dz = z - isl.z
+    const reach = isl.r * (1 + isl.wobble) * 1.38
+    const d2 = dx * dx + dz * dz
+    if (d2 > reach * reach) return SEA_FLOOR
+    // garis pantai sedikit berkelok (noise), bukan lingkaran sempurna
+    const shape = fbm(x * 0.009 + isl.seed * 1.7, z * 0.009 - isl.seed, 3, isl.seed)
+    t = Math.sqrt(d2) / (isl.r * (1 + (shape - 0.5) * 2 * isl.wobble))
+  }
   let h = SEA_FLOOR + (-SEA_FLOOR - 1.2) * smoothstep(1.38, 1.02, t)
   h += 3.6 * smoothstep(1.04, 0.87, t)
   const inland = smoothstep(0.92, 0.45, t)
@@ -35,6 +53,12 @@ function islandHeight(isl, x, z) {
     // halaman pura di puncak bukit: rata, tepinya landai menyatu dengan lereng
     const f = 1 - smoothstep(PURA.r * 0.7, PURA.r * 1.25, Math.hypot(x - PURA.x, z - PURA.z))
     h += (PURA_Y - h) * f
+  } else if (isl.id === 'wira') {
+    // Tegal Wira & perkemahan: rata, memudar ke pantai
+    let d = Infinity
+    for (const r of WIRA_FLAT) d = Math.min(d, rectDistance(x, z, r))
+    const flat = (1 - smoothstep(6, 30, d)) * smoothstep(0.95, 0.82, t)
+    h += (TEGAL.y - h) * flat
   }
   return h
 }

@@ -1,7 +1,8 @@
 import * as THREE from 'three'
 import * as B from './buildings.js'
 import { buildingMaterial, buildingDepthMaterial, buildingTime } from './material.js'
-import { ISLANDS, CITY, rectDistance } from './layout.js'
+import { ISLANDS, CITY, TEGAL, CAMPS, rectDistance, inRect } from './layout.js'
+import { islandDistance } from './height.js'
 import { buildRoutes } from './routes.js'
 import { forestMask } from '../biome.js'
 import { scatter } from '../../core/spatial.js'
@@ -48,6 +49,10 @@ function partsFor(b, ground) {
     case 'bale': return B.bale(b.w, b.d)
     case 'dangau': return B.dangau(b.w, b.d)
     case 'umbul': return B.umbul(b.h, b.color)
+    case 'siti-hinggil': return B.sitiHinggil(b.w, b.d, b.h)
+    case 'tenda': return B.tenda(b.w, b.d, b.color)
+    case 'kandang': return B.kandang(b.w, b.d)
+    case 'jerami': return B.jerami()
     case 'peti': return B.peti()
     case 'gentong': return B.gentong()
     case 'jemuran': return B.jemuran()
@@ -227,36 +232,42 @@ export function createKencana({ ground, plan, mask, grid, quality, noiseTexture 
   )
 
   // pohon liar: kelapa di pantai, hutan kecil & pohon payung di pedalaman, semak & bunga
-  const reserved = (x, z, r) => mask.reserved(x, z, r + 1) || rectDistance(x, z, CITY) < 10
+  const reserved = (x, z, r) => mask.reserved(x, z, r + 1) || rectDistance(x, z, CITY) < 10 || rectDistance(x, z, TEGAL) < 10
+    || CAMPS.some(c => inRect(x, z, c, r + 2))
   const roadPalms = special('kelapa')
   const all = { kelapa: [], pohon: [], payung: [], semak: [], bunga: [] }
   for (const isl of ISLANDS) {
-    const area = isl.r * 1.12
-    const share = (isl.r / 255) ** 2
+    // lingkaran sebar tiap pulau (pulau lonjong: selebar sumbu panjangnya) bisa menjangkau pulau
+    // tetangga; hanya titik di pulau itu sendiri yang dipakai. Pulau Wira berhutan jarang.
+    const oval = !!isl.rx
+    const area = (oval ? Math.max(isl.rx, isl.rz) : isl.r) * 1.12
+    const share = oval ? (isl.rx * isl.rz) / 255 ** 2 : (isl.r / 255) ** 2
+    const forest = isl.forest ?? 1
+    const on = (x, z) => islandDistance(isl, x, z) < 1.1
     all.kelapa.push(...scatter({
       ground, grid, kind: 'kelapa', seed: 1101 + isl.seed, radius: 1.8, area, cx: isl.x, cz: isl.z, reserved,
       count: Math.round(130 * d * Math.sqrt(share)),
-      accept: (x, z, h, slope, rand) => h > 0.9 && h < 4.2 && slope < 0.3 && rand() < 0.6,
+      accept: (x, z, h, slope, rand) => on(x, z) && h > 0.9 && h < 4.2 && slope < 0.3 && rand() < 0.6,
     }))
     all.pohon.push(...scatter({
       ground, grid, kind: 'pohon', seed: 1202 + isl.seed, radius: 2.3, area, cx: isl.x, cz: isl.z, reserved,
-      count: Math.round(340 * d * share) + 6,
-      accept: (x, z, h, slope) => h > 3 && h < 30 && slope < 0.6 && forestMask(x, z) > 0.44,
+      count: Math.round(340 * d * share * forest) + 6,
+      accept: (x, z, h, slope) => on(x, z) && h > 3 && h < 30 && slope < 0.6 && forestMask(x, z) > 0.44,
     }))
     all.payung.push(...scatter({
       ground, grid, kind: 'pohon', seed: 1303 + isl.seed, radius: 4.5, area, cx: isl.x, cz: isl.z, reserved,
-      count: Math.round(40 * d * share) + 2,
-      accept: (x, z, h, slope, rand) => h > 3 && h < 30 && slope < 0.45 && rand() < 0.5,
+      count: Math.round(40 * d * share * forest) + 2,
+      accept: (x, z, h, slope, rand) => on(x, z) && h > 3 && h < 30 && slope < 0.45 && rand() < 0.5,
     }))
     all.semak.push(...scatter({
       ground, grid, kind: 'semak', seed: 1404 + isl.seed, radius: 1.1, area, cx: isl.x, cz: isl.z, reserved,
-      count: Math.round(260 * d * share) + 8,
-      accept: (x, z, h, slope) => h > 2.8 && slope < 0.7,
+      count: Math.round(260 * d * share * Math.sqrt(forest)) + 8,
+      accept: (x, z, h, slope) => on(x, z) && h > 2.8 && slope < 0.7,
     }))
     all.bunga.push(...scatter({
       ground, grid, kind: 'semak', seed: 1505 + isl.seed, radius: 1.0, area, cx: isl.x, cz: isl.z, reserved,
-      count: Math.round(90 * d * share) + 6,
-      accept: (x, z, h, slope) => h > 2.8 && slope < 0.5,
+      count: Math.round(90 * d * share * Math.sqrt(forest)) + 6,
+      accept: (x, z, h, slope) => on(x, z) && h > 2.8 && slope < 0.5,
     }))
   }
   trees.add(

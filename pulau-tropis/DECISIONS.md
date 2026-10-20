@@ -203,3 +203,49 @@ tandai sebagai "diganti" bila berubah.
 39. **Peta dunia & spanduk wilayah dibuat lebih awal** (bagian Milestone 6) karena dunia kini
     beberapa pulau: peta digambar sekali dari tinggi tanah + masker + jejak bangunan (2 m/piksel),
     lalu hanya penanda prajurit yang digambar ulang saat dibuka.
+40. **Bala tentara di pulau baru (Pulau Wira), bukan di Pulau Kencana** (v0.11.0, permintaan:
+    25.000 prajurit untuk kerajaan).
+    - Kebutuhan ruang: 25.000 prajurit dalam gelar perang butuh ±60.000 m², lebih luas dari
+      kotaraja. Di Pulau Kencana itu berarti menghapus sawah, hutan, dan desa yang sudah ada.
+    - Jadi dibuat pulau lonjong 720 × 370 m di selatan pelabuhan, dan dunia diperluas 250 m ke
+      selatan. Batas dunia tetap kelipatan 125 m, jadi grid pulau tengah tidak bergeser.
+    - Gelar perang menghadap Siti Hinggil (utara): perisai di depan, lalu tombak, pedang, pemanah;
+      pasukan berkuda di kedua sayap.
+    - Isi pulau lain dijaga tetap sama:
+      - bagian Pulau Wira di `plan.js` dibuat paling akhir, dengan angka acak sendiri;
+      - masker untuk pohon pulau tengah tetap berbatas x = −150;
+      - tiap pulau hanya menebar pohon di pulau itu sendiri.
+41. **25.000 prajurit = model 3D di dekat pemain + "impostor" untuk sisanya**. Model penuh 25.000 ×
+    ±550 segitiga ≈ 14 juta segitiga, jauh di atas kemampuan HP.
+    - Dekat: N terdekat dari pemain (70 / 160 / 320), dan hanya bila kamera < 32–55 m, digambar 3D
+      dengan rangka dipanggang (keputusan #37).
+    - Sisanya:
+      - tiap jenis dipotret sekali saat dimuat dari 16 arah × 4 sudut pandang (20°/40°/60°/80°) ke
+        satu atlas sRGB ber-mipmap, dengan material dan cahaya matahari yang sama;
+      - tiap prajurit = satu kotak menghadap kamera dalam SATU draw call;
+      - shader memilih potret menurut arah kamera dilihat dari prajurit;
+      - prajurit yang sedang digambar 3D disembunyikan lewat uniform: pusat + jari-jari DAN jarak
+        terjauh dari kamera. Uji sembunyi di shader harus sama persis dengan pemilihan 3D di
+        `update()`; bila hanya memakai lingkaran, prajurit di dalam lingkaran yang terlalu jauh dari
+        kamera tidak digambar sama sekali (bolong hingga ±400 prajurit saat zoom setengah jauh).
+    - Pilihan yang dicoba dan ditolak:
+      - 12 arah × 3 sudut pandang: pita terang-gelap di antara potret dan warna pudar saat
+        dicampur;
+      - campuran rata alfa: prajurit tampak tembus pandang di pita peralihan.
+    - Yang dipakai:
+      - sudut pandang lebih rapat;
+      - campuran hanya di pita sempit dekat batas potret;
+      - keburaman = yang terbesar (bukan dirata-rata).
+    - Prajurit 3D tidak memakai bayangan peta bayangan, karena impostor juga tidak. Semua prajurit
+      memakai bayangan kontak yang sama; dengan bayangan asli, area 3D tampak sebagai lingkaran
+      gelap.
+    - Barisan sebagai penghalang: 20 kotak (satu per kelompok) + lorong 4–6 m yang bisa
+      dilewati — bukan 25.000 collider.
+42. **Semua prajurit dari model pemain (Kenney Mini Arena), warna pasukan dari palet**.
+    - Pose tiap jenis = klip idle dengan satu lengan dikunci pada pose "holding" (memegang perisai /
+      busur / pedang ke depan); badan tetap bernapas. Kavaleri: pose "drive" di atas pelana.
+    - Warna pasukan: kotak warna merah jambul & sabuk di palet diganti kotak lain lewat uv — merah,
+      biru, hijau, kuning, putih, ungu (senapati). Jadi semua jenis memakai SATU tekstur.
+    - Kuda (Kenney Prototype Kit, 8 bagian kaku → 8 "tulang" tambahan) dan perisai (Mini Dungeon)
+      dikemas ke `bala.glb`, uv-nya dipetakan ke palet yang sama.
+    - Tombak, busur, tabung panah, panji, pelana dibuat di kode.

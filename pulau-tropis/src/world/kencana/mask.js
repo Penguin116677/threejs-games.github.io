@@ -4,7 +4,8 @@ import { segmentDistance, rectDistance } from './layout.js'
 // Masker permukaan Kepulauan Kencana (1 texel = 1 m), dibaca shader tanah:
 //   r = jalan tanah, g = sawah, b = lantai batu, a = rumput halus.
 // Ditambah peta "terpakai" (jalan, lantai, sawah, jejak bangunan) untuk menjauhkan pohon.
-export const MASK = { x0: -980, z0: -470, x1: -150, z1: 480 }
+export const MASK = { x0: -980, z0: -470, x1: -30, z1: 640 }
+const OLD_EDGE = -150
 
 export function createRegionMask(plan, ground) {
   const w = MASK.x1 - MASK.x0
@@ -39,7 +40,7 @@ export function createRegionMask(plan, ground) {
     if (f.r) paint(1, f.x - f.r, f.z - f.r, f.x + f.r, f.z + f.r, (x, z) => (paddy(x, z) ? soft(Math.hypot(x - f.x, z - f.z) - f.r) : 0))
     else paint(1, f.x0, f.z0, f.x1, f.z1, (x, z) => (paddy(x, z) ? soft(rectDistance(x, z, f)) : 0))
   for (const l of plan.lawn) paint(3, l.x0 - 1, l.z0 - 1, l.x1 + 1, l.z1 + 1, (x, z) => soft(rectDistance(x, z, l)))
-  for (const [ax, az, bx, bz, rw] of plan.roads)
+  for (const [ax, az, bx, bz, rw] of [...plan.roads, ...plan.tracks])
     paint(0, Math.min(ax, bx) - rw, Math.min(az, bz) - rw, Math.max(ax, bx) + rw, Math.max(az, bz) + rw,
       (x, z) => soft(segmentDistance(x, z, ax, az, bx, bz) - rw / 2))
   for (const p of plan.pave) paint(2, p.x0 - 1, p.z0 - 1, p.x1 + 1, p.z1 + 1, (x, z) => soft(rectDistance(x, z, p)))
@@ -72,6 +73,9 @@ export function createRegionMask(plan, ground) {
   texture.needsUpdate = true
 
   const usedAt = (x, z) => {
+    // sampai v0.10.0 masker berakhir di x = −150; pulau tengah tetap memakai batas itu supaya letak
+    // pohon & batunya sama persis (masker kini melebar ke timur hanya untuk Pulau Wira)
+    if (x >= OLD_EDGE && z < 300) return false
     const i = Math.floor(x - MASK.x0)
     const j = Math.floor(z - MASK.z0)
     return i >= 0 && j >= 0 && i < w && j < h && used[j * w + i] === 1

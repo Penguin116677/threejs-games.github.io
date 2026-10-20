@@ -148,4 +148,29 @@ dengan `python3 scripts/pack-penduduk.py "<folder GLB format>" public/models/pen
    (barat daya, rumah panggung & perahu di pasir), **Pura Segara** (barat, meru di puncak bukit).
 8. Catat FPS di kota (paling ramai) dan di Pulau Tropis untuk tiap tingkat kualitas.
 
+## Daftar uji manual — v0.11.0 (bala tentara 25.000 prajurit di Pulau Wira)
+1. Buka **Peta**: **Pulau Wira** ada di selatan Pulau Kencana. Barisan tampak sebagai pita warna:
+   merah (perisai), biru (tombak), hijau (pedang), kuning (pemanah), putih (kavaleri, di kedua sisi).
+2. Pergi ke pelabuhan Pulau Kencana (gerbang selatan kota → jalan ke selatan). Dari ujung timur
+   dermaga, seberangi **Jembatan Wira** (±85 m) → spanduk "Pulau Wira".
+3. Ikuti jalan ke timur di depan barisan. Spanduk "Tegal Wira" muncul. Naik tangga **Siti Hinggil**
+   (panggung beratap di utara jalan) untuk melihat seluruh barisan dari atas.
+4. Berjalan menyusuri garis depan: dinding perisai merah. Senapati berkuda putih dengan panji ungu
+   berdiri di depan tiap pasukan.
+   - Zoom dekat: prajurit di dekatmu bernapas pelan dan memegang senjatanya.
+   - Zoom jauh / Lihat pulau: ribuan prajurit tetap tampak rapi sampai ke belakang.
+   - Di dalam lorong, zoom perlahan dari paling dekat sampai paling jauh: barisan di sekitarmu
+     tidak boleh bolong (petak rumput dengan bayangan bulat tanpa prajurit) di zoom mana pun.
+5. Masuk **lorong** (4 m) di antara kelompok barisan dan **celah** (6 m) di antara pasukan. Coba
+   berjalan menembus barisan → tertahan.
+6. Putar kamera mengelilingi barisan. Prajurit yang jauh berganti "potret" saat arah kamera berubah.
+   Laporkan bila lompatan atau pita terang-gelapnya terasa mengganggu.
+7. Kunjungi perkemahan: deretan tenda (barat) dan kandang kuda (timur).
+8. Catat:
+   - FPS di depan barisan, di dalam lorong, dan saat zoom jauh, untuk tiap tingkat kualitas;
+   - lama memuat (layar "Membariskan 25.000 prajurit…").
+
+Model kuda & perisai (`public/models/bala.glb`) dibuat ulang dari aset Kenney dengan
+`python3 scripts/pack-bala.py "<folder Kenney 3D assets>" public/models/prajurit.glb public/models/bala.glb`.
+
 Laporkan: model HP, angka FPS di tiap tingkat kualitas, screenshot, dan langkah yang gagal.

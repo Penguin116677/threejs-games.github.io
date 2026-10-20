@@ -1,19 +1,19 @@
 import * as THREE from 'three'
 import { clone as cloneSkinned } from 'three/addons/utils/SkeletonUtils.js'
+import { bakeRig, rigGeometry, bakedMatrix, attach, toBufferGeometry, boneTexture, animate, frameOf as clipFrame } from './rig.js'
 
 // Penduduk Kerajaan Kencana: ratusan orang berjalan di jalan-jalan kota, berdagang di pasar,
 // bertani, menjaga gerbang. Model: Kenney "Mini Characters" (CC0, penduduk.glb) + prajurit
 // Kenney "Mini Arena" (penjaga, membawa tombak). Supaya ringan di HP:
-// - animasi rangka (7 tulang) DIPANGGANG sekali ke tekstur: tiap baris = satu bingkai animasi,
-//   tiap tulang = 3 texel matriks. Shader membaca matriks tulang untuk bingkai milik tiap orang,
-//   jadi semua orang sejenis digambar dalam SATU draw call (InstancedMesh), tanpa SkinnedMesh.
+// - animasi rangka (7 tulang) DIPANGGANG sekali ke tekstur (rig.js), jadi semua orang sejenis
+//   digambar dalam SATU draw call (InstancedMesh), tanpa SkinnedMesh.
 // - hanya orang di sekitar kamera yang ditulis ke buffer instance (yang jauh tidak digambar).
 // Penduduk berjalan dari simpul ke simpul jaringan jalan (routes.js), sesekali berhenti, dan
 // menoleh + melambai saat prajurit mendekat.
 
 const SCALE = 2.3 // sama dengan prajurit pemain
-const FPS = 30 // kerapatan bingkai yang dipanggang
 const CLIPS = { idle: 'idle', walk: 'walk', sit: 'sit', interact: 'interact-right', pickup: 'pick-up', wave: 'emote-yes' }
+const SPECS = Object.fromEntries(Object.entries(CLIPS).map(([key, clip]) => [key, { clip, loop: key !== 'wave' }]))
 const WALK_ANIM_SPEED = 1.4 // m/s yang cocok dengan klip walk pada kecepatan 1×
 const FADE = 0.25 // detik peralihan antar animasi
 const NEAR = 2.6 // m: menoleh & melambai ke prajurit
@@ -24,138 +24,6 @@ const TYPES = ['male-a', 'male-b', 'male-e', 'male-f', 'female-a', 'female-b', '
 const UV = { emas: [0.3125, 0.5625], kayu: [0.8125, 0.8125], besi: [0.4375, 0.8125] }
 
 const _m = new THREE.Matrix4()
-const _inv = new THREE.Matrix4()
-
-// Panggang semua klip sebuah rangka: hasil { rows: [Float32Array(7×12)], table: { kunci: { row, n, loop } } }
-function bakeRig(root, clips, rows) {
-  let skinned = null
-  root.traverse(o => {
-    if (!skinned && o.isSkinnedMesh) skinned = o
-  })
-  const { skeleton } = skinned
-  const mixer = new THREE.AnimationMixer(root)
-  const table = {}
-  for (const [key, name] of Object.entries(CLIPS)) {
-    const clip = THREE.AnimationClip.findByName(clips, name)
-    if (!clip) continue
-    mixer.stopAllAction()
-    mixer.clipAction(clip).reset().play()
-    const n = Math.max(1, Math.round(clip.duration * FPS))
-    table[key] = { row: rows.length, n, loop: key !== 'wave' }
-    for (let f = 0; f < n; f++) {
-      mixer.setTime(f / FPS)
-      root.updateMatrixWorld(true)
-      _inv.copy(root.matrixWorld).invert()
-      const frame = new Float32Array(skeleton.bones.length * 12)
-      skeleton.bones.forEach((bone, j) => {
-        _m.multiplyMatrices(_inv, bone.matrixWorld).multiply(skeleton.boneInverses[j])
-        const e = _m.elements // kolom-mayor → simpan tiga baris
-        frame.set([e[0], e[4], e[8], e[12], e[1], e[5], e[9], e[13], e[2], e[6], e[10], e[14]], j * 12)
-      })
-      rows.push(frame)
-    }
-  }
-  mixer.stopAllAction()
-  return { table, skeleton }
-}
-
-// geometri gabungan semua SkinnedMesh di bawah `root` (posisi bind) + atribut aBone
-function rigGeometry(meshes) {
-  const pos = []
-  const nor = []
-  const uv = []
-  const bone = []
-  const index = []
-  for (const mesh of meshes) {
-    const g = mesh.geometry
-    const base = pos.length / 3
-    const p = g.attributes.position
-    const n = g.attributes.normal
-    const t = g.attributes.uv
-    const s = g.attributes.skinIndex
-    const w = g.attributes.skinWeight
-    for (let i = 0; i < p.count; i++) {
-      pos.push(p.getX(i), p.getY(i), p.getZ(i))
-      nor.push(n.getX(i), n.getY(i), n.getZ(i))
-      uv.push(t.getX(i), t.getY(i))
-      // rangka kaku: tulang dengan bobot terbesar
-      let best = 0
-      for (let k = 1; k < 4; k++) if (w.getComponent(i, k) > w.getComponent(i, best)) best = k
-      bone.push(s.getComponent(i, best))
-    }
-    const idx = g.index
-    for (let i = 0; i < idx.count; i++) index.push(base + idx.getX(i))
-  }
-  return { pos, nor, uv, bone, index }
-}
-
-// matriks tulang j pada baris bingkai `row` yang sudah dipanggang (ruang model)
-function bakedMatrix(rows, row, j) {
-  const r = rows[row].subarray(j * 12, j * 12 + 12)
-  return new THREE.Matrix4().set(r[0], r[1], r[2], r[3], r[4], r[5], r[6], r[7], r[8], r[9], r[10], r[11], 0, 0, 0, 1)
-}
-
-// Tambahkan bentuk sederhana yang ikut tulang j. `geo` diberikan dalam ruang model pada pose
-// bingkai `row` (mis. tombak tegak saat berdiri diam); diubah ke ruang bind lewat kebalikan
-// matriks tulang bingkai itu, jadi tetap tegak saat pose itu dan ikut berayun bersama lengan.
-function attach(dst, geo, rows, row, j, uvAt) {
-  const g = geo.index ? geo.toNonIndexed() : geo
-  g.applyMatrix4(bakedMatrix(rows, row, j).invert())
-  const base = dst.pos.length / 3
-  const p = g.attributes.position
-  const n = g.attributes.normal
-  for (let i = 0; i < p.count; i++) {
-    dst.pos.push(p.getX(i), p.getY(i), p.getZ(i))
-    dst.nor.push(n.getX(i), n.getY(i), n.getZ(i))
-    dst.uv.push(uvAt[0], uvAt[1])
-    dst.bone.push(j)
-    dst.index.push(base + i)
-  }
-}
-
-function toBufferGeometry(d) {
-  const g = new THREE.BufferGeometry()
-  g.setAttribute('position', new THREE.Float32BufferAttribute(d.pos, 3))
-  g.setAttribute('normal', new THREE.Float32BufferAttribute(d.nor, 3))
-  g.setAttribute('uv', new THREE.Float32BufferAttribute(d.uv, 2))
-  g.setAttribute('aBone', new THREE.Float32BufferAttribute(d.bone, 1))
-  g.setIndex(d.index)
-  return g
-}
-
-const ANIM_GLSL = /* glsl */`
-uniform sampler2D uBones;
-attribute float aBone;
-attribute vec4 aAnimA; // baris bingkai 0, baris bingkai 1, campuran, bobot klip B
-attribute vec4 aAnimB; // baris bingkai 0, baris bingkai 1, campuran (klip sebelumnya, memudar)
-mat4 boneAt(int b, float row) {
-  ivec2 c = ivec2(b * 3, int(row));
-  vec4 r0 = texelFetch(uBones, c, 0);
-  vec4 r1 = texelFetch(uBones, c + ivec2(1, 0), 0);
-  vec4 r2 = texelFetch(uBones, c + ivec2(2, 0), 0);
-  return mat4(r0.x, r1.x, r2.x, 0.0, r0.y, r1.y, r2.y, 0.0, r0.z, r1.z, r2.z, 0.0, r0.w, r1.w, r2.w, 1.0);
-}
-mat4 animMatrix() {
-  int b = int(aBone + 0.5);
-  mat4 a = boneAt(b, aAnimA.x) * (1.0 - aAnimA.z) + boneAt(b, aAnimA.y) * aAnimA.z;
-  if (aAnimA.w <= 0.0) return a;
-  mat4 c = boneAt(b, aAnimB.x) * (1.0 - aAnimB.z) + boneAt(b, aAnimB.y) * aAnimB.z;
-  return a * (1.0 - aAnimA.w) + c * aAnimA.w;
-}
-`
-
-// matriks tulang dihitung sekali di awal main(); normal & posisi memakai matriks yang sama
-// (berlaku untuk material Lambert maupun material kedalaman bayangan)
-function animate(shader, bones) {
-  shader.uniforms.uBones = { value: bones }
-  shader.vertexShader = ANIM_GLSL + shader.vertexShader
-    .replace('void main() {', 'void main() {\n  mat4 animM = animMatrix();')
-    .replace('#include <beginnormal_vertex>', `vec3 objectNormal = normalize(mat3(animM) * vec3(normal));
-      #ifdef USE_TANGENT
-        vec3 objectTangent = vec3(tangent.xyz);
-      #endif`)
-    .replace('#include <begin_vertex>', 'vec3 transformed = (animM * vec4(position, 1.0)).xyz;')
-}
 
 // villagerGltf: hasil GLTFLoader untuk penduduk.glb; soldier: aset prajurit pemain ({ model, clips })
 export function createVillagers({ ground, routes, spots, quality, villagerGltf, soldier }) {
@@ -164,7 +32,7 @@ export function createVillagers({ ground, routes, spots, quality, villagerGltf, 
   const rows = []
 
   // --- rangka & geometri penduduk
-  const villagerRig = bakeRig(villagerGltf.scene, villagerGltf.animations, rows)
+  const villagerRig = bakeRig(villagerGltf.scene, villagerGltf.animations, rows, SPECS)
   const meshesByName = {}
   villagerGltf.scene.traverse(o => {
     if (o.isSkinnedMesh) meshesByName[o.name.replace('character-', '')] = o
@@ -193,7 +61,7 @@ export function createVillagers({ ground, routes, spots, quality, villagerGltf, 
   // --- penjaga: prajurit Mini Arena + tombak di tangan kanan (tulang 5)
   if (soldier) {
     const clone = cloneSkinned(soldier.model)
-    const soldierRig = bakeRig(clone, soldier.clips, rows)
+    const soldierRig = bakeRig(clone, soldier.clips, rows, SPECS)
     const parts = []
     clone.traverse(o => {
       if (o.isSkinnedMesh) parts.push(o)
@@ -211,13 +79,7 @@ export function createVillagers({ ground, routes, spots, quality, villagerGltf, 
   }
 
   // --- tekstur tulang
-  const W = 7 * 3
-  const tex = new Float32Array(W * rows.length * 4)
-  rows.forEach((frame, r) => tex.set(frame, r * W * 4))
-  const bones = new THREE.DataTexture(tex, W, rows.length, THREE.RGBAFormat, THREE.FloatType)
-  bones.magFilter = THREE.NearestFilter
-  bones.minFilter = THREE.NearestFilter
-  bones.needsUpdate = true
+  const bones = boneTexture(rows, 7)
 
   // --- orang-orang
   const agents = []
@@ -294,27 +156,7 @@ export function createVillagers({ ground, routes, spots, quality, villagerGltf, 
     a.clip = clip
     a.t = 0
   }
-  function frameOf(table, clip, t, out, o) {
-    const c = table[clip] || table.idle
-    const f = t * FPS
-    let f0
-    let f1
-    let frac
-    if (c.loop) {
-      const w = ((f % c.n) + c.n) % c.n
-      f0 = Math.floor(w)
-      f1 = (f0 + 1) % c.n
-      frac = w - f0
-    } else {
-      const w = Math.min(f, c.n - 1)
-      f0 = Math.floor(w)
-      f1 = Math.min(f0 + 1, c.n - 1)
-      frac = w - f0
-    }
-    out[o] = c.row + f0
-    out[o + 1] = c.row + f1
-    out[o + 2] = frac
-  }
+  const frameOf = (table, clip, t, out, o) => clipFrame(table[clip] || table.idle, t, out, o)
 
   // --- gerak
   const turn = (h, want, k) => h + Math.atan2(Math.sin(want - h), Math.cos(want - h)) * k

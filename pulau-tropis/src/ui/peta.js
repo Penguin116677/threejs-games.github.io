@@ -1,5 +1,7 @@
 import { WORLD } from '../world/world.js'
-import { ISLANDS, CITY, KERATON, inRect } from '../world/kencana/layout.js'
+import { ISLANDS, CITY, KERATON, TEGAL, inRect } from '../world/kencana/layout.js'
+import { islandDistance } from '../world/kencana/height.js'
+import { DIVISIONS } from '../world/kencana/barisan.js'
 
 // Peta dunia (tombol "Peta") dan spanduk nama wilayah saat prajurit memasuki pulau/kota baru.
 
@@ -14,7 +16,9 @@ const LABELS = [
   { text: 'Pulau Nelayan', x: -760, z: 452, size: 13 },
   { text: 'Pura Segara', x: -890, z: 58, size: 12 },
   { text: 'Jembatan Agung', x: -252, z: 24, size: 11 },
-  { text: 'Pelabuhan', x: -553, z: 322, size: 11 },
+  { text: 'Pelabuhan', x: -553, z: 236, size: 11 },
+  { text: 'Pulau Wira', x: -270, z: 620, size: 14 },
+  { text: 'Tegal Wira · 25.000 prajurit', x: -270, z: 352, size: 11 },
 ]
 
 const lerp = (a, b, t) => a + (b - a) * t
@@ -24,6 +28,7 @@ const clamp01 = t => Math.min(1, Math.max(0, t))
 export function regionAt(x, z, ground, spans) {
   if (inRect(x, z, KERATON)) return { id: 'keraton', name: 'Keraton Kencana', sub: 'Istana Raja Kencana' }
   if (inRect(x, z, CITY, 1)) return { id: 'kotaraja', name: 'Kotaraja Kencana', sub: 'Ibu kota Kerajaan Kencana' }
+  if (inRect(x, z, TEGAL)) return { id: 'tegal', name: 'Tegal Wira', sub: '25.000 prajurit Kencana siap tempur' }
   for (const b of spans) {
     const along = b.axis === 'x' ? x : z
     const across = b.axis === 'x' ? z : x
@@ -35,14 +40,14 @@ export function regionAt(x, z, ground, spans) {
   let best = null
   let bestD = Infinity
   for (const isl of ISLANDS) {
-    const d = Math.hypot(x - isl.x, z - isl.z) / isl.r
+    const d = islandDistance(isl, x, z)
     if (d < bestD) {
       bestD = d
       best = isl
     }
   }
   if (!best || bestD > 1.35) return null
-  const SUB = { kencana: 'Kepulauan Kencana', sawah: 'Lumbung padi kerajaan', nelayan: 'Kampung nelayan', pura: 'Pura di puncak bukit' }
+  const SUB = { kencana: 'Kepulauan Kencana', sawah: 'Lumbung padi kerajaan', nelayan: 'Kampung nelayan', pura: 'Pura di puncak bukit', wira: 'Markas bala tentara Kencana' }
   return { id: best.id, name: best.id === 'pura' ? 'Pura Segara' : best.name, sub: SUB[best.id] }
 }
 
@@ -125,6 +130,11 @@ export function createWorldMap({ ground, plan, region, camps = [] }) {
       g.rotate(-(b.rot || 0))
       g.fillRect(-b.hx / M_PER_PX, -b.hz / M_PER_PX, (2 * b.hx) / M_PER_PX, (2 * b.hz) / M_PER_PX)
       g.restore()
+    }
+    // barisan bala tentara: kotak berwarna pasukannya
+    for (const b of plan.army?.blocks ?? []) {
+      g.fillStyle = DIVISIONS[b.type].map
+      g.fillRect(px(b.x0), pz(b.z0), (b.x1 - b.x0) / M_PER_PX, (b.z1 - b.z0) / M_PER_PX)
     }
     // jembatan
     g.strokeStyle = '#f4efe2'

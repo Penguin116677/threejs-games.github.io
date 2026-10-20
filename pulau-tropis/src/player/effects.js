@@ -17,6 +17,8 @@ const COLORS = {
   debu: ['#d8c497', '#c4ab7a', '#a88f63', '#e6d8b0'],
   bata: ['#9c4a30', '#b8603c', '#7e3a26', '#d9b48a'],
   kayu: ['#6b4423', '#8a5a2e', '#a8743f', '#c99a5f'],
+  // perisai & zirah prajurit: percikan logam
+  prajurit: ['#c9cfdc', '#eef1f7', '#ffd27a', '#8a5a2e'],
 }
 
 const effectMaterial = (opts = {}) => new THREE.MeshBasicMaterial({

@@ -1,11 +1,12 @@
 import { heightAt as islandHeight, ISLAND } from './island.js'
 import { westHeight } from './kencana/height.js'
 
-// Dunia = Pulau Tropis (pulau tengah, berpusat di 0,0) + Kepulauan Kencana di barat.
+// Dunia = Pulau Tropis (pulau tengah, berpusat di 0,0) + Kepulauan Kencana di barat dan Pulau Wira
+// (markas bala tentara) di barat daya.
 // Batasnya kelipatan 125 m dari tepi lama (−500): langkah grid terrain 5 / 3,90625 / 2,604 m
 // (Rendah / Sedang / Tinggi) membagi habis 125 m, jadi titik-titik grid pulau tengah tetap
 // sama persis seperti sebelum dunia diperluas.
-export const WORLD = { minX: -1125, maxX: 500, minZ: -500, maxZ: 500 }
+export const WORLD = { minX: -1125, maxX: 500, minZ: -500, maxZ: 750 }
 WORLD.width = WORLD.maxX - WORLD.minX
 WORLD.depth = WORLD.maxZ - WORLD.minZ
 

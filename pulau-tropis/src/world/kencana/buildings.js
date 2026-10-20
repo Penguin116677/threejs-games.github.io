@@ -1,4 +1,5 @@
 import * as THREE from 'three'
+import { SITI_COLS } from './layout.js'
 
 // Bangunan Nusantara low-poly (gaya Majapahit/Jawa-Bali): rumah bata beratap limasan, joglo,
 // rumah panggung beratap alang-alang, lumbung, warung pasar, tembok & gerbang bata merah
@@ -29,6 +30,8 @@ export const COL = {
   merah: '#c8312a',
   putih: '#f0eee5',
   kuning: '#e2b32b',
+  biru: '#2f5fa8',
+  hijau: '#3a8a4c',
 }
 
 const _c = new THREE.Color()
@@ -548,7 +551,7 @@ export function dangau(w, d) {
 }
 
 // Umbul-umbul: tiang bambu tinggi dengan kain panjang yang berkibar
-export const FLAG = [[COL.merah, COL.putih], [COL.kuning, COL.merah], [COL.putih, COL.merah]]
+export const FLAG = [[COL.merah, COL.putih], [COL.kuning, COL.merah], [COL.putih, COL.merah], [COL.biru, COL.putih], [COL.hijau, COL.kuning]]
 export function umbul(h, color) {
   const P = new Parts()
   P.cyl(0.05, 0.08, h, 5, COL.bambu, K.KAYU, { y: -0.6 })
@@ -566,6 +569,81 @@ export function umbul(h, color) {
     const y = pos[i * 3 + 1]
     if (pos[i * 3 + 2] > 0.1) sway[i] = 0.12 + (h - 0.9 - y) / len * 0.5
   }
+  return P
+}
+
+// --------------------------------------------------------------------------- Pulau Wira
+// Siti Hinggil: batur tinggi berlantai ubin dengan Bangsal Witana (balai terbuka beratap limasan
+// bertingkat) tempat barisan diperiksa; tangga lebar di depan (+z). Letak tiang: SITI_COLS.
+export function sitiHinggil(w, d, h) {
+  const P = new Parts()
+  P.box(w, h + 1.8, d, COL.bata, K.BATA, { y: -1.8 })
+  P.box(w + 0.3, 0.16, d + 0.3, COL.batuPutih, K.POLOS, { y: h - 0.08 })
+  P.box(w - 0.6, 0.05, d - 0.6, '#d8cfbd', K.UBIN, { y: h })
+  // tangga depan selebar 7 m (5 anak tangga)
+  for (let i = 0; i < 5; i++) P.box(7, h * (i + 1) / 5, 0.72, COL.andesit, K.BATU, { z: d / 2 + 3.6 - (i + 0.5) * 0.72 })
+  // langkan bata rendah (celah di tangga)
+  const lk = (lw, ld, o) => P.box(lw, 0.55, ld, COL.bata, K.BATA, { ...o, y: h })
+  lk(w, 0.4, { z: -d / 2 + 0.2 })
+  lk(0.4, d, { x: -w / 2 + 0.2 })
+  lk(0.4, d, { x: w / 2 - 0.2 })
+  for (const s of [-1, 1]) lk((w - 7) / 2, 0.4, { x: s * (3.5 + (w - 7) / 4), z: d / 2 - 0.2 })
+  // saka guru tinggi + tiang pinggir
+  SITI_COLS.forEach(([x, z], i) => P.cyl(i < 4 ? 0.3 : 0.22, i < 4 ? 0.34 : 0.25, i < 4 ? 6.4 : 4.2, 8, i < 4 ? COL.kayuTua : COL.kayu, K.KAYU, { x, y: h, z }))
+  const y0 = h + 4.1
+  P.skirt(w + 1.2, d + 1.6, y0, 12.4, 8.2, y0 + 2.2, COL.gentengTua, K.SIRAP)
+  P.hip(12.8, 8.6, y0 + 2.1, 3.6, COL.gentengTua, K.SIRAP)
+  P.box(0.5, 0.8, 0.5, COL.emas, K.POLOS, { y: y0 + 5.6 })
+  // dampar emas + payung kebesaran kuning
+  P.box(2.4, 0.5, 1.6, COL.emas, K.POLOS, { y: h, z: -2.6 })
+  P.box(2.4, 1.7, 0.3, COL.emas, K.POLOS, { y: h + 0.5, z: -3.3 })
+  for (const s of [-1, 1]) {
+    P.cyl(0.04, 0.04, 3.2, 5, COL.kayuTua, K.KAYU, { x: s * 2.2, y: h, z: -2.9 })
+    P.cyl(0.05, 1.0, 0.45, 8, COL.kuning, K.POLOS, { x: s * 2.2, y: h + 3.0, z: -2.9 })
+  }
+  return P
+}
+
+// Tenda prajurit: kain di atas tiang bubungan (sepanjang z lokal), pintu terbuka di depan (+z)
+const KAIN = ['#e9dfc6', '#e0d0ab', '#ece6d6']
+export function tenda(w, d, color = 0) {
+  const P = new Parts()
+  const h = 2.5
+  const x = w / 2
+  const z = d / 2
+  const kain = KAIN[color % KAIN.length]
+  const A = [-x, 0, z]
+  const Bk = [-x, 0, -z]
+  const C = [0, h, -z]
+  const D = [0, h, z]
+  const E = [x, 0, z]
+  const F = [x, 0, -z]
+  P.faces([[A, C, Bk], [A, D, C], [E, F, C], [E, C, D], [F, Bk, C], [A, E, D]], kain, K.POLOS)
+  // pintu terbuka (gelap) di depan, tiang bubungan, panji kecil
+  P.faces([[[-0.6, 0, z + 0.02], [0.6, 0, z + 0.02], [0, 1.7, z + 0.02]]], COL.gelap, K.POLOS)
+  P.box(0.12, 0.12, d + 0.5, COL.kayuTua, K.KAYU, { y: h - 0.04 })
+  P.cyl(0.04, 0.04, 0.9, 4, COL.kayuTua, K.KAYU, { y: h, z: z + 0.15 })
+  P.box(0.03, 0.3, 0.5, COL.merah, K.POLOS, { y: h + 0.55, z: z + 0.42, sway: 0.08 })
+  return P
+}
+
+// Kandang kuda: los panjang (sepanjang x lokal), sisi depan (+z) terbuka, atap alang-alang
+export function kandang(w, d) {
+  const P = new Parts()
+  P.box(w, 1.4, 0.2, COL.kayu, K.KAYU, { z: -d / 2 + 0.1 })
+  for (const s of [-1, 1]) P.box(0.2, 1.4, d, COL.kayu, K.KAYU, { x: s * (w / 2 - 0.1) })
+  const n = Math.round(w / 3.4)
+  for (let i = 0; i <= n; i++) for (const zz of [-d / 2 + 0.2, d / 2 - 0.3]) P.cyl(0.12, 0.13, 2.9, 5, COL.kayuTua, K.KAYU, { x: -w / 2 + 0.2 + i * (w - 0.4) / n, z: zz })
+  for (let i = 1; i < n; i++) P.box(0.12, 1.1, d * 0.5, COL.kayu, K.KAYU, { x: -w / 2 + i * w / n, z: -d * 0.22 })
+  P.box(w - 1, 0.45, 0.6, COL.kayuTua, K.KAYU, { z: -d / 2 + 0.6 })
+  P.gable(w + 0.8, d + 1.2, 2.8, 1.7, COL.alang, K.JERAMI, COL.kayu, K.KAYU)
+  return P
+}
+
+export function jerami() {
+  const P = new Parts()
+  P.cyl(1.0, 1.15, 0.9, 8, COL.alang, K.JERAMI)
+  P.cyl(0.15, 1.0, 0.7, 8, COL.alang, K.JERAMI, { y: 0.9 })
   return P
 }
 

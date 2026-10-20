@@ -1,8 +1,9 @@
 import { rng } from '../../core/random.js'
 import {
-  CITY, GATES, KERATON, ALUN, CANDI, PASAR, PURA, STREETS, island, rectDistance, segmentDistance, inRect,
+  CITY, GATES, KERATON, ALUN, CANDI, PASAR, PURA, TEGAL, CAMPS, SITI_COLS, STREETS, island, rectDistance, segmentDistance, inRect,
 } from './layout.js'
 import { bridgeSpans, BRIDGE_END_Y } from './height.js'
+import { formation, DIVISIONS } from './barisan.js'
 
 // Rencana rinci Kepulauan Kencana: letak setiap bangunan, penghalang (collider), lantai yang bisa
 // diinjak, cat jalan/sawah/lantai batu, pohon khusus, perahu, dan jaringan jalan untuk penduduk.
@@ -32,6 +33,8 @@ export function planKencana(ground) {
     spots: [], // tempat penduduk diam: { x, z, rot, role, anim }
     paths: [], // ruas jalan tambahan untuk penduduk (di pulau kecil): [ax, az, bx, bz]
     roofs: [], // atap yang bisa dimasuki: { x, z, hx, hz, r } — r = lubang tembus pandang (m)
+    tracks: [], // jalur tanah yang hanya dicat (lorong di antara barisan prajurit): [ax, az, bx, bz, lebar]
+    army: null, // barisan bala tentara di Tegal Wira (barisan.js)
   }
 
   // --- pembantu
@@ -610,6 +613,123 @@ export function planKencana(ground) {
         if (P.blocked.some(b => Math.hypot(b.x - x, b.z - z) < Math.hypot(b.hx, b.hz) + 1.5)) continue
         P.trees.push({ type: 'kelapa', x, z, s: between(0.85, 1.1) })
       }
+  }
+
+  // ===================================================================== Pulau Wira: markas bala tentara
+  // (paling akhir dan dengan angka acak sendiri, supaya isi pulau-pulau lain tetap sama persis)
+  {
+    const rw = rng(5150)
+    const span = (a, b) => a + (b - a) * rw()
+    const T = TEGAL
+    const cx = (T.x0 + T.x1) / 2
+    const army = formation()
+    P.army = army
+    const br = spans.find(b => b.id === 'wira')
+    const q = P.harbor.quay
+    // jalan: ujung timur dermaga pelabuhan → kepala jembatan; di Pulau Wira jalan depan lapangan
+    // (di antara Siti Hinggil dan barisan) lalu turun di sisi barat & timur lapangan ke perkemahan
+    const NR = T.z0 - 10
+    const WX = T.x0 - 7
+    const EX = T.x1 + 7
+    P.roads.push([q.x1, (q.z0 + q.z1) / 2 + 1, br.at - 3, Math.min(br.a, br.b) - 7, 5])
+    P.roads.push([br.at, Math.max(br.a, br.b) + 6, br.at, NR, 5])
+    P.roads.push([WX + 12, NR, EX - 12, NR, 7], [WX, NR + 12, WX + 12, NR, 5], [EX - 12, NR, EX, NR + 12, 5])
+    P.roads.push([WX, NR + 12, WX, T.z1 - 8, 5], [EX, NR + 12, EX, T.z1 - 8, 5])
+    // lapangan rumput; lorong di antara barisan hanya dicat (penduduk tidak lewat situ)
+    P.lawn.push({ ...T })
+    for (const l of army.lanes) P.tracks.push(l)
+    // barisan prajurit menghalangi (lorongnya bisa dilewati); para senapati berkuda
+    for (const b of army.blocks) P.colliders.push({ x: (b.x0 + b.x1) / 2, z: (b.z0 + b.z1) / 2, hx: (b.x1 - b.x0) / 2, hz: (b.z1 - b.z0) / 2, rot: 0, kind: 'prajurit' })
+    for (const o of army.officers) P.colliders.push({ x: o.x, z: o.z, hx: 0.55, hz: 1.35, rot: 0, kind: 'prajurit' })
+
+    // Siti Hinggil: panggung kehormatan tempat barisan diperiksa, menghadap barisan (selatan)
+    const SH = { x: cx, z: NR - 19, w: 24, d: 13, h: 1.6 }
+    const shY = baseY(SH.x, SH.z, SH.w, SH.d, 0)
+    add({ type: 'siti-hinggil', x: SH.x, y: shY, z: SH.z, rot: FACE.selatan, w: SH.w, d: SH.d, h: SH.h })
+    P.surfaces.push({ x: SH.x, z: SH.z, hx: SH.w / 2, hz: SH.d / 2, rot: 0, y0: shY + SH.h, y1: shY + SH.h })
+    const stairW = 7
+    const stairL = 3.6
+    P.surfaces.push({ x: SH.x, z: SH.z + SH.d / 2 + stairL / 2, hx: stairW / 2, hz: stairL / 2, rot: Math.PI, y0: shY + 0.02, y1: shY + SH.h })
+    {
+      const wx = SH.x - SH.w / 2
+      const ex = SH.x + SH.w / 2
+      const nz = SH.z - SH.d / 2
+      const sz = SH.z + SH.d / 2
+      for (const [ax, az, bx, bz] of [[wx, nz, ex, nz], [wx, nz, wx, sz], [ex, nz, ex, sz], [wx, sz, SH.x - stairW / 2, sz], [SH.x + stairW / 2, sz, ex, sz]])
+        box((ax + bx) / 2, (az + bz) / 2, 0.5, Math.hypot(bx - ax, bz - az), Math.atan2(bx - ax, bz - az), 'batu')
+      for (const [px, pz] of SITI_COLS) P.colliders.push({ x: SH.x + px, z: SH.z + pz, radius: 0.3, kind: 'kayu' })
+    }
+    block(SH.x, SH.z, SH.w + 2, SH.d + 2 + stairL * 2)
+    P.roofs.push({ x: SH.x, z: SH.z, hx: SH.w / 2, hz: SH.d / 2, r: 7 })
+    P.pave.push({ x0: SH.x - SH.w / 2 - 3, z0: SH.z - SH.d / 2 - 3, x1: SH.x + SH.w / 2 + 3, z1: NR - 3 })
+    for (const sgn of [-1, 1]) {
+      P.spots.push({ x: SH.x + sgn * 2.4, z: SH.z + SH.d / 2 - 1.4, rot: FACE.selatan, role: 'penjaga', anim: 'idle', y: shY + SH.h })
+      P.spots.push({ x: SH.x + sgn * (stairW / 2 + 1.2), z: SH.z + SH.d / 2 + stairL + 0.8, rot: FACE.selatan, role: 'penjaga', anim: 'idle' })
+    }
+    // penjaga di ujung Jembatan Wira (sisi Pulau Wira)
+    for (const sgn of [-1, 1]) P.spots.push({ x: br.at + sgn * 4, z: Math.max(br.a, br.b) + 6, rot: FACE.utara, role: 'penjaga', anim: 'idle' })
+
+    // umbul-umbul: berderet di sisi selatan jalan depan, dan di sudut depan tiap pasukan
+    const umbul = (x, z, h, color) => {
+      add({ type: 'umbul', x, y: ground.heightAt(x, z), z, rot: 0, h, color })
+      P.colliders.push({ x, z, radius: 0.18, kind: 'kayu' })
+    }
+    for (let x = WX + 16, i = 0; x < EX - 14; x += 22, i++) if (Math.abs(x - cx) > 16) umbul(x, NR + 5, 9, DIVISIONS[i % DIVISIONS.length].flag)
+    for (const b of army.blocks) {
+      if (b.type === 4) continue
+      const first = army.blocks.find(o => o.type === b.type)
+      const last = army.blocks.filter(o => o.type === b.type).pop()
+      if (b === first) umbul(b.x0 - 3.5, b.z0 + 1, 11, DIVISIONS[b.type].flag)
+      if (b === last) umbul(b.x1 + 3.5, b.z0 + 1, 11, DIVISIONS[b.type].flag)
+    }
+    const wings = army.blocks.filter(b => b.type === 4)
+    umbul(wings[0].x0 - 3.5, wings[0].z0 + 1, 11, DIVISIONS[4].flag)
+    umbul(wings[wings.length - 1].x1 + 3.5, wings[0].z0 + 1, 11, DIVISIONS[4].flag)
+
+    // perkemahan barat: deretan tenda menghadap jalan sisi barat, dua gudang senjata
+    const okFor = (x, z, w, d, rot) => footprint(x, z, w + 1, d + 1, rot).every(([px, pz]) => ground.heightAt(px, pz) > 3) && ground.slopeAt(x, z) < 0.25
+    const tent = CAMPS.find(c => c.id === 'tenda')
+    for (let x = tent.x1 - 6; x > tent.x0 + 2; x -= 11)
+      for (let z = tent.z0 + 18; z < tent.z1 - 3; z += 7.5) {
+        const w = 3.4
+        const d = 4.4
+        const rot = FACE.timur
+        if (!okFor(x, z, w, d, rot)) continue
+        add({ type: 'tenda', x, y: baseY(x, z, w, d, rot), z, rot, w, d, color: Math.floor(span(0, 3)) })
+        box(x, z, w, d, rot, 'kayu')
+        block(x, z, w + 1, d + 1, rot)
+      }
+    for (const x of [tent.x1 - 10, tent.x1 - 30]) {
+      const z = tent.z0 + 6
+      if (!okFor(x, z, 12, 7, 0)) continue
+      add({ type: 'gudang', x, y: baseY(x, z, 12, 7, 0), z, rot: FACE.selatan, w: 12, d: 7 })
+      box(x, z, 12, 7, 0, 'kayu')
+      block(x, z, 13, 8)
+    }
+    // perkemahan timur: kandang kuda pasukan berkuda + jerami
+    const st = CAMPS.find(c => c.id === 'kandang')
+    for (const x of [st.x0 + 9, st.x0 + 33])
+      for (let z = st.z0 + 22; z < st.z1 - 12; z += 38) {
+        const w = 30
+        const d = 7
+        const rot = FACE.barat
+        if (!okFor(x, z, w, d, rot)) continue
+        add({ type: 'kandang', x, y: baseY(x, z, w, d, rot), z, rot, w, d })
+        box(x, z, w, d, rot, 'kayu')
+        block(x, z, w + 1, d + 1, rot)
+      }
+    for (let i = 0; i < 6; i++) {
+      const x = span(st.x0 + 4, st.x1 - 4)
+      const z = st.z0 + 6 + span(-2, 2)
+      if (ground.heightAt(x, z) < 3) continue
+      add({ type: 'jerami', x, y: ground.heightAt(x, z), z, rot: span(0, Math.PI) })
+      P.colliders.push({ x, z, radius: 0.9, kind: 'kayu' })
+    }
+    // kelapa di tepi jalan depan (sisi utara)
+    for (let x = WX + 20; x < EX - 20; x += 26) {
+      if (Math.abs(x - cx) < 22 || Math.abs(x - br.at) < 8) continue
+      P.trees.push({ type: 'kelapa', x: x + span(-2, 2), z: NR - 6.5, s: span(0.85, 1.1) })
+    }
   }
 
   // pohon khusus = penghalang batang (kelapa/mangga/kamboja); pisang tidak (bisa diterobos)
