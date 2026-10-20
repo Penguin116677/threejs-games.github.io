@@ -65,8 +65,16 @@ Pengembangan karakter/jurus dihentikan sementara atas permintaan pengguna.
 
 ## Yang sudah diperiksa (v0.11.0 — bala tentara di Pulau Wira)
 - `npm run build` berhasil; ESLint (konfigurasi repo): 0 error, 0 warning.
-- Smoke test otomatis (4 perangkat) — sedang dijalankan ulang setelah perbaikan barisan bolong;
-  hasilnya dicatat begitu selesai.
+- Smoke test otomatis (4 perangkat: HP tegak, HP mendatar, HP Rendah, komputer) — **LULUS** (90 cek,
+  0 gagal; v0.10.0: 74 cek), dengan 4 cek baru di tiap perangkat:
+  - jumlah: 25.000 prajurit = 5 × 5.000, ditambah 7 senapati; atlas 896×1120 / 1280×1600 /
+    1792×2240 (Rendah / Sedang / Tinggi);
+  - menyeberangi Jembatan Wira (pijakan terendah 2,15–2,23 m di atas laut);
+  - di depan barisan: spanduk "Tegal Wira", 70 / 160 / 320 prajurit 3D di dekat pemain, sisanya
+    impostor (jumlahnya selalu tepat 25.000);
+  - berjalan lurus ke barisan perisai → tertahan 0,35 m dari tepinya.
+  Cek terakhir itu sempat salah sasaran: ia berjalan ke x −268, yaitu lorong tengah yang memang
+  bisa dilewati. Kini ia berjalan ke x −300, di dalam barisan.
 - **Jumlah prajurit** (dihitung di game): 25.000 = 5.000 perisai + 5.000 tombak + 5.000 pedang +
   5.000 pemanah + 5.000 penunggang kuda, ditambah 7 senapati. Semuanya berdiri di tanah rata 4,2 m.
 - **Isi pulau lain tidak berubah** (dicek di Node terhadap v0.10.0, kualitas Rendah/Sedang/Tinggi):
