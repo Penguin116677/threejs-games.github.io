@@ -375,15 +375,19 @@ for (const [name, opts, query] of cases) {
   else if (tegal.army.dekat < 10 || tegal.army.impostor < 24000) fail(`prajurit 3D/impostor: ${JSON.stringify(tegal.army)}`)
   else ok(`depan barisan: spanduk "Tegal Wira", ${tegal.army.dekat} prajurit 3D di dekat pemain, ${tegal.army.impostor} impostor`)
   await page.screenshot({ path: `${out}/${name}-bala.png` })
-  // barisan tidak bisa ditembus: berjalan lurus ke tengah barisan perisai
-  await page.evaluate(() => window.__pulau.player.followPath([{ x: -268, z: 412 }]))
+  // barisan tidak bisa ditembus: berjalan lurus ke tengah barisan perisai (x −300 = kelompok
+  // kedua dari barat; x −270 ± 2 adalah lorong tengah, yang memang bisa dilewati)
+  await teleport(page, -300, 396.5, [-300, 412])
+  await page.evaluate(() => window.__pulau.player.followPath([{ x: -300, z: 412 }]))
   await waitFrames(page, 40)
   const gapArmy = await page.evaluate(() => {
     const { colliders, player, plan } = window.__pulau
-    const b = plan.army.blocks.find(o => o.type === 0 && o.x0 < -268 && o.x1 > -268)
+    const b = plan.army.blocks.find(o => o.type === 0 && o.x0 < -300 && o.x1 > -300)
+    if (!b) return null
     return colliders.probe({ x: (b.x0 + b.x1) / 2, z: (b.z0 + b.z1) / 2, hx: (b.x1 - b.x0) / 2, hz: (b.z1 - b.z0) / 2, rot: 0, cos: 1, sin: 0, radius: Math.hypot(b.x1 - b.x0, b.z1 - b.z0) / 2 }, player.position.x, player.position.z, {}).gap
   })
-  if (gapArmy < 0.2) fail(`menembus barisan prajurit (jarak ${gapArmy.toFixed(2)} m)`)
+  if (gapArmy === null) fail('tidak ada kotak barisan perisai di x −300')
+  else if (gapArmy < 0.2) fail(`menembus barisan prajurit (jarak ${gapArmy.toFixed(2)} m)`)
   else ok(`barisan perisai menahan prajurit (berhenti ${gapArmy.toFixed(2)} m dari barisan)`)
   await page.evaluate(() => {
     window.__pulau.player.stop()
