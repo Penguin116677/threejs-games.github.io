@@ -12,7 +12,8 @@ import { zoneAt } from './wilayah.js'
 //   wilayah tugas sendiri, jadi semua wilayah selalu dironda.
 // - PENJAGA POS: berdiri di gerbang kota, gerbang keraton, pendopo, kepala jembatan, Siti Hinggil.
 // Modul ini = badan mereka: gerak, animasi, serangan, terkena pukulan, roboh, dan kembali bertugas.
-// Siapa yang dicegat, ditanyai, atau dilawan diputuskan keamanan.js lewat perintah (order).
+// Siapa yang dihadang & dilawan (pemain, orc) atau ditanyai (pendatang) diputuskan keamanan.js lewat
+// perintah (order).
 // Gambar: rangka dipanggang (rig.js) — satu InstancedMesh per jenis seragam.
 
 const SCALE = 2.3 // sama dengan prajurit pemain
@@ -20,7 +21,7 @@ const RADIUS = 0.35
 const WALK_ANIM = 1.4 // m/s yang cocok dengan klip walk pada kecepatan 1×
 const RUN_ANIM = 3.6 // … klip sprint
 const FADE = 0.2 // detik peralihan antar animasi
-const SPEED = { ronda: 1.15, kembali: 1.6, lari: 5.0, kejar: 5.2 } // m/s; pemain berlari 5,6
+const SPEED = { ronda: 1.15, kembali: 1.6, dekati: 2.6, kejar: 5.2 } // m/s; pemain berlari 5,6
 const DOWN_TIME = 9 // detik terbaring setelah roboh
 const SINK_TIME = 1
 const RESPAWN = 30 // detik menghilang sebelum kembali bertugas
@@ -54,7 +55,6 @@ function specsFor(weapon) {
     attack: { clip: 'attack-melee-right', hold: weapon === 'tombak' ? {} : { 4: 'holding-left' }, loop: false },
     die: { clip: 'die', loop: false },
     yes: { clip: 'emote-yes', hold: arm, loop: false },
-    no: { clip: 'emote-no', hold: arm, loop: false },
     stop: { clip: 'interact-left', hold: weapon === 'tombak' ? spear : { 5: 'holding-right' }, loop: false },
   }
 }
@@ -210,7 +210,7 @@ export function createSoldiers({ ground, colliders, nav, plan, spots, quality, s
     const T = types[type]
     const a = {
       id: agents.length, type, x, z, y: ground.surfaceAt(x, z), heading,
-      state: 'jaga', order: null, arrived: false,
+      state: 'jaga', order: null,
       hp: T.hp, maxHp: T.hp, flash: 0, kx: 0, kz: 0, stagger: 0, barT: 0,
       atkCd: Math.random(), atk: null,
       clip: 'idle', t: Math.random() * 2, prev: null, prevT: 0, fade: 0, animSpeed: 1,
@@ -325,7 +325,7 @@ export function createSoldiers({ ground, colliders, nav, plan, spots, quality, s
   }
   const clipDone = a => a.t >= (types[a.type].table[a.clip]?.n ?? 1) / FPS - 0.02
 
-  // --- gerak bebas (mencegat, mengejar, kembali): garis lurus bila lapang, jalur navgrid bila
+  // --- gerak bebas (menghadang, mengejar, kembali): garis lurus bila lapang, jalur navgrid bila
   // terhalang. Pencarian jalur dibatasi beberapa per frame (A* di dunia besar bisa mahal).
   let pathBudget = 0
   function moveToward(a, tx, tz, speed, near, dt) {
@@ -375,6 +375,22 @@ export function createSoldiers({ ground, colliders, nav, plan, spots, quality, s
   }
   const face = (a, x, z, dt, k = 7) => {
     a.heading = turn(a.heading, Math.atan2(x - a.x, z - a.z), Math.min(1, dt * k))
+  }
+  // perkiraan kecepatan sasaran (tvx, tvz) dari posisinya antar-frame, untuk memotong jalannya
+  function track(a, tp, dt) {
+    if (a.tpx !== null && dt > 0) {
+      const k = 1 - Math.exp(-4 * dt)
+      a.tvx += ((tp.x - a.tpx) / dt - a.tvx) * k
+      a.tvz += ((tp.z - a.tpz) / dt - a.tvz) * k
+      // sasaran berpindah seketika (mis. dikembalikan ke pantai): jangan percaya lonjakannya
+      const sp = Math.hypot(a.tvx, a.tvz)
+      if (sp > 8) {
+        a.tvx *= 8 / sp
+        a.tvz *= 8 / sp
+      }
+    }
+    a.tpx = tp.x
+    a.tpz = tp.z
   }
 
   // --- ronda: pasangan maju bersama di sepanjang ruas, berdampingan
@@ -490,7 +506,6 @@ export function createSoldiers({ ground, colliders, nav, plan, spots, quality, s
     if (a.state === 'roboh' || a.state === 'hilang') return
     a.order = null
     a.atk = null
-    a.arrived = false
     a.path = null
     a.state = 'kembali'
   }
@@ -581,34 +596,10 @@ export function createSoldiers({ ground, colliders, nav, plan, spots, quality, s
       release(a)
       return
     }
-    if (st === 'cegat') {
-      // berlari memotong jalan sasaran: menuju titik di depannya (perkiraan posisinya sebentar
-      // lagi, dari kecepatannya), lalu berhenti menghadang di depannya
-      if (a.tpx !== null && dt > 0) {
-        const k = 1 - Math.exp(-4 * dt)
-        a.tvx += ((tp.x - a.tpx) / dt - a.tvx) * k
-        a.tvz += ((tp.z - a.tpz) / dt - a.tvz) * k
-        // sasaran berpindah seketika (mis. dikembalikan ke pantai): jangan percaya lonjakannya
-        const sp = Math.hypot(a.tvx, a.tvz)
-        if (sp > 8) {
-          a.tvx *= 8 / sp
-          a.tvz *= 8 / sp
-        }
-      }
-      a.tpx = tp.x
-      a.tpz = tp.z
-      const near = o.near ?? 2.3
-      const d = Math.hypot(tp.x - a.x, tp.z - a.z)
-      const ahead = Math.min(2.5, d / SPEED.lari)
-      moveToward(a, tp.x + a.tvx * ahead, tp.z + a.tvz * ahead, SPEED.lari, near, dt)
-      a.arrived = Math.hypot(tp.x - a.x, tp.z - a.z) <= near + 0.8
-      if (a.arrived) face(a, tp.x, tp.z, dt)
-      return
-    }
-    if (st === 'tanya' || st === 'awasi') {
-      // berdiri di titik berjarak `near` dari sasaran (sedikit ke samping untuk yang mengawasi)
-      const ang = Math.atan2(a.x - tp.x, a.z - tp.z) + (st === 'awasi' ? (o.side ?? 0.9) : 0)
-      const r = o.near ?? (st === 'tanya' ? 2 : 2.6)
+    if (st === 'tanya') {
+      // berdiri `near` m di depan sasaran, menghadapnya
+      const ang = Math.atan2(a.x - tp.x, a.z - tp.z)
+      const r = o.near ?? 2
       const sx = tp.x + Math.sin(ang) * r
       const sz = tp.z + Math.cos(ang) * r
       if (!moveToward(a, sx, sz, SPEED.kembali, 0.35, dt)) return
@@ -620,6 +611,7 @@ export function createSoldiers({ ground, colliders, nav, plan, spots, quality, s
       const dx = tp.x - a.x
       const dz = tp.z - a.z
       const d = Math.hypot(dx, dz)
+      track(a, tp, dt)
       if (a.atk) {
         // ayunan sedang berjalan: kena di tengah ayunan bila sasaran masih dalam jangkauan.
         // onStrike bisa langsung mengubah keadaan prajurit ini (mis. pemain roboh → semua
@@ -635,8 +627,14 @@ export function createSoldiers({ ground, colliders, nav, plan, spots, quality, s
         return
       }
       const want = T.reach * 0.8
-      if (d > want + 0.15) moveToward(a, tp.x, tp.z, d > 6 ? SPEED.kejar : SPEED.kembali, want, dt)
-      else {
+      if (d > want + 0.15) {
+        // masih jauh: berlari memotong jalan sasaran — menuju perkiraan posisinya sebentar lagi —
+        // jadi prajurit di depannya menghadang, bukan membuntuti dari belakang. Sasaran yang lari
+        // dikejar penuh sampai terjangkau; yang diam didekati sambil berlari kecil
+        const ahead = d > 6 ? Math.min(2.5, d / SPEED.kejar) : 0
+        const fast = d > 6 || Math.hypot(a.tvx, a.tvz) > 2
+        moveToward(a, tp.x + a.tvx * ahead, tp.z + a.tvz * ahead, fast ? SPEED.kejar : SPEED.dekati, want, dt)
+      } else {
         face(a, tp.x, tp.z, dt, 10)
         // terlalu dekat: mundur sedikit
         if (d < 0.75 && d > 1e-3) {
@@ -693,11 +691,11 @@ export function createSoldiers({ ground, colliders, nav, plan, spots, quality, s
     // animasi menurut keadaan
     for (const a of agents) {
       if (a.state === 'hilang') continue
-      if (a.state !== 'roboh' && !a.atk && a.clip !== 'stop' && a.clip !== 'yes' && a.clip !== 'no')
+      if (a.state !== 'roboh' && !a.atk && a.clip !== 'stop' && a.clip !== 'yes')
         if (a.moved > 2.4) setClip(a, 'sprint')
         else if (a.moved > 0.05) setClip(a, 'walk')
         else setClip(a, 'idle')
-      else if ((a.clip === 'stop' || a.clip === 'yes' || a.clip === 'no') && clipDone(a)) setClip(a, 'idle')
+      else if ((a.clip === 'stop' || a.clip === 'yes') && clipDone(a)) setClip(a, 'idle')
       a.animSpeed = a.clip === 'walk' ? a.moved / WALK_ANIM : a.clip === 'sprint' ? a.moved / RUN_ANIM : 1
       a.t += dt * a.animSpeed
       if (a.fade > 0) {
@@ -787,11 +785,10 @@ export function createSoldiers({ ground, colliders, nav, plan, spots, quality, s
     onDown(fn) {
       onDown = fn
     },
-    // perintah: { do: 'cegat' | 'tanya' | 'awasi' | 'serang', target, near?, side? }
+    // perintah: { do: 'tanya' | 'serang', target, near? }
     command(a, order) {
       if (!alive(a)) return
       if (a.state !== order.do || a.order?.target !== order.target) {
-        a.arrived = false
         a.tpx = a.tpz = null
         a.tvx = a.tvz = 0
       }

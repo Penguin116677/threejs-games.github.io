@@ -1,22 +1,32 @@
 import { inKingdom } from './wilayah.js'
 
-// Penjagaan Kerajaan Kencana — siapa pun yang masuk wilayah kerajaan (wilayah.js) dihadang:
-// - PEMAIN (orang asing): prajurit terdekat berlari mencegat, lalu menanyainya (kartu tanya-jawab
-//   dengan pilihan jawaban). Jawaban damai → boleh masuk (tamu). Jawaban kasar, terus kabur saat
-//   dicegat, atau memukul prajurit → dilawan beramai-ramai (maks. MAX_ATTACKERS sekaligus).
-//   Kalah → dibawa keluar wilayah (diurus main.js). Lama di luar wilayah → dianggap asing lagi.
-// - MUSUH (orc yang menyerbu lewat Jembatan Agung): langsung dihadang dan dilawan, tanpa ditanya.
+// Penjagaan Kerajaan Kencana. Pemain bukan rakyat kerajaan mana pun, jadi ia MUSUH setiap kerajaan
+// (aturan yang sama berlaku untuk kerajaan yang dibuat kemudian):
+// - PEMAIN: prajurit yang melihatnya di wilayah kerajaan (wilayah.js) — atau berpapasan dengannya di
+//   luar wilayah — berseru lalu langsung menghadang & menyerang, dibantu yang lain (paling banyak
+//   MAX_ATTACKERS sekaligus; yang roboh atau tertinggal digantikan). Kalah → dibawa keluar wilayah
+//   (diurus main.js). Lolos keluar wilayah (tak ada penyerang di dekatnya) → berhenti dikejar,
+//   tetapi masuk lagi = diserang lagi.
+// - ORC (penyerbu lewat Jembatan Agung): langsung dihadang dan dilawan.
 // - PENDATANG (penduduk dari seberang): ditanyai di gerbang Jembatan Agung, lalu boleh lewat.
 // Tubuh & gerak prajurit ada di prajurit.js; modul ini hanya memberi perintah.
 
-const DETECT = 40 // m: prajurit sejauh ini melihat orang asing yang masuk wilayah
+const DETECT = 40 // m: prajurit sejauh ini melihat pemain di wilayah kerajaan
+const NOTICE = 7 // m: di luar wilayah, prajurit yang bertugas menyerang pemain yang sedekat ini
 const SCAN = 0.5 // detik antar-pemindaian
 const MAX_ATTACKERS = 3
-const JOIN = 40 // m: prajurit sejauh ini ikut melawan pemain yang bermusuhan
+const JOIN = 40 // m: prajurit sejauh ini ikut melawan pemain
+const LEASH = 60 // m: penyerang yang tertinggal sejauh ini menyerah (yang lebih dekat menggantikan)
+// m: di luar wilayah prajurit mengejar paling jauh sekian dari titik ia mulai mengejar, lalu
+// kembali bertugas (prajurit lain yang bertugas di dekat pemain bisa meneruskan)
+const PURSUE_OUT = 35
 const RAID_JOIN = 80 // m: … ikut menghadang orc
-const CHASE_LIMIT = 30 // detik terus menghindar saat dicegat → dianggap kabur
-const CALM_OUTSIDE = 25 // detik di luar wilayah → berhenti dikejar, asing lagi
-const GUEST_RESET = 20 // detik di luar wilayah → tamu ditanyai lagi saat masuk kembali
+// lolos: di luar wilayah tanpa penyerang sedekat `range` m selama `time` detik → berhenti dikejar
+// (berjalan di separuh timur jembatan sambil diburu bukan lolos)
+const LOST = { range: 20, time: 6 }
+// detik prajurit di luar wilayah belum menyerang lagi: setelah berhenti mengejar / setelah pemain
+// dibawa keluar (supaya tidak langsung dikeroyok penjaga kepala jembatan begitu bangun)
+const GRACE = { calm: 10, thrown: 30 }
 const RAID_FIRST = 100 // detik sejak game dimulai sampai serbuan orc pertama
 const RAID_EVERY = [150, 210] // detik antar-serbuan
 const VISIT = { first: 35, every: [60, 110], speed: 1.4, shop: [18, 30] } // pendatang (detik, m/s)
@@ -26,48 +36,42 @@ const VISITOR_LINES = [
   'Saya hendak menjenguk saudara di Kampung Nelayan.',
   'Saya membawa kelapa muda untuk dijual di pasar.',
 ]
-const NAME = 'Prajurit Kencana'
+// seruan prajurit yang pertama melihat pemain
+const CHALLENGE = [
+  'Berhenti! Siapa kamu?! Kamu bukan rakyat Kencana!',
+  'Musuh kerajaan! Serang!',
+  'Penyusup! Tangkap dia!',
+  'Hadang dia! Jangan biarkan masuk!',
+]
 
 const pick = list => list[Math.floor(Math.random() * list.length)]
 
 // sasaran perintah pemain — objek tetap, jadi perintah yang sama bisa dikenali
 export const PLAYER = { kind: 'pemain' }
 
-const WELCOME = {
-  pengembara: 'Baiklah, pengembara. Kamu boleh masuk. Jangan membuat keributan!',
-  raja: 'Sang Raja bersemayam di Keraton, di tengah Kotaraja. Silakan, tapi kami mengawasimu.',
-  orc: 'Pemburu orc? Bagus! Gerombolan orc kadang menyerbu lewat Jembatan Agung. Selamat datang!',
-  kembali: 'Silakan masuk.',
-  maaf: 'Baiklah. Sekali lagi berbuat onar, kami tidak akan segan.',
-}
-
-// soldiers: prajurit.js; enemies: enemies.js (boleh null); player: player.js;
-// dialog & bubbles: ui/tanya.js; message(teks): pesan singkat di layar; setInput(bool): input pemain;
-// villagers + visit: pendatang (orang berskenario dari villagers.js) dan jalurnya { start, gate, market: [] }
-export function createSecurity({ soldiers, enemies, player, dialog, bubbles, message, setInput, villagers = null, visit = null, ground = null }) {
+// soldiers: prajurit.js; enemies: enemies.js (boleh null); player: player.js; bubbles: ui/tanya.js;
+// message(teks): pesan singkat di layar; villagers + visit: pendatang (orang berskenario dari
+// villagers.js) dan jalurnya { start, gate, market: [] }
+export function createSecurity({ soldiers, enemies, player, bubbles, message, villagers = null, visit = null, ground = null }) {
   const S = {
-    status: 'asing', // 'asing' | 'tamu' | 'musuh'
-    record: 0, // berapa kali pernah bermusuhan
-    visits: 0, // berapa kali diizinkan masuk
+    engaged: false, // prajurit sedang memburu pemain
     inside: false,
-    outsideT: 0,
-    cooldown: 0, // jeda sebelum dicegat lagi (setelah memilih pergi)
-    chaseT: 0,
+    lostT: 0, // detik pemain sudah lolos dari pemburunya
+    grace: 0,
     scanT: 0,
-    greetT: 0,
     raidT: RAID_FIRST,
     raids: 0,
   }
-  let clock = 0
-  let q = null // tanya-jawab yang sedang berjalan: { lead, partner, reason }
-  const pursuers = [] // prajurit yang sedang mencegat pemain
+  let caller = null // prajurit yang terakhir berseru menantang pemain
+  const chaseFrom = new Map() // penyerang pemain → titik ia mulai mengejar
   const orcTargets = new Map() // id orc → sasaran
-  const timers = []
   let raidAnnounced = false
   let raidsOn = true // serbuan berkala (pengujian bisa mematikannya; raid() tetap bisa memicu)
+  let peace = false // gencatan senjata (pengujian): prajurit tidak menghiraukan pemain
 
-  const later = (sec, fn) => timers.push({ t: sec, fn })
   const free = a => a.state === 'ronda' || a.state === 'jaga' || a.state === 'kembali'
+  const hunting = a => a.state === 'serang' && a.order?.target === PLAYER
+  const onDuty = a => a.state === 'ronda' || a.state === 'jaga'
   const say = (a, text, ms = 2600) => bubbles.say(() => (soldiers.alive(a) ? { x: a.x, y: a.y + 2.2, z: a.z } : null), text, ms, `p${a.id}`)
   const pp = player.position
 
@@ -84,217 +88,63 @@ export function createSecurity({ soldiers, enemies, player, dialog, bubbles, mes
     else if (target.kind === 'orc') enemies?.damage(target.id, 3, a) // orc (6 nyawa) tumbang dalam dua pukulan
   })
 
-  // ---------------------------------------------------------------- tanya-jawab dengan pemain
-  function finish() {
-    dialog.close()
-    setInput(true)
-    q = null
+  // ---------------------------------------------------------------- pemain = musuh kerajaan
+  function hunt(a) {
+    if (!hunting(a)) chaseFrom.set(a, { x: a.x, z: a.z })
+    soldiers.command(a, { do: 'serang', target: PLAYER })
   }
 
-  function startQuestion(lead, partner) {
-    q = { lead, partner, reason: null }
-    for (const a of pursuers) if (a !== lead && a !== partner) soldiers.release(a)
-    pursuers.length = 0
-    player.stop()
-    player.face(lead.x, lead.z)
-    setInput(false)
-    soldiers.command(lead, { do: 'tanya', target: PLAYER, near: 2.1 })
-    soldiers.gesture(lead, 'stop')
-    if (partner) soldiers.command(partner, { do: 'awasi', target: PLAYER, near: 2.9, side: 1.2 })
-    say(lead, 'Berhenti!', 1800)
-    if (S.record > 0)
-      dialog.open({
-        name: NAME,
-        text: 'Kamu lagi! Kali ini jangan membuat onar. Mau apa kamu ke sini?',
-        options: [
-          { text: 'Aku minta maaf. Aku datang dengan damai.', value: 'maaf' },
-          { text: 'Aku belum selesai denganmu!', value: 'kasar' },
-          { text: 'Aku tidak jadi masuk.', value: 'pergi' },
-        ],
-        onChoose: answer,
-      })
-    else if (S.visits > 0)
-      dialog.open({
-        name: NAME,
-        text: 'Kamu lagi, pengembara dari Pulau Tropis. Ada perlu apa kali ini?',
-        options: [
-          { text: 'Hanya lewat. Aku datang dengan damai.', value: 'kembali' },
-          { text: 'Bukan urusanmu!', value: 'kasar' },
-        ],
-        onChoose: answer,
-      })
-    else
-      dialog.open({
-        name: NAME,
-        text: 'Berhenti! Siapa kamu? Ada keperluan apa datang ke Kerajaan Kencana?',
-        options: [
-          { text: 'Aku pengembara dari Pulau Tropis. Aku datang dengan damai.', value: 'pengembara' },
-          { text: 'Aku ingin menghadap Sang Raja.', value: 'raja' },
-          { text: 'Aku pemburu orc. Aku datang untuk membantu.', value: 'orc' },
-          { text: 'Bukan urusanmu! Minggir!', value: 'kasar' },
-          { text: 'Maaf, aku tidak jadi masuk.', value: 'pergi' },
-        ],
-        onChoose: v => (v === 'pengembara' || v === 'raja' || v === 'orc' ? askWeapon(v) : answer(v)),
-      })
-  }
-
-  // pertanyaan kedua (pertemuan pertama): untuk apa pedang itu?
-  function askWeapon(reason) {
-    q.reason = reason
-    soldiers.gesture(q.lead, 'no')
-    dialog.open({
-      name: NAME,
-      text: 'Pedang itu untuk apa? Senjata tidak boleh dipakai sembarangan di wilayah kerajaan.',
-      options: [
-        { text: 'Hanya untuk melawan orc dan menjaga diri.', value: reason },
-        { text: 'Untuk menebas siapa pun yang menghalangiku!', value: 'kasar' },
-      ],
-      onChoose: answer,
-    })
-  }
-
-  function answer(v) {
-    if (!q) return
-    const { lead, partner } = q
-    if (v === 'kasar')
-      dialog.open({
-        name: NAME,
-        text: 'Lancang! Prajurit, tangkap penyusup ini!',
-        options: [{ text: 'Bersiap bertarung!', value: 'ok' }],
-        onChoose: () => {
-          finish()
-          soldiers.gesture(lead, 'no')
-          becomeHostile(lead, 'Penyusup! Serang!')
-          if (partner) say(partner, 'Tangkap dia!')
-        },
-      })
-    else if (v === 'pergi')
-      dialog.open({
-        name: NAME,
-        text: 'Kalau begitu, kembalilah ke Pulau Tropis.',
-        options: [{ text: 'Pergi.', value: 'ok' }],
-        onChoose: () => {
-          finish()
-          S.cooldown = 15
-          soldiers.gesture(lead, 'no')
-          say(lead, 'Jangan kembali tanpa keperluan!')
-          later(1.2, () => {
-            soldiers.release(lead)
-            if (partner) soldiers.release(partner)
-          })
-        },
-      })
-    else
-      dialog.open({
-        name: NAME,
-        text: WELCOME[v] ?? WELCOME.pengembara,
-        options: [{ text: 'Terima kasih.', value: 'ok' }],
-        onChoose: () => {
-          finish()
-          S.status = 'tamu'
-          S.visits++
-          soldiers.gesture(lead, 'yes')
-          say(lead, 'Silakan lewat.')
-          later(1.6, () => {
-            soldiers.release(lead)
-            if (partner) soldiers.release(partner)
-          })
-        },
-      })
-
-  }
-
-  // ---------------------------------------------------------------- bermusuhan
-  function becomeHostile(source, shout) {
-    if (q) finish()
-    pursuers.length = 0
-    if (S.status !== 'musuh') S.record++
-    S.status = 'musuh'
+  function engage(source, shout) {
+    S.engaged = true
     S.scanT = 0
-    if (source) say(source, shout)
-    message('Prajurit Kencana menyerangmu! Lawan, atau lari keluar dari wilayah kerajaan.', 3600)
+    caller = source && soldiers.alive(source) ? source : soldiers.nearest(pp.x, pp.z, DETECT)
+    if (caller) say(caller, shout)
+    message('Kamu musuh Kerajaan Kencana! Lawan prajuritnya, atau lari keluar dari wilayah kerajaan.', 3600)
   }
 
-  function calmDown(text) {
-    S.status = 'asing'
+  function calmDown(text, grace) {
+    S.engaged = false
+    S.lostT = 0
+    S.grace = grace
     for (const a of soldiers.list) if (a.order?.target === PLAYER) soldiers.release(a)
-    pursuers.length = 0
     if (text) message(text, 3000)
+  }
+
+  // prajurit yang melihat pemain langsung menghadang & menyerangnya
+  function watch(dt) {
+    if (player.defeated || (!S.inside && S.grace > 0)) return
+    S.scanT -= dt
+    if (S.scanT > 0) return
+    S.scanT = SCAN
+    const a = S.inside ? soldiers.nearest(pp.x, pp.z, DETECT, free) : soldiers.nearest(pp.x, pp.z, NOTICE, onDuty)
+    if (a) engage(a, pick(CHALLENGE))
   }
 
   function manageAttack(dt) {
     if (player.defeated) return
     let n = 0
-    for (const a of soldiers.list) if (soldiers.alive(a) && a.state === 'serang' && a.order?.target === PLAYER) n++
+    for (const a of soldiers.list) {
+      if (!soldiers.alive(a) || !hunting(a)) continue
+      const from = chaseFrom.get(a)
+      const strayed = !S.inside && from && Math.hypot(a.x - from.x, a.z - from.z) > PURSUE_OUT
+      if (strayed || Math.hypot(a.x - pp.x, a.z - pp.z) > LEASH) soldiers.release(a)
+      else n++
+    }
     if (n >= MAX_ATTACKERS) return
     S.scanT -= dt
     if (S.scanT > 0) return
     S.scanT = 0.4
+    // di luar wilayah hanya yang sedang bertugas di dekatnya (bukan yang baru berhenti mengejar)
     const cands = soldiers.list
-      .filter(a => soldiers.alive(a) && (free(a) || (a.order?.target === PLAYER && a.state !== 'serang')))
+      .filter(a => soldiers.alive(a) && (S.inside ? free(a) : onDuty(a)))
       .map(a => ({ a, d: Math.hypot(a.x - pp.x, a.z - pp.z) }))
       .filter(c => c.d < (S.inside ? JOIN : JOIN * 0.6))
       .sort((p, r) => p.d - r.d)
       .slice(0, MAX_ATTACKERS - n)
-    cands.forEach(({ a }, i) => {
-      soldiers.command(a, { do: 'serang', target: PLAYER })
-      if (i === 0) say(a, pick(['Kepung dia!', 'Jangan biarkan lolos!', 'Bantu! Ada penyusup!', 'Serang!']))
-    })
-  }
-
-  // tamu disapa prajurit yang berpapasan
-  function greet(dt) {
-    S.greetT -= dt
-    if (S.greetT > 0) return
-    S.greetT = 1
-    const a = soldiers.nearest(pp.x, pp.z, 3.2, s => s.state === 'ronda' || s.state === 'jaga')
-    if (!a || (a.greetAt ?? -1e9) > clock - 60) return
-    a.greetAt = clock
-    S.greetT = 8
-    say(a, pick(['Selamat datang di Kencana.', 'Salam, pengembara.', 'Jaga sikapmu, ya.', 'Hati-hati di jalan.']))
-  }
-
-  // ---------------------------------------------------------------- orang asing masuk wilayah
-  function intercept(dt) {
-    if (q || player.defeated) return
-    for (let i = pursuers.length - 1; i >= 0; i--) if (!soldiers.alive(pursuers[i]) || pursuers[i].state !== 'cegat') pursuers.splice(i, 1)
-    if (!S.inside) {
-      if (pursuers.length && S.outsideT > 3) {
-        for (const a of pursuers) soldiers.release(a)
-        pursuers.length = 0
-      }
-      return
-    }
-    if (S.cooldown > 0) return
-    S.scanT -= dt
-    if (S.scanT <= 0) {
-      S.scanT = SCAN
-      // prajurit bebas terdekat; selama mengejar, yang jauh lebih dekat ke pemain (mis. penjaga
-      // gerbang di depannya) ikut mencegat — pengejar dari belakang tidak akan tersusul
-      const dLead = pursuers.length ? Math.hypot(pursuers[0].x - pp.x, pursuers[0].z - pp.z) : Infinity
-      const lead = soldiers.nearest(pp.x, pp.z, Math.min(DETECT, dLead - 6), free)
-      if (lead) {
-        if (!pursuers.length) {
-          S.chaseT = 0
-          say(lead, S.record ? 'Kamu lagi! Berhenti di situ!' : 'Hei, kamu! Berhenti!')
-          const partner = soldiers.nearest(lead.x, lead.z, 25, a => free(a) && a !== lead)
-          if (partner) {
-            pursuers.push(partner)
-            soldiers.command(partner, { do: 'cegat', target: PLAYER, near: 3.4 })
-          }
-        } else say(lead, 'Berhenti!', 1600)
-        pursuers.unshift(lead)
-        soldiers.command(lead, { do: 'cegat', target: PLAYER, near: 2.2 })
-        // paling banyak 3 pengejar; yang lain kembali bertugas
-        while (pursuers.length > 3) soldiers.release(pursuers.pop())
-      }
-    }
-    if (!pursuers.length) return
-    // "kabur" = terus bergerak menjauh saat dicegat; berdiri menunggu tidak dihitung
-    if (player.speed > 1) S.chaseT += dt
-    const lead = pursuers.find(a => a.arrived && Math.hypot(a.x - pp.x, a.z - pp.z) < 3)
-    if (lead && !player.attacking && player.grounded) startQuestion(lead, pursuers.find(a => a !== lead) || null)
-    else if (S.chaseT > CHASE_LIMIT) becomeHostile(pursuers[0], 'Dia kabur! Tangkap!')
+    for (const { a } of cands) hunt(a)
+    // yang datang membantu ikut berseru (seruan penantang tidak ditimpa)
+    const helper = cands.find(c => c.a !== caller)
+    if (helper) say(helper.a, pick(['Kepung dia!', 'Jangan biarkan lolos!', 'Bantu! Ada penyusup!', 'Serang!']))
   }
 
   // ---------------------------------------------------------------- serbuan orc
@@ -436,31 +286,21 @@ export function createSecurity({ soldiers, enemies, player, dialog, bubbles, mes
 
   return {
     targetPos,
-    get status() {
-      return S.status
+    // prajurit sedang memburu pemain
+    get engaged() {
+      return S.engaged
     },
-    get questioning() {
-      return q !== null
-    },
-    stats: () => ({ ...S, pengejar: pursuers.length, ditanya: q !== null }),
+    stats: () => ({ ...S, penyerang: soldiers.list.filter(a => soldiers.alive(a) && hunting(a)).length }),
     update(dt) {
-      clock += dt
-      for (let i = timers.length - 1; i >= 0; i--)
-        if ((timers[i].t -= dt) <= 0) {
-          const [tm] = timers.splice(i, 1)
-          tm.fn()
-        }
       S.inside = !player.defeated && inKingdom(pp.x, pp.z)
-      S.outsideT = S.inside ? 0 : S.outsideT + dt
-      if (S.cooldown > 0) S.cooldown -= dt
-      if (S.status === 'musuh')
-        if (S.outsideT > CALM_OUTSIDE) calmDown('Prajurit Kencana berhenti mengejarmu.')
+      if (S.grace > 0) S.grace -= dt
+      if (!peace && !S.engaged) watch(dt)
+      else if (!peace) {
+        S.lostT = S.inside || soldiers.nearest(pp.x, pp.z, LOST.range, hunting) ? 0 : S.lostT + dt
+        if (S.lostT > LOST.time) calmDown('Prajurit Kencana berhenti mengejarmu.', GRACE.calm)
         else manageAttack(dt)
-      else if (S.status === 'tamu')
-        if (S.outsideT > GUEST_RESET) S.status = 'asing'
-        else greet(dt)
+      }
 
-      if (S.status === 'asing') intercept(dt)
       manageRaid(dt)
       if (visitors.length) manageVisitors(dt)
     },
@@ -481,28 +321,31 @@ export function createSecurity({ soldiers, enemies, player, dialog, bubbles, mes
         if (i === 0) say(m, pick(['Orc! Lawan!', 'Serang balik!', 'Hadang orc ini!']))
       })
     },
-    // pemain memukul prajurit (daftar yang kena) → dilawan
+    // pemain memukul prajurit (daftar yang kena, boleh sudah roboh) → dilawan, di mana pun
     playerStruck(list) {
-      if (!list.length) return
-      if (S.status !== 'musuh') becomeHostile(list[0], 'Penyerang! Lawan dia!')
-      for (const a of list) if (soldiers.alive(a) && free(a)) soldiers.command(a, { do: 'serang', target: PLAYER })
+      if (!list.length || peace) return
+      if (!S.engaged) engage(list[0], pick(['Berani menyerang prajurit Kencana?! Serang!', 'Penyerang! Lawan dia!']))
+      for (const a of list) if (soldiers.alive(a) && free(a)) hunt(a)
     },
     // pemain kalah: true bila dikalahkan prajurit kerajaan (dibawa keluar wilayah)
     playerDefeated() {
-      const byKingdom = S.status === 'musuh'
+      const byKingdom = S.engaged
       if (byKingdom) {
         const a = soldiers.nearest(pp.x, pp.z, 12, s => s.order?.target === PLAYER)
         if (a) say(a, 'Bawa dia keluar dari wilayah kerajaan!', 3000)
       }
-      if (q) finish()
-      calmDown(null)
+      calmDown(null, byKingdom ? GRACE.thrown : 0)
       return byKingdom
     },
-    // untuk pengujian: kembali ke keadaan awal (asing, belum pernah datang)
+    // untuk pengujian: semua prajurit kembali bertugas, belum ada yang melihat pemain
     reset() {
-      if (q) finish()
-      calmDown(null)
-      Object.assign(S, { record: 0, visits: 0, cooldown: 0, chaseT: 0, scanT: 0 })
+      calmDown(null, 0)
+      S.scanT = 0
+    },
+    // untuk pengujian: gencatan senjata hidup-mati (orc & pendatang tetap diurus)
+    ceasefire(on) {
+      peace = on
+      if (on) calmDown(null, 0)
     },
     // untuk pengujian: serbuan orc sekarang juga / serbuan berkala hidup-mati
     raid() {

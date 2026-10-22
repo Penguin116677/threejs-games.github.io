@@ -24,7 +24,7 @@ import { createArmy, balaParts } from './world/kencana/pasukan.js'
 import { createSoldiers } from './world/kencana/prajurit.js'
 import { createSecurity } from './world/kencana/keamanan.js'
 import { createWorldMap, createRegionBanner } from './ui/peta.js'
-import { createDialog, createBubbles, createHealthBar } from './ui/tanya.js'
+import { createBubbles, createHealthBar } from './ui/tanya.js'
 import { createInput } from './player/input.js'
 import { createStrategyCamera } from './player/camera.js'
 import { createMarkers } from './player/marker.js'
@@ -85,8 +85,8 @@ function findSpawn(ground, colliders) {
   return { x: -128, z: 128, heading: Math.atan2(128, -128) }
 }
 
-const HINT_TOUCH = '<b>Ketuk tanah</b> untuk berjalan ke sana (jauh = lari)<br>Geser: putar kamera · Cubit: zoom<br><b>Pukul</b> berulang = kombo · 4 tombol <b>jurus</b> · musuh orc ada di depan<br><b>Peta</b>: Kerajaan Kencana di barat (Jembatan Agung) — prajuritnya akan menanyaimu'
-const HINT_KEYS = '<b>Klik tanah</b> untuk berjalan ke sana · WASD / panah juga bisa<br>Seret mouse: putar kamera · Roda: zoom · Spasi: lompat<br>F: pukul (kombo) · 1–4: jurus Cincang, Hentak, Putar, Penggal<br>M: peta — Kerajaan Kencana di barat (Jembatan Agung), prajuritnya akan menanyaimu'
+const HINT_TOUCH = '<b>Ketuk tanah</b> untuk berjalan ke sana (jauh = lari)<br>Geser: putar kamera · Cubit: zoom<br><b>Pukul</b> berulang = kombo · 4 tombol <b>jurus</b> · musuh orc ada di depan<br><b>Peta</b>: Kerajaan Kencana di barat (Jembatan Agung) — kamu musuh setiap kerajaan, prajuritnya akan menyerangmu'
+const HINT_KEYS = '<b>Klik tanah</b> untuk berjalan ke sana · WASD / panah juga bisa<br>Seret mouse: putar kamera · Roda: zoom · Spasi: lompat<br>F: pukul (kombo) · 1–4: jurus Cincang, Hentak, Putar, Penggal<br>M: peta — Kerajaan Kencana di barat (Jembatan Agung); kamu musuh setiap kerajaan, prajuritnya akan menyerangmu'
 
 // FOV kamera: mode main (kamera atas) lebih sempit agar prajurit tidak terlalu kecil;
 // layar tegak butuh FOV lebih lebar agar sisi kiri-kanan tetap terlihat
@@ -263,14 +263,14 @@ async function start() {
   player.placeAt(spawn.x, spawn.z, spawn.heading)
   const enemies = orcAsset ? createEnemies({ ground, colliders, nav, asset: orcAsset, spawn }) : null
   if (enemies) scene.add(enemies.object)
-  // penjagaan kerajaan (dibuat setelah input, lihat di bawah); sasaran jurus Penggal: orc hidup
-  // terdekat + prajurit Kencana bila sedang bermusuhan. id: 'o3' = orc ke-3, 's12' = prajurit ke-12
+  // penjagaan kerajaan (dibuat setelah input, lihat di bawah); sasaran jurus Penggal: orc & prajurit
+  // Kencana hidup terdekat (pemain musuh setiap kerajaan). id: 'o3' = orc ke-3, 's12' = prajurit ke-12
   let security = null
   const soldierOf = id => soldiers.list[Number(id.slice(1))]
   player.setArena({
     pickTargets(x, z, range, max) {
       const cands = enemies ? enemies.pickTargets(x, z, range, 99).map(t => ({ ...t, id: `o${t.id}` })) : []
-      if (soldiers && security?.status === 'musuh')
+      if (soldiers)
         for (const a of soldiers.list) if (soldiers.alive(a) && Math.hypot(a.x - x, a.z - z) <= range) cands.push({ id: `s${a.id}`, x: a.x, z: a.z })
       const near = cands.sort((a, b) => Math.hypot(a.x - x, a.z - z) - Math.hypot(b.x - x, b.z - z)).slice(0, max)
       // urutkan menjadi jalur terpendek (tetangga terdekat) mulai dari (x, z)
@@ -336,14 +336,17 @@ async function start() {
     if (ev.type === 'execute') {
       enemies?.mark(orcIds(ev.targets), false)
       const cut = enemies ? enemies.decapitate(orcIds(ev.targets), player.position) : []
-      // prajurit Kencana tidak dipenggal: roboh tersabet
+      // prajurit Kencana tidak dipenggal: roboh tersabet (dan kawan-kawannya membalas)
+      const felled = []
       for (const id of ev.targets) {
         if (id[0] !== 's') continue
         const a = soldierOf(id)
         if (!soldiers.alive(a)) continue
         cut.push({ x: a.x, y: a.y, z: a.z })
         soldiers.knockDown(a, player.position)
+        felled.push(a)
       }
+      security?.playerStruck(felled)
       effects.execute(cut, player.position)
       if (cut.length) cam.shake(0.22)
       return
@@ -449,8 +452,7 @@ async function start() {
 
   let mode = 'main'
   const agung = plan.spans.find(s => s.id === 'agung')
-  // tanya-jawab dengan prajurit, gelembung ucapan, nyawa pemain
-  const dialog = createDialog($('tanya'))
+  // gelembung ucapan, nyawa pemain
   const bubbles = createBubbles($('gelembung'), camera)
   const health = createHealthBar($('nyawa'), $('luka'))
   // pendatang: dari ujung timur Jembatan Agung ke gerbang baratnya (ditanyai penjaga), lalu ke pasar
@@ -461,15 +463,7 @@ async function start() {
     market: [{ x: -421, z: agung.at + 1.2 }, { x: -461, z: agung.at + 2.5 }, { x: -466, z: 51 }],
   }
   if (soldiers)
-    security = createSecurity({
-      soldiers, enemies, player, dialog, bubbles, villagers, visit, ground,
-      message: showMessage,
-      // selama ditanyai pemain tidak bisa berjalan / menyerang (tombol aksi disembunyikan)
-      setInput(on) {
-        input.setEnabled(on && mode === 'main')
-        $('hud').classList.toggle('bertanya', !on)
-      },
-    })
+    security = createSecurity({ soldiers, enemies, player, bubbles, villagers, visit, ground, message: showMessage })
   function resize() {
     const w = window.innerWidth
     const h = window.innerHeight
@@ -500,7 +494,7 @@ async function start() {
     mode = next
     const main = mode === 'main'
     controls.enabled = !main
-    input.setEnabled(main && !dialog.isOpen)
+    input.setEnabled(main)
     $('btn-mode').textContent = main ? 'Lihat pulau' : 'Main lagi'
     if (main && from === 'lihat') {
       // lanjut dari arah kamera sekarang, dengan transisi halus
@@ -542,8 +536,9 @@ async function start() {
   setMode('main')
 
   // nyawa habis → roboh, layar meredup, bangun di tempat aman: dikalahkan prajurit Kencana = dibawa
-  // keluar wilayah kerajaan (ujung timur Jembatan Agung); dikeroyok orc = titik mulai
-  const exitPoint = { x: Math.max(agung.a, agung.b) + 14, z: agung.at, heading: Math.PI / 2 }
+  // keluar wilayah kerajaan (pantai di ujung timur Jembatan Agung, cukup jauh dari penjaga kepala
+  // jembatan); dikeroyok orc = titik mulai
+  const exitPoint = { x: Math.max(agung.a, agung.b) + 26, z: agung.at, heading: Math.PI / 2 }
   player.onHurt(() => {
     health.hurt()
     cam.shake(0.12)
@@ -621,7 +616,6 @@ async function start() {
   let hinted = quality.level === 'rendah'
 
   let frameCount = 0
-  const focusShift = new THREE.Vector3()
   const debug = { timeScale: 1 } // pengujian: < 1 = gerak lambat (untuk memotret efek)
   renderer.setAnimationLoop(() => {
     frameCount++
@@ -634,21 +628,7 @@ async function start() {
       villagers?.pushOut(player.position)
       soldiers?.pushOut(player.position)
       if (!player.hasPath) markers.hideTarget()
-      // selama ditanyai titik pandang digeser, jadi pemain & prajurit tampak di luar kartu
-      // tanya-jawab: layar tegak → di atas kartu (geser ke arah kamera), mendatar → di kiri kartu
-      let focus = player.position
-      if (dialog.isOpen) {
-        const e = camera.matrixWorld.elements
-        const portrait = window.innerHeight > window.innerWidth
-        let dx = portrait ? camera.position.x - player.position.x : e[0]
-        let dz = portrait ? camera.position.z - player.position.z : e[2]
-        const d = Math.hypot(dx, dz) || 1
-        dx /= d
-        dz /= d
-        focusShift.set(player.position.x + dx * 5, player.position.y, player.position.z + dz * 5)
-        focus = focusShift
-      }
-      cam.update(dt, focus, inp)
+      cam.update(dt, player.position, inp)
       if (!hintGone && (player.speed > 0.5 || (hintTime += dt) > 15)) hideHint()
       // tajuk pohon & bangunan di antara kamera dan prajurit dibuat berlubang;
       // di bawah atap besar (pendopo, bale, gerbang) lubangnya diperlebar
@@ -717,7 +697,7 @@ async function start() {
   // akses untuk debugging / pengujian otomatis
   window.__pulau = {
     renderer, scene, camera, controls, ground, shore, quality, trees, rocks, grass, water, env, kencana, region, plan, villagers, army, worldMap, banner,
-    player, cam, input, colliders, nav, markers, effects, enemies, soldiers, security, dialog, bubbles, pickGround, setMode, getMode: () => mode,
+    player, cam, input, colliders, nav, markers, effects, enemies, soldiers, security, bubbles, pickGround, setMode, getMode: () => mode,
     frames: () => frameCount, debug,
   }
 }

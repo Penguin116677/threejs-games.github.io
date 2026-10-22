@@ -1,61 +1,9 @@
 import * as THREE from 'three'
 
 // Tampilan untuk penjagaan kerajaan:
-// - kartu tanya-jawab dengan prajurit (teks + tombol pilihan jawaban; di komputer juga tombol 1–5)
-// - gelembung ucapan di atas kepala (teks yang mengikuti titik 3D di layar)
+// - gelembung ucapan di atas kepala (teks yang mengikuti titik 3D di layar): seruan prajurit,
+//   tanya-jawab penjaga dengan pendatang
 // - bar nyawa pemain + kilatan merah di tepi layar saat terkena
-
-export function createDialog(el) {
-  const name = el.querySelector('.tanya-nama')
-  const text = el.querySelector('.tanya-teks')
-  const choices = el.querySelector('.tanya-pilihan')
-  let current = null
-  const pick = i => {
-    const c = current
-    if (!c || !c.options[i]) return
-    const { value } = c.options[i]
-    current = null
-    el.hidden = true
-    c.onChoose(value)
-  }
-  window.addEventListener('keydown', e => {
-    if (!current || e.repeat) return
-    const n = Number(e.key)
-    if (n >= 1 && n <= current.options.length) {
-      e.preventDefault()
-      pick(n - 1)
-    }
-  })
-  return {
-    get isOpen() {
-      return current !== null
-    },
-    get current() {
-      return current
-    },
-    // spec: { name, text, options: [{ text, value }], onChoose(value) }
-    open(spec) {
-      current = spec
-      name.textContent = spec.name
-      text.textContent = spec.text
-      choices.replaceChildren(...spec.options.map((o, i) => {
-        const b = document.createElement('button')
-        b.type = 'button'
-        b.innerHTML = '<b></b><span></span>'
-        b.firstChild.textContent = `${i + 1}`
-        b.lastChild.textContent = o.text
-        b.addEventListener('click', () => pick(i))
-        return b
-      }))
-      el.hidden = false
-    },
-    choose: pick,
-    close() {
-      current = null
-      el.hidden = true
-    },
-  }
-}
 
 // gelembung ucapan: say(anchor, teks, ms) — anchor = fungsi () → { x, y, z } (titik 3D) atau null
 export function createBubbles(container, camera) {

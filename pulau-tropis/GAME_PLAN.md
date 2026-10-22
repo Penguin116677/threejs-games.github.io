@@ -8,9 +8,13 @@ reruntuhan, berinteraksi dengan NPC, mengumpulkan item, dan menyelesaikan quest 
 ## Genre
 Eksplorasi / petualangan santai dengan kamera gaya game strategi (dilihat dari atas, ketuk tanah
 untuk berjalan — sejak v0.6.0). Prajurit punya kombo pukulan dan 4 jurus (v0.9.0) melawan musuh orc
-di perkemahan; orc di perkemahan belum menyerang balik. Sejak v0.12.0 pemain punya nyawa: Kerajaan
-Kencana dijaga prajurit yang mencegat & menanyai orang asing dan melawan yang bermusuhan, dan orc
-sesekali menyerbu kerajaan lewat Jembatan Agung.
+di perkemahan; orc di perkemahan belum menyerang balik. Sejak v0.12.0 pemain punya nyawa, dan orc
+sesekali menyerbu Kerajaan Kencana lewat Jembatan Agung.
+
+**Tokoh utama bukan rakyat kerajaan mana pun, jadi ia musuh setiap kerajaan** (v0.12.1, ketentuan
+pengguna). Prajurit kerajaan mana pun langsung menghadang dan menyerangnya di wilayah mereka, tanpa
+ditanyai. Kerajaan yang dibuat kemudian mengikuti aturan yang sama. Orang lain (pendatang) tetap
+ditanyai di gerbang.
 
 ## Peta dunia (sejak v0.10.0)
 - **Pulau Tropis** (tengah): pantai, hutan, padang, gunung, perkemahan orc — titik mulai.
@@ -21,7 +25,8 @@ sesekali menyerbu kerajaan lewat Jembatan Agung.
   bala tentara Kencana — 25.000 prajurit siap tempur di Tegal Wira (5.000 perisai, 5.000 tombak,
   5.000 pedang, 5.000 pemanah, 5.000 penunggang kuda bertombak) + 7 senapati, Siti Hinggil, perkemahan.
 - **Penjagaan kerajaan** (sejak v0.12.0): pasangan peronda di semua wilayah Kencana + penjaga pos di
-  gerbang, keraton, dan kepala jembatan. Wilayah kerajaan dimulai di tengah Jembatan Agung.
+  gerbang, keraton, dan kepala jembatan. Wilayah kerajaan dimulai di tengah Jembatan Agung; di sana
+  pemain (musuh setiap kerajaan) langsung diserang.
 - Wilayah berikutnya bisa ditambahkan di sisi lain (utara/timur): batas dunia, terrain, laut,
   dan peta jalan sudah dibuat umum (lihat DECISIONS #33, #40).
 
@@ -63,7 +68,8 @@ kamera dan kontrolnya diubah ke gaya game strategi di v0.6.0 (permintaan penggun
 Tombol Pukul (bagian awal Milestone 4 — interaksi) ditambahkan lebih dulu di v0.7.0 atas permintaan,
 lalu dikembangkan menjadi kombo + jurus (v0.8.0) dan 4 jurus melawan musuh orc (v0.9.0).
 Penjagaan kerajaan (v0.12.0, permintaan pengguna) membawa sebagian Milestone 4 & 6 lebih awal:
-dialog tanya-jawab dengan NPC (prajurit) dan nyawa pemain.
+nyawa pemain dan NPC yang bereaksi pada pemain. Dialog tanya-jawab dengan prajurit dihapus lagi di
+v0.12.1, karena pemain musuh setiap kerajaan.
 Milestone 3 dimulai di v0.10.0 dengan wilayah pilihan pengguna: kepulauan baru di barat berisi
 kerajaan besar dengan banyak penduduk (desa & bangunan, pulau kecil, jalur, landmark). Sungai, air
 terjun, gua, dan reruntuhan belum dibuat. Peta dunia (bagian Milestone 6) ikut dibuat lebih awal

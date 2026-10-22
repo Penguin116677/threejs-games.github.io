@@ -264,7 +264,8 @@ tandai sebagai "diganti" bila berubah.
     - Gambar: rangka dipanggang seperti penduduk (satu InstancedMesh per seragam, 3 draw call);
       klip jalan, lari, serang, roboh, angguk, geleng, isyarat berhenti — lengan pemegang tombak &
       perisai dikunci supaya senjata tetap tegak saat berjalan.
-44. **Orang asing yang masuk wilayah kerajaan dicegat lalu ditanyai lewat kartu tanya-jawab**.
+44. *(Diganti #48 di v0.12.1: pemain selalu musuh, tidak ditanyai.)* **Orang asing yang masuk
+    wilayah kerajaan dicegat lalu ditanyai lewat kartu tanya-jawab**.
     - Wilayah kerajaan (`wilayah.js`) = semua pulau Kencana + separuh barat Jembatan Agung.
     - Prajurit terdekat (≤ 40 m) berlari mencegat bersama pasangannya, memotong jalan pemain (menuju
       titik di depannya, 5 m/s; pemain berlari 5,6 m/s). Selama mengejar, prajurit bebas yang ≥ 6 m
@@ -286,8 +287,8 @@ tandai sebagai "diganti" bila berubah.
       masih sempat melawan (Cincang menumbangkan satu prajurit) atau lari.
     - Roboh oleh prajurit → layar meredup → dibawa keluar ke ujung timur Jembatan Agung; roboh oleh
       orc → bangun di titik mulai. Tidak ada "game over".
-    - Prajurit Kencana tidak dipenggal: jurus Penggal hanya menyasar mereka saat bermusuhan, dan
-      mereka roboh tersabet (kepala tetap utuh). Prajurit yang roboh menghilang lalu kembali bertugas
+    - Prajurit Kencana tidak dipenggal: jurus Penggal hanya menyasar mereka saat bermusuhan (sejak
+      v0.12.1 selalu, lihat #48), dan mereka roboh tersabet (kepala tetap utuh). Prajurit yang roboh menghilang lalu kembali bertugas
       ±40 detik kemudian, tidak di depan mata pemain.
 46. **Serbuan orc lewat Jembatan Agung** (supaya "musuh yang masuk langsung dihadang" benar-benar
     terjadi): tiap 150–210 detik tiga orc dari perkemahan terdekat (yang tidak sedang didekati
@@ -303,3 +304,27 @@ tandai sebagai "diganti" bila berubah.
     Agung, dihentikan penjaga pos di kepala barat jembatan, menjawab keperluannya (gelembung
     ucapan), lalu boleh lewat ke pasar dan pulang lagi. Gelembung ucapan = teks HTML yang mengikuti
     titik 3D (tajam di layar HP, tanpa tekstur).
+48. **Pemain bukan rakyat kerajaan mana pun → musuh setiap kerajaan** (v0.12.1, permintaan
+    pengguna; mengganti #44). Berlaku juga untuk kerajaan yang dibuat kemudian.
+    - Tidak ada tanya-jawab dan status tamu untuk pemain. Prajurit yang melihat pemain di wilayah
+      kerajaan (≤ 40 m) berseru lalu langsung menghadang & menyerang. Di luar wilayah hanya prajurit
+      yang sedang bertugas dan sedekat ≤ 7 m (mis. penjaga kepala jembatan timur). Memukul prajurit
+      di mana pun → dilawan. Pendatang (NPC) tetap ditanyai (#47).
+    - Menghadang = bila > 6 m, berlari ke perkiraan posisi pemain sebentar lagi, jadi prajurit di
+      depan pemain memotong jalannya. Pengejar di belakang tetap tidak tersusul (5,2 vs 5,6 m/s),
+      jadi lari tetap jalan keluar. Selama sasaran bergerak (> 2 m/s) prajurit berlari penuh sampai
+      terjangkau; sasaran yang diam didekati sambil berlari kecil (2,6 m/s). Dulu prajurit berjalan
+      1,6 m/s dalam 6 m terakhir dan berganti-ganti lari–jalan saat mengejar.
+    - Paling banyak 3 penyerang. Yang roboh, atau tertinggal > 60 m, digantikan prajurit bebas
+      terdekat (≤ 40 m di dalam wilayah, ≤ 24 m di luar).
+    - Di luar wilayah tiap prajurit mengejar paling jauh 35 m dari titik ia mulai mengejar.
+      Pengejaran berhenti total bila tak ada pengejar ≤ 20 m selama 6 detik ("lolos"). Ukurannya
+      bukan "lama di luar wilayah": pemain yang diburu di separuh timur jembatan sambil berjalan
+      MASUK sempat dianggap kabur setelah 12 detik (ditemukan saat uji).
+    - Kalah → dibawa keluar ke pantai ±12 m dari penjaga kepala jembatan, dengan masa tenang di luar
+      wilayah: 30 detik, atau 10 detik setelah lolos.
+    - Kartu tanya-jawab pemain dihapus, karena tidak ada lagi yang ditanyakan kepada musuh. Kodenya
+      ada di riwayat git v0.12.0 bila nanti ada NPC netral yang bisa diajak bicara. Gelembung
+      ucapan tetap dipakai untuk seruan prajurit & pendatang.
+    - Pengujian otomatis memakai `security.ceasefire(true)` ("gencatan senjata") di luar uji
+      penjagaan, supaya uji kota & bala tentara tidak diganggu prajurit.

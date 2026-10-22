@@ -19,10 +19,12 @@ import { mkdirSync } from 'node:fs'
 //   dinding rumah menahan prajurit, tombol Peta
 // - Pulau Wira: 25.000 prajurit (5 pasukan × 5.000) + senapati, menyeberangi Jembatan Wira,
 //   spanduk "Tegal Wira" di depan barisan, prajurit 3D di dekat pemain, barisan menahan prajurit
-// - penjagaan kerajaan: peronda di semua wilayah & bergerak, dicegat + ditanyai saat menyeberangi
-//   Jembatan Agung, jawaban damai → tamu; (HP tegak & komputer) jawaban kasar → dilawan, pukulan
-//   pemain mengenai prajurit, kalah → dibawa keluar wilayah, serbuan orc dihadang prajurit,
-//   pendatang ditanyai penjaga di gerbang
+// - penjagaan kerajaan (pemain musuh setiap kerajaan): peronda di semua wilayah & bergerak,
+//   menyeberangi Jembatan Agung → langsung dihadang & diserang (tanpa kartu tanya-jawab);
+//   (HP tegak & komputer) masuk wilayah → diserang, pukulan pemain mengenai prajurit, kalah →
+//   dibawa keluar wilayah, kabur keluar wilayah → berhenti dikejar, serbuan orc dihadang
+//   prajurit, pendatang ditanyai penjaga di gerbang. Di luar uji penjagaan prajurit dibuat tidak
+//   menghiraukan pemain (gencatan senjata), supaya uji kota & bala tentara tidak terganggu.
 // Waktu tunggu dihitung dalam FRAME (fisika berjalan per frame), bukan detik, karena
 // render software jauh lebih lambat dari HP.
 // Pemakaian: npm run build && npm run preview (terminal lain) && npm run test:smoke
@@ -113,11 +115,6 @@ async function waitUntil(page, fn, maxFrames, step = 5) {
   }
   return v
 }
-// klik pilihan jawaban ke-i di kartu tanya-jawab
-async function answer(page, i) {
-  await page.evaluate(i => document.querySelectorAll('#tanya .tanya-pilihan button')[i].click(), i)
-  await waitFrames(page, 3)
-}
 
 // tunggu waktu permainan ≥ detik (dt per frame dibatasi 0,1 s, jadi hitung frame dan waktu nyata)
 const waitGameTime = (page, seconds) => page.evaluate(seconds => new Promise(resolve => {
@@ -192,6 +189,7 @@ for (const [name, opts, query] of cases) {
       if (!el.hidden) window.__pesanLog.push(el.textContent)
     }).observe(el, { attributes: true, childList: true, characterData: true, subtree: true })
     window.__pulau.security?.setRaids(false)
+    window.__pulau.security?.ceasefire(true)
   })
   if (info.err) {
     fail(`error di layar: ${info.err}`)
@@ -318,23 +316,38 @@ for (const [name, opts, query] of cases) {
   const zonesOk = ['kota', 'kencana', 'agung', 'sawah', 'nelayan', 'pura', 'wira'].every(z => (guards0.wilayah[z] || 0) >= 2)
   if (guards0.pos < 30 || guards0.peronda < 40 || !zonesOk) fail(`prajurit penjaga: ${JSON.stringify(guards0)}`)
   else ok(`prajurit penjaga: ${guards0.pos} di pos + ${guards0.peronda} peronda di ${Object.keys(guards0.wilayah).length} wilayah (${Object.entries(guards0.wilayah).map(([z, n]) => `${z} ${n}`).join(', ')})`)
+  // menyeberang ke wilayah kerajaan: pemain bukan rakyat kerajaan mana pun → langsung dihadang &
+  // diserang, tanpa ditanyai (gencatan senjata uji dimatikan sebentar)
   await teleport(page, -160, 40, [-352, 40])
   await waitFrames(page, 2)
-  // menyeberang ke wilayah kerajaan: dicegat & ditanyai prajurit di tengah jembatan
-  const br1 = await walkTo(-352, 40, 600)
-  const asked = await waitUntil(page, () => window.__pulau.dialog.current && { text: window.__pulau.dialog.current.text, n: window.__pulau.dialog.current.options.length, x: window.__pulau.player.position.x }, 300)
+  await page.evaluate(() => {
+    const { nav, player, security } = window.__pulau
+    window.__pesanLog.length = 0
+    security.ceasefire(false)
+    player.followPath(nav.findPath(player.position, { x: -352, z: 40 }))
+  })
+  // seruan prajurit dicatat saat ia melihat pemain (gelembung hilang sendiri ±2,6 detik kemudian)
+  const shout = await waitUntil(page, () => window.__pulau.security.engaged && window.__pulau.bubbles.texts.join('" / "'), 600, 2)
+  const hit = await waitUntil(page, () => {
+    const { player, security } = window.__pulau
+    return security.engaged && player.hp < 100 && { x: player.position.x, hp: player.hp, n: security.stats().penyerang, msg: window.__pesanLog.join(' | '), kartu: !!document.getElementById('tanya') }
+  }, 900)
   const patrolMoved = await page.evaluate(() => window.__pulau.soldiers.list.filter(a => a.kind === 'ronda').filter((a, i) => Math.hypot(a.x - window.__ronda0[i][0], a.z - window.__ronda0[i][1]) > 2).length)
   if (patrolMoved < guards0.peronda * 0.6) fail(`peronda bergerak: hanya ${patrolMoved} dari ${guards0.peronda}`)
   else ok(`peronda menyusuri jalan: ${patrolMoved} dari ${guards0.peronda} sudah berpindah`)
-  if (!asked || !asked.text.startsWith('Berhenti!') || asked.n < 4) fail(`tidak dicegat di Jembatan Agung: ${JSON.stringify(asked)}`)
-  else ok(`dicegat prajurit di Jembatan Agung (x ${asked.x.toFixed(0)}) dan ditanyai: "${asked.text}" (${asked.n} pilihan jawaban)`)
-  await page.screenshot({ path: `${out}/${name}-tanya.png` })
-  for (let i = 0; i < 3 && (await page.evaluate(() => !!window.__pulau.dialog.current)); i++) await answer(page, 0)
-  const guest = await page.evaluate(() => ({ status: window.__pulau.security.status, open: !!window.__pulau.dialog.current }))
-  if (guest.status !== 'tamu' || guest.open) fail(`jawaban damai: ${JSON.stringify(guest)}`)
-  else ok('jawaban damai → boleh masuk sebagai tamu')
-  const br2 = await walkTo(-352, 40, 600)
-  const br = { ...br2, n: br1.n && br2.n, minY: Math.min(br1.minY, br2.minY), msg: [br1.msg, br2.msg].filter(Boolean).join(' | ') }
+  if (!hit || !shout || hit.kartu || !hit.msg.includes('musuh')) fail(`tidak dihadang & diserang di Jembatan Agung: ${JSON.stringify(hit)}, seruan ${JSON.stringify(shout)}`)
+  else ok(`menuju Jembatan Agung: dihadang ("${shout}") & langsung diserang ${hit.n} prajurit (x ${hit.x.toFixed(0)}, nyawa ${Math.round(hit.hp)})`)
+  await page.screenshot({ path: `${out}/${name}-dihadang.png` })
+  // uji jembatan, kota & bala tentara berikutnya memakai gencatan senjata lagi
+  await page.evaluate(() => {
+    const { security, player } = window.__pulau
+    security.ceasefire(true)
+    player.stop()
+    player.revive()
+  })
+  await teleport(page, -160, 40, [-352, 40])
+  await waitFrames(page, 2)
+  const br = await walkTo(-352, 40, 600)
   if (!br.n) fail('tidak ada jalur menyeberangi Jembatan Agung')
   else if (Math.hypot(br.s.x + 352, br.s.z - 40) > 3 || br.minY < 1.5 || br.msg) fail(`Jembatan Agung: berhenti di (${br.s.x.toFixed(1)}, ${br.s.z.toFixed(1)}), terendah ${br.minY.toFixed(2)} m, pesan "${br.msg}"`)
   else ok(`Jembatan Agung: menyeberang ±190 m, pijakan terendah ${br.minY.toFixed(2)} m di atas laut`)
@@ -448,22 +461,19 @@ for (const [name, opts, query] of cases) {
   await page.screenshot({ path: `${out}/${name}-wira.png` })
   await page.evaluate(() => window.__pulau.setMode('main'))
 
-  // ===== Penjagaan: orang asing yang menjawab kasar dilawan; kalah → dibawa keluar wilayah;
-  // serbuan orc dihadang; pendatang ditanyai di gerbang
+  // ===== Penjagaan: masuk wilayah kerajaan → langsung diserang; kalah → dibawa keluar wilayah;
+  // kabur keluar wilayah → berhenti dikejar; serbuan orc dihadang; pendatang ditanyai di gerbang
   if (name === 'hp-portrait' || name === 'desktop') {
     await page.evaluate(() => {
       window.__pulau.debug.timeScale = 2
+      window.__pulau.security.ceasefire(false)
       window.__pulau.security.reset()
     })
     await teleport(page, -330, 40, [-360, 40])
-    const asked2 = await waitUntil(page, () => !!window.__pulau.dialog.current, 400)
-    if (!asked2) fail('orang asing di kepala barat Jembatan Agung tidak dicegat')
+    const hurt = await waitUntil(page, () => window.__pulau.player.hp < 95 && { hp: window.__pulau.player.hp, n: window.__pulau.security.stats().penyerang, musuh: window.__pulau.security.engaged }, 600)
+    if (!hurt || !hurt.musuh) fail(`masuk wilayah kerajaan tidak diserang: ${JSON.stringify(hurt)}`)
     else {
-      await answer(page, 3) // Bukan urusanmu! Minggir!
-      await answer(page, 0) // Bersiap bertarung!
-      const hurt = await waitUntil(page, () => window.__pulau.player.hp < 95 && { hp: window.__pulau.player.hp, n: window.__pulau.soldiers.list.filter(a => a.state === 'serang').length, status: window.__pulau.security.status }, 600)
-      if (!hurt || hurt.status !== 'musuh') fail(`jawaban kasar tidak dilawan: ${JSON.stringify(hurt)}`)
-      else ok(`jawaban kasar → dilawan: ${hurt.n} prajurit menyerang, nyawa pemain turun ke ${Math.round(hurt.hp)}`)
+      ok(`masuk wilayah kerajaan → langsung diserang ${hurt.n} prajurit, nyawa pemain turun ke ${Math.round(hurt.hp)}`)
       await page.screenshot({ path: `${out}/${name}-dilawan.png` })
       // membalas dengan jurus Putar (mengenai sekeliling)
       await page.evaluate(() => {
@@ -483,9 +493,19 @@ for (const [name, opts, query] of cases) {
       await page.evaluate(() => window.__pulau.player.damage(500, null))
       await page.waitForTimeout(2400)
       await waitFrames(page, 4)
-      const after = await page.evaluate(() => ({ x: window.__pulau.player.position.x, hp: window.__pulau.player.hp, down: window.__pulau.player.defeated, status: window.__pulau.security.status, msg: window.__pesanLog.join(' | ') }))
-      if (after.down || after.hp < 100 || after.x < -200 || after.status !== 'asing' || !after.msg.includes('dibawa keluar')) fail(`kalah: ${JSON.stringify(after)}`)
+      const after = await page.evaluate(() => ({ x: window.__pulau.player.position.x, hp: window.__pulau.player.hp, down: window.__pulau.player.defeated, musuh: window.__pulau.security.engaged, msg: window.__pesanLog.join(' | ') }))
+      if (after.down || after.hp < 100 || after.x < -200 || after.musuh || !after.msg.includes('dibawa keluar')) fail(`kalah: ${JSON.stringify(after)}`)
       else ok(`kalah → dibawa keluar ke ujung timur Jembatan Agung (x ${after.x.toFixed(0)}), nyawa penuh lagi`)
+      // masuk lagi → diserang lagi; kabur jauh keluar wilayah → prajurit berhenti mengejar
+      await teleport(page, -330, 40, [-360, 40])
+      const again = await waitUntil(page, () => window.__pulau.security.engaged, 200)
+      await page.evaluate(() => {
+        window.__pesanLog.length = 0
+      })
+      await teleport(page, -122, 122, [-170, 170])
+      const calm = await waitUntil(page, () => !window.__pulau.security.engaged && { msg: window.__pesanLog.join(' | '), n: window.__pulau.security.stats().penyerang }, 600)
+      if (!again || !calm || calm.n > 0 || !calm.msg.includes('berhenti mengejar')) fail(`masuk lagi / kabur: diserang lagi ${again}, ${JSON.stringify(calm)}`)
+      else ok('masuk lagi → diserang lagi; kabur keluar wilayah → prajurit berhenti mengejar')
     }
     // serbuan orc: tiga orc menyeberang ke Kotaraja, dihadang prajurit
     await teleport(page, -130, 120, [-122, 122])
@@ -512,6 +532,7 @@ for (const [name, opts, query] of cases) {
     else ok(`pendatang dari seberang ditanyai penjaga di gerbang, lalu boleh masuk (${visitor.x.toFixed(0)}, ${visitor.z.toFixed(0)})`)
     await page.evaluate(() => {
       window.__pulau.debug.timeScale = 1
+      window.__pulau.security.ceasefire(true)
     })
   }
   await teleport(page, -122, 122, [-170, 170])

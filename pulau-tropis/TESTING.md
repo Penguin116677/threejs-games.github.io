@@ -175,30 +175,29 @@ Model kuda & perisai (`public/models/bala.glb`) dibuat ulang dari aset Kenney de
 
 Laporkan: model HP, angka FPS di tiap tingkat kualitas, screenshot, dan langkah yang gagal.
 
-## Daftar uji manual — v0.12.0 (penjagaan Kerajaan Kencana)
-1. Dari titik mulai, berjalan ke Jembatan Agung lalu seberangi ke barat. Begitu lewat tengah
-   jembatan, prajurit Kencana berlari mencegat ("Hei, kamu! Berhenti!") dan **kartu tanya-jawab**
-   muncul di bawah layar (HP mendatar: di kanan). Pemain dan prajurit harus tetap terlihat.
-2. Jawab damai (mis. "Aku pengembara…", lalu "Hanya untuk melawan orc…") → prajurit mengangguk,
-   "Silakan lewat." Kamu kini tamu: peronda yang berpapasan menyapa, tidak mencegat lagi.
-3. Jelajahi kota, keraton, pelabuhan, Pulau Sawah/Nelayan/Pura, Pulau Wira: di tiap wilayah ada
-   pasangan peronda (tombak + pedang-perisai) yang berjalan. Berdiri di tengah jalan → mereka
-   menunggu, lalu berbalik arah.
-4. Keluar wilayah (kembali ke Pulau Tropis) ±20 detik, lalu masuk lagi → ditanyai singkat
-   ("Kamu lagi, pengembara…").
-5. Uji bermusuhan (lakukan sekali saja, nyawamu bisa habis):
-   - jawab "Bukan urusanmu! Minggir!" → "Lancang!…" → 2–3 prajurit menyerang, bar nyawa turun,
-     tepi layar berkedip merah;
-   - lawan balik dengan Pukul / jurus: prajurit berkedip, terpental, bar nyawa jingga, lalu roboh;
-   - biarkan nyawa habis → roboh, layar meredup, bangun di ujung timur Jembatan Agung dengan nyawa
-     penuh. Atau lari keluar wilayah: ±25 detik kemudian pengejaran berhenti.
-6. Pukul prajurit saat sedang menjadi tamu → langsung dilawan ("Penyerang! Lawan dia!").
-7. Tunggu ±3 menit di dekat kepala Jembatan Agung → tiga orc menyerbu menyeberangi jembatan
-   (pesan "Gerombolan orc menyerbu…"), prajurit menghadang dan bertarung. Bantu prajurit: orc yang
-   kamu pukul akan balik menyerangmu.
-8. Di kepala barat Jembatan Agung, sesekali pendatang dari seberang dihentikan penjaga
+## Daftar uji manual — v0.12.1 (penjagaan Kerajaan Kencana; pemain musuh setiap kerajaan)
+Tokoh utama bukan rakyat kerajaan mana pun, jadi prajurit Kencana tidak menanyainya: mereka langsung
+menghadang dan menyerang (sejak v0.12.1; kartu tanya-jawab v0.12.0 sudah dihapus).
+1. Dari titik mulai, berjalan ke Jembatan Agung. Di kepala jembatan timur, dua penjaga berseru
+   ("Musuh kerajaan! Serang!", "Berhenti! Siapa kamu?! …") lalu menyerang. Muncul pesan "Kamu musuh
+   Kerajaan Kencana!…", bar nyawa turun, dan tepi layar berkedip merah. Tidak ada kartu pertanyaan.
+2. Terus berjalan ke barat: penjaga kepala jembatan berhenti mengejar setelah ±35 m, peronda jembatan
+   meneruskan. Lewat tengah jembatan, prajurit di depan berlari memotong jalanmu (bukan membuntuti).
+3. Lawan balik dengan Pukul / jurus: prajurit berkedip, terpental, bar nyawa jingga, lalu roboh.
+   Paling banyak 3 yang menyerang bersamaan; yang roboh digantikan prajurit lain di dekatmu.
+4. Penggal di dekat beberapa prajurit: mereka roboh (tidak dipenggal), kawan-kawannya membalas.
+5. Biarkan nyawa habis → roboh, layar meredup, bangun di pantai ujung timur Jembatan Agung dengan
+   nyawa penuh. Penjaga kepala jembatan tidak langsung menyerang lagi (masa tenang ±30 detik).
+6. Masuk lagi → langsung diserang lagi. Lalu lari ke timur keluar wilayah: pengejar menyerah, dan
+   ±6 detik setelah tidak ada pengejar di dekatmu muncul "Prajurit Kencana berhenti mengejarmu."
+7. Jelajahi kota, keraton, pelabuhan, Pulau Sawah/Nelayan/Pura, dan Pulau Wira sambil bertarung:
+   di tiap wilayah ada pasangan peronda (tombak + pedang-perisai) yang berjalan dan ikut menyerang.
+8. Tunggu ±2–3,5 menit di dekat kepala Jembatan Agung → tiga orc menyerbu menyeberangi jembatan
+   (pesan "Gerombolan orc menyerbu…"), prajurit menghadang dan bertarung. Orc yang kamu pukul
+   balik menyerangmu.
+9. Di kepala barat Jembatan Agung, sesekali pendatang dari seberang dihentikan penjaga
    ("Berhenti! Siapa kamu dan mau ke mana?"), menjawab, lalu berjalan ke pasar.
-9. Catat FPS di kota (banyak penduduk + peronda) dan saat dikeroyok, untuk tiap tingkat kualitas.
+10. Catat FPS di kota (banyak penduduk + peronda) dan saat dikeroyok, untuk tiap tingkat kualitas.
 
-Laporkan: model HP, FPS, apakah prajurit terlalu kuat / terlalu lemah, apakah tanya-jawab terasa
-mengganggu (terlalu sering), dan langkah yang gagal.
+Laporkan: model HP, FPS, apakah prajurit terlalu kuat / terlalu lemah, apakah kota terlalu sulit
+dijelajahi karena terus diserang, dan langkah yang gagal.

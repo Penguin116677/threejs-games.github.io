@@ -1,5 +1,44 @@
 # CHANGELOG — Pulau Tropis
 
+## [0.12.1] — 2026-10-22 — Pemain musuh setiap kerajaan (permintaan pengguna)
+### Diubah
+- **Pemain bukan rakyat kerajaan mana pun, jadi ia musuh setiap kerajaan.** Prajurit Kencana tidak
+  lagi menanyai pemain. Prajurit yang melihatnya di wilayah kerajaan (≤ 40 m), atau berpapasan
+  dengannya di luar wilayah (≤ 7 m, mis. penjaga kepala jembatan timur), berseru ("Berhenti! Siapa
+  kamu?! Kamu bukan rakyat Kencana!", "Musuh kerajaan! Serang!") lalu langsung menghadang dan
+  menyerang. Paling banyak 3 sekaligus; yang roboh atau tertinggal jauh digantikan prajurit
+  terdekat. Aturan ini juga berlaku untuk kerajaan yang dibuat kemudian.
+- Prajurit yang menyerang dari jauh berlari memotong jalan pemain (menuju perkiraan posisinya),
+  jadi yang di depan pemain menghadang, bukan membuntuti.
+- Lari keluar wilayah: di luar wilayah tiap prajurit mengejar paling jauh ±35 m dari tempat ia mulai
+  mengejar. Bila tidak ada lagi pengejar dalam 20 m selama 6 detik → "Prajurit Kencana berhenti
+  mengejarmu." Masuk lagi → langsung diserang lagi.
+- Kalah oleh prajurit → bangun di pantai ±12 m dari penjaga kepala jembatan timur (dulu ±5 m),
+  dengan masa tenang 30 detik: penjaga di luar wilayah tidak langsung menyerang lagi.
+- Jurus Penggal selalu bisa menyasar prajurit Kencana (dulu hanya saat bermusuhan). Prajurit yang
+  dirobohkan Penggal membuat kawan-kawannya membalas.
+- Petunjuk kontrol: "kamu musuh setiap kerajaan, prajuritnya akan menyerangmu".
+### Dihapus
+- Kartu tanya-jawab untuk pemain, status tamu, sapaan peronda, dan pergeseran kamera selama
+  ditanyai. Pendatang (penduduk dari seberang) tetap ditanyai penjaga di gerbang lewat gelembung
+  ucapan.
+- Keadaan prajurit "cegat" & "awasi" dan klip geleng kepala (tidak terpakai lagi).
+### Diperbaiki (ditemukan saat uji)
+- Pemain yang diburu di separuh timur Jembatan Agung (masih di luar wilayah) sambil berjalan MASUK
+  ke kerajaan dianggap kabur setelah 12 detik, dan pengejaran berhenti. Kini "lolos" dihitung dari
+  jarak ke pengejar, bukan dari lamanya di luar wilayah.
+- Dalam 6 m terakhir, prajurit yang mengejar melambat menjadi berjalan (1,6 m/s), sehingga saat
+  mengejar pemain yang lari mereka berganti-ganti lari dan jalan. Kini mereka tetap berlari penuh
+  selama sasaran bergerak, dan mendekati sasaran yang diam sambil berlari kecil (2,6 m/s).
+### Pengujian
+- Smoke test:
+  - menuju Jembatan Agung → dihadang dan langsung diserang (tanpa kartu tanya-jawab);
+  - (HP tegak & komputer) masuk wilayah → diserang; kalah → dibawa keluar; masuk lagi → diserang
+    lagi; kabur keluar wilayah → prajurit berhenti mengejar.
+
+  Uji kota dan bala tentara memakai "gencatan senjata" khusus pengujian supaya tidak diganggu
+  prajurit.
+
 ## [0.12.0] — 2026-10-20 — Penjagaan Kerajaan Kencana: peronda, cegat & tanya, dilawan (permintaan pengguna)
 ### Ditambahkan
 - **Prajurit peronda di semua wilayah**: Rendah 40 / Sedang 64 / Tinggi 96 prajurit berjalan

@@ -1,9 +1,9 @@
 # PROJECT_STATUS — Pulau Tropis
 
-**Milestone aktif:** 3 — Pembangunan dunia (v0.12.0: penjagaan Kerajaan Kencana — peronda, cegat & tanya, dilawan — menunggu umpan balik dari HP).
+**Milestone aktif:** 3 — Pembangunan dunia (v0.12.1: pemain musuh setiap kerajaan — prajurit Kencana langsung menghadang & menyerang — menunggu umpan balik dari HP).
 Pengembangan karakter/jurus dihentikan sementara atas permintaan pengguna.
-**Versi:** 0.12.0
-**Terakhir diperbarui:** 2026-10-20
+**Versi:** 0.12.1
+**Terakhir diperbarui:** 2026-10-22
 
 ## Kondisi awal repository (sebelum Milestone 1)
 - Repository `threejs-games.github.io` berisi koleksi contoh Three.js lama (folder `examples/`,
@@ -61,7 +61,7 @@ Pengembangan karakter/jurus dihentikan sementara atas permintaan pengguna.
 | Pulau Wira + Jembatan Wira, Siti Hinggil, perkemahan (tenda, kandang kuda) | ✅ selesai (v0.11.0) |
 | Bala tentara 25.000 prajurit siap tempur (5 pasukan × 5.000) + 7 senapati | ✅ selesai (v0.11.0) |
 | Prajurit peronda di semua wilayah kerajaan + penjaga pos yang bertugas | ✅ selesai (v0.12.0) |
-| Orang asing dicegat & ditanyai (kartu tanya-jawab), dilawan bila bermusuhan; nyawa pemain | ✅ selesai (v0.12.0) |
+| Pemain (musuh setiap kerajaan) langsung dihadang & dilawan prajurit; nyawa pemain | ✅ selesai (v0.12.1; tanya-jawab v0.12.0 dihapus) |
 | Serbuan orc lewat Jembatan Agung dihadang prajurit; pendatang ditanyai di gerbang | ✅ selesai (v0.12.0) |
 | Sungai & air terjun, gua, reruntuhan | ⏳ belum |
 | Dicoba di HP Android sungguhan | ⏳ menunggu laporan pengguna |
@@ -287,9 +287,9 @@ Pengembangan karakter/jurus dihentikan sementara atas permintaan pengguna.
   laut dalam → kembali ke pantai + pesan, mendaki lereng (+24 m dalam 120 frame).
 
 ## Yang BELUM diperiksa
-- **Rasa penjagaan di HP sungguhan**: apakah prajurit terlalu kuat/lemah, apakah tanya-jawab
-  terlalu sering (ditanyai lagi tiap masuk setelah ±20 detik di luar wilayah), apakah tombol
-  pilihan jawaban mudah diketuk, dan FPS saat dikeroyok atau saat serbuan orc.
+- **Rasa penjagaan di HP sungguhan**: apakah prajurit terlalu kuat/lemah, apakah kota masih enak
+  dijelajahi padahal pemain (musuh setiap kerajaan) terus diserang, dan FPS saat dikeroyok atau
+  saat serbuan orc.
 - **FPS di dekat bala tentara pada HP sungguhan**.
   - Bagian terberat: lorong di tengah barisan (Sedang: 160 prajurit 3D + ±25.000 impostor).
   - Waktu memotret atlas impostor saat dimuat di HP (di komputer ±60 ms CPU; GPU HP belum diukur).
@@ -361,9 +361,12 @@ yang lebih rapat (untuk ombak) dan buah kelapa. v0.2.0 (HP): ±230 ribu.
   berdesakan rapat. Prajurit belum punya serangan jarak jauh (pemanah di barisan tetap diam).
 - (v0.12.0) Penduduk tidak bereaksi pada perkelahian (tidak lari menjauh). Orc penyerbu yang lolos
   ke kota hanya berkeliaran sebentar lalu pulang.
-- (v0.12.0) Selama ditanyai pemain tidak bisa bergerak sampai memilih jawaban (disengaja).
-- (v0.12.0) Status tamu/musuh dan nyawa kembali ke awal bila halaman dimuat ulang (belum ada simpan
-  progres). Belum ada suara.
+- (v0.12.1) Bala tentara 25.000 prajurit di Tegal Wira tetap berbaris dan tidak ikut menyerang
+  pemain; yang menyerang hanya prajurit bertugas (peronda & penjaga pos).
+- (v0.12.1) Karena pemain selalu musuh, menjelajahi kota berarti terus bertarung; belum ada cara
+  menyelinap atau bersembunyi.
+- (v0.12.0) Nyawa kembali penuh bila halaman dimuat ulang (belum ada simpan progres). Belum ada
+  suara.
 - (v0.11.0) Prajurit jauh = potret (impostor): saat kamera diputar, potretnya berganti tiap 22,5°;
   di pita peralihan bentuknya sedikit bercampur.
 - (v0.11.0) Bala tentara berdiri di tempat: belum berbaris jalan, belum bereaksi pada prajurit, dan
