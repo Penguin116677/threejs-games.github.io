@@ -8,7 +8,7 @@ import { SITI_COLS } from './layout.js'
 // (bata, genteng, jerami, papan kayu, batu, …) yang digambar shader bangunan (material.js).
 // Titik asal = tengah alas bangunan di tanah, depan bangunan menghadap +z lokal.
 
-export const K = { POLOS: 0, BATA: 1, GENTENG: 2, JERAMI: 3, KAYU: 4, BATU: 5, SIRAP: 6, UBIN: 7, ANYAMAN: 8, PLESTER: 9 }
+export const K = { POLOS: 0, BATA: 1, GENTENG: 2, JERAMI: 3, KAYU: 4, BATU: 5, SIRAP: 6, UBIN: 7, ANYAMAN: 8, PLESTER: 9, CAHAYA: 10 }
 
 export const COL = {
   bata: '#a5523a',
@@ -685,7 +685,9 @@ export function dermaga(w, len, deckY) {
 
 // Jembatan sepanjang z lokal (panjang len, lebar w). deck(t) = tinggi lantai (dunia) pada
 // t = 0..1 sepanjang jembatan; floor(z) = tinggi dasar laut di bawahnya; y lokal = y dunia.
-export function jembatan(len, w, deck, floor, { stone, piers }) {
+// pal (opsional): warna jembatan batu { lantai, sisi, bawah, langkan, tiang, tiangTua, lampu }
+export function jembatan(len, w, deck, floor, { stone, piers, pal = null }) {
+  const C = { lantai: '#9a958c', sisi: COL.andesit, bawah: COL.andesitTua, langkan: COL.bata, langkanKind: K.BATA, tiang: COL.andesit, tiangTua: COL.andesitTua, lampu: COL.batuPutih, ...pal }
   const P = new Parts()
   const n = Math.ceil(len / 1.5)
   const thick = stone ? 0.9 : 0.35
@@ -712,9 +714,9 @@ export function jembatan(len, w, deck, floor, { stone, piers }) {
     sides.push([a2, d, a], [a2, d2, d], [b2, b, c], [b2, c, c2])
     under.push([a2, b2, c2], [a2, c2, d2])
   }
-  P.faces(top, stone ? '#9a958c' : COL.kayuMuda, stone ? K.UBIN : K.KAYU)
-  P.faces(sides, stone ? COL.andesit : COL.kayu, stone ? K.BATU : K.KAYU)
-  P.faces(under, stone ? COL.andesitTua : COL.kayuTua, K.POLOS)
+  P.faces(top, stone ? C.lantai : COL.kayuMuda, stone ? K.UBIN : K.KAYU)
+  P.faces(sides, stone ? C.sisi : COL.kayu, stone ? K.BATU : K.KAYU)
+  P.faces(under, stone ? C.bawah : COL.kayuTua, K.POLOS)
   // langkan / pagar di kedua sisi
   for (const s of [-1, 1]) {
     const x = s * (w / 2 - 0.2)
@@ -735,7 +737,7 @@ export function jembatan(len, w, deck, floor, { stone, piers }) {
         )
       } else if (i % 2 === 0) P.cyl(0.07, 0.07, railH, 5, COL.kayuTua, K.KAYU, { x, y: y0, z: z0 })
     }
-    if (stone) P.faces(rail, COL.bata, K.BATA)
+    if (stone) P.faces(rail, C.langkan, C.langkanKind)
     else {
       // pegangan kayu mengikuti lengkung
       const hand = []
@@ -755,13 +757,13 @@ export function jembatan(len, w, deck, floor, { stone, piers }) {
     const y = deck(t) - thick
     const f = floor(z)
     if (stone) {
-      P.box(w + 0.6, y - f + 0.5, 2.0, COL.andesit, K.BATU, { y: f - 0.5, z })
-      P.box(w + 1.0, 0.3, 2.4, COL.andesitTua, K.POLOS, { y: y - 0.3, z })
+      P.box(w + 0.6, y - f + 0.5, 2.0, C.tiang, K.BATU, { y: f - 0.5, z })
+      P.box(w + 1.0, 0.3, 2.4, C.tiangTua, K.POLOS, { y: y - 0.3, z })
       for (const s of [-1, 1]) {
         const ly = deck(t) + 1.05
-        P.box(0.5, 0.5, 0.5, COL.batuPutih, K.POLOS, { x: s * (w / 2 - 0.2), y: ly, z })
+        P.box(0.5, 0.5, 0.5, C.lampu, K.POLOS, { x: s * (w / 2 - 0.2), y: ly, z })
         P.cyl(0.06, 0.06, 1.6, 5, COL.gelap, K.POLOS, { x: s * (w / 2 - 0.2), y: ly + 0.5, z })
-        P.box(0.36, 0.48, 0.36, '#ffe3a0', K.POLOS, { x: s * (w / 2 - 0.2), y: ly + 2.1, z })
+        P.box(0.36, 0.48, 0.36, '#ffe3a0', K.CAHAYA, { x: s * (w / 2 - 0.2), y: ly + 2.1, z })
         P.skirt(0.5, 0.5, ly + 2.58, 0, 0, ly + 2.9, COL.gelap, K.POLOS, { x: s * (w / 2 - 0.2), z })
       }
     } else for (const s of [-1, 1]) P.cyl(0.16, 0.18, y - f + 0.6, 6, COL.kayuTua, K.KAYU, { x: s * (w / 2 - 0.3), y: f - 0.6, z })

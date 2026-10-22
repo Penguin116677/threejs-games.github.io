@@ -307,6 +307,120 @@ export function pisangGeometry() {
 // ---------------------------------------------------------------------------
 // Material dengan goyangan angin (vertex shader): makin tinggi makin bergoyang
 // ---------------------------------------------------------------------------
+// --------------------------------------------------------------------------- pohon Aeloria (elf)
+// pohon perak: batang putih keperakan ramping, tajuk berlapis hijau muda keemasan
+export function perakGeometry(detail) {
+  const parts = []
+  const trunk = new THREE.CylinderGeometry(0.2, 0.42, 10, 7, 2, false)
+  trunk.translate(0, 5, 0)
+  parts.push(part(trunk, '#dcd8cd', { dark: 0.6, light: 1.05, rings: 3.1 }))
+  for (const s of [-1, 1]) {
+    const br = new THREE.CylinderGeometry(0.06, 0.12, 2.2, 5, 1, true)
+    br.rotateZ(s * 0.7)
+    br.translate(s * 0.7, 8.2, s * 0.2)
+    parts.push(part(br, '#d2cec2', { dark: 0.7, light: 1 }))
+  }
+  const center = new THREE.Vector3(0, 10.2, 0)
+  const blobs = [
+    [0, 11.3, 0, 2.5, '#a6c04c'],
+    [1.3, 9.7, 0.5, 1.9, '#bccb5c'],
+    [-1.2, 10.0, -0.6, 2.0, '#93b046'],
+    [0.3, 12.9, -0.2, 1.6, '#cdd46d'],
+    [-0.5, 8.4, 0.9, 1.5, '#88a63f'],
+  ]
+  for (const [x, y, z, r, col] of blobs) {
+    const g = blob(r, detail, [x, y, z], 0.78)
+    parts.push(part(g, col, { centers: [[center, 0.6], [new THREE.Vector3(x, y, z), 0.4]], dark: 0.68, light: 1.14 }))
+  }
+  return mergeGeometries(parts)
+}
+
+// pohon elf besar: batang abu perak bercabang, tajuk lebar hijau pucat bersemu emas
+export function elfGeometry(detail) {
+  const parts = []
+  const trunk = new THREE.CylinderGeometry(0.45, 0.85, 8, 8, 2, false)
+  trunk.translate(0, 4, 0)
+  parts.push(part(trunk, '#b9b6ad', { dark: 0.55, light: 1, rings: 2.2 }))
+  for (let i = 0; i < 3; i++) {
+    const a = (i / 3) * TAU + 0.4
+    const br = new THREE.CylinderGeometry(0.12, 0.25, 3.6, 5, 1, true)
+    br.rotateZ(-0.75)
+    br.rotateY(a)
+    br.translate(Math.cos(a) * 1.1, 7.6, -Math.sin(a) * 1.1)
+    parts.push(part(br, '#b3b0a6', { dark: 0.65, light: 1 }))
+  }
+  const center = new THREE.Vector3(0, 10, 0)
+  const crown = [[0, 10.8, 0, 3.6, '#7fae4a']]
+  for (let i = 0; i < 6; i++) {
+    const a = (i / 6) * TAU
+    crown.push([Math.cos(a) * 3.2, 9.6 + (i % 2) * 0.9, Math.sin(a) * 3.2, 2.6, i % 3 === 0 ? '#c2c964' : i % 2 ? '#8db851' : '#73a243'])
+  }
+  for (const [x, y, z, r, col] of crown) {
+    const g = blob(r, detail, [x, y, z], 0.7)
+    parts.push(part(g, col, { centers: [[center, 0.6], [new THREE.Vector3(x, y, z), 0.4]], dark: 0.64, light: 1.12 }))
+  }
+  return mergeGeometries(parts)
+}
+
+// cemara utara: batang coklat + empat kerucut daun bertingkat
+export function cemaraGeometry() {
+  const parts = []
+  const trunk = new THREE.CylinderGeometry(0.18, 0.35, 3, 6, 1, false)
+  trunk.translate(0, 1.5, 0)
+  parts.push(part(trunk, '#5b4331', { dark: 0.6, light: 1 }))
+  const tiers = [[2.6, 3.4, 2.0], [2.1, 3.0, 3.9], [1.6, 2.7, 5.6], [1.0, 2.4, 7.2]]
+  for (const [r, h, y] of tiers) {
+    const c = new THREE.ConeGeometry(r, h, 7, 1, false)
+    c.translate(0, y + h / 2, 0)
+    parts.push(part(c, '#2e5a3a', { dark: 0.6, light: 1.12 }))
+  }
+  return mergeGeometries(parts)
+}
+
+// pohon agung: batang putih raksasa berakar besar, tajuk keemasan sangat lebar (halaman benteng)
+export function agungGeometry(detail) {
+  const parts = []
+  const trunk = new THREE.CylinderGeometry(1.2, 2.2, 14, 10, 3, false)
+  trunk.translate(0, 7, 0)
+  parts.push(part(trunk, '#e8e3d6', { dark: 0.6, light: 1.02, rings: 1.4 }))
+  for (let i = 0; i < 7; i++) {
+    const b = new THREE.BoxGeometry(0.5, 1.8, 2.8)
+    b.translate(0, 0.7, 1.9)
+    b.rotateY((i / 7) * TAU + 0.2)
+    parts.push(part(b, '#ddd8ca', { dark: 0.6, light: 0.95 }))
+  }
+  const center = new THREE.Vector3(0, 17, 0)
+  const crown = [[0, 18, 0, 6.2, '#d9c25a']]
+  for (let i = 0; i < 8; i++) {
+    const a = (i / 8) * TAU
+    crown.push([Math.cos(a) * 6.5, 15.5 + (i % 2), Math.sin(a) * 6.5, 4.2, i % 2 ? '#e3cf6a' : '#c8b04c'])
+  }
+  for (const [x, y, z, r, col] of crown) {
+    const g = blob(r, detail, [x, y, z], 0.66)
+    parts.push(part(g, col, { centers: [[center, 0.6], [new THREE.Vector3(x, y, z), 0.4]], dark: 0.66, light: 1.14 }))
+  }
+  return mergeGeometries(parts)
+}
+
+// pohon buah kebun: batang pendek, tajuk bulat, buah merah & jingga di permukaannya
+export function buahGeometry(detail) {
+  const parts = []
+  const trunk = new THREE.CylinderGeometry(0.16, 0.26, 2.4, 6, 1, false)
+  trunk.translate(0, 1.2, 0)
+  parts.push(part(trunk, '#6b4f33', { dark: 0.6, light: 1 }))
+  const center = new THREE.Vector3(0, 3.4, 0)
+  parts.push(part(blob(2.0, detail, [0, 3.4, 0], 0.85), '#4c8a34', { centers: [[center, 1]], dark: 0.66, light: 1.1 }))
+  for (let i = 0; i < 14; i++) {
+    const a = i * 2.39996
+    const yy = -0.6 + (i / 13) * 1.9
+    const rr = Math.sqrt(Math.max(0, 1.95 * 1.95 - yy * yy * 1.2))
+    const f = new THREE.IcosahedronGeometry(0.17, 0)
+    f.translate(Math.cos(a) * rr, 3.4 + yy * 0.85, Math.sin(a) * rr)
+    parts.push(part(f, i % 3 ? '#d8423a' : '#f0a23b', { dark: 0.85, light: 1.05 }))
+  }
+  return mergeGeometries(parts)
+}
+
 const windTime = { value: 0 }
 
 // Tembus pandang: tajuk yang menghalangi garis kamera → prajurit diberi "lubang" berpola
@@ -373,12 +487,12 @@ export function windMaterial(noiseTexture) {
 // ---------------------------------------------------------------------------
 const TILE = ISLAND.size / 3
 
-export function instancedTiles(name, geo, material, items, { castShadow = false, receiveShadow = false, toMatrix }) {
+export function instancedTiles(name, geo, material, items, { castShadow = false, receiveShadow = false, toMatrix, tile = TILE }) {
   const group = new THREE.Group()
   group.name = name
   const tiles = new Map()
   for (const it of items) {
-    const k = `${Math.floor(it.x / TILE)},${Math.floor(it.z / TILE)}`
+    const k = `${Math.floor(it.x / tile)},${Math.floor(it.z / tile)}`
     if (!tiles.has(k)) tiles.set(k, [])
     tiles.get(k).push(it)
   }

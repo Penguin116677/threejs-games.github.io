@@ -18,6 +18,7 @@ varying vec3 vBNrm;
 `
 
 const fragmentPars = /* glsl */`
+uniform float uTime;
 uniform sampler2D uNoise;
 uniform vec3 uSeeA;
 uniform vec3 uSeeB;
@@ -103,6 +104,7 @@ vec3 buildingPattern(vec3 col) {
     float fade = 1.0 - smoothstep(0.04, 0.14, fwidth((u + v) * 3.5));
     return col * mix(0.95, 0.84 + 0.22 * weave, fade);
   }
+  if (kind == 10) return col; // cahaya (api, bara, lentera): lihat totalEmissiveRadiance
   // 9: plester, sedikit noda
   return col * (0.9 + 0.14 * texture2D(uNoise, p.xz * 0.11 + p.y * 0.07).b);
 }
@@ -149,6 +151,11 @@ export function buildingMaterial(noiseTexture) {
       '#include <color_fragment>',
       `#include <color_fragment>
       diffuseColor.rgb = buildingPattern(diffuseColor.rgb);`
+    ).replace(
+      '#include <emissivemap_fragment>',
+      `#include <emissivemap_fragment>
+      // api, bara & lentera menyala sendiri dan sedikit berkedip
+      if (int(vKind + 0.5) == 10) totalEmissiveRadiance += diffuseColor.rgb * (0.8 + 0.2 * sin(uTime * 11.0 + vBWorld.x * 2.3 + vBWorld.z * 1.7));`
     )
   }
   return mat

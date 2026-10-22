@@ -137,27 +137,23 @@ function jongGeometry() {
   return P.build()
 }
 
-export function createKencana({ ground, plan, mask, grid, quality, noiseTexture }) {
-  const group = new THREE.Group()
-  group.name = 'kepulauan-kencana'
-  const { shadows } = quality
-
-  // ------------------------------------------------------------------- bangunan per petak
-  // dikelompokkan per petak dulu, lalu dibuat & digabung petak demi petak (memori puncak kecil)
+// Semua bangunan dari daftar rencana dibuat (partsFor(b) → Parts) lalu digabung per petak 128 m —
+// satu draw call per petak, petak di luar layar tidak digambar. Dipakai Kencana & Aeloria.
+// Dikelompokkan per petak dulu, lalu dibuat & digabung petak demi petak (memori puncak kecil).
+export function buildTiles({ builds, partsFor, mat, depthMat, shadows, name }) {
   const tiles = new Map()
   const counts = {}
-  for (const b of plan.build) {
+  for (const b of builds) {
     counts[b.type] = (counts[b.type] || 0) + 1
     const k = `${Math.floor(b.x / TILE)},${Math.floor(b.z / TILE)}`
     let list = tiles.get(k)
     if (!list) tiles.set(k, list = [])
     list.push(b)
   }
-  const mat = buildingMaterial(noiseTexture)
-  const depthMat = buildingDepthMaterial()
+  const meshes = []
   let vertices = 0
   for (const [key, list] of tiles) {
-    const parts = list.map(b => partsFor(b, ground))
+    const parts = list.map(partsFor)
     const n = parts.reduce((sum, src) => sum + src.pos.length / 3, 0)
     const pos = new Float32Array(n * 3)
     const nor = new Float32Array(n * 3)
@@ -198,12 +194,26 @@ export function createKencana({ ground, plan, mask, grid, quality, noiseTexture 
     geo.computeBoundingSphere()
     vertices += n
     const mesh = new THREE.Mesh(geo, mat)
-    mesh.name = `bangunan-${key}`
+    mesh.name = `${name}-${key}`
     mesh.castShadow = shadows
     mesh.receiveShadow = shadows
     mesh.customDepthMaterial = depthMat
-    group.add(mesh)
+    meshes.push(mesh)
   }
+  return { meshes, counts, tiles, vertices }
+}
+
+export function createKencana({ ground, plan, mask, grid, quality, noiseTexture }) {
+  const group = new THREE.Group()
+  group.name = 'kepulauan-kencana'
+  const { shadows } = quality
+
+  // ------------------------------------------------------------------- bangunan per petak
+  const mat = buildingMaterial(noiseTexture)
+  const depthMat = buildingDepthMaterial()
+  const built = buildTiles({ builds: plan.build, partsFor: b => partsFor(b, ground), mat, depthMat, shadows, name: 'bangunan' })
+  group.add(...built.meshes)
+  const { counts, tiles, vertices } = built
 
   // ------------------------------------------------------------------- pepohonan
   const wind = windMaterial(noiseTexture)

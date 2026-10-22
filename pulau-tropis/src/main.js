@@ -23,6 +23,8 @@ import { createVillagers } from './world/kencana/villagers.js'
 import { createArmy, balaParts } from './world/kencana/pasukan.js'
 import { createSoldiers } from './world/kencana/prajurit.js'
 import { createSecurity } from './world/kencana/keamanan.js'
+import { planAeloria } from './world/aeloria/plan.js'
+import { createAeloria } from './world/aeloria/kingdom.js'
 import { createWorldMap, createRegionBanner } from './ui/peta.js'
 import { createBubbles, createHealthBar } from './ui/tanya.js'
 import { createInput } from './player/input.js'
@@ -151,11 +153,16 @@ async function start() {
   await nextFrame()
   const ground = createGround(quality.terrainSegments)
   const shore = createShoreData(ground, quality.water.shoreRes)
-  // rencana Kepulauan Kencana (kota, jalan, sawah) dulu: catnya ikut digambar shader tanah
+  // rencana Kepulauan Kencana (kota, jalan, sawah) & Aeloria (kerajaan elf di utara) dulu: catnya
+  // ikut digambar shader tanah. Masker Aeloria 1,5 m per texel (jalan tetap halus, memori kecil);
+  // juga menjangkau pantai utara Pulau Tropis (kepala Jembatan Perak)
   const plan = planKencana(ground)
   const region = createRegionMask(plan, ground)
-  const terrain = createTerrain(ground, { ...shared, region })
+  const elfPlan = planAeloria(ground)
+  const elfMask = createRegionMask(elfPlan, ground, { rect: { x0: -450, z0: -1140, x1: 450, z1: -165 }, cell: 1.5, style: 1, free: null })
+  const terrain = createTerrain(ground, { ...shared, regions: [region, elfMask] })
   scene.add(terrain)
+  const reservedAll = (x, z, r) => region.reserved(x, z, r) || elfMask.reserved(x, z, r)
 
   setStatus('Menanam pohon dan menebar batu…')
   await nextFrame()
@@ -164,22 +171,27 @@ async function start() {
   // jadi letaknya sama persis seperti sebelum Kepulauan Kencana ada; kepala Jembatan Agung
   // di pantai barat dikosongkan
   const centralGround = createGround(quality.terrainSegments, { heightFn: islandHeight, rect: { minX: -500, maxX: 500, minZ: -500, maxZ: 500 } })
-  const trees = createTrees({ ground: centralGround, grid, quality, noiseTexture, reserved: region.reserved })
-  const rocks = createRocks({ ground: centralGround, grid, quality, reserved: region.reserved })
+  const trees = createTrees({ ground: centralGround, grid, quality, noiseTexture, reserved: reservedAll })
+  const rocks = createRocks({ ground: centralGround, grid, quality, reserved: reservedAll })
   scene.add(trees, rocks)
 
   setStatus('Membangun Kerajaan Kencana…')
   await nextFrame()
   const kencana = createKencana({ ground, plan, mask: region, grid, quality, noiseTexture })
   scene.add(kencana.object)
+  setStatus('Membangun Kerajaan Aeloria…')
+  await nextFrame()
+  const aeloria = createAeloria({ ground, plan: elfPlan, mask: elfMask, grid, quality, noiseTexture })
+  scene.add(aeloria.object)
   // lantai jembatan, dermaga, batur pendopo, tangga: bisa diinjak
-  ground.setSurfaces(kencana.surfaces)
-  terrain.userData.applyOcclusion([...trees.userData.occlusion, ...rocks.userData.occlusion, ...kencana.occlusion])
+  ground.setSurfaces([...kencana.surfaces, ...aeloria.surfaces])
+  terrain.userData.applyOcclusion([...trees.userData.occlusion, ...rocks.userData.occlusion, ...kencana.occlusion, ...aeloria.occlusion])
   // batang pohon + batu besar + dinding bangunan menghalangi pemain; batu kecil bisa dilangkahi
   const colliders = createColliders([
     ...trees.userData.trunks,
     ...rocks.userData.colliders.filter(c => c.radius >= 0.8),
     ...kencana.colliders,
+    ...aeloria.colliders,
   ])
   // peta jalan untuk "ketuk untuk berjalan" (memutari pohon, batu, tebing, laut dalam)
   const nav = createNavGrid(ground, colliders)
@@ -514,8 +526,8 @@ async function start() {
   $('btn-mode').addEventListener('click', () => setMode(mode === 'main' ? 'lihat' : 'main'))
 
   // peta dunia + spanduk nama wilayah
-  const worldMap = createWorldMap({ ground, plan, region, camps: enemies ? enemies.camps : [] })
-  const banner = createRegionBanner({ ground, spans: plan.spans })
+  const worldMap = createWorldMap({ ground, plans: [plan, elfPlan], regions: [region, elfMask], camps: enemies ? enemies.camps : [], shops: elfPlan.shops })
+  const banner = createRegionBanner({ ground, spans: [...plan.spans, ...elfPlan.spans] })
   function toggleMap() {
     if (worldMap.open) worldMap.hide()
     else {
@@ -616,6 +628,7 @@ async function start() {
   let hinted = quality.level === 'rendah'
 
   let frameCount = 0
+  const roofs = [...kencana.roofs, ...aeloria.roofs]
   const debug = { timeScale: 1 } // pengujian: < 1 = gerak lambat (untuk memotret efek)
   renderer.setAnimationLoop(() => {
     frameCount++
@@ -635,7 +648,7 @@ async function start() {
       seeThrough.a.value.copy(camera.position)
       seeThrough.b.value.copy(player.position).y += 1
       const p = player.position
-      const roof = kencana.roofs.find(r => Math.abs(p.x - r.x) < r.hx && Math.abs(p.z - r.z) < r.hz)
+      const roof = roofs.find(r => Math.abs(p.x - r.x) < r.hx && Math.abs(p.z - r.z) < r.hz)
       seeThrough.r.value += ((roof ? roof.r : 3.5) - seeThrough.r.value) * (1 - Math.exp(-6 * dt))
     } else {
       player.update(dt, NO_INPUT, cam.yaw)
@@ -696,7 +709,7 @@ async function start() {
 
   // akses untuk debugging / pengujian otomatis
   window.__pulau = {
-    renderer, scene, camera, controls, ground, shore, quality, trees, rocks, grass, water, env, kencana, region, plan, villagers, army, worldMap, banner,
+    renderer, scene, camera, controls, ground, shore, quality, trees, rocks, grass, water, env, kencana, region, plan, villagers, army, worldMap, banner, aeloria, elfPlan, elfMask,
     player, cam, input, colliders, nav, markers, effects, enemies, soldiers, security, bubbles, pickGround, setMode, getMode: () => mode,
     frames: () => frameCount, debug,
   }

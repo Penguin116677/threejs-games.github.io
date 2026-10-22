@@ -74,8 +74,9 @@ export function westHeight(x, z) {
 // Bentang jembatan di atas air: dari titik darat `from` berjalan ke arah `to`, cari tempat tanah
 // turun di bawah BRIDGE_END_Y (a) lalu naik lagi di atasnya (b). heightAt = tinggi tanah dunia.
 // Hasil: [{ ...jembatan, a, b, length }] — a, b = koordinat sepanjang sumbu jembatan.
-export function bridgeSpans(heightAt) {
-  return BRIDGES.map(br => {
+// list = daftar jembatan (bawaan: jembatan Kepulauan Kencana)
+export function bridgeSpans(heightAt, list = BRIDGES) {
+  return list.map(br => {
     const dir = Math.sign(br.to - br.from)
     const at = s => (br.axis === 'x' ? heightAt(s, br.at) : heightAt(br.at, s))
     let a = null

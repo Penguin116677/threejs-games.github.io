@@ -1,26 +1,34 @@
 import * as THREE from 'three'
 import { segmentDistance, rectDistance } from './layout.js'
 
-// Masker permukaan Kepulauan Kencana (1 texel = 1 m), dibaca shader tanah:
-//   r = jalan tanah, g = sawah, b = lantai batu, a = rumput halus.
+// Masker permukaan sebuah wilayah (bawaan: Kepulauan Kencana, 1 texel = 1 m), dibaca shader tanah:
+//   r = jalan tanah, g = sawah / ladang, b = lantai batu, a = rumput halus.
 // Ditambah peta "terpakai" (jalan, lantai, sawah, jejak bangunan) untuk menjauhkan pohon.
 export const MASK = { x0: -980, z0: -470, x1: -30, z1: 640 }
+// sampai v0.10.0 masker berakhir di x = −150; pulau tengah tetap memakai batas itu supaya letak
+// pohon & batunya sama persis (masker kini melebar ke timur hanya untuk Pulau Wira)
 const OLD_EDGE = -150
+const kencanaFree = (x, z) => x >= OLD_EDGE && z < 300
 
-export function createRegionMask(plan, ground) {
-  const w = MASK.x1 - MASK.x0
-  const h = MASK.z1 - MASK.z0
+// rect = area masker (m), cell = ukuran texel (m), style = gaya warna ladang & lantai di shader tanah
+// (0 = sawah Kencana, 1 = ladang gandum & batu putih Aeloria), free(x, z) = titik yang tidak pernah
+// dianggap terpakai
+export function createRegionMask(plan, ground, { rect = MASK, cell = 1, style = 0, free = kencanaFree } = {}) {
+  const w = Math.round((rect.x1 - rect.x0) / cell)
+  const h = Math.round((rect.z1 - rect.z0) / cell)
   const data = new Uint8Array(w * h * 4)
   const used = new Uint8Array(w * h)
-  const cx = i => MASK.x0 + i + 0.5
-  const cz = j => MASK.z0 + j + 0.5
+  const cx = i => rect.x0 + (i + 0.5) * cell
+  const cz = j => rect.z0 + (j + 0.5) * cell
+  const col = x => Math.floor((x - rect.x0) / cell)
+  const row = z => Math.floor((z - rect.z0) / cell)
 
-  // cat kanal ch dengan cakupan 0..1 (tepi lembut ±0,5 m) di kotak batas [x0, x1] × [z0, z1]
+  // cat kanal ch dengan cakupan 0..1 (tepi lembut ±0,5 texel) di kotak batas [x0, x1] × [z0, z1]
   function paint(ch, x0, z0, x1, z1, coverage) {
-    const i0 = Math.max(0, Math.floor(x0 - MASK.x0))
-    const i1 = Math.min(w - 1, Math.ceil(x1 - MASK.x0))
-    const j0 = Math.max(0, Math.floor(z0 - MASK.z0))
-    const j1 = Math.min(h - 1, Math.ceil(z1 - MASK.z0))
+    const i0 = Math.max(0, col(x0))
+    const i1 = Math.min(w - 1, col(x1) + 1)
+    const j0 = Math.max(0, row(z0))
+    const j1 = Math.min(h - 1, row(z1) + 1)
     for (let j = j0; j <= j1; j++)
       for (let i = i0; i <= i1; i++) {
         const c = coverage(cx(i), cz(j))
@@ -29,7 +37,7 @@ export function createRegionMask(plan, ground) {
         data[k] = Math.max(data[k], Math.round(Math.min(1, c) * 255))
       }
   }
-  const soft = d => Math.min(1, Math.max(0, 0.5 - d))
+  const soft = d => Math.min(1, Math.max(0, 0.5 - d / cell))
 
   // sawah: hanya di dataran rendah yang landai, di atas pasir pantai (bukan bukit)
   const paddy = (x, z) => {
@@ -44,6 +52,8 @@ export function createRegionMask(plan, ground) {
     paint(0, Math.min(ax, bx) - rw, Math.min(az, bz) - rw, Math.max(ax, bx) + rw, Math.max(az, bz) + rw,
       (x, z) => soft(segmentDistance(x, z, ax, az, bx, bz) - rw / 2))
   for (const p of plan.pave) paint(2, p.x0 - 1, p.z0 - 1, p.x1 + 1, p.z1 + 1, (x, z) => soft(rectDistance(x, z, p)))
+  // lapangan tanah (mis. arena tanding Aeloria): dicat seperti jalan tanah
+  for (const d of plan.dirt || []) paint(0, d.x0 - 1, d.z0 - 1, d.x1 + 1, d.z1 + 1, (x, z) => soft(rectDistance(x, z, d)))
 
   // jalan & lantai menutup sawah/rumput di bawahnya
   for (let k = 0; k < w * h; k++) {
@@ -57,8 +67,8 @@ export function createRegionMask(plan, ground) {
     const r = Math.hypot(b.hx, b.hz) + 1
     const c = Math.cos(b.rot || 0)
     const s = Math.sin(b.rot || 0)
-    for (let j = Math.max(0, Math.floor(b.z - r - MASK.z0)); j <= Math.min(h - 1, Math.ceil(b.z + r - MASK.z0)); j++)
-      for (let i = Math.max(0, Math.floor(b.x - r - MASK.x0)); i <= Math.min(w - 1, Math.ceil(b.x + r - MASK.x0)); i++) {
+    for (let j = Math.max(0, row(b.z - r)); j <= Math.min(h - 1, row(b.z + r) + 1); j++)
+      for (let i = Math.max(0, col(b.x - r)); i <= Math.min(w - 1, col(b.x + r) + 1); i++) {
         const dx = cx(i) - b.x
         const dz = cz(j) - b.z
         if (Math.abs(dx * c - dz * s) <= b.hx + 1 && Math.abs(dx * s + dz * c) <= b.hz + 1) used[j * w + i] = 1
@@ -73,21 +83,19 @@ export function createRegionMask(plan, ground) {
   texture.needsUpdate = true
 
   const usedAt = (x, z) => {
-    // sampai v0.10.0 masker berakhir di x = −150; pulau tengah tetap memakai batas itu supaya letak
-    // pohon & batunya sama persis (masker kini melebar ke timur hanya untuk Pulau Wira)
-    if (x >= OLD_EDGE && z < 300) return false
-    const i = Math.floor(x - MASK.x0)
-    const j = Math.floor(z - MASK.z0)
+    if (free && free(x, z)) return false
+    const i = col(x)
+    const j = row(z)
     return i >= 0 && j >= 0 && i < w && j < h && used[j * w + i] === 1
   }
   return {
-    texture, data, x0: MASK.x0, z0: MASK.z0, width: w, depth: h,
+    texture, data, x0: rect.x0, z0: rect.z0, width: rect.x1 - rect.x0, depth: rect.z1 - rect.z0, style,
     // apakah lingkaran (x, z, r) menyentuh jalan, lantai, sawah, atau bangunan
     reserved: (x, z, r = 0) => usedAt(x, z) || usedAt(x + r, z) || usedAt(x - r, z) || usedAt(x, z + r) || usedAt(x, z - r),
     // nilai kanal (0..1) di titik (x, z) — untuk pengujian & peta
     at(x, z) {
-      const i = Math.floor(x - MASK.x0)
-      const j = Math.floor(z - MASK.z0)
+      const i = col(x)
+      const j = row(z)
       if (i < 0 || j < 0 || i >= w || j >= h) return null
       const k = (j * w + i) * 4
       return { jalan: data[k] / 255, sawah: data[k + 1] / 255, batu: data[k + 2] / 255, rumput: data[k + 3] / 255 }

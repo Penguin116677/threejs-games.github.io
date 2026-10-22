@@ -2,6 +2,7 @@ import { WORLD } from '../world/world.js'
 import { ISLANDS, CITY, KERATON, TEGAL, inRect } from '../world/kencana/layout.js'
 import { islandDistance } from '../world/kencana/height.js'
 import { DIVISIONS } from '../world/kencana/barisan.js'
+import { REGIONS as ELF_REGIONS, LANDS as ELF_LANDS, landDistance } from '../world/aeloria/layout.js'
 
 // Peta dunia (tombol "Peta") dan spanduk nama wilayah saat prajurit memasuki pulau/kota baru.
 
@@ -19,6 +20,12 @@ const LABELS = [
   { text: 'Pelabuhan', x: -553, z: 236, size: 11 },
   { text: 'Pulau Wira', x: -270, z: 620, size: 14 },
   { text: 'Tegal Wira · 25.000 prajurit', x: -270, z: 352, size: 11 },
+  { text: 'Aeloria · Kerajaan Elf', x: 10, z: -1105, size: 15 },
+  { text: 'Kota Aeloria', x: 10, z: -556, size: 13 },
+  { text: 'Benteng Aeloria', x: 10, z: -876, size: 12 },
+  { text: 'Lapangan Latihan', x: -220, z: -718, size: 11 },
+  { text: 'Padang Pesta', x: 235, z: -718, size: 11 },
+  { text: 'Jembatan Perak', x: 52, z: -310, size: 11 },
 ]
 
 const lerp = (a, b, t) => a + (b - a) * t
@@ -26,6 +33,12 @@ const clamp01 = t => Math.min(1, Math.max(0, t))
 
 // Wilayah tempat (x, z) berada: { id, name, sub } atau null (di laut)
 export function regionAt(x, z, ground, spans) {
+  // Aeloria (kerajaan elf di utara): kawasan dulu, lalu daratannya
+  if (z < -330)
+    for (const r of ELF_REGIONS) {
+      if (r.rect && inRect(x, z, r.rect, 1)) return { id: r.id, name: r.name, sub: r.sub }
+      if (r.land && landDistance(ELF_LANDS.find(l => l.id === r.land), x, z) < 1.02 && ground.heightAt(x, z) > -1.2) return { id: r.id, name: r.name, sub: r.sub }
+    }
   if (inRect(x, z, KERATON)) return { id: 'keraton', name: 'Keraton Kencana', sub: 'Istana Raja Kencana' }
   if (inRect(x, z, CITY, 1)) return { id: 'kotaraja', name: 'Kotaraja Kencana', sub: 'Ibu kota Kerajaan Kencana' }
   if (inRect(x, z, TEGAL)) return { id: 'tegal', name: 'Tegal Wira', sub: '25.000 prajurit Kencana siap tempur' }
@@ -33,7 +46,7 @@ export function regionAt(x, z, ground, spans) {
     const along = b.axis === 'x' ? x : z
     const across = b.axis === 'x' ? z : x
     if (Math.abs(across - b.at) < b.width && along > Math.min(b.a, b.b) && along < Math.max(b.a, b.b))
-      return { id: `jembatan-${b.id}`, name: b.name, sub: b.id === 'agung' ? 'Penghubung Pulau Tropis dan Kerajaan Kencana' : 'Kepulauan Kencana' }
+      return { id: `jembatan-${b.id}`, name: b.name, sub: b.id === 'agung' ? 'Penghubung Pulau Tropis dan Kerajaan Kencana' : b.id === 'perak' ? 'Penghubung Pulau Tropis dan Aeloria' : 'Kepulauan Kencana' }
   }
   if (ground.heightAt(x, z) < -1.2) return null
   if (Math.hypot(x, z) < 340) return { id: 'tropis', name: 'Pulau Tropis', sub: 'Pulau tengah' }
@@ -92,7 +105,8 @@ function colorAt(h, mask, out) {
   out[2] = b
 }
 
-export function createWorldMap({ ground, plan, region, camps = [] }) {
+// plans & regions: rencana dan masker semua wilayah (Kencana, Aeloria); shops: toko yang bisa dibeli
+export function createWorldMap({ ground, plans, regions, camps = [], shops = [] }) {
   const panel = document.getElementById('peta')
   const canvas = document.getElementById('peta-kanvas')
   const ctx = canvas.getContext('2d')
@@ -114,7 +128,9 @@ export function createWorldMap({ ground, plan, region, camps = [] }) {
       for (let i = 0; i < W; i++) {
         const x = WORLD.minX + (i + 0.5) * M_PER_PX
         const z = WORLD.minZ + (j + 0.5) * M_PER_PX
-        colorAt(ground.heightAt(x, z), region.at(x, z), col)
+        let m = null
+        for (const r of regions) if (!m) m = r.at(x, z)
+        colorAt(ground.heightAt(x, z), m, col)
         const k = (j * W + i) * 4
         img.data[k] = col[0]
         img.data[k + 1] = col[1]
@@ -124,7 +140,7 @@ export function createWorldMap({ ground, plan, region, camps = [] }) {
     g.putImageData(img, 0, 0)
     // bangunan: jejak gelap kemerahan
     g.fillStyle = 'rgba(120, 52, 36, 0.85)'
-    for (const b of plan.blocked) {
+    for (const b of plans.flatMap(p => p.blocked)) {
       g.save()
       g.translate(px(b.x), pz(b.z))
       g.rotate(-(b.rot || 0))
@@ -132,14 +148,14 @@ export function createWorldMap({ ground, plan, region, camps = [] }) {
       g.restore()
     }
     // barisan bala tentara: kotak berwarna pasukannya
-    for (const b of plan.army?.blocks ?? []) {
+    for (const b of plans.flatMap(p => p.army?.blocks ?? [])) {
       g.fillStyle = DIVISIONS[b.type].map
       g.fillRect(px(b.x0), pz(b.z0), (b.x1 - b.x0) / M_PER_PX, (b.z1 - b.z0) / M_PER_PX)
     }
     // jembatan
     g.strokeStyle = '#f4efe2'
     g.lineCap = 'butt'
-    for (const s of plan.spans) {
+    for (const s of plans.flatMap(p => p.spans)) {
       g.lineWidth = Math.max(2, s.width / M_PER_PX)
       g.beginPath()
       if (s.axis === 'x') {
@@ -181,6 +197,16 @@ export function createWorldMap({ ground, plan, region, camps = [] }) {
       ctx.beginPath()
       ctx.arc(px(c.x) * s, pz(c.z) * s, 4 * scale, 0, Math.PI * 2)
       ctx.fill()
+    }
+    // toko (pasar & pandai besi Aeloria): lingkaran emas
+    for (const t of shops) {
+      ctx.fillStyle = '#ffd34d'
+      ctx.strokeStyle = '#3a2a06'
+      ctx.lineWidth = 1.5 * scale
+      ctx.beginPath()
+      ctx.arc(px(t.x) * s, pz(t.z) * s, 3.5 * scale, 0, Math.PI * 2)
+      ctx.fill()
+      ctx.stroke()
     }
     for (const l of LABELS) label(l.text, px(l.x) * s, pz(l.z) * s, l.size, scale)
     // prajurit: panah ke arah hadap

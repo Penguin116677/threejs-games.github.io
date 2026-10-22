@@ -139,17 +139,29 @@ const vec3 DRY = vec3(0.60, 0.58, 0.26);
 const vec3 ROCK = vec3(0.42, 0.39, 0.35);
 const vec3 ROCK_DARK = vec3(0.26, 0.24, 0.22);
 
+#if defined(REGION_MASK) || defined(REGION_MASK2)
+// Masker wilayah (Kepulauan Kencana, Aeloria): r = jalan tanah, g = sawah / ladang, b = lantai batu,
+// a = rumput halus. uRegionRect = x0, z0, 1/lebar, 1/panjang
 #ifdef REGION_MASK
-// Masker Kepulauan Kencana: r = jalan tanah, g = sawah, b = lantai batu, a = rumput halus
 uniform sampler2D uRegion;
-uniform vec4 uRegionRect; // x0, z0, 1/lebar, 1/panjang
+uniform vec4 uRegionRect;
+#endif
+#ifdef REGION_MASK2
+uniform sampler2D uRegion2;
+uniform vec4 uRegionRect2;
+#endif
 const vec3 ROAD = vec3(0.60, 0.49, 0.33);
 const vec3 PAVE = vec3(0.60, 0.56, 0.50);
+const vec3 PAVE_ELF = vec3(0.67, 0.65, 0.59);
 const vec3 LAWN = vec3(0.27, 0.52, 0.12);
 const vec3 RICE = vec3(0.36, 0.62, 0.09);
 const vec3 RICE_RIPE = vec3(0.74, 0.62, 0.20);
 const vec3 PADDY_WATER = vec3(0.30, 0.42, 0.40);
 const vec3 DIKE = vec3(0.40, 0.42, 0.20);
+const vec3 WHEAT = vec3(0.47, 0.60, 0.16);
+const vec3 WHEAT_RIPE = vec3(0.86, 0.70, 0.30);
+const vec3 SOIL = vec3(0.45, 0.33, 0.20);
+const vec3 GREENS = vec3(0.22, 0.48, 0.14);
 
 // 1 di garis kisi (tiap cell m, tebal w m), memudar halus saat garis lebih rapat dari piksel
 float gridLine(vec2 p, vec2 cell, float w) {
@@ -161,15 +173,28 @@ float gridLine(vec2 p, vec2 cell, float w) {
   return max(l.x, l.y) * fade;
 }
 
-vec3 regionColor(vec3 col, vec2 p, float nF, float nM, float nD) {
-  vec2 ruv = (p - uRegionRect.xy) * uRegionRect.zw;
+// style 0 = Kencana (sawah, lantai batu andesit), 1 = Aeloria (ladang gandum & sayur, batu putih)
+vec3 regionColor(vec3 col, vec2 p, float nF, float nM, float nD, sampler2D region, vec4 rect, int style) {
+  vec2 ruv = (p - rect.xy) * rect.zw;
   if (ruv.x <= 0.0 || ruv.x >= 1.0 || ruv.y <= 0.0 || ruv.y >= 1.0) return col;
-  vec4 m = texture2D(uRegion, ruv);
+  vec4 m = texture2D(region, ruv);
   // rumput halus (alun-alun, halaman): hijau rata dengan jalur bekas pangkasan
   float stripe = 0.94 + 0.06 * step(0.5, fract(p.x * 0.125));
   col = mix(col, LAWN * stripe * (0.9 + 0.2 * nF), m.a);
+  // ladang Aeloria: petak 14×10 m — gandum (hijau → keemasan) atau barisan sayur di tanah gembur
+  if (style == 1 && m.g > 0.01) {
+    vec2 plot = floor(p / vec2(14.0, 10.0));
+    float kind = texture2D(uNoise, (plot + 0.5) * 0.173).g;
+    float rows = 0.5 + 0.5 * sin(p.x * 9.0 + p.y * 0.2);
+    rows = mix(0.5, rows, 1.0 - smoothstep(0.03, 0.09, fwidth(p.x)));
+    vec3 wheat = mix(WHEAT, WHEAT_RIPE, smoothstep(0.35, 0.6, kind)) * (0.85 + 0.25 * rows) * (0.9 + 0.2 * nF);
+    vec3 veg = mix(SOIL * (0.85 + 0.2 * nD), GREENS * (0.9 + 0.25 * nF), smoothstep(0.35, 0.65, rows));
+    vec3 field = kind > 0.72 ? veg : wheat;
+    field = mix(field, SOIL * (0.8 + 0.3 * nD), gridLine(p, vec2(14.0, 10.0), 0.45));
+    col = mix(col, field, m.g);
+  }
   // sawah: petak 12×8 m dibatasi pematang, tiap petak beda umur padinya
-  if (m.g > 0.01) {
+  if (style == 0 && m.g > 0.01) {
     vec2 plot = floor(p / vec2(12.0, 8.0));
     float age = texture2D(uNoise, (plot + 0.5) * 0.173).g;
     float rows = 0.5 + 0.5 * sin(p.y * 20.9 + p.x * 0.3);
@@ -186,7 +211,7 @@ vec3 regionColor(vec3 col, vec2 p, float nF, float nM, float nD) {
   if (m.b > 0.01) {
     vec2 tile = floor(p / 1.2);
     float tv = texture2D(uNoise, (tile + 0.5) * 0.37).r;
-    vec3 pave = PAVE * (0.82 + 0.3 * tv) * (0.94 + 0.12 * nD);
+    vec3 pave = (style == 1 ? PAVE_ELF : PAVE) * (0.82 + 0.3 * tv) * (0.94 + 0.12 * nD);
     pave *= 1.0 - 0.35 * gridLine(p, vec2(1.2), 0.04);
     col = mix(col, pave, m.b);
   }
@@ -236,7 +261,10 @@ vec3 terrainColor() {
   rocky *= smoothstep(uBeachTop, uBeachTop + 1.5, h);
   col = mix(col, rock, rocky);
 #ifdef REGION_MASK
-  col = regionColor(col, p, nF, nM, nD);
+  col = regionColor(col, p, nF, nM, nD, uRegion, uRegionRect, REGION_STYLE);
+#endif
+#ifdef REGION_MASK2
+  col = regionColor(col, p, nF, nM, nD, uRegion2, uRegionRect2, REGION2_STYLE);
 #endif
 
   return col * vSurface.x;
@@ -286,9 +314,9 @@ function gridNormals(ground) {
   return nor
 }
 
-// region (opsional): masker jalan/sawah/lantai batu/rumput halus Kepulauan Kencana
-// { texture, x0, z0, width, depth } — lihat kencana/mask.js
-export function createTerrain(ground, { noiseTexture, quality, region = null }) {
+// regions (opsional, maks. 2): masker jalan/sawah/lantai batu/rumput halus Kepulauan Kencana &
+// Aeloria { texture, x0, z0, width, depth, style } — lihat kencana/mask.js
+export function createTerrain(ground, { noiseTexture, quality, regions = [] }) {
   const { nx, nz, cols, heights, x0, z0, step } = ground
   const normals = gridNormals(ground)
 
@@ -304,7 +332,15 @@ export function createTerrain(ground, { noiseTexture, quality, region = null }) 
   const mat = new THREE.MeshLambertMaterial({ color: 0xffffff })
   mat.defines = {}
   if (quality.water.wetSand) mat.defines.WAVE_WET_SAND = ''
-  if (region) mat.defines.REGION_MASK = ''
+  const [region, region2] = regions
+  if (region) {
+    mat.defines.REGION_MASK = ''
+    mat.defines.REGION_STYLE = region.style ?? 0
+  }
+  if (region2) {
+    mat.defines.REGION_MASK2 = ''
+    mat.defines.REGION2_STYLE = region2.style ?? 0
+  }
   mat.onBeforeCompile = shader => {
     shader.uniforms.uNoise = { value: noiseTexture }
     shader.uniforms.uBeachTop = { value: ISLAND.beachTop }
@@ -312,6 +348,10 @@ export function createTerrain(ground, { noiseTexture, quality, region = null }) 
     if (region) {
       shader.uniforms.uRegion = { value: region.texture }
       shader.uniforms.uRegionRect = { value: new THREE.Vector4(region.x0, region.z0, 1 / region.width, 1 / region.depth) }
+    }
+    if (region2) {
+      shader.uniforms.uRegion2 = { value: region2.texture }
+      shader.uniforms.uRegionRect2 = { value: new THREE.Vector4(region2.x0, region2.z0, 1 / region2.width, 1 / region2.depth) }
     }
     shader.vertexShader = vertexPars + shader.vertexShader.replace(
       '#include <worldpos_vertex>',
