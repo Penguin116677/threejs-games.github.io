@@ -31,8 +31,14 @@ export function packMatrix(m, out, o) {
 // Panggang klip-klip sebuah rangka. specs: { kunci: { clip, loop = true, hold: { tulang: 'klip' } } }
 // — hold = tulang yang dikunci pada pose bingkai pertama klip lain (mis. lengan kiri memegang
 // perisai ke depan, sementara badan tetap bernapas dengan klip idle).
+// Pilihan tambahan (gerak buatan dari klip yang ada, dipakai para elf Aeloria):
+//   speed = kecepatan klip dasar, frames = banyak bingkai yang dipanggang (bawaan: satu putaran klip),
+//   mix = { tulang: 'klip' } tulang yang ikut klip lain pada waktu yang sama (mis. lengan kanan
+//   menyuap sementara badan duduk), mod(bones, t) = ubahan prosedural terakhir (t dalam detik).
+// fresh = setiap klip mulai dari pose diam (tulang yang tidak dianimasikan klipnya — mis. kaki pada
+// klip idle — tidak mewarisi pose klip sebelumnya).
 // Hasil { table: { kunci: { row, n, loop } }, skeleton }; bingkai ditambahkan ke `rows`.
-export function bakeRig(root, clips, rows, specs) {
+export function bakeRig(root, clips, rows, specs, { fresh = false } = {}) {
   let skinned = null
   root.traverse(o => {
     if (!skinned && o.isSkinnedMesh) skinned = o
@@ -50,17 +56,41 @@ export function bakeRig(root, clips, rows, specs) {
     return poses[name]
   }
   const table = {}
+  const rest = skeleton.bones.map(b => [b.position.clone(), b.quaternion.clone()])
   for (const [key, spec] of Object.entries(specs)) {
     const clip = THREE.AnimationClip.findByName(clips, spec.clip)
     if (!clip) continue
     const holds = Object.entries(spec.hold || {}).map(([j, name]) => [Number(j), poseOf(name)])
+    // tulang yang mengikuti klip lain: satu mixer sendiri per klip campuran
+    const mixes = Object.entries(spec.mix || {}).map(([j, name]) => {
+      const m = new THREE.AnimationMixer(root)
+      m.clipAction(THREE.AnimationClip.findByName(clips, name)).play()
+      return { j: Number(j), m }
+    })
     mixer.stopAllAction()
     mixer.clipAction(clip).reset().play()
-    const n = Math.max(1, Math.round(clip.duration * FPS))
+    const speed = spec.speed ?? 1
+    const n = spec.frames ?? Math.max(1, Math.round((clip.duration / speed) * FPS))
     table[key] = { row: rows.length, n, loop: spec.loop !== false }
+    const saved = mixes.map(() => new THREE.Quaternion())
+    const reset = () => skeleton.bones.forEach((b, j) => {
+      b.position.copy(rest[j][0])
+      b.quaternion.copy(rest[j][1])
+    })
+    if (fresh) reset()
     for (let f = 0; f < n; f++) {
-      mixer.setTime(f / FPS)
+      const t = f / FPS
+      // ubahan prosedural selalu dari pose diam: yang tidak dianimasikan klip tidak menumpuk
+      if (spec.mod) reset()
+      mixes.forEach((x, k) => {
+        x.m.setTime(t)
+        saved[k].copy(skeleton.bones[x.j].quaternion)
+      })
+      // tanpa ulang otomatis untuk klip sekali-jalan: tahan di bingkai terakhir
+      mixer.setTime(spec.loop === false ? Math.min(t * speed, clip.duration - 1e-4) : t * speed)
       for (const [j, pose] of holds) skeleton.bones[j].quaternion.copy(pose[j])
+      mixes.forEach((x, k) => skeleton.bones[x.j].quaternion.copy(saved[k]))
+      if (spec.mod) spec.mod(skeleton.bones, t)
       root.updateMatrixWorld(true)
       _inv.copy(root.matrixWorld).invert()
       const frame = new Float32Array(skeleton.bones.length * 12)
@@ -70,6 +100,12 @@ export function bakeRig(root, clips, rows, specs) {
       })
       rows.push(frame)
     }
+    for (const x of mixes) {
+      x.m.stopAllAction()
+      x.m.uncacheRoot(root)
+    }
+    // ubahan prosedural tidak boleh terbawa ke klip berikutnya
+    if (spec.mod) reset()
   }
   mixer.stopAllAction()
   return { table, skeleton }
@@ -167,6 +203,10 @@ mat4 boneAt(int b, float row) {
 }
 mat4 animMatrix() {
   int b = int(aBone + 0.5);
+  #ifdef RIG_SIMPLE
+    // model jauh: satu bingkai saja, tanpa campuran (sepertiga bacaan tekstur)
+    return boneAt(b, aAnimA.x);
+  #endif
   mat4 a = boneAt(b, aAnimA.x) * (1.0 - aAnimA.z) + boneAt(b, aAnimA.y) * aAnimA.z;
   if (aAnimA.w <= 0.0) return a;
   mat4 c = boneAt(b, aAnimB.x) * (1.0 - aAnimB.z) + boneAt(b, aAnimB.y) * aAnimB.z;

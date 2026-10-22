@@ -7,6 +7,10 @@ Atribut dipadatkan: normal int8 (KHR_mesh_quantization), uv uint16, bobot uint8.
 colormap.png ikut di dalam file.
 
 Pemakaian: python3 scripts/pack-penduduk.py "<folder GLB format Mini Characters>" public/models/penduduk.glb
+
+Dengan argumen ketiga `elf`, file berisi rangka + animasi tambahan untuk para elf Aeloria saja
+(tanpa mesh & tekstur — badan elf memakai mesh penduduk.glb, warnanya diganti di shader):
+    python3 scripts/pack-penduduk.py "<folder>" public/models/elf.glb elf
 """
 import json
 import os
@@ -17,6 +21,11 @@ import numpy as np
 
 CHARACTERS = ['male-a', 'male-b', 'male-e', 'male-f', 'female-a', 'female-b', 'female-c', 'female-f']
 CLIPS = ['idle', 'walk', 'sit', 'interact-right', 'pick-up', 'emote-yes']
+# elf: kegiatan sehari-hari (makan, bertani, menempa, berpesta, berlatih, berkelahi, roboh)
+ELF_CLIPS = [
+    'idle', 'walk', 'sprint', 'jump', 'sit', 'crouch', 'die', 'pick-up', 'emote-yes', 'emote-no', 'interact-right',
+    'holding-right', 'holding-left', 'holding-both', 'holding-both-shoot', 'attack-melee-right', 'attack-melee-left', 'attack-kick-right',
+]
 COMP = {5126: np.float32, 5123: np.uint16, 5121: np.uint8, 5125: np.uint32, 5120: np.int8, 5122: np.int16}
 NCOMP = {'SCALAR': 1, 'VEC2': 2, 'VEC3': 3, 'VEC4': 4, 'MAT4': 16}
 
@@ -76,7 +85,8 @@ class Writer:
         return len(self.accessors) - 1
 
 
-def main(folder, dst):
+def main(folder, dst, preset='penduduk'):
+    characters, clips = (CHARACTERS, CLIPS) if preset == 'penduduk' else ([], ELF_CLIPS)
     ref, ref_bin = load(os.path.join(folder, f'character-{CHARACTERS[0]}.glb'))
     w = Writer()
     # tulang: node 1..7 dari karakter pertama (root, kaki, badan, lengan, kepala)
@@ -86,9 +96,9 @@ def main(folder, dst):
         bones.append(node)
     skin_src = ref['skins'][0]
     ibm = read(ref, ref_bin, skin_src['inverseBindMatrices']).astype(np.float32)
-    nodes = [{'name': 'penduduk', 'children': [1]}] + bones
+    nodes = [{'name': preset, 'children': [1]}] + bones
     meshes = []
-    for name in CHARACTERS:
+    for name in characters:
         gltf, binary = load(os.path.join(folder, f'character-{name}.glb'))
         pos, nor, uv, jnt, idx = [], [], [], [], []
         base = 0
@@ -137,11 +147,11 @@ def main(folder, dst):
         nodes[0]['children'].append(len(nodes) - 1)
         print(f'{name}: {len(pos)} titik, {len(indices) // 3} segitiga')
 
-    skin = {'joints': list(range(1, 8)), 'inverseBindMatrices': w.accessor(ibm, 5126, 'MAT4')}
+    skin = {'joints': list(range(1, 8)), 'inverseBindMatrices': w.accessor(ibm, 5126, 'MAT4')} if meshes else None
     # animasi: hanya klip yang dipakai, target tulang (indeks node 1..7 sama dengan sumber)
     animations = []
     for anim in ref['animations']:
-        if anim['name'] not in CLIPS:
+        if anim['name'] not in clips:
             continue
         samplers = []
         for s in anim['samplers']:
@@ -156,26 +166,29 @@ def main(folder, dst):
         channels = [{'sampler': c['sampler'], 'target': c['target']} for c in anim['channels']]
         animations.append({'name': anim['name'], 'samplers': samplers, 'channels': channels})
 
-    png = open(os.path.join(folder, 'Textures', 'colormap.png'), 'rb').read()
-    image_view = w.view(png)
     out = {
         'asset': {'version': '2.0', 'generator': 'pulau-tropis pack-penduduk.py (Kenney Mini Characters, CC0)'},
-        'extensionsUsed': ['KHR_mesh_quantization'],
-        'extensionsRequired': ['KHR_mesh_quantization'],
         'scene': 0,
         'scenes': [{'nodes': [0]}],
         'nodes': nodes,
-        'meshes': meshes,
-        'skins': [skin],
         'animations': animations,
-        'materials': [{'name': 'colormap', 'pbrMetallicRoughness': {'baseColorTexture': {'index': 0}, 'metallicFactor': 0, 'roughnessFactor': 1}}],
-        'textures': [{'source': 0, 'sampler': 0}],
-        'samplers': [{'magFilter': 9728, 'minFilter': 9728}],
-        'images': [{'name': 'colormap', 'bufferView': image_view, 'mimeType': 'image/png'}],
         'accessors': w.accessors,
         'bufferViews': w.views,
         'buffers': [{'byteLength': 0}],
     }
+    if meshes:
+        png = open(os.path.join(folder, 'Textures', 'colormap.png'), 'rb').read()
+        image_view = w.view(png)
+        out.update({
+            'extensionsUsed': ['KHR_mesh_quantization'],
+            'extensionsRequired': ['KHR_mesh_quantization'],
+            'meshes': meshes,
+            'skins': [skin],
+            'materials': [{'name': 'colormap', 'pbrMetallicRoughness': {'baseColorTexture': {'index': 0}, 'metallicFactor': 0, 'roughnessFactor': 1}}],
+            'textures': [{'source': 0, 'sampler': 0}],
+            'samplers': [{'magFilter': 9728, 'minFilter': 9728}],
+            'images': [{'name': 'colormap', 'bufferView': image_view, 'mimeType': 'image/png'}],
+        })
     while len(w.bin) % 4:
         w.bin.append(0)
     out['buffers'][0]['byteLength'] = len(w.bin)
@@ -189,4 +202,4 @@ def main(folder, dst):
 
 
 if __name__ == '__main__':
-    main(sys.argv[1], sys.argv[2])
+    main(sys.argv[1], sys.argv[2], *sys.argv[3:4])
