@@ -66,6 +66,43 @@ Pengembangan karakter/jurus dihentikan sementara atas permintaan pengguna.
 | Sungai & air terjun, gua, reruntuhan | ⏳ belum |
 | Dicoba di HP Android sungguhan | ⏳ menunggu laporan pengguna |
 
+## Yang sudah diperiksa (v0.12.1 — pemain musuh setiap kerajaan)
+- `npm run build` berhasil; ESLint (konfigurasi repo): 0 error, 0 warning.
+- Smoke test otomatis — **LULUS**: 116 cek, 0 gagal (HP tegak 43, HP mendatar 19, HP Rendah 19,
+  komputer 35). Putaran penuh pertama terpotong batas waktu 50 menit yang saya pasang sendiri, di
+  tengah profil komputer (106 cek lolos, 0 gagal sampai titik itu). HP tegak & komputer lalu diulang
+  dengan skrip final dan lulus (78 cek).
+  - Semua perangkat: menuju Jembatan Agung → dihadang ("Musuh kerajaan! Serang!" / "Bantu! Ada
+    penyusup!") dan langsung diserang 2–3 prajurit, tanpa kartu tanya-jawab.
+  - HP tegak & komputer: masuk wilayah → langsung diserang 3 prajurit (nyawa turun ke 87–91); jurus
+    Putar mengenai prajurit; kalah → dibawa keluar ke x −147 dengan nyawa penuh; masuk lagi →
+    diserang lagi; kabur keluar wilayah → prajurit berhenti mengejar; serbuan orc dihadang &
+    dikalahkan; pendatang ditanyai di gerbang.
+  - Isi dunia sama dengan v0.11.0–v0.12.0. Uji kota & bala tentara memakai gencatan senjata khusus
+    pengujian.
+- **Uji terpisah di browser** (Chromium, render software, layar HP tegak):
+  - dari pantai ke jembatan: dua penjaga kepala jembatan timur berseru dan menyerang di x −157
+    (masih di luar wilayah). Peronda jembatan mengambil alih setelah penjaga mengejar ±35 m.
+    Pemain pertama terkena di x −178 sampai −197;
+  - kabur ke timur: pengejar tertinggal 3–8 m lalu menyerah satu per satu. ±20 detik waktu game
+    kemudian muncul "Prajurit Kencana berhenti mengejarmu.";
+  - masuk lagi di x −300 → langsung diserang 2 peronda;
+  - kalah → bangun di x −146,8 (±12 m dari penjaga). Berdiri di samping penjaga selama masa tenang
+    tidak diserang;
+  - Penggal di samping penjaga kepala jembatan → 2 penjaga roboh, peronda lain membalas;
+  - di pasar → 3 peronda mengepung. Pindah ke Pulau Sawah → penyerang dari pasar menyerah dan
+    peronda Pulau Sawah yang menyerang;
+  - halaman pratinjau (versi lokal artifact): termuat 3,1 detik, tanpa error / file hilang, tanpa
+    kartu tanya-jawab, petunjuk baru tampil, diserang di jembatan.
+- **Ditemukan & diperbaiki saat uji**:
+  - Pemain yang diburu di separuh timur jembatan (masih di luar wilayah) sambil berjalan masuk
+    dianggap kabur setelah 12 detik. Kini "lolos" diukur dari jarak ke pengejar (20 m, 6 detik),
+    ditambah batas kejar 35 m di luar wilayah.
+  - Prajurit berganti-ganti lari dan jalan saat mengejar pemain yang lari. Kini mereka tetap
+    berlari penuh selama sasaran bergerak.
+- Beban gambar tidak diukur ulang: hanya logika yang berubah (draw call & jumlah prajurit sama
+  dengan v0.12.0).
+
 ## Yang sudah diperiksa (v0.12.0 — penjagaan Kerajaan Kencana)
 - `npm run build` berhasil; ESLint (konfigurasi repo): 0 error, 0 warning.
 - Smoke test otomatis (4 perangkat: HP tegak, HP mendatar, HP Rendah, komputer) — **LULUS** (118 cek,
