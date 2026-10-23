@@ -1,4 +1,4 @@
-import { CITADEL } from './layout.js'
+import { CITADEL, BRIDGES } from './layout.js'
 
 // Penjagaan Aeloria. Kota bebas & kawasan kesatria adalah zona damai (DECISIONS #49): pemain boleh
 // berjalan, berbelanja, dan menonton tanpa diganggu.
@@ -8,6 +8,9 @@ import { CITADEL } from './layout.js'
 //   menyerang. Warga biasa di sekitar kerusuhan kabur — yang pemberani ikut berkelahi.
 //   PEDAGANG TETAP NETRAL (DECISIONS #50): tidak kabur, tidak menyerang, dan tetap berdagang dengan
 //   pemain walaupun ia musuh kerajaan.
+// - Semua itu hanya di WILAYAH AELORIA (utara tengah Jembatan Perak): kesatria tidak memburu pemain
+//   keluar kerajaan — mereka berhenti di perbatasan, dan pemain yang dibangunkan di ujung selatan
+//   jembatan aman dari kesatria yang sedang berjalan-jalan sampai ke sana.
 // - BENTENG AELORIA: satu-satunya wilayah terlarang — penjaganya menyerang siapa pun yang masuk;
 //   keluar dari benteng = berhenti dikejar (bila tidak sedang buron).
 // - KERIBUTAN WARGA: sesekali dua elf pemarah berkelahi di dekat pemain, elf lain berkerumun
@@ -37,6 +40,10 @@ const SPEED = { kejar: 4.1, dekati: 2.4, kabur: 4.0, jalan: 1.6 }
 const RUN_ANIM = 4.0 // m/s yang cocok dengan klip run (kehidupan.js)
 const WALK_ANIM = 1.4
 const RADIUS = 0.35
+// perbatasan: tengah Jembatan Perak (z). Utaranya wilayah Aeloria, selatannya Pulau Tropis
+const PERAK = BRIDGES.find(b => b.id === 'perak')
+const BORDER_Z = (PERAK.from + PERAK.to) / 2
+const inLand = z => z < BORDER_Z
 const BRAWL = { first: [35, 60], every: [70, 140], knightAfter: [6, 9], alone: 16, watchers: 6 }
 // kegiatan tenang: elf yang sedang begini boleh terseret keributan / menontonnya
 const CALM = new Set(['ngobrol', 'lihat', 'santai', 'duduk', 'api', 'nonton', 'kedai', 'jalan', 'belanja', 'sumur', 'main'])
@@ -64,7 +71,7 @@ const turn = (h, want, k) => h + Math.atan2(Math.sin(want - h), Math.cos(want - 
 // life = createLife (kehidupan.js); player; bubbles = gelembung ucapan; message(teks, ms);
 // nav = navgrid (jalur memutar); colliders; ground
 export function createElfSecurity({ life, player, bubbles, message, nav, colliders, ground }) {
-  const S = { wanted: false, buron: 0, trespass: false, lostT: 0, scanT: 0, grace: 0, riots: 0 }
+  const S = { wanted: false, buron: 0, trespass: false, lostT: 0, scanT: 0, grace: 0, riots: 0, out: true }
   const attackers = new Set()
   const ring = new Set()
   const fleeing = new Set()
@@ -81,7 +88,7 @@ export function createElfSecurity({ life, player, bubbles, message, nav, collide
   const merchant = a => a.job === 'pedagang'
   const fighter = a => a.kind === 'kesatria' && a.weapon !== 'busur'
   const inCitadel = (x, z, m = 0) => x > CITADEL.x0 - m && x < CITADEL.x1 + m && z > CITADEL.z0 - m && z < CITADEL.z1 + m
-  const hostile = () => !player.defeated && (S.trespass || (S.wanted && S.grace <= 0))
+  const hostile = () => !player.defeated && (S.trespass || (S.wanted && S.grace <= 0 && inLand(pp.z)))
 
   // ---------------------------------------------------------------- ambil alih & kembalikan
   function enlist(a, set, alasan) {
@@ -298,13 +305,15 @@ export function createElfSecurity({ life, player, bubbles, message, nav, collide
     life.mode(a, 'lawan', 'siaga')
     return true
   }
+  // pemain sudah keluar kerajaan & kesatria ini sampai di perbatasan → berhenti mengejar
+  const atBorder = a => !inLand(pp.z) && a.z > BORDER_Z - 6
   function stepAttacker(a, dt) {
     if (a.down || a.phase !== 'tempur') {
       attackers.delete(a)
       return
     }
     const d = dist(a)
-    if (d > LEASH) {
+    if (d > LEASH || atBorder(a)) {
       dismiss(a)
       return
     }
@@ -348,7 +357,7 @@ export function createElfSecurity({ life, player, bubbles, message, nav, collide
     }
     knockback(a, dt)
     if (staggered(a, dt)) return
-    if (dist(a) > LEASH) {
+    if (dist(a) > LEASH || atBorder(a)) {
       dismiss(a)
       return
     }
@@ -566,6 +575,13 @@ export function createElfSecurity({ life, player, bubbles, message, nav, collide
       }
     }
     // buronan: kesatria yang melihatnya ikut menyerang; lolos / dimaafkan
+    // buron yang keluar kerajaan: tidak dikejar lagi (sekali pesan tiap keluar; bangun setelah kalah
+    // tidak dihitung — pesan kekalahan sudah menjelaskannya)
+    if (!player.defeated) {
+      const out = !inLand(pp.z)
+      if (S.wanted && out && !S.out) message(`Kamu keluar dari wilayah Aeloria — kesatria berhenti di perbatasan. Kamu masih buronan bila kembali (±${Math.ceil(S.buron / 60)} menit).`, 4200)
+      S.out = out
+    }
     if (S.wanted) {
       S.buron -= dt
       if (S.buron <= 0) {
@@ -640,6 +656,7 @@ export function createElfSecurity({ life, player, bubbles, message, nav, collide
       const byElves = [...attackers].some(a => dist(a) < 12)
       standDown()
       S.trespass = false
+      S.out = true // dibangunkan di luar wilayah Aeloria
       if (byElves) S.grace = 20
       return byElves
     },
