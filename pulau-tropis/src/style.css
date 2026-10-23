@@ -443,29 +443,31 @@ body {
 /* layar mendatar: petunjuk di ruang kosong atas, di antara judul dan tombol;
    tombol jurus & Lompat sebaris di kiri tombol Pukul (tinggi layar terbatas) */
 @media (orientation: landscape) {
-  #hud .jurus,
-  #hud #btn-lompat {
-    bottom: calc(var(--b) + 14px);
-  }
-
+  /* `bottom` diulang per tombol: aturan tegak per-id (#hud #btn-…) lebih spesifik daripada
+     #hud .jurus, jadi tanpa ini tombol jurus tetap di busur tegak dan naik miring ke tengah layar */
   #hud #btn-cincang {
     right: calc(var(--r) + 96px);
+    bottom: calc(var(--b) + 14px);
   }
 
   #hud #btn-hentak {
     right: calc(var(--r) + 162px);
+    bottom: calc(var(--b) + 14px);
   }
 
   #hud #btn-putar {
     right: calc(var(--r) + 228px);
+    bottom: calc(var(--b) + 14px);
   }
 
   #hud #btn-penggal {
     right: calc(var(--r) + 294px);
+    bottom: calc(var(--b) + 14px);
   }
 
   #hud #btn-lompat {
     right: calc(var(--r) + 360px);
+    bottom: calc(var(--b) + 14px);
   }
 
   #petunjuk {
