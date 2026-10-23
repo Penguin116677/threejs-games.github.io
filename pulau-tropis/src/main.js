@@ -29,12 +29,15 @@ import { createElfFolk } from './world/aeloria/elf.js'
 import { createLife, ELF_CAPS } from './world/aeloria/kehidupan.js'
 import { createWorldMap, createRegionBanner } from './ui/peta.js'
 import { createBubbles, createHealthBar } from './ui/tanya.js'
+import { createShop } from './ui/toko.js'
 import { createInput } from './player/input.js'
 import { createStrategyCamera } from './player/camera.js'
 import { createMarkers } from './player/marker.js'
 import { createSwingEffects } from './player/effects.js'
 import { SKILLS } from './player/combat.js'
 import { createPlayer, loadPlayerModel, MAX_HP } from './player/player.js'
+import { createBag } from './player/tas.js'
+import { createGear } from './player/perlengkapan.js'
 
 const $ = id => document.getElementById(id)
 
@@ -89,8 +92,8 @@ function findSpawn(ground, colliders) {
   return { x: -128, z: 128, heading: Math.atan2(128, -128) }
 }
 
-const HINT_TOUCH = '<b>Ketuk tanah</b> untuk berjalan ke sana (jauh = lari)<br>Geser: putar kamera · Cubit: zoom<br><b>Pukul</b> berulang = kombo · 4 tombol <b>jurus</b> · musuh orc ada di depan<br><b>Peta</b>: Kerajaan Kencana di barat (Jembatan Agung) — kamu musuh setiap kerajaan, prajuritnya akan menyerangmu'
-const HINT_KEYS = '<b>Klik tanah</b> untuk berjalan ke sana · WASD / panah juga bisa<br>Seret mouse: putar kamera · Roda: zoom · Spasi: lompat<br>F: pukul (kombo) · 1–4: jurus Cincang, Hentak, Putar, Penggal<br>M: peta — Kerajaan Kencana di barat (Jembatan Agung); kamu musuh setiap kerajaan, prajuritnya akan menyerangmu'
+const HINT_TOUCH = '<b>Ketuk tanah</b> untuk berjalan ke sana (jauh = lari)<br>Geser: putar kamera · Cubit: zoom<br><b>Pukul</b> berulang = kombo · 4 <b>jurus</b> · orc kalah = <b>koin</b><br><b>Peta</b>: Kencana (barat) memusuhimu · Aeloria (utara) damai, <b>ketuk kios</b> untuk belanja'
+const HINT_KEYS = '<b>Klik tanah</b> untuk berjalan ke sana · WASD / panah juga bisa<br>Seret mouse: putar kamera · Roda: zoom · Spasi: lompat<br>F: pukul (kombo) · 1–4: jurus · orc kalah = koin · B: tas<br>M: peta — Kencana (barat) memusuhimu · Aeloria (utara) damai; E / klik kios: belanja'
 
 // FOV kamera: mode main (kamera atas) lebih sempit agar prajurit tidak terlalu kecil;
 // layar tegak butuh FOV lebih lebar agar sisi kiri-kanan tetap terlihat
@@ -291,6 +294,27 @@ async function start() {
   if (player.blob) scene.add(player.blob)
   const spawn = findSpawn(ground, colliders)
   player.placeAt(spawn.x, spawn.z, spawn.heading)
+  // tas pemain (koin, bekal, ramuan, perlengkapan) + perlengkapan yang tampak di badan
+  const bag = createBag()
+  const gear = asset ? createGear(asset.model, quality) : null
+  const applyGear = () => {
+    const fx = bag.effect()
+    player.setDefense(fx.tahan)
+    player.setSpeedBoost(fx.cepat)
+    gear?.set(bag.pakai)
+  }
+  bag.onChange(applyGear)
+  applyGear()
+  // koin, tombol Belanja di dekat kios Aeloria, panel toko & Tas (+ gelembung ucapan yang juga
+  // dipakai penjaga & rakyat elf)
+  const bubbles = createBubbles($('gelembung'), camera)
+  const shop = createShop({ life, bag, player, bubbles, message: showMessage, maxHp: MAX_HP })
+  // hadiah koin: 6–12 per orc yang dikalahkan
+  const orcCoins = n => {
+    let c = 0
+    for (let i = 0; i < n; i++) c += 6 + Math.floor(Math.random() * 7)
+    return c
+  }
   const enemies = orcAsset ? createEnemies({ ground, colliders, nav, asset: orcAsset, spawn }) : null
   if (enemies) scene.add(enemies.object)
   // penjagaan kerajaan (dibuat setelah input, lihat di bawah); sasaran jurus Penggal: orc & prajurit
@@ -366,6 +390,7 @@ async function start() {
     if (ev.type === 'execute') {
       enemies?.mark(orcIds(ev.targets), false)
       const cut = enemies ? enemies.decapitate(orcIds(ev.targets), player.position) : []
+      if (cut.length) shop.reward(orcCoins(cut.length))
       // prajurit Kencana tidak dipenggal: roboh tersabet (dan kawan-kawannya membalas)
       const felled = []
       for (const id of ev.targets) {
@@ -382,9 +407,23 @@ async function start() {
       return
     }
     if (ev.type === 'hit') {
+      // perlengkapan: pengali serangan (pedang perak, tombak, ramuan kekuatan); tombak menjangkau
+      // lebih jauh ke depan (pukulan di sekeliling badan tidak berubah)
+      const fx = bag.effect()
       const shape = { x: ev.x, z: ev.z, r: ev.r }
-      const struck = enemies ? enemies.hit(shape, ev.damage, ev.knock, ev.origin) : []
-      const guards = soldiers ? soldiers.hit(shape, ev.damage, ev.knock, ev.origin) : []
+      if (fx.jangkau && !ev.area) {
+        const dx = ev.x - ev.origin.x
+        const dz = ev.z - ev.origin.z
+        const d = Math.hypot(dx, dz) || 1
+        shape.x += (dx / d) * fx.jangkau * 0.5
+        shape.z += (dz / d) * fx.jangkau * 0.5
+        shape.r += fx.jangkau * 0.5
+      }
+      const damage = ev.damage * fx.serang
+      const struck = enemies ? enemies.hit(shape, damage, ev.knock, ev.origin) : []
+      const felledOrcs = struck.filter(o => o.dead).length
+      if (felledOrcs) shop.reward(orcCoins(felledOrcs))
+      const guards = soldiers ? soldiers.hit(shape, damage, ev.knock, ev.origin) : []
       security?.playerStruck(guards)
       for (const a of guards) struck.push({ x: a.x, y: a.y, z: a.z })
       effects.attack(ev, colliders.hitAll(ev.x, ev.z, ev.r, 5), struck)
@@ -444,7 +483,11 @@ async function start() {
     if (player.defeated) return
     const hit = pickGround(tap.x, tap.y)
     if (!hit) return
-    const path = nav.findPath(player.position, hit)
+    // ketuk kios Aeloria: berjalan ke depan mejanya, panel toko terbuka saat tiba
+    const stall = shop.stallAt(hit.x, hit.z)
+    const goal = stall ? stall.front : hit
+    const path = nav.findPath(player.position, goal)
+    shop.approach(stall && path ? stall : null)
     if (path) {
       player.followPath(path)
       const end = path[path.length - 1]
@@ -483,7 +526,6 @@ async function start() {
   let mode = 'main'
   const agung = plan.spans.find(s => s.id === 'agung')
   // gelembung ucapan, nyawa pemain
-  const bubbles = createBubbles($('gelembung'), camera)
   life?.setBubbles(bubbles)
   const health = createHealthBar($('nyawa'), $('luka'))
   // pendatang: dari ujung timur Jembatan Agung ke gerbang baratnya (ditanyai penjaga), lalu ke pasar
@@ -692,6 +734,7 @@ async function start() {
       targetPos: security.targetPos,
     })
     bubbles.update(dt)
+    shop.update(dt, mode === 'main')
     health.set(player.hp, MAX_HP)
     effects.update(dt, camera)
     updateSkillButtons()
@@ -731,7 +774,7 @@ async function start() {
   // akses untuk debugging / pengujian otomatis
   window.__pulau = {
     renderer, scene, camera, controls, ground, shore, quality, trees, rocks, grass, water, env, kencana, region, plan, villagers, army, worldMap, banner, aeloria, elfPlan, elfMask, life,
-    player, cam, input, colliders, nav, markers, effects, enemies, soldiers, security, bubbles, pickGround, setMode, getMode: () => mode,
+    player, cam, input, colliders, nav, markers, effects, enemies, soldiers, security, bubbles, pickGround, setMode, getMode: () => mode, bag, gear, shop,
     frames: () => frameCount, debug,
   }
 }

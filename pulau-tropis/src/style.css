@@ -103,6 +103,12 @@ body {
   gap: 8px;
 }
 
+/* Peta & Tas sebaris: kolom kanan tetap pendek (di layar mendatar tidak menabrak tombol Pukul) */
+.hud-baris {
+  display: flex;
+  gap: 8px;
+}
+
 #hud button {
   pointer-events: auto;
   border: 0;
@@ -580,4 +586,256 @@ body {
 
 .gelembung.pudar {
   opacity: 0;
+}
+
+/* koin pemain: di bawah bar nyawa; "+n" melayang saat mendapat koin */
+.koin-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-weight: 700;
+  font-size: 14px;
+  font-variant-numeric: tabular-nums;
+}
+
+.koin-pill svg {
+  width: 18px;
+  height: 18px;
+  flex: none;
+}
+
+#koin {
+  position: relative;
+  margin-top: 6px;
+  padding: 3px 10px 3px 4px;
+  border-radius: 12px;
+  background: rgba(0, 20, 30, 0.45);
+}
+
+.koin-tambah {
+  position: absolute;
+  left: 100%;
+  top: 2px;
+  margin-left: 6px;
+  color: #ffe27a;
+  font-weight: 800;
+  animation: koin-naik 1.3s ease-out forwards;
+}
+
+@keyframes koin-naik {
+  from {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  to {
+    opacity: 0;
+    transform: translateY(-18px);
+  }
+}
+
+#hud #btn-tas {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+#hud #btn-tas svg {
+  width: 18px;
+  height: 18px;
+}
+
+/* tombol Belanja di dekat kios: kiri bawah (kanan bawah dipakai tombol serangan) */
+#hud #btn-belanja {
+  position: absolute;
+  left: max(16px, env(safe-area-inset-left));
+  bottom: max(26px, env(safe-area-inset-bottom));
+  display: grid;
+  grid-template-columns: auto auto;
+  column-gap: 8px;
+  align-items: center;
+  text-align: left;
+  padding: 8px 16px 8px 12px;
+  border-radius: 14px;
+  border: 2px solid rgba(255, 236, 170, 0.9);
+  background: rgba(214, 150, 30, 0.88);
+  font-weight: 700;
+  font-size: 16px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.35);
+}
+
+#hud #btn-belanja svg {
+  grid-row: span 2;
+  width: 26px;
+  height: 26px;
+}
+
+#hud #btn-belanja small {
+  max-width: 84px;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-size: 11px;
+  font-weight: 500;
+  opacity: 0.92;
+}
+
+#hud #btn-belanja.tutup-kios {
+  border-color: rgba(255, 255, 255, 0.4);
+  background: rgba(60, 60, 60, 0.75);
+}
+
+/* panel toko & tas: kartu di tengah, ketuk di luar kartu = tutup */
+.panel-layar {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 16, 26, 0.3);
+  pointer-events: auto;
+  text-shadow: none;
+}
+
+.toko-kartu {
+  width: min(390px, calc(100% - 24px));
+  max-height: calc(100% - 110px);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 14px;
+  border-radius: 14px;
+  background: rgba(0, 32, 48, 0.93);
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.4);
+}
+
+.toko-kepala {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.toko-kepala .koin-pill {
+  padding: 4px 10px 4px 5px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.toko-sub {
+  font-size: 12px;
+  opacity: 0.85;
+}
+
+.toko-daftar {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  overflow-y: auto;
+  min-height: 0;
+}
+
+.barang {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 8px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.barang.dipakai {
+  background: rgba(31, 156, 138, 0.32);
+}
+
+.barang .ikon {
+  flex: none;
+  width: 42px;
+  height: 42px;
+  border-radius: 9px;
+  background: rgba(255, 255, 255, 0.13);
+  display: grid;
+  place-items: center;
+}
+
+.barang .ikon svg {
+  width: 32px;
+  height: 32px;
+}
+
+.barang .info {
+  flex: 1;
+  min-width: 0;
+}
+
+.barang .info b {
+  display: block;
+  font-size: 14px;
+}
+
+.barang .info b i {
+  font-style: normal;
+  font-weight: 600;
+  opacity: 0.75;
+}
+
+.barang .info small {
+  display: block;
+  font-size: 12px;
+  opacity: 0.8;
+}
+
+#hud .barang button {
+  flex: none;
+  min-width: 76px;
+  min-height: 40px;
+  padding: 6px 10px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  font-weight: 700;
+  background: #1f9c8a;
+  backdrop-filter: none;
+}
+
+#hud .barang button svg {
+  width: 16px;
+  height: 16px;
+}
+
+#hud .barang button.redup,
+#hud .barang button.lepas {
+  background: rgba(255, 255, 255, 0.14);
+  color: rgba(255, 255, 255, 0.78);
+}
+
+.toko-kaki {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+#hud .toko-kaki button.tutup {
+  flex: none;
+  min-height: 38px;
+  padding: 8px 16px;
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.35);
+}
+
+.tas-efek {
+  font-size: 12px;
+  padding: 6px 8px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.kosong {
+  font-size: 13px;
+  opacity: 0.85;
+  padding: 10px 4px;
 }

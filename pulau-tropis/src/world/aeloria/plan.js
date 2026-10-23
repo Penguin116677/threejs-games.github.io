@@ -189,9 +189,11 @@ export function planAeloria(ground) {
     const c = local(b, 0, 0.6)
     box(c.x, c.z, 3.7, 1.2, rot, 'kayu')
     take(x, z, 4.6, 3.6, rot)
+    // kios yang melayani pemain dijaga dua orang (pemilik + pembantu), supaya jarang tutup
     return site({
       type: 'kios', area, x, z, rot, goods, shop,
       seller: { ...local(b, 0, -0.4), rot },
+      helper: shop ? { ...local(b, 1.25, -0.45), rot } : null,
       slots: [-1.1, 0, 1.1].map(o => ({ ...local(b, o, 2.4), rot: rot + Math.PI, pose: 'buy' })),
       front: local(b, 0, 2.3),
     })

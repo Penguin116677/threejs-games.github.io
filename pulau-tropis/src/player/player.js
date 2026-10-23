@@ -156,6 +156,8 @@ export function createPlayer({ ground, colliders, quality, asset }) {
   let hp = MAX_HP
   let calmT = 0 // detik sejak terakhir terkena
   let defeated = false
+  let defense = 0 // bagian luka yang ditahan perlengkapan (perisai, zirah, helm)
+  let speedBoost = 1 // ramuan kecepatan
   let onHurt = () => {}
   let onDefeated = () => {}
 
@@ -321,6 +323,7 @@ export function createPlayer({ ground, colliders, quality, asset }) {
       }
     }
     const depth = ISLAND.seaLevel - ground.surfaceAt(pos.x, pos.z)
+    if (!atk) speed *= speedBoost
     if (depth > WADE_DEPTH && !atk) speed *= 0.55
 
     // percepat menuju kecepatan yang diinginkan
@@ -431,7 +434,7 @@ export function createPlayer({ ground, colliders, quality, asset }) {
     // terkena serangan sebesar `amount` dari arah `from` ({ x, z }): terdorong menjauh
     damage(amount, from) {
       if (defeated || frozen) return
-      hp = Math.max(0, hp - amount)
+      hp = Math.max(0, hp - amount * (1 - defense))
       calmT = 0
       if (from) {
         const dx = pos.x - from.x
@@ -448,6 +451,18 @@ export function createPlayer({ ground, colliders, quality, asset }) {
         play('die', 0.1)
         onDefeated()
       }
+    },
+    // makan / minum ramuan: nyawa bertambah (tidak melebihi penuh)
+    heal(amount) {
+      if (defeated) return
+      hp = Math.min(MAX_HP, hp + amount)
+    },
+    // perlengkapan & ramuan (tas.js): bagian luka yang ditahan, pengali kecepatan lari
+    setDefense(f) {
+      defense = Math.min(0.9, Math.max(0, f))
+    },
+    setSpeedBoost(k) {
+      speedBoost = k
     },
     // bangun lagi dengan nyawa penuh (setelah roboh)
     revive() {

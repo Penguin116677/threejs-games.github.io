@@ -2,6 +2,7 @@ import * as THREE from 'three'
 import { rng } from '../../core/random.js'
 import { WARNA, BAGIAN, packDye, FADE } from './elf.js'
 import { CITADEL } from './layout.js'
+import { createEconomy, NAMA_KIOS } from './ekonomi.js'
 
 // Kehidupan Aeloria: 10.000 kesatria elf + ratusan penduduk yang masing-masing punya pikiran sendiri.
 //
@@ -85,6 +86,7 @@ const KEGIATAN = {
   jalan: { teks: 'berjalan-jalan', lega: { bosan: 0.25 }, lama: [6, 25] },
   lihat: { teks: 'melihat-lihat sekeliling', lega: { bosan: 0.2 }, lama: [20, 60] },
   belanja: { teks: 'berbelanja di pasar', lega: { bosan: 0.15 }, lama: [30, 80] },
+  antar: { teks: 'mengantar hasil panen ke pasar', lega: { kerja: 0.1 }, lama: [8, 16] },
   jaga: { teks: 'berjaga', lega: { latih: 0.1 }, lama: [600, 1200] },
   kerja: { teks: 'bekerja', lega: { kerja: 0.25 }, lama: [600, 1200] },
   sumur: { teks: 'menimba air di sumur', lega: { sepi: 0.2 }, lama: [40, 100] },
@@ -508,9 +510,14 @@ export function createLife({ ground, plan, routes, folk, quality, free = () => t
     dyeVillager(a)
     return a
   }
+  // pedagang tinggal di salah satu rumah terdekat dari kiosnya (pulang-pergi tidak lama)
+  const homeNear = (x, z) => {
+    const near = homes.slice().sort((p, q) => Math.hypot(p.x - x, p.z - z) - Math.hypot(q.x - x, q.z - z)).slice(0, 8)
+    return pick(near)
+  }
   for (const s of of('kios')) {
-    const a = villager('pedagang', { work: { site: s, seller: true } })
-    s.keeper = a.id
+    s.keepers = [s.seller, s.helper].filter(Boolean).map(spot => villager('pedagang', { home: homeNear(s.x, s.z), work: { site: s, seller: true, spot } }).id)
+    s.keeper = s.keepers[0]
   }
   {
     const forge = of('tempa')[0]
@@ -527,6 +534,18 @@ export function createLife({ ground, plan, routes, folk, quality, free = () => t
   }
   for (let i = 0; i < 90; i++) villager('warga')
   for (let i = 0; i < 28; i++) villager('anak')
+
+  // ----------------------------------------------------------------- ekonomi (ekonomi.js)
+  // pandai besi yang menempa di landasan & pedagang makanan yang berjaga di kiosnya menghasilkan
+  // barang; petani mengantar panen ke kios; pembeli di kios yang buka ikut membeli
+  const economy = createEconomy({ sites, rand })
+  const producers = agents.filter(a => a.job === 'pandai' || (a.job === 'pedagang' && a.work.site.stock && a.work.site.area !== 'tempa'))
+  for (const a of producers) a.makeT = between(10, 70)
+  let tradeT = 0
+  // kios buka = salah satu pedagangnya sedang berdiri di balik meja
+  const atStall = k => k.atWork && k.act === 'kerja'
+  const isOpen = site => !!site.keepers?.some(id => atStall(agents[id]))
+  const NPC_BUY = 0.45 // sebagian pembeli hanya melihat-lihat / menawar
 
   // ----------------------------------------------------------------- perjalanan
   // rute dari letak sekarang ke (tx, tz): [via asal] → jaringan jalan → [via tujuan] → tujuan
@@ -884,7 +903,7 @@ export function createLife({ ground, plan, routes, folk, quality, free = () => t
         return true
       }
       case 'belanja': {
-        c = choose(a, 'kios', { spread: 50 })
+        c = choose(a, 'kios', { filter: isOpen, spread: 50 })
         if (!c) return false
         goTo(a, 'belanja', c.site, c.slot)
         return true
@@ -947,7 +966,7 @@ export function createLife({ ground, plan, routes, folk, quality, free = () => t
         const w = a.work
         if (w.seller || w.server) {
           // berdiri di balik meja dagang / meja saji
-          const p = w.seller ? w.site.seller : w.site.server
+          const p = w.seller ? w.spot : w.site.server
           release(a)
           a.goal = 'kerja'
           a.act = 'jalan'
@@ -978,7 +997,7 @@ export function createLife({ ground, plan, routes, folk, quality, free = () => t
         if (c) goTo(a, 'sumur', c.site, c.slot)
         return !!c
       case 'belanja':
-        c = choose(a, 'kios', { filter: s => s.area === 'pasar' || s.area === 'tempa', spread: 40 })
+        c = choose(a, 'kios', { filter: s => (s.area === 'pasar' || s.area === 'tempa') && isOpen(s), spread: 40 })
         if (c) goTo(a, 'belanja', c.site, c.slot)
         return !!c
       case 'kedai':
@@ -1089,6 +1108,23 @@ export function createLife({ ground, plan, routes, folk, quality, free = () => t
         schedule(a, T + dur)
         return
       }
+      if (goal === 'antar') {
+        // petani menurunkan keranjang panen di kios, lalu berbincang sebentar dengan pedagangnya
+        if (a.deliver) economy.delivered(a.deliver, 3)
+        a.deliver = null
+        a.carry = null
+        a.act = 'antar'
+        a.phase = 'di'
+        a.pts = null
+        a.cx = a.x
+        a.cz = a.z
+        a.cr = 0
+        a.startT = T
+        a.y = ground.surfaceAt(a.x, a.z)
+        a.hidden = false
+        schedule(a, T + between(...KEGIATAN.antar.lama))
+        return
+      }
       if (goal === 'pulang') {
         a.act = 'pulang'
         a.phase = 'di'
@@ -1132,7 +1168,25 @@ export function createLife({ ground, plan, routes, folk, quality, free = () => t
     // jajan di kios makanan juga mengenyangkan
     if (a.act === 'belanja' && a.site?.shop && a.site.shop !== 'ramuan' && a.site.shop !== 'tempa') a.need.lapar = Math.max(0, a.need.lapar - 0.45)
     if (a.act === 'makan' || a.act === 'jamuan') a.carry = null
+    // pembeli di kios yang buka: sebagian benar-benar membeli (stok berkurang)
+    if (a.act === 'belanja' && a.site?.stock && isOpen(a.site) && rand() < NPC_BUY) economy.npcBuy(a.site)
     if (a.atWork) a.atWork = false
+    // petani selesai bekerja: sering mengantar sekeranjang panen ke kios roti / buah / sayur terdekat
+    if (a.act === 'kerja' && a.job === 'petani' && economy.farmStalls.length && rand() < 0.7) {
+      let best = null
+      let bd = Infinity
+      for (const st of economy.farmStalls) {
+        const d = Math.hypot(st.front.x - a.x, st.front.z - a.z) + rand() * 40
+        if (d < bd) {
+          bd = d
+          best = st
+        }
+      }
+      a.deliver = best
+      a.carry = 'keranjang'
+      goToPoint(a, 'antar', best.front.x, best.front.z)
+      return
+    }
     decide(a)
   }
 
@@ -1189,6 +1243,22 @@ export function createLife({ ground, plan, routes, folk, quality, free = () => t
 
   // ----------------------------------------------------------------- peristiwa besar
   function updateEvents() {
+    // produksi tiap detik simulasi: pandai besi di landasan menyelesaikan barang tiap ±70–110 detik,
+    // pedagang makanan menyiapkan dagangan tiap ±40–70 detik selama berjaga
+    if (T - tradeT >= 1) {
+      const d = T - tradeT
+      tradeT = T
+      for (const a of producers) {
+        if (a.act !== 'kerja' || a.phase !== 'di' || (a.makeT -= d) > 0) continue
+        if (a.job === 'pandai') {
+          a.makeT = between(70, 110)
+          a.made = economy.forged(a.site?.slots[a.slot]?.forge ?? 0)
+        } else {
+          a.makeT = between(40, 70)
+          economy.prepared(a.work.site)
+        }
+      }
+    }
     // Pesta besar di Padang Pesta: pemusik bermain, banyak kesatria datang menari
     if (!feast.on && T > feast.next) {
       feast.on = true
@@ -1319,6 +1389,9 @@ export function createLife({ ground, plan, routes, folk, quality, free = () => t
         return out
       case 'kerja':
         return lookWork(a, t, pose, cycle)
+      case 'antar':
+        out.clip = ['talk', 'idle', 'talk', 'wave'][cycle(2.4, 4)]
+        return out
       default:
         out.clip = 'idle'
         return out
@@ -1530,11 +1603,33 @@ export function createLife({ ground, plan, routes, folk, quality, free = () => t
     belanja: ['Berapa harganya?', 'Aku ambil yang ini.'],
     sumur: ['Airnya jernih.', 'Pagi, tetangga!'],
     main: ['Kejar aku!', 'Hihihi!', 'Tidak kena!'],
-    pedagang: ['Roti hangat! Roti hangat!', 'Buah segar dari kebun!', 'Mampir, mampir!', 'Murah untuk hari ini!'],
+    pedagang: ['Mampir, mampir!', 'Murah untuk hari ini!', 'Silakan dilihat dulu!'],
+    antar: ['Panen segar dari ladang!', 'Ini hasil panen hari ini.'],
     pandai: ['Satu pedang lagi selesai!', 'Bajanya sudah merah.'],
     petani: ['Panen tahun ini bagus.', 'Fiuh, panas sekali.'],
     masak: ['Supnya hampir matang!'],
     musik: ['♪ La la la ♪'],
+  }
+  // seruan pedagang menurut dagangannya; bila dagangannya habis: minta pembeli menunggu
+  const SERUAN = {
+    roti: ['Roti hangat! Roti hangat!', 'Roti madu, baru keluar dari tungku!'],
+    buah: ['Buah segar dari kebun!', 'Apel perak, manis sekali!'],
+    daging: ['Sate rusa! Masih panas!', 'Daging panggang, harum sekali!'],
+    madu: ['Madu hutan asli!', 'Sari buah, segar sekali!'],
+    sayur: ['Sayur segar, baru dipetik!', 'Sup sayur, hangat untuk perut!'],
+    ikan: ['Ikan bakar! Baru ditangkap pagi ini!'],
+    keju: ['Keju elf, lezat sekali!'],
+    ramuan: ['Ramuan penyembuh! Ramuan kekuatan!', 'Satu teguk, luka pun pulih!'],
+    senjata: ['Pedang perak, baru ditempa!', 'Tombak elf, ringan dan tajam!'],
+    perisai: ['Perisai kuat, tahan kapak orc!', 'Perisai perak, kebanggaan Aeloria!'],
+    zirah: ['Zirah perak, berkilau seperti bulan!', 'Helm elf, ringan sekali!'],
+  }
+  const linesOf = a => {
+    if (a.act !== 'kerja') return UCAPAN[a.act]
+    if (a.job !== 'pedagang') return UCAPAN[a.job]
+    const s = a.work.site
+    if (s.stock && !Object.values(s.stock).some(n => n > 0)) return ['Maaf, daganganku sedang habis!', 'Tunggu sebentar, sedang disiapkan.']
+    return SERUAN[s.goods] || UCAPAN.pedagang
   }
   let bubbles = null
   let chatT = 0
@@ -1545,8 +1640,7 @@ export function createLife({ ground, plan, routes, folk, quality, free = () => t
     chatT = 1.4 + rand() * 1.6
     const a = shown.near[Math.floor(rand() * Math.min(shown.near.length, 30))]
     if (!a || T - a.say < 20) return
-    const key = a.act === 'kerja' ? a.job : a.act
-    const lines = UCAPAN[key]
+    const lines = linesOf(a)
     if (!lines) return
     a.say = T
     bubbles.say(() => (a.hidden ? null : { x: a.x, y: a.y + 2.25 * a.scale, z: a.z }), pick(lines), 2600, `elf${a.id}`)
@@ -1568,7 +1662,7 @@ export function createLife({ ground, plan, routes, folk, quality, free = () => t
     const act = a.act === 'jalan' ? a.goal : a.act
     const K = KEGIATAN[act]
     let doing = K ? K.teks : 'berjalan-jalan'
-    if (act === 'kerja') doing = { pedagang: `berjualan ${a.work?.site?.goods ?? ''}`.trim(), pandai: 'menempa senjata di Tempa Aeloria', petani: 'bertani di ladang', masak: 'memasak di Balai Makan', saji: 'melayani antrean makan', musik: 'bermain musik', kedai: 'menjaga Kedai Daun Emas', warga: 'bekerja' }[a.job] || 'bekerja'
+    if (act === 'kerja') doing = { pedagang: `berjualan di ${NAMA_KIOS[a.work?.site?.goods] || `kios ${a.work?.site?.goods ?? ''}`}`, pandai: 'menempa senjata di Tempa Aeloria', petani: 'bertani di ladang', masak: 'memasak di Balai Makan', saji: 'melayani antrean makan', musik: 'bermain musik', kedai: 'menjaga Kedai Daun Emas', warga: 'bekerja' }[a.job] || 'bekerja'
     if (act === 'tidur' && a.site?.area === 'benteng') doing = 'beristirahat di barak benteng'
     const sifat = SIFAT.slice().sort((p, q) => a.sifat[q] - a.sifat[p]).slice(0, 2).map(k => SIFAT_TEKS[k])
     const role = a.kind === 'kesatria' ? `${a.rank} ${PASUKAN[a.pasukan].name}` : PEKERJAAN[a.job]
@@ -1591,6 +1685,15 @@ export function createLife({ ground, plan, routes, folk, quality, free = () => t
       return shown.near
     },
     describe,
+    // ekonomi: kios yang melayani pemain, buka/tutupnya, dan pedagangnya
+    economy,
+    isOpen,
+    // pedagang kios: yang sedang berjaga & yang sedang pergi (beserta kegiatannya)
+    sellers(site) {
+      const ks = (site.keepers || []).map(id => agents[id])
+      const info = k => ({ ...describe(k), kembali: k.act === 'jalan' && k.goal === 'kerja' })
+      return { jaga: ks.filter(atStall).map(info), pergi: ks.filter(k => !atStall(k)).map(info) }
+    },
     get time() {
       return T
     },
@@ -1632,6 +1735,7 @@ export function createLife({ ground, plan, routes, folk, quality, free = () => t
         kandidat: candN,
         antrean: queue.size,
         porsi: served,
+        ekonomi: economy.stats(),
         pesta: feast.on,
         baris: drill.on,
         kegiatan: by,
