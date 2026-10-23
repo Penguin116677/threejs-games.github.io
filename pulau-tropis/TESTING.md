@@ -27,7 +27,8 @@ npm run test:smoke # (dengan preview berjalan) tes otomatis + screenshot ke scre
 Smoke test butuh Chromium untuk Playwright. FPS yang dilaporkan smoke test berasal dari render
 software dan **tidak** mencerminkan performa HP. Untuk menjalankan sebagian kasus saja:
 `SMOKE_CASES=hp-portrait,desktop npm run test:smoke` (kasus: hp-portrait, hp-landscape, hp-rendah,
-desktop). Satu putaran penuh ±1–1,5 jam di render software (batas waktu tiap langkah 90 detik).
+desktop). Satu putaran penuh ±2–2,5 jam di render software (sejak v0.14.0; profil komputer di kualitas
+Tinggi paling lama, ±1 jam — beri batas waktu luar yang cukup), batas waktu tiap langkah 90 detik.
 
 Penduduk kerajaan (`public/models/penduduk.glb`) dibuat ulang dari paket Kenney "Mini Characters"
 dengan `python3 scripts/pack-penduduk.py "<folder GLB format>" public/models/penduduk.glb`.
@@ -77,6 +78,9 @@ dengan `python3 scripts/pack-penduduk.py "<folder GLB format>" public/models/pen
 5. Tombol **Lihat pulau** → kamera bebas (geser/cubit seperti dulu); **Main lagi** → kembali.
 
 ## Daftar uji manual — v0.6.0 (kamera strategi + ketuk untuk berjalan)
+> Diganti v0.14.0: kontrol kembali ke joystick + kamera di belakang karakter; ketuk tanah tidak lagi
+> berjalan (lihat daftar v0.14.0 di bawah).
+
 1. Kamera melihat prajurit dari atas (seperti game strategi).
 2. **Ketuk tanah** di dekat prajurit → cincin kuning muncul di titik itu, prajurit berjalan ke sana
    lalu berhenti tepat di cincin. Ketuk jauh → prajurit berlari, melambat menjelang tujuan.
@@ -128,6 +132,9 @@ dengan `python3 scripts/pack-penduduk.py "<folder GLB format>" public/models/pen
 8. Komputer: 1 / 2 / 3 / 4 (atau Q / E / R / T) = Cincang / Hentak / Putar / Penggal.
 
 ## Daftar uji manual — v0.10.0 (Kepulauan Kencana, kerajaan di barat)
+> Sejak v0.14.0 Jembatan Agung tidak ada: menyeberang ke Kencana dengan berenang atau perahu dari
+> Dermaga Barat ke Dermaga Timur. Jembatan di dalam kerajaan (Sawah, Nelayan, Pura, Wira) tetap ada.
+
 1. Ketuk **Peta** (komputer: M) → peta dunia: Pulau Tropis di kanan, Kepulauan Kencana di kiri,
    panah kuning = posisi & arah prajurit, titik merah = perkemahan orc. Tutup lewat **Tutup** atau
    ketuk di luar peta.
@@ -176,6 +183,10 @@ Model kuda & perisai (`public/models/bala.glb`) dibuat ulang dari aset Kenney de
 Laporkan: model HP, angka FPS di tiap tingkat kualitas, screenshot, dan langkah yang gagal.
 
 ## Daftar uji manual — v0.12.1 (penjagaan Kerajaan Kencana; pemain musuh setiap kerajaan)
+> Sejak v0.14.0: penjaga yang dulu di kepala Jembatan Agung kini menjaga Dermaga Timur; kalah → bangun
+> di pantai barat Pulau Tropis (dekat Dermaga Barat); orc menyerbu dengan perahu perang; pendatang
+> turun dari kapal penyeberangan di Dermaga Timur.
+
 Tokoh utama bukan rakyat kerajaan mana pun, jadi prajurit Kencana tidak menanyainya: mereka langsung
 menghadang dan menyerang (sejak v0.12.1; kartu tanya-jawab v0.12.0 sudah dihapus).
 1. Dari titik mulai, berjalan ke Jembatan Agung. Di kepala jembatan timur, dua penjaga berseru
@@ -203,6 +214,9 @@ Laporkan: model HP, FPS, apakah prajurit terlalu kuat / terlalu lemah, apakah ko
 dijelajahi karena terus diserang, dan langkah yang gagal.
 
 ## Daftar uji manual — v0.13.0 (Kerajaan Elf Aeloria di utara)
+> Sejak v0.14.0 Jembatan Perak tidak ada: berenang / berperahu dari Dermaga Utara ke Dermaga Perak;
+> kalah → bangun di pantai utara Pulau Tropis. Ketuk tanah tidak lagi berjalan (joystick).
+
 1. Buka **Peta**: Tanah Aeloria di utara Pulau Tropis, dengan Jembatan Perak dan dua titik toko
    (Pasar Aeloria, Tempa Aeloria). Berjalan dari titik mulai ke pantai utara, seberangi **Jembatan
    Perak** → gapura perak dengan dua kesatria berjaga. Mereka **tidak** menyerangmu (zona damai).
@@ -244,3 +258,58 @@ kegiatan, waktu JS per bingkai, ekonomi), `__pulau.elfSec.stats()` (buron, penye
 
 Laporkan: model HP, FPS di tiap tingkat kualitas, apakah elf terasa hidup, apakah harga & kekuatan
 perlengkapan pas, dan langkah yang gagal.
+
+## Daftar uji manual — v0.14.0 (joystick, tanpa jembatan, berenang, perahu, memancing, mengobrol)
+1. **Joystick**: taruh jempol kiri di mana saja di bagian kiri bawah layar → joystick muncul di situ.
+   Dorong sedikit = berjalan, dorong penuh = berlari, lepas = berhenti. Kamera di belakang karakter
+   dan kembali ke belakangnya saat berlari. Geser dengan jari lain (di luar joystick) = putar kamera
+   kiri-kanan & naik-turun; cubit = zoom. Mengetuk tanah tidak lagi membuat karakter berjalan
+   (mengetuk elf tetap membuka kartunya, mengetuk kios tetap berjalan ke sana).
+2. Tombol **Peta** (kanan atas) hanya berikon peta. Buka peta: tidak ada jembatan antara Pulau Tropis,
+   Kencana, dan Aeloria; ada empat dermaga.
+3. Ke pantai barat (Dermaga Barat, dua jukung bersandar) dan pantai utara (Dermaga Utara): hanya
+   dermaga kayu, tanpa jembatan. Di seberang terlihat Dermaga Timur (Kencana: gapura candi bentar,
+   kapal jong) dan Dermaga Perak (Aeloria: batu putih, gapura perak).
+4. **Berenang**: berjalan ke laut — makin dalam makin pelan, lalu (sekitar sedada) karakter berenang
+   (badan mendatar, riak di sekitarnya). Pukul / jurus → "Tidak bisa menyerang sambil berenang".
+   Berenang kembali ke pantai → berjalan lagi. Coba seberangi selat utara ke Aeloria (±115 m antar-ujung
+   dermaga, ±50 detik berenang) atau selat barat ke Kencana (±85 m).
+5. **Kayu**: Pukul batang pohon (kelapa / pohon hutan) → "+1 kayu (n)" melayang di dekat koin. Tiap
+   pohon memberi 3 kayu, lalu "Kayu pohon ini sudah habis…" (tumbuh lagi ±3 menit kemudian).
+6. **Tas → Buat dari kayu**: Pancing (3 kayu). Perahu jukung (10 kayu) dibuat di tepi pantai: berdiri
+   di pasir dekat air yang cukup dalam → tekan Buat di Tas, atau tombol coklat **Buat perahu** yang
+   muncul di sana.
+7. **Perahu**: dekati → **Naik perahu** (bisa juga sambil berenang). Dorong joystick ke arah tujuan
+   (relatif kamera) → perahu berbelok perlahan lalu melaju; dorong penuh = cepat. Air dangkal →
+   kandas (tulisan "perahu kandas" di tombol Turun). **Turun** → melangkah ke darat / dermaga
+   terdekat, atau terjun ke air di laut lepas. Berlayar ke Dermaga Timur (penjaga Kencana langsung
+   menyerang bila kamu mendarat). Muat ulang halaman → perahu masih di tempat terakhir; Peta
+   menampilkan titik "perahumu".
+8. **Memancing**: dengan pancing, berdiri diam di pantai / dermaga menghadap laut (atau duduk di
+   perahu yang berhenti) → tombol biru **Mancing** → pelampung terlempar. Tunggu 3–9 detik; saat
+   pelampung tertarik ke bawah (HP bergetar) ketuk **Tarik!** dalam 1,5 detik → ikan masuk Tas.
+   Terlalu cepat / terlambat → ikannya lepas. Air lebih dalam (dari perahu) → ikan lebih besar
+   (Ikan Layaran hanya di laut dalam).
+9. **Ikan**: Tas → Makan (memulihkan nyawa), atau jual di **Kios Ikan Bakar** (Pasar Aeloria): buka
+   kiosnya → "Jual ikan hasil pancinganmu" → Jual → koin bertambah.
+10. **Mengobrol**: dekati elf di Aeloria atau warga Kencana (bukan prajurit) → tombol hijau
+    **Bicara** dengan namanya. Panel obrolan: ketuk topik (Siapa namamu?, Sedang apa?, Di mana …?,
+    Beri makanan, Sampai jumpa) atau ketik sendiri, mis. "namaku Budi", "di mana pasar?", "kamu
+    lapar?", "apa kabar?". NPC berhenti, menghadapmu, mengangguk/menggeleng/melambai; kamera pindah ke
+    samping kalian berdua. Beri makanan → ucapan terima kasih + beberapa koin. Pedagang yang berjaga →
+    "Lihat daganganmu" membuka kiosnya. Tutup: Sampai jumpa / ✕ / berjalan menjauh. Kartu elf →
+    **Ajak bicara** → berjalan ke elf itu, obrolan dimulai saat tiba.
+11. Layar mendatar: tombol aksi (Bicara, Mancing, Naik perahu, Belanja, …) sebaris di kanan bawah;
+    panel obrolan di kanan, kamu & NPC tampak di kiri. Layar tegak: panel obrolan di atas, kalian di
+    bawahnya. Periksa: papan ketik HP tidak menutupi kolom ketik (belum bisa diuji di HP sungguhan).
+12. Catat FPS di titik mulai, di dermaga, di Kotaraja, di Pasar Aeloria, saat berenang, dan saat
+    berlayar, untuk tiap tingkat kualitas.
+
+Komputer: WASD / panah = jalan (Shift = pelan), seret / roda = kamera, F = pukul, 1–4 = jurus,
+Spasi = lompat, B = tas, M = peta, E = belanja, C = mancing / tarik, V = naik / turun perahu,
+G / Enter = bicara, Esc = tutup. Konsol: `__pulau.bag.terima('kayu')`, `__pulau.craftBoat()`,
+`__pulau.boat`, `__pulau.fishing.state`, `__pulau.chat.say('teks')` (saat panel obrolan terbuka).
+
+Laporkan: model HP, FPS di tiap tingkat kualitas, apakah joystick & kamera nyaman, apakah berenang /
+berlayar / memancing terasa pas (kecepatan, waktu Tarik!), apakah jawaban NPC masuk akal, dan langkah
+yang gagal.

@@ -1,8 +1,8 @@
 # PROJECT_STATUS — Pulau Tropis
 
-**Milestone aktif:** 3 — Pembangunan dunia (v0.13.0: Kerajaan Elf Aeloria di utara — 10.000 kesatria & penduduk yang hidup bebas, pandai besi, toko, kerusuhan — menunggu umpan balik dari HP).
+**Milestone aktif:** 3 — Pembangunan dunia (v0.14.0: joystick + kamera di belakang karakter, pulau tanpa jembatan, berenang, perahu, memancing, mengobrol dengan NPC — menunggu umpan balik dari HP).
 Pengembangan karakter/jurus dihentikan sementara atas permintaan pengguna.
-**Versi:** 0.13.0
+**Versi:** 0.14.0
 **Terakhir diperbarui:** 2026-10-23
 
 ## Kondisi awal repository (sebelum Milestone 1)
@@ -34,17 +34,19 @@ Pengembangan karakter/jurus dihentikan sementara atas permintaan pengguna.
 | Item | Status |
 |---|---|
 | Karakter pemain: prajurit berpedang (Kenney CC0), animasi diam/jalan/lari/lompat/jatuh | ✅ selesai (diganti prajurit v0.5.1) |
-| Kamera strategi dari atas (putar, zoom 10–60 m, tidak menembus bukit) — menggantikan kamera orang ketiga | ✅ selesai (v0.6.0) |
-| Ketuk tanah untuk berjalan (jalur memutari pohon/batu/tebing/laut dalam) — menggantikan joystick | ✅ selesai (v0.6.0) |
+| Kamera strategi dari atas (putar, zoom 10–60 m, tidak menembus bukit) — menggantikan kamera orang ketiga | ✅ v0.6.0 — diganti v0.14.0 |
+| Ketuk tanah untuk berjalan (jalur memutari pohon/batu/tebing/laut dalam) — menggantikan joystick | ✅ v0.6.0 — diganti v0.14.0 (jalur masih dipakai untuk ketuk kios / Ajak bicara) |
+| Joystick mengambang + kamera di belakang karakter (kembali ke belakang saat berlari, tidak menembus bukit / air) | ✅ selesai (v0.14.0) |
+| Berenang (tanpa stamina; tidak bisa menyerang sambil berenang) | ✅ selesai (v0.14.0) |
 | Penanda tujuan, tajuk pohon tembus pandang di depan kamera (lingkaran hijau dihapus v0.7.0) | ✅ selesai |
 | Tombol Pukul: ayunan pedang + efek sabetan/serpihan (belum ada musuh/kerusakan) | ✅ selesai (v0.7.0) |
 | Variasi serangan: kombo tebas → tinju → tendang + jurus ber-jeda pakai | ✅ selesai (v0.8.0) |
 | Musuh orc (5 perkemahan, nyawa, terpental, roboh, muncul lagi) — belum menyerang | ✅ selesai (v0.9.0) |
 | 4 jurus: Cincang 10×, Hentak tancap, Cincang lalu Putar, Penggal 5 leher | ✅ selesai (v0.9.0) |
 | Tombol Lompat, geser kamera, cubit zoom | ✅ selesai |
-| Kontrol mouse + keyboard (komputer): klik = jalan, WASD tetap bisa | ✅ selesai |
+| Kontrol mouse + keyboard (komputer): WASD / panah (klik tanah = jalan sampai v0.13.0) | ✅ selesai |
 | Gravitasi, lompat, batas lereng, tabrakan batang pohon & batu besar | ✅ selesai |
-| Respawn: laut dalam / terlalu jauh → kembali ke posisi aman | ✅ selesai |
+| Respawn: terlalu jauh (tepi dunia) → kembali ke posisi aman (laut dalam = berenang sejak v0.14.0) | ✅ selesai |
 | Map bisa dijelajahi (pantai, hutan, padang, lereng gunung, puncak) | ✅ analisis + uji otomatis |
 | Dicoba di HP Android sungguhan | ⏳ menunggu laporan pengguna |
 
@@ -54,7 +56,7 @@ Pengembangan karakter/jurus dihentikan sementara atas permintaan pengguna.
 | Dunia diperluas ke barat (terrain, laut, ombak, peta jalan untuk beberapa pulau) | ✅ selesai (v0.10.0) |
 | Pulau Kencana + Kotaraja Kencana: tembok, gerbang, ±160 rumah, keraton, alun-alun, pasar, candi | ✅ selesai (v0.10.0) |
 | Pulau kecil: Pulau Sawah, Pulau Nelayan, Pulau Pura | ✅ selesai (v0.10.0) |
-| Jembatan Agung + 3 jembatan kayu, dermaga & pelabuhan (bisa diinjak) | ✅ selesai (v0.10.0) |
+| Jembatan Agung + 3 jembatan kayu, dermaga & pelabuhan (bisa diinjak) | ✅ v0.10.0 — Jembatan Agung dibongkar v0.14.0 |
 | Penduduk kerajaan (berjalan, berdagang, bertani, penjaga, raja) | ✅ selesai (v0.10.0) |
 | Jalan, sawah, lantai batu, rumput alun-alun; pohon khas (beringin, kamboja, pisang, mangga) | ✅ selesai (v0.10.0) |
 | Peta dunia + spanduk nama wilayah (bagian Milestone 6, dibuat lebih awal) | ✅ selesai (v0.10.0) |
@@ -62,15 +64,87 @@ Pengembangan karakter/jurus dihentikan sementara atas permintaan pengguna.
 | Bala tentara 25.000 prajurit siap tempur (5 pasukan × 5.000) + 7 senapati | ✅ selesai (v0.11.0) |
 | Prajurit peronda di semua wilayah kerajaan + penjaga pos yang bertugas | ✅ selesai (v0.12.0) |
 | Pemain (musuh setiap kerajaan) langsung dihadang & dilawan prajurit; nyawa pemain | ✅ selesai (v0.12.1; tanya-jawab v0.12.0 dihapus) |
-| Serbuan orc lewat Jembatan Agung dihadang prajurit; pendatang ditanyai di gerbang | ✅ selesai (v0.12.0) |
-| Tanah Aeloria + Tanjung Perak + Jembatan Perak: Kota Aeloria, kawasan kesatria, ladang, Benteng Aeloria | ✅ selesai (v0.13.0) |
+| Serbuan orc lewat Jembatan Agung dihadang prajurit; pendatang ditanyai di gerbang | ✅ v0.12.0 — sejak v0.14.0 orc datang dengan perahu perang, pendatang dengan kapal |
+| Tanah Aeloria + Tanjung Perak + Jembatan Perak: Kota Aeloria, kawasan kesatria, ladang, Benteng Aeloria | ✅ v0.13.0 — Jembatan Perak dibongkar v0.14.0 |
 | 10.000 kesatria elf + penduduk + anak, masing-masing dengan nama, sifat, kebutuhan, dan pilihan sendiri | ✅ selesai (v0.13.0) |
 | Pandai besi, pedagang, petani: stok kios mengalir (dibuat, diantar, dibeli warga) | ✅ selesai (v0.13.0) |
 | Koin, Tas, toko (makanan, ramuan, perlengkapan yang tampak di badan) — bagian Milestone 4 | ✅ selesai (v0.13.0) |
 | Kerusuhan → musuh kerajaan (pedagang netral), Benteng terlarang, keributan warga dilerai kesatria | ✅ selesai (v0.13.0) |
 | Ketuk elf → kartu isi pikirannya | ✅ selesai (v0.13.0) |
+| Tanpa jembatan antar-negeri: 4 dermaga (Barat ↔ Timur, Utara ↔ Perak), selat harus direnangi / dilayari | ✅ selesai (v0.14.0) |
+| Kayu dari pohon, membuat pancing & perahu di Tas, perahu yang bisa dikemudikan — bagian Milestone 4 | ✅ selesai (v0.14.0) |
+| Memancing (5 jenis ikan menurut kedalaman), menjual ikan di Kios Ikan Bakar — bagian Milestone 4 | ✅ selesai (v0.14.0) |
+| Mengobrol dengan elf & warga Kencana (topik + ketik bebas, berbasis aturan) — bagian Milestone 4 | ✅ selesai (v0.14.0) |
 | Sungai & air terjun, gua, reruntuhan | ⏳ belum |
 | Dicoba di HP Android sungguhan | ⏳ menunggu laporan pengguna |
+
+## Yang sudah diperiksa (v0.14.0 — joystick, tanpa jembatan, berenang, perahu, memancing, obrolan)
+- `vite build` berhasil; ESLint (konfigurasi repo): 0 error, 0 warning. Tiap commit fitur juga di-lint
+  & di-build tersendiri; commit "pulau tanpa jembatan" (sebelum obrolan ada) dibuka di browser: perahu
+  dibuat, dinaiki, ditinggalkan, tanpa galat.
+- Smoke test otomatis (versi build, 4 profil) — **LULUS**: 177 cek, 0 gagal (HP tegak 68, HP mendatar
+  28, HP Rendah 28, komputer 53; v0.13.0: 155). Waktu siap 3,6–5,6 detik. Ketiga profil HP selesai dalam
+  satu putaran; putaran itu melewati batas waktu 2 jam di tengah profil komputer (render software lambat
+  pada kualitas Tinggi, 30 cek pertamanya sudah lulus), jadi profil komputer dijalankan ulang tersendiri
+  sampai selesai. Cek baru / diubah:
+  - semua profil: tidak ada jembatan antar-negeri (Jembatan Agung & Perak hilang, 4 dermaga, selat barat
+    ≥ 1,5 m & selat utara ≥ 2,8 m); **menyeberang ke Kencana dengan perahu buatan sendiri** (10 kayu →
+    Buat perahu 10 m dari tepi air → Naik perahu → berlayar ke barat sampai kandas → Turun di pantai
+    Kencana, x −304); mendarat di Dermaga Timur → langsung dihadang & diserang;
+  - HP tegak & komputer: serbuan orc menyeberang dengan perahu perang, dihadang & dikalahkan prajurit;
+    pendatang turun di Dermaga Timur dan ditanyai di gapura; kalah oleh prajurit → pantai barat Pulau
+    Tropis; kalah oleh kesatria → pantai utara Pulau Tropis (13, −207), 35 detik di sana tetap aman;
+  - HP tegak: joystick (lari 20,5 m menjauhi kamera, lepas = berhenti, kamera ikut ke arah lari,
+    tertahan batang pohon), ketuk tanah tidak berjalan; Pukul batang pohon → +1 kayu; Tas → Buat pancing;
+    Mancing → Tarik! → Ikan Belanak; jual ikan di Kios Ikan Bakar (koin 20 → 24); tombol Bicara →
+    obrolan (elf berhenti & menghadap, topik dijawab), beri roti (+2 koin), tutup → elf kembali
+    berkegiatan & joystick kembali;
+  - komputer: klik tanah tidak berjalan (WASD); laut dalam 1,4 m → berenang di permukaan (tidak lagi
+    dikembalikan ke pantai), tidak bisa menyerang sambil berenang, berenang kembali → berjalan; obrolan
+    lewat G ("di mana pasar?" → "Pasar Aeloria? Di sini tempatnya!"), Escape menutup.
+- **Uji terpisah di browser** (Chromium, render software, layar HP tegak & mendatar, Sedang):
+  - **joystick & kamera**: jempol di kiri bawah → joystick muncul di situ; dorong ke atas = berjalan
+    menjauhi kamera, dorong ke samping = berbelok tanpa berputar-putar, lepas = berhenti; geser jari
+    kanan = kamera berputar tanpa memicu jalan; tombol & joystick tidak bertumpuk di kedua orientasi;
+  - **air**: berjalan ke laut → berenang (2,4 m/s, pesan petunjuk sekali), kembali ke darat → berjalan;
+    4 pukulan ke satu pohon → 3 kayu + "Kayu pohon ini sudah habis…"; Tas → Buat pancing; di tepi
+    pantai muncul tombol Mancing & Buat perahu; Mancing → sambaran → Tarik! → Kakap Merah masuk Tas;
+    Buat perahu → Naik perahu (tombol muncul ±3 m dari perahu) → berlayar 46 m → Turun di laut lepas →
+    terjun ke air & berenang, dengan pesan;
+  - **dermaga & serbuan orc**: jembatan yang tersisa hanya sawah, pura, nelayan, wira; 4 dermaga;
+    selat barat paling dangkal 1,57 m, selat utara 2,98 m (lebih dalam dari batas berenang 1,15 m);
+    perahu perang orc tertambat di pantai barat Pulau Tropis → orc naik → berlayar → mendarat di
+    Kencana → berjalan ke gerbang timur;
+  - **penyeberangan dengan perahu** dari pantai landai di sebelah Dermaga Barat: perahu dibuat 10 m dari
+    tempat berdiri, berlayar ke barat sampai kandas di x −304 (pantai Kencana), turun di air dangkal;
+  - **obrolan** (tegak & mendatar): elf Eladra di pasar → tombol "Bicara / Eladra" → panel; elf berhenti
+    & membungkuk; "di mana tempa?" → "Tempa Aeloria ada di timur dari sini, kira-kira 110 meter.";
+    "namaku Budi, kamu sedang apa?" → "Senang berkenalan, Budi! Namaku Eladra."; Beri roti → "Roti
+    Gandum! Kau baik sekali, Budi. Terimalah 3 koin…" (koin 60 → 63); tutup → elf kembali berjalan,
+    joystick kembali. Warga Kencana (pedagang pasar Kotaraja): "Panggil saja aku Kang Karta. Aku
+    berjualan di pasar Kotaraja. Sayang, prajurit melarang kami berdagang dengan orang asing…";
+    "Sampai jumpa" → panel tertutup. Tangkapan layar: pemain & NPC tampak di samping panel (mendatar:
+    di kiri panel; tegak: di bawahnya).
+- **Ditemukan & diperbaiki saat uji**:
+  - menahan joystick ke samping membuat karakter berlari berputar-putar dalam lingkaran kecil (kamera
+    mengikuti arah lari terlalu cepat) → kecepatan ikut-belakang dikali cos(selisih arah);
+  - jarak pandang 5 km dari kamera rendah: titik mulai Sedang 549 rb segitiga / 92 draw call → jarak
+    pandang per kualitas (Sedang 411 rb / 63);
+  - tombol Mancing tidak muncul di pantai landai (titik lempar terlalu dekat, airnya masih dangkal) →
+    lemparan 5–16 m ke depan, air minimal 0,7 m;
+  - tombol Naik perahu tidak muncul karena perahu dibuat 12 m dari pemain (cadiknya ±4,8 m) → jangkauan
+    naik 5 m dari pusat perahu, perahu dibuat di air ≥ 0,8 m sedekat mungkin;
+  - perahu tidak bisa dibuat dari pasir di sebelah Dermaga Barat (air 0,8 m baru ±8 m dari tepi air) →
+    pencarian sampai 16 m (ditemukan smoke test);
+  - perahu perang orc berangkat meninggalkan orc ketiga → perahu menunggu orc yang sedang datang (≤ 160 m)
+    paling lama 30 detik, orc yang tertinggal menyerah setelah 45 detik;
+  - panel obrolan menutupi NPC / pemain, topik terpotong, baris "memberi" tercatat dua kali → kamera ke
+    samping keduanya, baris topik tidak menyusut, satu baris; layar mendatar: NPC tertutup panel → titik
+    ikut kamera digeser ke kiri panel; gelembung ucapan ganda di belakang panel → hanya ucapan pamit;
+  - peta: tulisan "Perahu" menimpa label Dermaga Timur → titik perahu tanpa tulisan, label Dermaga Barat
+    di bawah dermaganya;
+  - smoke test: titik uji pembuatan perahu ±17 m dari air (pangkal dermaga, bukan tepi air); elf yang
+    dipilih skrip berbeda dengan elf terdekat yang dipilih tombol Bicara → skrip diperbaiki.
 
 ## Yang sudah diperiksa (v0.13.0 — Kerajaan Elf Aeloria)
 - `npm run build` berhasil; ESLint (konfigurasi repo): 0 error, 0 warning.
@@ -390,6 +464,16 @@ Pengembangan karakter/jurus dihentikan sementara atas permintaan pengguna.
   laut dalam → kembali ke pantai + pesan, mendaki lereng (+24 m dalam 120 frame).
 
 ## Yang BELUM diperiksa
+- **Rasa joystick & kamera belakang di HP sungguhan** (v0.14.0): besar joystick, zona jempol kiri,
+  kecepatan kamera kembali ke belakang, geser kamera dengan jari kanan sambil berjalan, cubit zoom.
+  Semua diuji dengan sentuhan tiruan (CDP) di Chromium.
+- **FPS dengan kamera rendah di HP** (v0.14.0), terutama di layar mendatar (lebih berat) dan dari
+  Dermaga Utara / Pasar Aeloria: jarak pandang Rendah 420 / Sedang 560 / Tinggi 950 m dipilih dari jumlah
+  segitiga, belum dari FPS HP. Apakah kabutnya terlalu dekat / terlalu jauh.
+- Berenang, mengemudikan perahu, dan waktu **Tarik!** (1,5 detik) di HP sungguhan; getar HP saat ikan
+  menyambar (`navigator.vibrate`); perahu tersimpan di localStorage setelah halaman ditutup.
+- **Obrolan di HP**: papan ketik HP (apakah menutupi panel / kolom ketik di layar tegak & mendatar),
+  dan apakah jawaban NPC terasa masuk akal untuk kalimat-kalimat pengguna sendiri.
 - **FPS di Aeloria pada HP sungguhan**: pasar, Balai Makan (paling ramai), Padang Pesta saat pesta,
   dan saat dikeroyok kesatria; juga lama memuat tambahan ("Menghidupkan 10.000 kesatria Aeloria…").
 - Apakah elf terasa hidup bagi pengguna, dan apakah harga barang, kekuatan perlengkapan, lama buron
@@ -409,10 +493,9 @@ Pengembangan karakter/jurus dihentikan sementara atas permintaan pengguna.
   mengganggu di layar HP.
 - **FPS di kota kerajaan pada HP sungguhan** (bagian paling berat: ±300 penduduk, ±340 bangunan) dan
   waktu loading tambahan untuk membangun kerajaan di HP.
-- Apakah ukuran kota, panjang Jembatan Agung (±160 m, ±30 detik berlari), dan jumlah penduduk terasa
-  pas saat dimainkan.
-- **Rasa kontrol ketuk di HP sungguhan** (ketepatan titik ketuk, beda ketuk vs geser, cubit) dan
-  tampilan tembus pandang tajuk di GPU HP — hanya diuji dengan sentuhan tiruan di Chromium.
+- Apakah ukuran kota dan jumlah penduduk terasa pas saat dimainkan; lebar selat (±85 / ±115 m) untuk
+  berenang & berlayar.
+- Tampilan tembus pandang tajuk di GPU HP (kini dari kamera di belakang karakter).
 - Rasa tombol Pukul & jurus di HP sungguhan (jangkauan jempol ke 5 tombol busur, kecepatan ayunan,
   lama jeda pakai) dan FPS dengan orc di layar.
 - **Performa nyata di HP** — FPS di smoke test memakai render software, tidak mewakili HP.
@@ -421,6 +504,23 @@ Pengembangan karakter/jurus dihentikan sementara atas permintaan pengguna.
 - Apakah URL hosting (githack / GitHub Pages) terbuka di HP — tidak bisa diakses dari lingkungan pengembangan.
 
 ## Performa (segitiga per frame termasuk bayangan, dari smoke test)
+v0.14.0, kamera di belakang karakter (jarak 8,2 m), layar HP tegak (Pixel 7), versi build, render
+software — angka dalam ribuan segitiga / draw call:
+| Tingkat | Titik mulai | Dermaga Barat | Berenang di selat | Berlayar | Gerbang timur | Pasar Kotaraja | Depan barisan | Dermaga Utara (ke Aeloria) | Pasar Aeloria |
+|---|---|---|---|---|---|---|---|---|---|
+| Rendah (420 m) | 331 / 66 | 322 / 58 | 301 / 56 | 313 / 67 | 330 / 69 | 231 / 43 | 264 / 35 | 302 / 84 | 413 / 97 |
+| Sedang (560 m) | 411 / 63 | 416 / 73 | 401 / 69 | 427 / 79 | 406 / 72 | 309 / 51 | 351 / 30 | 453 / 113 | 474 / 96 |
+| Tinggi (950 m) | 965 / 105 | 734 / 82 | 703 / 79 | 693 / 83 | 661 / 72 | 823 / 113 | 552 / 34 | 1.180 / 200 | 807 / 108 |
+| Sedang, layar mendatar | 600 / 117 | 613 / 109 | 540 / 103 | 562 / 112 | 502 / 94 | 556 / 111 | 387 / 38 | 595 / 168 | 739 / 159 |
+- Kamera di belakang karakter melihat jauh lebih banyak daripada kamera strategi 22 m (v0.13.0 Sedang:
+  Kencana 296–326 rb, Aeloria 143–256 rb), jadi Sedang kini 309–474 rb. Tanpa batas jarak pandang titik
+  mulai Sedang 549 rb / 92 dc. Yang terberat: dari Dermaga Utara menghadap Aeloria (kota + ribuan elf
+  jauh di depan kamera) — Tinggi 1,18 jt / 200 dc.
+- Layar mendatar melihat ±3× lebih lebar (sudut pandang mendatar ±95° vs ±38° di layar tegak), jadi lebih berat:
+  titik mulai Sedang 600 rb / 117 dc (tegak 411 rb / 63). Komputer (1280 × 720, Tinggi): 1,76 jt / 238 dc.
+- Waktu siap di render software: 3,6–5,6 detik (v0.13.0: 3,7–5,1 detik).
+- FPS di sini bukan ukuran HP (render software, 2–10 FPS). FPS HP sungguhan belum diukur.
+
 v0.13.0 di Aeloria, layar HP tegak (Pixel 7), kamera strategi 22 m (versi build, render software;
 dalam kurung: elf model penuh + model jauh yang digambar):
 | Tingkat | Gapura | Pasar | Tempa | Balai Makan | Lapangan Latihan | Padang Pesta | Depan Benteng |
@@ -482,6 +582,24 @@ v0.3.0: Rendah ±300 rb, Sedang ±400 rb, Tinggi ±850 rb. Tambahan v0.4.0 beras
 yang lebih rapat (untuk ombak) dan buah kelapa. v0.2.0 (HP): ±230 ribu.
 
 ## Masalah yang diketahui
+- (v0.14.0) Obrolan berbasis aturan: NPC hanya memahami topik yang dikenalnya (nama, kabar, kegiatan,
+  pekerjaan, kerajaan, orc, tempat & arah, makanan, menyeberang, ikan, cerita, lelucon, saran, salam,
+  terima kasih, pujian / hinaan); kalimat lain dijawab umum. Ingatan NPC hilang bila halaman dimuat
+  ulang. Warga Kencana mendapat bentuk badan acak tiap halaman dimuat, jadi nama / jenis kelaminnya bisa
+  berbeda di kunjungan berikutnya. Prajurit dan bala tentara tidak bisa diajak bicara.
+- (v0.14.0) Berenang tanpa stamina: pemain bisa berenang ke mana saja di dalam batas dunia. Pengejar
+  berhenti di tepi air, jadi berenang menjauh selalu meloloskan diri (sengaja, DECISIONS #58).
+- (v0.14.0) Hanya satu perahu pemain; membuat lagi meninggalkan yang lama. Perahu terapung dengan
+  goyangan sederhana (tidak mengikuti ombak), tidak bertabrakan dengan perahu hiasan / kapal, dan tidak
+  bisa membawa NPC. Perahu & kapal di dermaga hanya hiasan (tidak berlayar); perahu perang orc
+  satu-satunya perahu NPC yang berlayar.
+- (v0.14.0) Pohon tidak tumbang atau berubah saat kayunya diambil (3 kayu per pohon, tumbuh lagi ±3
+  menit). Ikan tidak terlihat di air: jenisnya hanya ditentukan kedalaman di pelampung.
+- (v0.14.0) Kamera belakang karakter tidak menghindari batu, bangunan, atau tajuk pohon (hanya bukit
+  & air); tajuk & bangunan di antara kamera dan pemain dibuat berlubang seperti sebelumnya.
+- (v0.14.0) Kamera rendah melihat lebih banyak daripada kamera strategi: Sedang kini 309–474 rb segitiga
+  di layar tegak dan 387–739 rb di layar mendatar (v0.13.0: 143–326 rb). Bila tersendat di HP: pilih
+  Rendah, atau mainkan dengan layar tegak.
 - (v0.13.0) Kesatria pemanah tidak ikut bertarung (belum ada panah yang terbang); di lajur panahan
   anak panahnya juga belum digambar. Yang melawan pemain hanya kesatria berpedang & bertombak, dan
   warga pemberani dengan tangan kosong.
@@ -517,8 +635,8 @@ yang lebih rapat (untuk ombak) dan buah kelapa. v0.2.0 (HP): ±230 ribu.
 - (v0.11.0) Pemuatan bertambah ±1 detik di komputer.
 - (v0.10.0) Penduduk tidak saling menghindar (bisa berpapasan menembus satu sama lain) dan berjalan
   di jaringan jalan saja (tidak masuk rumah). Rumah belum bisa dimasuki (tanpa interior).
-- (v0.10.0) Penduduk tidak bereaksi terhadap pukulan/jurus (bukan musuh — pukulan menembus mereka);
-  belum bisa diajak bicara (dialog = Milestone 4).
+- (v0.10.0) Penduduk tidak bereaksi terhadap pukulan/jurus (bukan musuh — pukulan menembus mereka).
+  (Sejak v0.14.0 bisa diajak bicara.)
 - (v0.10.0) Sawah digambar di permukaan tanah (petak & pematang dari shader), belum bertingkat
   (terasering) dan belum ada airnya yang memantulkan langit.
 - (v0.10.0) Dari kamera atas, bangunan tinggi di dekat kamera dibuat berlubang (dithering) seperti
@@ -532,19 +650,17 @@ yang lebih rapat (untuk ombak) dan buah kelapa. v0.2.0 (HP): ±230 ribu.
   dalam ±1 detik. Dari jauh (> radius rumput) lereng hanya berwarna, tanpa helai.
 - Tajuk pohon tetap bergaya low-poly (bersegi) pada Rendah/Sedang.
 - Ganti tingkat kualitas memuat ulang halaman (posisi pemain kembali ke awal).
-- Ombak tidak memakai fisika sungguhan: bentuknya diatur fungsi (cukup untuk tampilan, belum untuk
-  berenang/perahu). Di teluk yang sempit puncak ombak dari dua sisi bisa bertemu membentuk sudut.
+- Ombak tidak memakai fisika sungguhan: bentuknya diatur fungsi (hanya tampilan — pemain yang berenang
+  dan perahu tidak diayun ombak). Di teluk yang sempit puncak ombak dari dua sisi bisa bertemu membentuk
+  sudut.
 - Buah kelapa sama di semua pohon (satu bentuk tandan); belum ada kelapa jatuh di pasir.
-- Belum ada berenang: dengan ketuk-berjalan pemain berhenti di air dangkal; laut dalam hanya bisa
-  dimasuki lewat keyboard (lalu kembali ke pantai).
 - Rumput dan semak belum bereaksi saat dilewati karakter.
 - Kecepatan animasi kaki disetel kira-kira (belum dicek per frame apakah kaki "meluncur").
-- Kamera strategi selalu mengikuti prajurit (tidak bisa digeser bebas seperti peta); untuk
-  melihat-lihat pakai **Lihat pulau**. Titik yang bisa diketuk terbatas pada yang terlihat di layar
-  (zoom keluar untuk tujuan jauh).
-- Jalur dihitung di grid 2 m: celah sangat sempit di antara batang/batu (< ±1 m) dianggap tertutup;
-  mengetuk tajuk pohon memilih tanah di bawah/di balik tajuk.
-- Batu besar tidak ikut tembus pandang (jarang menutupi prajurit karena kamera dari atas).
+- Kamera selalu mengikuti prajurit (tidak bisa digeser bebas seperti peta); untuk melihat-lihat pakai
+  **Lihat pulau**.
+- Jalur (ketuk kios, Ajak bicara) dihitung di grid 2 m: celah sangat sempit di antara batang/batu
+  (< ±1 m) dianggap tertutup.
+- Batu besar tidak ikut tembus pandang.
 - Pukulan & jurus belum berpengaruh pada apa pun (belum ada musuh, nyawa, atau kerusakan) dan belum
   ada suara; serpihan hanya efek sesaat. Prajurit menyerang ke arah hadapnya (tidak otomatis
   menghadap sasaran terdekat). Rumput, semak, dan bunga tidak bereaksi saat dipukul.

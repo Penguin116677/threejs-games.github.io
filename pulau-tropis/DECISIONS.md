@@ -86,11 +86,11 @@ tandai sebagai "diganti" bila berubah.
     (permukaan mesh yang persis), penghalang = lingkaran (batang pohon, batu ≥ 0,8 m) di grid ruang.
     Cukup untuk berjalan/lompat di pulau, jauh lebih ringan, dan tanpa unduhan tambahan. Engine
     fisika bisa dipertimbangkan bila nanti ada benda yang bisa didorong/dilempar.
-23. *(Diganti #26 di v0.6.0.)* **Kontrol HP**: joystick dinamis (muncul di tempat jempol kiri menyentuh, 45% kiri layar),
+23. *(Diganti #26 di v0.6.0; dipakai lagi di v0.14.0 — lihat #56.)* **Kontrol HP**: joystick dinamis (muncul di tempat jempol kiri menyentuh, 45% kiri layar),
     besar dorongan = kecepatan (≥ 70% = lari); tombol Lompat besar (86 px) di kanan bawah; sisa
     layar kanan untuk kamera. Kamera otomatis kembali ke belakang pemain saat berjalan (bila
     pemain tidak sedang memutar kamera ±1,8 detik) supaya bisa main dengan satu jempol.
-24. **Laut dalam = kembali ke pantai, belum ada berenang.** Air ≤ 1,3 m bisa diseberangi (pelan);
+24. *(Diganti #58 di v0.14.0: pemain bisa berenang.)* **Laut dalam = kembali ke pantai, belum ada berenang.** Air ≤ 1,3 m bisa diseberangi (pelan);
     lebih dalam selama 0,6 detik → layar meredup dan pemain kembali ke posisi aman terakhir di darat.
     Berenang bisa ditambahkan nanti bila diinginkan.
 25. **Prajurit = gaya prajurit klasik** (helm berjambul, tunik, pedang) karena itulah model prajurit
@@ -99,7 +99,7 @@ tandai sebagai "diganti" bila berubah.
     Pedang dipasang pada tulang `arm-right` di pusat balok tangan (dihitung dari data skin),
     bilah ke depan-bawah agar terlihat dari depan dan sedikit dari belakang. Pedang belum bisa dipakai
     menyerang (animasi `attack-melee-right` sudah tersedia untuk nanti).
-26. **Kamera strategi + ketuk untuk berjalan** (v0.6.0, permintaan pengguna) menggantikan kamera
+26. *(Diganti #56 di v0.14.0.)* **Kamera strategi + ketuk untuk berjalan** (v0.6.0, permintaan pengguna) menggantikan kamera
     orang ketiga + joystick (#23). Kamera melihat dari atas (±49°–64°, makin jauh makin tegak) dan
     tidak berputar sendiri, supaya titik yang diketuk tetap di tempatnya di layar. Satu jari:
     ketuk = jalan, geser = putar kamera (ketukan = bergeser < 12 px dan < 0,8 detik, diukur dari
@@ -264,6 +264,7 @@ tandai sebagai "diganti" bila berubah.
     - Gambar: rangka dipanggang seperti penduduk (satu InstancedMesh per seragam, 3 draw call);
       klip jalan, lari, serang, roboh, angguk, geleng, isyarat berhenti — lengan pemegang tombak &
       perisai dikunci supaya senjata tetap tegak saat berjalan.
+    *(Diperbarui v0.14.0 — lihat #57: wilayah ronda Jembatan Agung menjadi Dermaga Timur.)*
 44. *(Diganti #48 di v0.12.1: pemain selalu musuh, tidak ditanyai.)* **Orang asing yang masuk
     wilayah kerajaan dicegat lalu ditanyai lewat kartu tanya-jawab**.
     - Wilayah kerajaan (`wilayah.js`) = semua pulau Kencana + separuh barat Jembatan Agung.
@@ -290,7 +291,9 @@ tandai sebagai "diganti" bila berubah.
     - Prajurit Kencana tidak dipenggal: jurus Penggal hanya menyasar mereka saat bermusuhan (sejak
       v0.12.1 selalu, lihat #48), dan mereka roboh tersabet (kepala tetap utuh). Prajurit yang roboh menghilang lalu kembali bertugas
       ±40 detik kemudian, tidak di depan mata pemain.
-46. **Serbuan orc lewat Jembatan Agung** (supaya "musuh yang masuk langsung dihadang" benar-benar
+    *(Diperbarui v0.14.0 — lihat #57: kalah oleh prajurit → pantai barat Pulau Tropis, dekat Dermaga Barat.)*
+46. *(Diperbarui v0.14.0 — lihat #57: Jembatan Agung dibongkar, orc menyerbu dengan perahu perang.)*
+    **Serbuan orc lewat Jembatan Agung** (supaya "musuh yang masuk langsung dihadang" benar-benar
     terjadi): tiap 150–210 detik tiga orc dari perkemahan terdekat (yang tidak sedang didekati
     pemain) berjalan ke gerbang timur Kotaraja. Begitu masuk wilayah, dua prajurit per orc
     menghadang dan melawan tanpa bertanya; orc yang mendekati prajurit di luar wilayah (mis. di
@@ -304,6 +307,8 @@ tandai sebagai "diganti" bila berubah.
     Agung, dihentikan penjaga pos di kepala barat jembatan, menjawab keperluannya (gelembung
     ucapan), lalu boleh lewat ke pasar dan pulang lagi. Gelembung ucapan = teks HTML yang mengikuti
     titik 3D (tajam di layar HP, tanpa tekstur).
+    *(Diperbarui v0.14.0 — lihat #57: pendatang turun dari kapal penyeberangan di ujung Dermaga Timur
+    dan ditanyai di luar gapura dermaga.)*
 48. **Pemain bukan rakyat kerajaan mana pun → musuh setiap kerajaan** (v0.12.1, permintaan
     pengguna; mengganti #44). Berlaku juga untuk kerajaan yang dibuat kemudian.
     - Tidak ada tanya-jawab dan status tamu untuk pemain. Prajurit yang melihat pemain di wilayah
@@ -328,6 +333,8 @@ tandai sebagai "diganti" bila berubah.
       ucapan tetap dipakai untuk seruan prajurit & pendatang.
     - Pengujian otomatis memakai `security.ceasefire(true)` ("gencatan senjata") di luar uji
       penjagaan, supaya uji kota & bala tentara tidak diganggu prajurit.
+    *(Diperbarui v0.14.0 — lihat #57: penjaga kepala jembatan timur kini menjaga Dermaga Timur; bangun
+    setelah kalah di pantai barat Pulau Tropis.)*
 49. **Aeloria = zona damai; kerusuhan menjadikan pemain musuh kerajaan; Benteng Aeloria satu-satunya
     wilayah terlarang** (v0.13.0, permintaan pengguna). Aturan #48 ("musuh setiap kerajaan") disesuaikan
     untuk kerajaan elf, karena pengguna meminta pemain bisa membeli dagangan penduduknya, dan menetapkan:
@@ -349,6 +356,8 @@ tandai sebagai "diganti" bila berubah.
       keluar > 25 m dari tembok = berhenti, bila tidak sedang buron.
     - Warga dalam 16 m dari kerusuhan kabur 5–9 detik. Yang pemberani (sifat > 0,68, paling banyak 2)
       ikut berkelahi dengan tangan kosong. Ini memenuhi "berkelahi ketika ada yang rusuh".
+    *(Diperbarui v0.14.0 — lihat #57: batas wilayah = tengah Selat Perak (z = −310); kalah → pantai utara
+    Pulau Tropis, dekat Dermaga Utara.)*
 50. **Pedagang tetap netral** (v0.13.0, ketentuan pengguna: *"Musuh kerajaan bukan berarti akan menjadi
     musuh pedagang"*). Pedagang tidak kabur, tidak menyerang, dan tetap melayani pemain walaupun
     kesatria sedang memburunya; panel toko menuliskannya. Pedagang yang dipukul hanya terhuyung lalu
@@ -397,3 +406,111 @@ tandai sebagai "diganti" bila berubah.
     dari badannya) membuka kartu, bukan berjalan; ketuk tanah menutupnya. Pengecualian: pedagang yang
     sedang berjaga berdiri di bawah atap kiosnya, jadi ketukan di atap kios mengenai dia — ketukan itu
     dianggap mengetuk kiosnya (berjalan ke sana & belanja). Kartunya bisa dilihat saat ia pergi.
+56. **Joystick + kamera di belakang karakter** (v0.14.0, permintaan pengguna: *"kontrolnya
+    menggunakan joystick dan penglihatan kameranya dari arah belakang karakter"*; mengganti #26).
+    - Joystick mengambang: muncul di tempat jempol menyentuh bagian kiri bawah layar (45% lebar kiri,
+      di bawah 30% tinggi atas); saat tidak dipakai, tampak samar di kiri bawah. Jangkauan kenop 56 px,
+      zona mati 12%. Dorongan < 70% = berjalan (sampai 2 m/s), 70–100% = berlari (sampai 5,6 m/s).
+    - Kamera orang ketiga di belakang karakter, titik putar setinggi bahu (1,5 m), jarak 8,2 m (cubit /
+      roda: 2,8–18 m), sudut 21° dari datar (bisa digeser −7°…69°). Geser jari lain = putar kamera.
+      Saat berlari kamera kembali ke belakang karakter, paling cepat 1 rad/detik × cos(selisih arah) —
+      tanpa faktor cos, menahan joystick ke samping membuat karakter berlari berputar-putar dalam
+      lingkaran kecil (ditemukan saat uji). Setelah kamera digeser, ikut-belakang berhenti 1,2 detik.
+      Kamera tidak menembus bukit dan tidak turun di bawah permukaan air.
+    - FOV 70° (layar tegak) / 52° (mendatar): dari belakang karakter layar tegak butuh pandangan lebih
+      lebar supaya sisi kiri-kanan terlihat.
+    - Ketuk tanah tidak lagi berjalan (joystick sudah menggerakkan); ketuk elf tetap membuka kartunya,
+      ketuk kios tetap berjalan ke sana (jalur A* #27 masih dipakai untuk itu).
+    - **Jarak pandang per tingkat kualitas** (Rendah 420 m, Sedang 560 m, Tinggi 950 m; kabut mulai di
+      30% dan menutup penuh di 95% jarak itu). Kamera rendah kini melihat sampai cakrawala, jadi tanpa
+      batas ini petak pohon, rumput, dan bangunan dua pulau sekaligus ikut digambar. Diukur (Sedang,
+      titik mulai): jarak 5 km 549 rb segitiga / 92 draw call → 520 m 411 rb / 63. Pulau seberang tetap
+      tampak samar di balik kabut. Mode Lihat pulau tetap 5 km.
+    - Tombol Peta hanya berikon peta (permintaan pengguna). Tombol aksi sesuai keadaan (Belanja,
+      Bicara, Naik perahu, Turun, Mancing, Tarik!, Buat perahu) hanya muncul bila bisa dipakai: layar
+      tegak bertumpuk di tepi kanan di atas tombol Pukul, layar mendatar sebaris di kanan bawah.
+57. **Pulau Tropis, Kencana, dan Aeloria tidak tersambung jembatan** (v0.14.0, permintaan pengguna:
+    *"kerajaan manusia, elf, gunung biasa itu jangan terhubung lewat jembatan"*).
+    - Jembatan Agung (Pulau Tropis ↔ Kencana) dan Jembatan Perak (Pulau Tropis ↔ Aeloria) dibongkar.
+      Jembatan di dalam Kepulauan Kencana (ke Pulau Sawah, Pura Segara, Kampung Nelayan, Pulau Wira)
+      tetap ada, karena menghubungkan pulau-pulau satu kerajaan, bukan ketiga negeri itu.
+    - Di bekas kepala jembatan dibuat dermaga yang bisa diinjak, berpasangan di kedua sisi selat:
+      Dermaga Barat (Pulau Tropis, dermaga nelayan kayu dengan dua jukung) ↔ Dermaga Timur (Kencana:
+      lantai kayu, gapura candi bentar dijaga dua prajurit, jukung, kapal jong berlabuh di dekatnya),
+      ±85 m antar-ujung; Dermaga Utara (Pulau Tropis, kayu) ↔ Dermaga Perak (Aeloria: batu putih,
+      gapura perak dijaga dua kesatria, lentera), ±115 m. Perahu & kapal di dermaga hanya hiasan.
+      Panjang dermaga dicari dari garis pantai (`dockSpans`), bukan angka tetap, jadi tetap pas bila
+      bentuk pantai berubah.
+    - Selat tidak bisa diseberangi berjalan kaki (lebih dalam dari batas berenang): pemain berenang
+      (#58) atau berperahu (#59). Smoke test memeriksa kedalaman selat dan menyeberang dengan perahu.
+    - Wilayah Kencana (`wilayah.js`) kini menurut jarak ke pulau-pulaunya (tidak ada lagi "separuh
+      jembatan"); wilayah ronda Jembatan Agung menjadi Dermaga Timur (6 peronda + penjaga pos dermaga).
+      Wilayah Aeloria = utara garis tengah Selat Perak (z = −310).
+    - Serbuan orc (#46) kini lewat laut: satu perahu perang orc tertambat di pantai barat Pulau Tropis.
+      Penyerbu berjalan ke perahu (mengarungi air dangkal), berlayar (6 m/s), mendarat di pantai timur
+      Kencana, lalu berjalan ke gerbang timur. Perahu menunggu orc yang tertinggal paling lama 30
+      detik; orc yang tertinggal jauh menyerah dan pulang. Pendatang (#47) turun dari kapal
+      penyeberangan di ujung Dermaga Timur.
+    - Kalah oleh prajurit Kencana → pantai barat Pulau Tropis (14 m dari pangkal Dermaga Barat); oleh
+      kesatria Aeloria → pantai utara Pulau Tropis (dekat Dermaga Utara). Keduanya di luar wilayah
+      kerajaan, dan pengejar tidak berenang ke sana.
+58. **Berenang tanpa stamina** (v0.14.0, permintaan pengguna; mengganti #24).
+    - Air ≥ 0,35 m memperlambat; lebih dalam dari 1,15 m (sedada) = berenang; kembali berjalan di bawah
+      0,95 m (jarak antara dua batas mencegah berganti-ganti di batas air). Kecepatan berenang 2,4 m/s
+      (berjalan 2, berlari 5,6), badan dimiringkan mendatar dan sedikit tenggelam, riak di sekelilingnya.
+    - Tidak ada stamina atau tenggelam: selat ±85–115 m cukup ±35–50 detik berenang, dan di HP mati
+      tenggelam di tengah selat hanya membuat frustrasi. Tepi dunia tetap mengembalikan pemain.
+    - Tidak bisa menyerang / memakai jurus sambil berenang (pesan singkat). Prajurit, kesatria, dan orc
+      tidak masuk air lebih dalam dari ±0,6 m (dan jalur A* menutup air > 1 m), jadi berenang menjauh
+      adalah cara lolos — sengaja, supaya tetap ada jalan keluar dari pengeroyokan. Pengejar Kencana
+      tidak menganggap pemain "lolos" selama ia berenang / berperahu di dekat pantai Kencana.
+    - Kamera turun mengikuti kepala (titik putar 0,75 m di atas permukaan air).
+59. **Kayu, membuat barang, dan perahu buatan sendiri** (v0.14.0, permintaan pengguna: *"membuat kapal"*).
+    - Kayu: tiap pukulan yang mengenai batang pohon (collider `pohon`) = +1 kayu, paling banyak 3 per
+      pohon, pohon itu "tumbuh lagi" 180 detik kemudian. Pohonnya tidak tumbang / hilang (pohon digambar
+      instanced; menghapus satu berarti menyusun ulang petaknya) — cukup untuk mengumpulkan bahan.
+    - Membuat di Tas: Pancing 3 kayu, Perahu jukung 10 kayu. Perahu harus dibuat di tepi pantai: titik
+      air ≥ 0,8 m dicari melingkar 3,5–16 m dari pemain (mulai dari arah hadapnya), lambung harus muat
+      (pusat, haluan, buritan cukup dalam) dan haluan menghadap laut. Hanya satu perahu: membuat lagi
+      meninggalkan yang lama (tombol Buat perahu muncul bila perahu lama > 40 m).
+    - Perahu = jukung bercadik yang sama dengan perahu nelayan Kencana (`boatGeometry`). Joystick
+      menunjuk arah tujuan relatif kamera; perahu berbelok paling cepat 1,3 rad/detik dan melaju sampai
+      7,5 m/s × cos(selisih arah) — berbelok tajam memperlambat. Air < 0,6 m di pusat / haluan / buritan
+      = kandas (berhenti). Turun = ke darat / dermaga / air dangkal terdekat dalam 6,8 m, bila tidak ada
+      → terjun ke air. Letak perahu disimpan di localStorage dan ditandai di Peta. Kamera 1,45× lebih
+      jauh saat naik perahu. Tidak bisa menyerang dari perahu.
+    - Perahu terapung dengan goyangan sinus sederhana, tidak mengikuti fungsi ombak (ombak #17
+      hanya tampilan, tanpa fisika).
+60. **Memancing & menjual ikan** (v0.14.0, permintaan pengguna: *"memancing"*).
+    - Butuh pancing. Berdiri diam (atau duduk di perahu yang berhenti) menghadap air: tempat pelampung
+      dicari 16 → 5 m di depan, air minimal 0,7 m. Lempar 0,7 detik → tunggu 3–9 detik (pelampung
+      sesekali bergetar) → sambaran: pelampung tertarik ke bawah, HP bergetar, tombol Tarik! menyala
+      1,5 detik. Terlalu cepat / terlambat = lepas. Bergerak, berenang, roboh, menyerang = batal.
+    - Jenis ikan menurut kedalaman di pelampung: < 2,5 m belanak / kakap (kerapu jarang); 2,5–7 m
+      ditambah tongkol; ≥ 7 m (biasanya dari perahu) tongkol, kerapu, dan ikan layaran.
+    - Ikan masuk Tas: dimakan (nyawa +8…+24) atau dijual di Kios Ikan Bakar Aeloria (4–30 koin per
+      ekor). Ini sumber koin kedua selain orc, tanpa harus bertarung.
+61. **Mengobrol dengan NPC: berbasis aturan, tanpa AI daring** (v0.14.0, permintaan pengguna: *"tombol
+    chat dengan npc juga tambahkan agar saya bisa berbincang juga dengan npc yang ada"*).
+    - Jawaban dibuat di perangkat (`world/percakapan.js`): maksud kalimat dikenali dari kata kunci
+      bahasa Indonesia sehari-hari (singkatan obrolan seperti gmn / dmn / yg / ga, akhiran -nya / -mu /
+      -ku / -kah / -lah dibuang), lalu kalimat jawaban disusun dari data NPC itu sendiri: nama, peran,
+      kegiatan & kebutuhan dari simulasi kehidupan (#53), sifat, kerajaannya, tempat (arah mata angin
+      + jarak, dan perlu menyeberang laut atau tidak). Tanpa model bahasa / server: bekerja tanpa
+      internet, langsung menjawab, tanpa biaya, dan tidak mengirim ketikan pemain ke mana pun. Akibatnya
+      NPC hanya memahami topik yang dikenalnya; kalimat lain dijawab umum.
+    - Ingatan per NPC selama halaman terbuka: nama pemain, berapa kali mengobrol, keakraban (naik dengan
+      pujian & hadiah, turun dengan hinaan), topik yang sudah dibahas — kalimat yang sama tidak diulang
+      berturut-turut.
+    - Siapa: elf Aeloria mana pun yang tidak sedang bertarung / kabur / pingsan, dan warga Kencana
+      (bukan prajurit: prajurit memusuhi pemain, #48). Warga Kencana tetap mau bicara tetapi takut
+      ketahuan prajurit, dan tidak boleh berdagang dengan orang asing. Elf ingat bila pemain buron.
+    - Selama mengobrol NPC berhenti & menghadap pemain (elf diambil alih dengan `life.grab` sebagai
+      kegiatan "mengobrol denganmu"; warga lewat `a.talk`), pemain diam, joystick disembunyikan, dan
+      kamera pindah ke samping keduanya. Panel di atas (layar tegak, supaya papan ketik HP tidak
+      menutupinya) atau di kanan (mendatar; titik ikut kamera digeser ke kanan sejauh lebar panel
+      supaya keduanya tampak di bagian kiri). Jawaban hanya di riwayat panel; gelembung di atas kepala
+      hanya untuk ucapan pamit (gelembung yang lain tertutup panel dan mengulang teks yang sama).
+    - Memberi makanan: NPC yang lapar (atau rakus) menerimanya dan membalas 2–9 koin; yang kenyang
+      menolak. Obrolan berakhir bila pemain / NPC menjauh > 6,5 m, NPC sibuk (mis. kerusuhan), atau
+      pemain roboh.

@@ -1,5 +1,80 @@
 # CHANGELOG — Pulau Tropis
 
+## [0.14.0] — 2026-10-23 — Joystick & kamera belakang, pulau tanpa jembatan, berenang, perahu, memancing, mengobrol dengan NPC (permintaan pengguna)
+### Diubah
+- **Kontrol joystick + kamera dari belakang karakter** (menggantikan kamera strategi dari atas +
+  ketuk tanah untuk berjalan, v0.6.0):
+  - joystick mengambang di kiri bawah: muncul di tempat jempol menyentuh, dorong sedikit = berjalan,
+    dorong penuh = berlari, lepas = berhenti; komputer tetap WASD / panah;
+  - kamera mengikuti dari belakang setinggi bahu; geser jari lain = putar kamera (kiri-kanan &
+    naik-turun), cubit / roda = jarak 2,8–18 m; saat berlari kamera pelan-pelan kembali ke belakang
+    karakter (makin menyamping arah larinya makin pelan, supaya joystick ke samping tidak membuat
+    karakter berlari berputar-putar);
+  - ketuk tanah tidak lagi berjalan; ketuk elf tetap membuka kartunya, ketuk kios tetap berjalan ke sana;
+  - tombol **Peta** kini hanya ikon peta; tombol aksi sesuai keadaan (Belanja, Bicara, Naik perahu,
+    Turun, Mancing, Tarik!, Buat perahu) muncul bila bisa dipakai — layar tegak bertumpuk di tepi
+    kanan, layar mendatar sebaris di kanan bawah;
+  - jarak pandang per tingkat kualitas (Rendah 420 m, Sedang 560 m, Tinggi 950 m) dengan kabut:
+    kamera rendah kini melihat sampai cakrawala; pulau seberang tetap tampak samar.
+- **Pulau Tropis, Kerajaan Kencana, dan Aeloria tidak lagi tersambung jembatan**: Jembatan Agung dan
+  Jembatan Perak dibongkar. Penggantinya dermaga di kedua sisi selat: **Dermaga Barat** (Pulau Tropis)
+  ↔ **Dermaga Timur** (Kencana: gapura candi bentar dijaga dua prajurit, kapal jong berlabuh) dan
+  **Dermaga Utara** (Pulau Tropis) ↔ **Dermaga Perak** (Aeloria: batu putih, gapura perak dijaga dua
+  kesatria). Selatnya terlalu dalam untuk diseberangi berjalan kaki: berenang atau berperahu.
+  Jembatan di dalam Kepulauan Kencana (ke Pulau Sawah, Pura Segara, Kampung Nelayan, Pulau Wira)
+  tetap ada.
+  - Serbuan orc ke Kencana kini dengan **perahu perang orc** dari pantai barat Pulau Tropis: orc naik,
+    berlayar menyeberang, mendarat di pantai timur Kencana, lalu menyerbu gerbang timur.
+  - Pendatang turun dari kapal penyeberangan di ujung Dermaga Timur dan ditanyai penjaga di gapuranya.
+  - Kalah oleh prajurit Kencana → dibuang ke pantai barat Pulau Tropis; oleh kesatria Aeloria →
+    diantar ke pantai utara Pulau Tropis. Wilayah Kencana dihitung per pulau, wilayah Aeloria berakhir
+    di tengah Selat Perak.
+### Ditambahkan
+- **Berenang**: air sedada atau lebih dalam → karakter berenang (badan mendatar, riak di sekitarnya,
+  2,4 m/s), kembali berjalan di air dangkal. Tanpa stamina / tenggelam. Tidak bisa menyerang sambil
+  berenang; prajurit, kesatria, dan orc tidak mengejar ke air dalam. (Dulu laut dalam = dikembalikan ke
+  pantai.)
+- **Kayu**: Pukul batang pohon → +1 kayu (3 per pohon, tumbuh lagi ±3 menit kemudian).
+- **Membuat barang di Tas** ("Buat dari kayu"): **Pancing** (3 kayu) dan **Perahu jukung** (10 kayu,
+  dibuat di tepi pantai; juga lewat tombol **Buat perahu** di pantai).
+- **Perahu**: Naik perahu dari pantai, dermaga, atau sambil berenang; joystick menunjuk arah tujuan
+  (relatif kamera), perahu berbelok perlahan dan melaju sampai 7,5 m/s; kandas di air dangkal; Turun
+  ke darat / dermaga terdekat atau terjun ke air. Letak perahu disimpan di browser dan tampak di Peta
+  ("perahumu"). Tidak bisa menyerang dari perahu.
+- **Memancing**: berdiri diam di tepi air / dermaga menghadap laut (atau di perahu yang berhenti) →
+  **Mancing** → pelampung dilempar → saat ikan menyambar (pelampung tertarik ke bawah, HP bergetar)
+  ketuk **Tarik!** dalam 1,5 detik. 5 jenis ikan menurut kedalaman: Ikan Belanak, Kakap Merah, Ikan
+  Tongkol, Ikan Kerapu, Ikan Layaran (laut dalam). Ikan bisa dimakan (nyawa +8…+24) atau **dijual di
+  Kios Ikan Bakar** Aeloria (4–30 koin per ekor).
+- **Mengobrol dengan NPC**: tombol hijau **Bicara** di dekat elf Aeloria atau warga Kencana (bukan
+  prajurit); komputer: G / Enter. Panel obrolan berisi riwayat, topik siap pilih (Siapa namamu?, Apa
+  kabar?, Sedang apa?, Apa pekerjaanmu?, Ceritakan kerajaanmu, Di mana …?, Beri makanan, Sampai jumpa,
+  dll.), dan kolom ketik bebas.
+  - Jawaban sesuai NPC-nya: nama, pekerjaan, kegiatannya sekarang, rasa lapar / lelah / bosan, sifat,
+    kerajaannya, dan petunjuk arah ke tempat lain (arah mata angin + jarak, dan perlu menyeberang laut
+    atau tidak). Kalimat sehari-hari & singkatan (gmn, dmn, yg, ga, makasih) dikenali.
+  - NPC mengingat namamu dan obrolan sebelumnya selama halaman terbuka; pujian & hadiah membuatnya
+    lebih akrab, hinaan sebaliknya. Memberi makanan kepada NPC yang lapar → ia berterima kasih dan
+    memberi beberapa koin.
+  - Selama mengobrol NPC berhenti, menghadapmu, mengangguk / menggeleng / melambai; kamera pindah ke
+    samping kalian berdua. Warga Kencana mau bicara tetapi takut ketahuan prajurit (kamu musuh
+    kerajaan) dan tidak boleh berdagang denganmu.
+  - Kartu elf punya tombol **Ajak bicara** (berjalan ke elf itu, obrolan dimulai saat tiba); pedagang
+    yang berjaga punya topik "Lihat daganganmu" yang membuka kiosnya.
+- Komputer: **C** = mancing / tarik, **V** = naik / turun perahu, **G / Enter** = bicara.
+### Diperiksa
+- ESLint 0 error / 0 warning; build berhasil; uji di browser (render software, HP tegak & mendatar):
+  joystick, berenang, kayu, pancing, memancing, menjual ikan, membuat / naik / mengemudi / turun
+  perahu, menyeberang ke Kencana dengan perahu, dermaga, serbuan orc dengan perahu, obrolan dengan elf
+  & warga Kencana. Smoke test 4 profil (versi build): 177 cek, 0 gagal — rinciannya di PROJECT_STATUS.md.
+### Diperbaiki saat uji
+- Kamera yang mengikuti arah lari terlalu cepat membuat joystick ke samping berputar-putar.
+- Tombol Mancing tidak muncul di pantai landai; tombol Naik perahu tidak muncul karena perahu terlalu
+  jauh; perahu tidak bisa dibuat dari pasir di pantai landai (Dermaga Barat).
+- Perahu perang orc berangkat meninggalkan satu orc.
+- Panel obrolan menutupi NPC (terutama di layar mendatar), topik terpotong, gelembung ucapan ganda.
+- Di Peta, tulisan "Perahu" menimpa label Dermaga Timur.
+
 ## [0.13.0] — 2026-10-23 — Kerajaan Elf Aeloria di utara: 10.000 kesatria yang hidup bebas (permintaan pengguna)
 ### Ditambahkan
 - **Tanah Aeloria + Tanjung Perak** di utara Pulau Tropis, lewat **Jembatan Perak** (jembatan batu

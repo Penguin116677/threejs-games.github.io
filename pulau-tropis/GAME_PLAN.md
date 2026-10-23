@@ -6,11 +6,15 @@ tanpa instalasi. Pemain menjelajahi pantai, hutan, desa, sungai, air terjun, gun
 reruntuhan, berinteraksi dengan NPC, mengumpulkan item, dan menyelesaikan quest eksplorasi ringan.
 
 ## Genre
-Eksplorasi / petualangan santai dengan kamera gaya game strategi (dilihat dari atas, ketuk tanah
-untuk berjalan — sejak v0.6.0). Prajurit punya kombo pukulan dan 4 jurus (v0.9.0) melawan musuh orc
+Eksplorasi / petualangan santai orang ketiga: **joystick** di kiri bawah dan **kamera di belakang
+karakter** (sejak v0.14.0, permintaan pengguna; v0.6.0–v0.13.0 memakai kamera strategi dari atas +
+ketuk tanah untuk berjalan). Prajurit punya kombo pukulan dan 4 jurus (v0.9.0) melawan musuh orc
 di perkemahan; orc di perkemahan belum menyerang balik. Sejak v0.12.0 pemain punya nyawa, dan orc
-sesekali menyerbu Kerajaan Kencana lewat Jembatan Agung. Sejak v0.13.0 ada koin (dari orc), tas, dan
-toko: makanan & ramuan memulihkan nyawa, perlengkapan dari pandai besi elf memperkuat pemain.
+sesekali menyerbu Kerajaan Kencana (sejak v0.14.0 dengan perahu perang). Sejak v0.13.0 ada koin (dari
+orc), tas, dan toko: makanan & ramuan memulihkan nyawa, perlengkapan dari pandai besi elf memperkuat
+pemain. Sejak v0.14.0 pulau-pulau **tidak tersambung jembatan**: pemain **berenang** atau berlayar
+dengan **perahu** buatan sendiri (kayu dari pohon), bisa **memancing** (ikan dimakan atau dijual), dan
+bisa **mengobrol** dengan elf Aeloria dan warga Kencana (tombol Bicara).
 
 **Tokoh utama bukan rakyat kerajaan mana pun, jadi ia musuh setiap kerajaan** (v0.12.1, ketentuan
 pengguna). Prajurit Kencana langsung menghadang dan menyerangnya di wilayah mereka, tanpa ditanyai.
@@ -23,16 +27,19 @@ Aeloria (istana) tetap terlarang. Lihat DECISIONS #49–#51.
 
 ## Peta dunia (sejak v0.10.0)
 - **Pulau Tropis** (tengah): pantai, hutan, padang, gunung, perkemahan orc — titik mulai.
-- **Kepulauan Kencana** (barat), dihubungkan Jembatan Agung: **Pulau Kencana** dengan Kotaraja
+- **Kepulauan Kencana** (barat), di seberang selat barat — **tanpa jembatan** sejak v0.14.0
+  (Dermaga Barat di Pulau Tropis ↔ Dermaga Timur di Kencana; berenang atau berperahu): **Pulau Kencana** dengan Kotaraja
   Kencana (ibu kota kerajaan Nusantara: keraton, alun-alun, pasar, candi, pelabuhan, ±160 rumah
   di dalam tembok, ratusan penduduk), **Pulau Sawah** (utara), **Pulau Nelayan** (barat daya), **Pulau Pura** (barat).
 - **Pulau Wira** (sejak v0.11.0, selatan pelabuhan Pulau Kencana, lewat Jembatan Wira): markas
   bala tentara Kencana — 25.000 prajurit siap tempur di Tegal Wira (5.000 perisai, 5.000 tombak,
   5.000 pedang, 5.000 pemanah, 5.000 penunggang kuda bertombak) + 7 senapati, Siti Hinggil, perkemahan.
 - **Penjagaan kerajaan** (sejak v0.12.0): pasangan peronda di semua wilayah Kencana + penjaga pos di
-  gerbang, keraton, dan kepala jembatan. Wilayah kerajaan dimulai di tengah Jembatan Agung; di sana
-  pemain (musuh setiap kerajaan) langsung diserang.
-- **Tanah Aeloria + Tanjung Perak** (sejak v0.13.0, utara Pulau Tropis, lewat Jembatan Perak): Kerajaan
+  gerbang, keraton, Siti Hinggil, Jembatan Wira, dan Dermaga Timur. Wilayah kerajaan = pulau-pulau Kencana
+  dan perairan dekatnya; di sana pemain (musuh setiap kerajaan) langsung diserang. Jembatan di dalam
+  kerajaan (ke Pulau Sawah, Pura, Nelayan, Wira) tetap ada — yang dihapus hanya jembatan antar-negeri.
+- **Tanah Aeloria + Tanjung Perak** (sejak v0.13.0, utara Pulau Tropis, di seberang Selat Perak — tanpa
+  jembatan sejak v0.14.0: Dermaga Utara ↔ Dermaga Perak): Kerajaan
   Elf Aeloria — Kota Aeloria (pasar 51 kios, Tempa Aeloria, kedai), kawasan kesatria (Balai Makan,
   Lapangan Latihan, Padang Pesta, perkemahan), ladang & kebun, dan Benteng Aeloria. 10.000 kesatria
   elf + 259 penduduk + 28 anak, masing-masing dengan nama, sifat, kebutuhan, dan pilihan sendiri.
@@ -59,9 +66,9 @@ dengan seed tetap, jadi bentuk pulau selalu sama setiap kali dibuka.
 
 ## Rencana milestone
 1. **Fondasi game** — Vite + Three.js, terrain pulau, pantai, laut, langit, bisa dibuka di browser HP.
-2. **Karakter & eksplorasi** — karakter pemain, kamera (v0.6.0: kamera strategi dari atas),
-   kontrol (v0.6.0: ketuk untuk berjalan, menggantikan joystick), tombol lompat, kontrol kamera
-   sentuh, collision, gravitasi, respawn.
+2. **Karakter & eksplorasi** — karakter pemain, kamera (v0.6.0: kamera strategi dari atas; v0.14.0:
+   kembali ke kamera di belakang karakter), kontrol (v0.6.0: ketuk untuk berjalan; v0.14.0: joystick
+   lagi), tombol lompat, kontrol kamera sentuh, collision, gravitasi, respawn, berenang (v0.14.0).
 3. **Pembangunan dunia** — hutan tropis, desa, sungai & air terjun, gunung, gua, reruntuhan,
    pulau kecil, jalur eksplorasi, landmark.
 4. **Interaksi gameplay** — interaksi objek, item, inventory, NPC & dialog, quest sederhana.
@@ -88,3 +95,6 @@ kerajaan besar dengan banyak penduduk (desa & bangunan, pulau kecil, jalur, land
 terjun, gua, dan reruntuhan belum dibuat. Peta dunia (bagian Milestone 6) ikut dibuat lebih awal
 karena dunia kini terdiri dari beberapa pulau. Di v0.11.0 (permintaan pengguna) kerajaan mendapat
 bala tentara 25.000 prajurit di pulau baru, Pulau Wira.
+Di v0.14.0 (permintaan pengguna) kontrol kembali ke joystick + kamera di belakang karakter, jembatan
+antar-negeri dihapus, dan pemain bisa berenang, membuat perahu, memancing, serta mengobrol dengan NPC —
+bagian Milestone 4 (NPC & dialog, membuat barang dari bahan) yang dimajukan lagi.
