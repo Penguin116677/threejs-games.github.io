@@ -27,9 +27,11 @@ import { planAeloria } from './world/aeloria/plan.js'
 import { createAeloria } from './world/aeloria/kingdom.js'
 import { createElfFolk } from './world/aeloria/elf.js'
 import { createLife, ELF_CAPS } from './world/aeloria/kehidupan.js'
+import { createElfSecurity } from './world/aeloria/keamanan.js'
 import { createWorldMap, createRegionBanner } from './ui/peta.js'
 import { createBubbles, createHealthBar } from './ui/tanya.js'
 import { createShop } from './ui/toko.js'
+import { createElfCard } from './ui/kartu-elf.js'
 import { createInput } from './player/input.js'
 import { createStrategyCamera } from './player/camera.js'
 import { createMarkers } from './player/marker.js'
@@ -92,8 +94,8 @@ function findSpawn(ground, colliders) {
   return { x: -128, z: 128, heading: Math.atan2(128, -128) }
 }
 
-const HINT_TOUCH = '<b>Ketuk tanah</b> untuk berjalan ke sana (jauh = lari)<br>Geser: putar kamera · Cubit: zoom<br><b>Pukul</b> berulang = kombo · 4 <b>jurus</b> · orc kalah = <b>koin</b><br><b>Peta</b>: Kencana (barat) memusuhimu · Aeloria (utara) damai, <b>ketuk kios</b> untuk belanja'
-const HINT_KEYS = '<b>Klik tanah</b> untuk berjalan ke sana · WASD / panah juga bisa<br>Seret mouse: putar kamera · Roda: zoom · Spasi: lompat<br>F: pukul (kombo) · 1–4: jurus · orc kalah = koin · B: tas<br>M: peta — Kencana (barat) memusuhimu · Aeloria (utara) damai; E / klik kios: belanja'
+const HINT_TOUCH = '<b>Ketuk tanah</b> untuk berjalan (jauh = lari) · Geser: putar kamera · Cubit: zoom<br><b>Pukul</b> berulang = kombo · 4 <b>jurus</b> · orc kalah = <b>koin</b><br><b>Peta</b>: Kencana (barat) memusuhimu · Aeloria (utara) damai bila kamu tidak rusuh<br>Di Aeloria: <b>ketuk kios</b> untuk belanja, <b>ketuk elf</b> untuk melihat isi pikirannya'
+const HINT_KEYS = '<b>Klik tanah</b> untuk berjalan · WASD / panah juga bisa · Seret: putar kamera · Roda: zoom<br>F: pukul (kombo) · 1–4: jurus · Spasi: lompat · orc kalah = koin · B: tas<br>M: peta — Kencana (barat) memusuhimu · Aeloria (utara) damai bila kamu tidak rusuh<br>Di Aeloria: klik kios / E untuk belanja, klik elf untuk melihat isi pikirannya'
 
 // FOV kamera: mode main (kamera atas) lebih sempit agar prajurit tidak terlalu kecil;
 // layar tegak butuh FOV lebih lebar agar sisi kiri-kanan tetap terlihat
@@ -308,7 +310,10 @@ async function start() {
   // koin, tombol Belanja di dekat kios Aeloria, panel toko & Tas (+ gelembung ucapan yang juga
   // dipakai penjaga & rakyat elf)
   const bubbles = createBubbles($('gelembung'), camera)
-  const shop = createShop({ life, bag, player, bubbles, message: showMessage, maxHp: MAX_HP })
+  // penjagaan Aeloria: zona damai, kerusuhan → musuh kerajaan (pedagang tetap netral), benteng
+  // terlarang, keributan warga yang dilerai kesatria
+  const elfSec = life ? createElfSecurity({ life, player, bubbles, message: showMessage, nav, colliders, ground }) : null
+  const shop = createShop({ life, bag, player, bubbles, message: showMessage, maxHp: MAX_HP, wanted: () => !!elfSec?.wanted })
   // hadiah koin: 6–12 per orc yang dikalahkan
   const orcCoins = n => {
     let c = 0
@@ -326,6 +331,8 @@ async function start() {
       const cands = enemies ? enemies.pickTargets(x, z, range, 99).map(t => ({ ...t, id: `o${t.id}` })) : []
       if (soldiers)
         for (const a of soldiers.list) if (soldiers.alive(a) && Math.hypot(a.x - x, a.z - z) <= range) cands.push({ id: `s${a.id}`, x: a.x, z: a.z })
+      // elf Aeloria hanya bila sedang melawan pemain (yang damai tidak pernah jadi sasaran)
+      if (elfSec) cands.push(...elfSec.targets(x, z, range))
       const near = cands.sort((a, b) => Math.hypot(a.x - x, a.z - z) - Math.hypot(b.x - x, b.z - z)).slice(0, max)
       // urutkan menjadi jalur terpendek (tetangga terdekat) mulai dari (x, z)
       const out = []
@@ -343,6 +350,7 @@ async function start() {
     },
     position(id) {
       if (id[0] === 'o') return enemies ? enemies.position(Number(id.slice(1))) : null
+      if (id[0] === 'e') return elfSec ? elfSec.position(id) : null
       const a = soldierOf(id)
       return soldiers.alive(a) ? { x: a.x, z: a.z } : null
     },
@@ -374,6 +382,8 @@ async function start() {
   const NO_INPUT = { moveX: 0, moveY: 0, jump: false, attack: false, skill: null, lookDX: 0, zoom: 1, taps: [] }
   const markers = createMarkers(ground)
   scene.add(...markers.objects)
+  // ketuk elf → kartu isi pikirannya
+  const elfCard = life ? createElfCard({ life, camera, canvas, markers }) : null
 
   // serangan: yang terkena (orc → nyawa berkurang & terpental; batang/batu → serpihan) + efeknya
   const effects = createSwingEffects(ground)
@@ -402,6 +412,11 @@ async function start() {
         felled.push(a)
       }
       security?.playerStruck(felled)
+      for (const id of ev.targets) {
+        if (id[0] !== 'e' || !elfSec) continue
+        const at = elfSec.fell(id)
+        if (at) cut.push(at)
+      }
       effects.execute(cut, player.position)
       if (cut.length) cam.shake(0.22)
       return
@@ -426,6 +441,8 @@ async function start() {
       const guards = soldiers ? soldiers.hit(shape, damage, ev.knock, ev.origin) : []
       security?.playerStruck(guards)
       for (const a of guards) struck.push({ x: a.x, y: a.y, z: a.z })
+      // elf Aeloria: memukul elf = membuat rusuh (kesatria melawan, warga kabur / ikut berkelahi)
+      if (elfSec) struck.push(...elfSec.hit(shape, damage, ev.knock, ev.origin))
       effects.attack(ev, colliders.hitAll(ev.x, ev.z, ev.r, 5), struck)
       if (ev.plant) cam.shake(0.4)
       else if (struck.length && ev.spin) cam.shake(0.12)
@@ -481,6 +498,12 @@ async function start() {
   // ketukan di layar → cari jalan ke titik itu
   function handleTap(tap) {
     if (player.defeated) return
+    const elf = elfCard?.pick(tap.x, tap.y)
+    if (elf) {
+      elfCard.show(elf)
+      return
+    }
+    elfCard?.hide()
     const hit = pickGround(tap.x, tap.y)
     if (!hit) return
     // ketuk kios Aeloria: berjalan ke depan mejanya, panel toko terbuka saat tiba
@@ -604,7 +627,10 @@ async function start() {
   })
   window.addEventListener('keydown', e => {
     if (e.code === 'KeyM' && !e.repeat) toggleMap()
-    else if (e.code === 'Escape') worldMap.hide()
+    else if (e.code === 'Escape') {
+      worldMap.hide()
+      elfCard?.hide()
+    }
   })
   setMode('main')
 
@@ -616,19 +642,26 @@ async function start() {
     health.hurt()
     cam.shake(0.12)
   })
+  // dikalahkan kesatria Aeloria = dibawa ke luar kerajaan, di ujung selatan Jembatan Perak
+  const perak = elfPlan.spans.find(s => s.id === 'perak')
+  const elfExit = { x: perak.at, z: Math.max(perak.a, perak.b) + 14, heading: 0 }
   player.onDefeated(() => {
     const byKingdom = security ? security.playerDefeated() : false
+    const byElves = elfSec ? elfSec.playerDefeated() : false
     markers.hideTarget()
+    shop.close()
     setTimeout(() => $('tirai').classList.add('gelap'), 1100)
     setTimeout(() => {
-      const p = byKingdom ? exitPoint : spawn
+      const p = byElves ? elfExit : byKingdom ? exitPoint : spawn
       player.placeAt(p.x, p.z, p.heading)
       player.revive()
       cam.lookFrom(player.heading + Math.PI)
       $('tirai').classList.remove('gelap')
-      showMessage(byKingdom
-        ? 'Kamu dikalahkan prajurit Kencana dan dibawa keluar dari wilayah kerajaan.'
-        : 'Kamu pingsan dikeroyok orc… dan terbangun di pantai.', 4200)
+      showMessage(byElves
+        ? 'Kamu dikalahkan kesatria Aeloria dan dibawa ke luar kerajaan, di ujung selatan Jembatan Perak.'
+        : byKingdom
+          ? 'Kamu dikalahkan prajurit Kencana dan dibawa keluar dari wilayah kerajaan.'
+          : 'Kamu pingsan dikeroyok orc… dan terbangun di pantai.', 4200)
     }, 1600)
   })
 
@@ -724,6 +757,7 @@ async function start() {
     villagers?.update(dt, camera, mode === 'main' ? player.position : controls.target, player.position, mode === 'main' ? 110 : 260)
     army?.update(dt, camera, mode === 'main' ? player.position : controls.target)
     life?.update(dt, camera, mode === 'main' ? player.position : controls.target, mode === 'main' ? 110 : 260)
+    elfSec?.update(dt)
     security?.update(dt)
     soldiers?.update(dt, {
       camera,
@@ -735,6 +769,7 @@ async function start() {
     })
     bubbles.update(dt)
     shop.update(dt, mode === 'main')
+    elfCard?.update(dt)
     health.set(player.hp, MAX_HP)
     effects.update(dt, camera)
     updateSkillButtons()
@@ -774,7 +809,7 @@ async function start() {
   // akses untuk debugging / pengujian otomatis
   window.__pulau = {
     renderer, scene, camera, controls, ground, shore, quality, trees, rocks, grass, water, env, kencana, region, plan, villagers, army, worldMap, banner, aeloria, elfPlan, elfMask, life,
-    player, cam, input, colliders, nav, markers, effects, enemies, soldiers, security, bubbles, pickGround, setMode, getMode: () => mode, bag, gear, shop,
+    player, cam, input, colliders, nav, markers, effects, enemies, soldiers, security, bubbles, pickGround, setMode, getMode: () => mode, bag, gear, shop, elfSec, elfCard,
     frames: () => frameCount, debug,
   }
 }

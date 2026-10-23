@@ -839,3 +839,88 @@ body {
   opacity: 0.85;
   padding: 10px 4px;
 }
+
+/* kartu isi pikiran elf (ketuk elf): di bawah kolom tombol kanan, di atas karakter */
+#kartu-elf {
+  position: absolute;
+  left: 50%;
+  top: calc(max(10px, env(safe-area-inset-top)) + 222px);
+  transform: translateX(-50%);
+  width: min(300px, calc(100% - 24px));
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: rgba(0, 32, 48, 0.86);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
+  pointer-events: auto;
+  text-shadow: none;
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.ke-kepala {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 16px;
+}
+
+#hud .ke-tutup {
+  min-height: 32px;
+  width: 32px;
+  padding: 0;
+  display: grid;
+  place-items: center;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.12);
+}
+
+#hud .ke-tutup svg {
+  width: 16px;
+  height: 16px;
+}
+
+.ke-peran {
+  opacity: 0.85;
+}
+
+.ke-kegiatan {
+  margin: 4px 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: #ffe9a8;
+}
+
+.ke-baris {
+  margin-bottom: 4px;
+  opacity: 0.92;
+}
+
+.ke-butuh {
+  display: grid;
+  grid-template-columns: 96px 1fr;
+  align-items: center;
+  gap: 8px;
+  margin-top: 2px;
+}
+
+.ke-butuh i {
+  display: block;
+  height: 7px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.15);
+  overflow: hidden;
+}
+
+.ke-butuh b {
+  display: block;
+  height: 100%;
+  background: linear-gradient(90deg, #7fe3ff, #ffb85c);
+}
+
+@media (orientation: landscape) {
+  #kartu-elf {
+    left: max(12px, env(safe-area-inset-left));
+    top: calc(max(10px, env(safe-area-inset-top)) + 104px);
+    transform: none;
+  }
+}

@@ -38,11 +38,27 @@ export function createMarkers(ground) {
   ring.renderOrder = 10
   dot.renderOrder = 10
 
+  // --- cincin elf yang sedang dilihat kartunya (biru muda, mengikuti elfnya)
+  const pick = new THREE.Group()
+  const pickMat = ringMaterial('#7fe3ff', 0.9)
+  const pickRing = new THREE.Mesh(new THREE.RingGeometry(0.42, 0.56, 36).rotateX(-Math.PI / 2), pickMat)
+  pickRing.renderOrder = 10
+  pick.add(pickRing)
+  pick.visible = false
+  pick.renderOrder = 10
+
   let t = 0
   let invalid = false
 
   return {
-    objects: [target],
+    objects: [target, pick],
+    select(x, z) {
+      placeOnGround(pick, ground, x, z, 0.05)
+      pick.visible = true
+    },
+    deselect() {
+      pick.visible = false
+    },
     // tunjukkan tujuan; ok = false → merah sebentar (tidak bisa ke sana)
     showTarget(x, z, ok = true) {
       placeOnGround(target, ground, x, z, 0.06)

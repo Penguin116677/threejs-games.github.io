@@ -87,6 +87,11 @@ const KEGIATAN = {
   lihat: { teks: 'melihat-lihat sekeliling', lega: { bosan: 0.2 }, lama: [20, 60] },
   belanja: { teks: 'berbelanja di pasar', lega: { bosan: 0.15 }, lama: [30, 80] },
   antar: { teks: 'mengantar hasil panen ke pasar', lega: { kerja: 0.1 }, lama: [8, 16] },
+  // diambil alih keamanan.js (lama ditentukan di sana)
+  lawan: { teks: 'bertarung', lega: { bosan: 0.4 }, lelah: 0.3, lama: [0, 0] },
+  kabur: { teks: 'kabur dari keributan', lega: {}, lelah: 0.2, lama: [0, 0] },
+  sorak: { teks: 'menonton perkelahian', lega: { bosan: 0.6 }, lama: [0, 0] },
+  roboh: { teks: 'pingsan', lega: {}, lama: [0, 0] },
   jaga: { teks: 'berjaga', lega: { latih: 0.1 }, lama: [600, 1200] },
   kerja: { teks: 'bekerja', lega: { kerja: 0.25 }, lama: [600, 1200] },
   sumur: { teks: 'menimba air di sumur', lega: { sepi: 0.2 }, lama: [40, 100] },
@@ -1187,6 +1192,66 @@ export function createLife({ ground, plan, routes, folk, quality, free = () => t
     decide(a)
   }
 
+  // ----------------------------------------------------------------- diambil alih (keamanan.js)
+  // Elf yang bertarung, kabur, melerai, atau menonton keributan keluar dari jadwalnya: digerakkan
+  // per bingkai oleh keamanan.js, lalu dikembalikan ke kehidupannya (ia menimbang sendiri mau apa
+  // berikutnya). Yang roboh pingsan sebentar, lalu bangun dan kembali berkegiatan.
+  function grab(a, act) {
+    if (a.phase === 'jalan' && a.pts) walkPos(a)
+    release(a)
+    settle(a)
+    a.tok++ // kejadian yang sudah terjadwal diabaikan
+    a.act = act
+    a.goal = null
+    a.phase = 'tempur'
+    a.pts = null
+    a.run = false
+    a.hidden = false
+    a.atWork = false
+    a.carry = null
+    a.deliver = null
+    a.down = false
+    a.cx = a.x
+    a.cz = a.z
+    a.cr = 0
+    a.y = ground.surfaceAt(a.x, a.z)
+    a.startT = T
+    sync(a)
+  }
+  function place(a, x, z) {
+    a.x = a.cx = x
+    a.z = a.cz = z
+    a.y = ground.surfaceAt(x, z)
+    sync(a)
+  }
+  // ganti kegiatan / gaya bertarung; restart = klipnya diulang dari awal (pukulan berikutnya)
+  function mode(a, act, gaya = null, restart = false) {
+    if (!restart && a.act === act && a.gaya === gaya) return
+    a.act = act
+    a.gaya = gaya
+    a.startT = T
+  }
+  function letGo(a) {
+    if (a.phase !== 'tempur') return
+    settle(a)
+    a.gaya = null
+    a.alasan = null
+    a.phase = 'di'
+    a.act = 'lihat'
+    decide(a)
+  }
+  function knockDown(a, seconds) {
+    if (a.phase !== 'tempur') grab(a, 'roboh')
+    settle(a)
+    a.act = 'roboh'
+    a.gaya = null
+    a.down = true
+    a.phase = 'di'
+    a.startT = T
+    sync(a)
+    schedule(a, T + seconds)
+  }
+
   // makan bekal di tempat lapang beberapa meter dari sini — bukan di titik yang sama dengan yang lain
   // (saat Balai Makan penuh, ratusan kesatria bisa tiba di titik yang sama dan menumpuk)
   function bekalNear(a) {
@@ -1405,10 +1470,54 @@ export function createLife({ ground, plan, routes, folk, quality, free = () => t
       case 'antar':
         out.clip = ['talk', 'idle', 'talk', 'wave'][cycle(2.4, 4)]
         return out
+      // diambil alih keamanan.js: bertarung / melerai, kabur, menonton keributan, pingsan
+      case 'lawan':
+        return lookFight(a, t)
+      case 'kabur':
+        out.clip = 'run'
+        out.t = a.animT || 0
+        return out
+      case 'sorak':
+        out.clip = cycle(1.7, 3) === 2 ? 'talk' : 'cheer'
+        return out
+      case 'roboh':
+        out.clip = 'die'
+        out.t = t
+        return out
       default:
         out.clip = 'idle'
         return out
     }
+  }
+  // gaya bertarung (diatur keamanan.js): kejar, siaga, serang, kena, lerai. Senjata kesatria ikut
+  // tampak; warga (dan pemanah) berkelahi dengan tangan kosong
+  function lookFight(a, t) {
+    const w = a.weap
+    const held = w === 'pedang' ? PROPS.tandingPedang : w === 'tombak' ? PROPS.tombak : null
+    out.props = held
+    out.t = t
+    switch (a.gaya) {
+      case 'kejar':
+        out.clip = a.spd > 2.6 ? 'run' : 'walk'
+        out.t = a.animT || 0
+        if (w === 'pedang') out.props = PROPS.pedang
+        break
+      case 'serang':
+        out.clip = w === 'pedang' ? 'spar' : w === 'tombak' ? 'drill' : a.jurus || 'punch'
+        break
+      case 'kena':
+        out.clip = 'hit'
+        break
+      case 'lerai':
+        out.clip = 'talk'
+        out.t = t + a.phaseT
+        out.props = null
+        break
+      default:
+        out.clip = w === 'tombak' ? 'guard' : 'block'
+        out.t = t + a.phaseT
+    }
+    return out
   }
   function lookWork(a, t, pose, cycle) {
     switch (a.job) {
@@ -1677,6 +1786,7 @@ export function createLife({ ground, plan, routes, folk, quality, free = () => t
     let doing = K ? K.teks : 'berjalan-jalan'
     if (act === 'kerja') doing = { pedagang: `berjualan di ${NAMA_KIOS[a.work?.site?.goods] || `kios ${a.work?.site?.goods ?? ''}`}`, pandai: 'menempa senjata di Tempa Aeloria', petani: 'bertani di ladang', masak: 'memasak di Balai Makan', saji: 'melayani antrean makan', musik: 'bermain musik', kedai: 'menjaga Kedai Daun Emas', warga: 'bekerja' }[a.job] || 'bekerja'
     if (act === 'tidur' && a.site?.area === 'benteng') doing = 'beristirahat di barak benteng'
+    if (a.alasan && (act === 'lawan' || act === 'kabur' || act === 'sorak')) doing = a.alasan
     const sifat = SIFAT.slice().sort((p, q) => a.sifat[q] - a.sifat[p]).slice(0, 2).map(k => SIFAT_TEKS[k])
     const role = a.kind === 'kesatria' ? `${a.rank} ${PASUKAN[a.pasukan].name}` : PEKERJAAN[a.job]
     return {
@@ -1698,6 +1808,29 @@ export function createLife({ ground, plan, routes, folk, quality, free = () => t
       return shown.near
     },
     describe,
+    // untuk keamanan.js: ambil alih elf, gerakkan, kembalikan; robohkan; cari elf di sekitar
+    grab,
+    place,
+    mode,
+    free: letGo,
+    knockDown,
+    around(x, z, r) {
+      const out = []
+      for (let i = 0; i < agents.length; i++) {
+        if (HID[i]) continue
+        const dx = CX[i] - x
+        const dz = CZ[i] - z
+        const lim = r + CR[i]
+        if (dx * dx + dz * dz > lim * lim) continue
+        const a = agents[i]
+        if (a.phase === 'jalan' && a.pts) {
+          walkPos(a)
+          a.y = ground.surfaceAt(a.x, a.z)
+        }
+        if (Math.hypot(a.x - x, a.z - z) <= r) out.push(a)
+      }
+      return out
+    },
     // ekonomi: kios yang melayani pemain, buka/tutupnya, dan pedagangnya
     economy,
     isOpen,
@@ -1719,7 +1852,7 @@ export function createLife({ ground, plan, routes, folk, quality, free = () => t
     // dorong titik (pemain) keluar dari badan elf terdekat
     pushOut(pos, radius = 0.35) {
       for (const a of shown.near) {
-        if (a.hidden || a.act === 'rebahan') continue
+        if (a.hidden || a.act === 'rebahan' || a.act === 'roboh') continue
         const dx = pos.x - a.x
         const dz = pos.z - a.z
         const min = radius + 0.33 * a.scale

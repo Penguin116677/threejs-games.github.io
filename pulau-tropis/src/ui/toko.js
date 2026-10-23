@@ -20,8 +20,9 @@ const angka = v => String(Math.round(v * 100) / 100).replace('.', ',')
 const koinHtml = n => `${IKON_KOIN}<span>${n}</span>`
 
 // life = createLife (kios & pedagangnya; null bila rakyat Aeloria gagal dibuat — koin & Tas tetap
-// jalan), bag = createBag, player, bubbles (gelembung ucapan), message(teks, ms), maxHp
-export function createShop({ life, bag, player, bubbles, message, maxHp }) {
+// jalan), bag = createBag, player, bubbles (gelembung ucapan), message(teks, ms), maxHp,
+// wanted() = pemain sedang dimusuhi kerajaan Aeloria (pedagang tetap melayani)
+export function createShop({ life, bag, player, bubbles, message, maxHp, wanted = () => false }) {
   const stalls = life ? life.economy.stalls : []
   const el = {
     koin: $('koin'), tombol: $('btn-belanja'), tas: $('btn-tas'),
@@ -66,12 +67,16 @@ export function createShop({ life, bag, player, bubbles, message, maxHp }) {
   function renderShop(force = false) {
     const s = current
     const open = life.isOpen(s)
-    const key = `${open}|${bag.koin}|${KATALOG[s.goods].map(id => `${s.stock[id]}${bag.punya[id] ? 'p' : ''}`).join()}`
+    const key = `${open}|${wanted()}|${bag.koin}|${KATALOG[s.goods].map(id => `${s.stock[id]}${bag.punya[id] ? 'p' : ''}`).join()}`
     if (!force && key === shownShop) return
     shownShop = key
     el.judul.textContent = NAMA_KIOS[s.goods]
     const { jaga } = life.sellers(s)
-    el.penjual.textContent = open ? `Dilayani ${jaga.map(d => d.nama).join(' & ')}` : 'Pedagangnya sedang pergi'
+    el.penjual.textContent = !open
+      ? 'Pedagangnya sedang pergi'
+      : wanted()
+        ? `Dilayani ${jaga.map(d => d.nama).join(' & ')} — pedagang tetap netral walau kesatria memusuhimu`
+        : `Dilayani ${jaga.map(d => d.nama).join(' & ')}`
     el.tokoKoin.innerHTML = koinHtml(bag.koin)
     el.daftar.innerHTML = KATALOG[s.goods].map(id => {
       const b = BARANG[id]
