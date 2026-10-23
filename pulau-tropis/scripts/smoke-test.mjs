@@ -5,7 +5,8 @@ import { mkdirSync } from 'node:fs'
 // - game termuat tanpa error, karakter prajurit (model + pedang) muncul berdiri di tanah
 // - rumput di lereng gunung, data garis pantai (ombak) valid; memotret pantai & kelapa
 // - komputer: klik tanah tidak menggerakkan karakter, jalan (W), lompat (Spasi), tabrakan batang
-//   pohon, laut dalam → kembali ke pantai, mendaki lereng gunung
+//   pohon, laut dalam → berenang (tidak dikembalikan ke pantai), mendaki lereng gunung, obrolan
+//   dengan elf lewat tombol G
 // - HP: joystick (jalan menjauhi kamera, lepas = berhenti, tertahan batang pohon, kamera kembali
 //   ke belakang karakter), ketuk tanah tidak menggerakkan karakter, tombol Pukul saat berjalan
 //   (berhenti + mengayun, mengenai batang pohon → serpihan,
@@ -15,23 +16,29 @@ import { mkdirSync } from 'node:fs'
 // - musuh orc ada di perkemahan (satu dekat titik mulai)
 // - komputer: tombol F = pukul, 1–4 = jurus
 // - tidak ada lagi lingkaran hijau di bawah prajurit
-// - Kepulauan Kencana: kota lengkap (rumah, tembok, pendopo, Jembatan Agung), penduduk berjalan,
-//   menyeberangi Jembatan Agung, spanduk wilayah di gerbang kota, naik tangga pendopo,
-//   dinding rumah menahan prajurit, tombol Peta
+// - pulau-pulau TIDAK tersambung jembatan: Jembatan Agung & Jembatan Perak tidak ada, empat dermaga,
+//   selat terlalu dalam untuk diseberangi berjalan kaki; menyeberang ke Kencana dengan PERAHU
+//   buatan sendiri (kayu → buat perahu di tepi Dermaga Barat → naik → berlayar → turun di Kencana)
+// - Kepulauan Kencana: kota lengkap (rumah, tembok, pendopo, dermaga), penduduk berjalan,
+//   spanduk wilayah di gerbang kota, naik tangga pendopo, dinding rumah menahan prajurit, tombol Peta
 // - Pulau Wira: 25.000 prajurit (5 pasukan × 5.000) + senapati, menyeberangi Jembatan Wira,
 //   spanduk "Tegal Wira" di depan barisan, prajurit 3D di dekat pemain, barisan menahan prajurit
 // - penjagaan kerajaan (pemain musuh setiap kerajaan): peronda di semua wilayah & bergerak,
-//   menyeberangi Jembatan Agung → langsung dihadang & diserang (tanpa kartu tanya-jawab);
+//   mendarat di Dermaga Timur → langsung dihadang & diserang (tanpa kartu tanya-jawab);
 //   (HP tegak & komputer) masuk wilayah → diserang, pukulan pemain mengenai prajurit, kalah →
-//   dibawa keluar wilayah, kabur keluar wilayah → berhenti dikejar, serbuan orc dihadang
-//   prajurit, pendatang ditanyai penjaga di gerbang. Di luar uji penjagaan prajurit dibuat tidak
+//   dibuang ke pantai Pulau Tropis, kabur keluar wilayah → berhenti dikejar, serbuan orc dengan
+//   perahu perang dihadang prajurit, pendatang ditanyai penjaga di gapura dermaga. Di luar uji penjagaan prajurit dibuat tidak
 //   menghiraukan pemain (gencatan senjata), supaya uji kota & bala tentara tidak terganggu.
 // - Kerajaan Elf Aeloria (utara): 10.000 kesatria + penduduk, elf terlihat di pasar, tombol Belanja
 //   di depan kios, membeli makanan & perlengkapan (koin berkurang, tombak dipakai), ketuk elf →
 //   kartu isi pikiran, keributan warga dilerai kesatria; (HP tegak & komputer) memukul kesatria →
-//   kerusuhan (musuh kerajaan, kesatria menyerang), pedagang tetap melayani, kalah → dibawa ke ujung
-//   selatan Jembatan Perak, Benteng Aeloria terlarang (masuk → diserang, keluar → berhenti);
+//   kerusuhan (musuh kerajaan, kesatria menyerang), pedagang tetap melayani, kalah → diantar ke
+//   pantai utara Pulau Tropis, Benteng Aeloria terlarang (masuk → diserang, keluar → berhenti);
 //   (HP tegak) jurus Penggal pada orc memberi koin
+// - obrolan NPC: tombol Bicara di dekat elf / warga Kencana, panel obrolan, jawaban atas kalimat
+//   ketikan & topik, memberi makanan, elf berhenti & menghadap pemain lalu kembali berkegiatan
+// - (HP tegak) kayu dari batang pohon, membuat pancing di Tas, memancing (Mancing → Tarik! → ikan
+//   masuk Tas), menjual ikan ke Kios Ikan Bakar
 // Waktu tunggu dihitung dalam FRAME (fisika berjalan per frame), bukan detik, karena
 // render software jauh lebih lambat dari HP.
 // Pemakaian: npm run build && npm run preview (terminal lain) && npm run test:smoke
@@ -264,9 +271,9 @@ for (const [name, opts, query] of cases) {
     const { kencana, villagers } = window.__pulau
     return { ...kencana.stats, warga: villagers ? villagers.stats() : null }
   })
-  if (k.rumah < 150 || !k.jenis.pendopo || !k.jenis['jembatan-batu'] || (k.jenis.tembok || 0) < 8)
+  if (k.rumah < 150 || !k.jenis.pendopo || k.jenis['jembatan-batu'] || (k.jenis.dermaga || 0) < 5 || (k.jenis.tembok || 0) < 8)
     fail(`Kerajaan Kencana tidak lengkap: ${JSON.stringify(k)}`)
-  else ok(`Kerajaan Kencana: ${k.rumah} rumah, ${k.bangunan} bangunan, ${k.pohon} pohon, ${k.perahu} perahu`)
+  else ok(`Kerajaan Kencana: ${k.rumah} rumah, ${k.bangunan} bangunan, ${k.jenis.dermaga} dermaga, ${k.pohon} pohon, ${k.perahu} perahu`)
   if (!k.warga || k.warga.total < 150) fail(`penduduk: ${JSON.stringify(k.warga)}`)
   else ok(`penduduk: ${k.warga.total} orang (${k.warga.fixed} di tempat tetap)`)
 
@@ -283,8 +290,7 @@ for (const [name, opts, query] of cases) {
   else ok(`penduduk berjalan: ${moved} orang bergerak, ${seen} terlihat di dekat pasar`)
   await page.screenshot({ path: `${out}/${name}-pasar.png` })
 
-  // Jembatan Agung: dari pantai barat Pulau Tropis ke Pulau Kencana, selalu di atas lantai jembatan
-  // (waktu dipercepat 4×; fisika tetap memakai langkah kecil)
+  // berjalan mengikuti jalur ke (x, z) (waktu dipercepat 4×; fisika tetap memakai langkah kecil)
   async function walkTo(x, z, maxFrames) {
     const n = await page.evaluate(([x, z]) => {
       window.__pesanLog.length = 0
@@ -311,12 +317,35 @@ for (const [name, opts, query] of cases) {
     window.__ronda0 = soldiers.list.filter(a => a.kind === 'ronda').map(a => [a.x, a.z])
     return soldiers.stats()
   })
-  const zonesOk = ['kota', 'kencana', 'agung', 'sawah', 'nelayan', 'pura', 'wira'].every(z => (guards0.wilayah[z] || 0) >= 2)
-  if (guards0.pos < 30 || guards0.peronda < 40 || !zonesOk) fail(`prajurit penjaga: ${JSON.stringify(guards0)}`)
+  const zonesOk = ['kota', 'kencana', 'dermaga', 'sawah', 'nelayan', 'pura', 'wira'].every(z => (guards0.wilayah[z] || 0) >= 2)
+  if (guards0.pos < 28 || guards0.peronda < 40 || !zonesOk) fail(`prajurit penjaga: ${JSON.stringify(guards0)}`)
   else ok(`prajurit penjaga: ${guards0.pos} di pos + ${guards0.peronda} peronda di ${Object.keys(guards0.wilayah).length} wilayah (${Object.entries(guards0.wilayah).map(([z, n]) => `${z} ${n}`).join(', ')})`)
-  // menyeberang ke wilayah kerajaan: pemain bukan rakyat kerajaan mana pun → langsung dihadang &
-  // diserang, tanpa ditanyai (gencatan senjata uji dimatikan sebentar)
-  await teleport(page, -160, 40, [-352, 40])
+
+  // ===== tanpa jembatan antarpulau: empat dermaga, selat di antaranya terlalu dalam untuk berjalan
+  const sea = await page.evaluate(() => {
+    const { plan, elfPlan, ground } = window.__pulau
+    const docks = [...plan.docks, ...elfPlan.docks]
+    const d = id => docks.find(k => k.id === id)
+    // titik tertinggi (tanah / lantai) di sepanjang garis antar ujung dermaga
+    const top = (a, b) => {
+      let h = -99
+      const n = Math.ceil(Math.hypot(b.x - a.x, b.z - a.z))
+      for (let i = 1; i < n; i++) h = Math.max(h, ground.surfaceAt(a.x + ((b.x - a.x) * i) / n, a.z + ((b.z - a.z) * i) / n))
+      return h
+    }
+    return {
+      bridges: [...plan.spans, ...elfPlan.spans].map(sp => sp.id), docks: docks.map(k => k.id),
+      west: top(d('timur').tip, d('tropis-barat').tip), north: top(d('perak').tip, d('tropis-utara').tip),
+    }
+  })
+  if (sea.bridges.includes('agung') || sea.bridges.includes('perak') || sea.docks.length !== 4 || sea.west > -1.2 || sea.north > -1.2)
+    fail(`pulau masih tersambung: ${JSON.stringify(sea)}`)
+  else ok(`tanpa jembatan antarpulau: dermaga ${sea.docks.join(', ')}; selat barat sedalam ≥ ${(-sea.west).toFixed(1)} m, selat utara ≥ ${(-sea.north).toFixed(1)} m`)
+
+  // mendarat di Dermaga Timur: pemain bukan rakyat kerajaan mana pun → langsung dihadang & diserang,
+  // tanpa ditanyai (gencatan senjata uji dimatikan sebentar)
+  const dockE = await page.evaluate(() => window.__pulau.plan.docks.find(k => k.id === 'timur').tip)
+  await teleport(page, dockE.x - 2, 40, [-352, 40])
   await waitFrames(page, 2)
   await page.evaluate(() => {
     const { nav, player, security } = window.__pulau
@@ -333,22 +362,78 @@ for (const [name, opts, query] of cases) {
   const patrolMoved = await page.evaluate(() => window.__pulau.soldiers.list.filter(a => a.kind === 'ronda').filter((a, i) => Math.hypot(a.x - window.__ronda0[i][0], a.z - window.__ronda0[i][1]) > 2).length)
   if (patrolMoved < guards0.peronda * 0.6) fail(`peronda bergerak: hanya ${patrolMoved} dari ${guards0.peronda}`)
   else ok(`peronda menyusuri jalan: ${patrolMoved} dari ${guards0.peronda} sudah berpindah`)
-  if (!hit || !shout || hit.kartu || !hit.msg.includes('musuh')) fail(`tidak dihadang & diserang di Jembatan Agung: ${JSON.stringify(hit)}, seruan ${JSON.stringify(shout)}`)
-  else ok(`menuju Jembatan Agung: dihadang ("${shout}") & langsung diserang ${hit.n} prajurit (x ${hit.x.toFixed(0)}, nyawa ${Math.round(hit.hp)})`)
+  if (!hit || !shout || hit.kartu || !hit.msg.includes('musuh')) fail(`tidak dihadang & diserang di Dermaga Timur: ${JSON.stringify(hit)}, seruan ${JSON.stringify(shout)}`)
+  else ok(`mendarat di Dermaga Timur: dihadang ("${shout}") & langsung diserang ${hit.n} prajurit (x ${hit.x.toFixed(0)}, nyawa ${Math.round(hit.hp)})`)
   await page.screenshot({ path: `${out}/${name}-dihadang.png` })
-  // uji jembatan, kota & bala tentara berikutnya memakai gencatan senjata lagi
+  // uji perahu, kota & bala tentara berikutnya memakai gencatan senjata lagi
   await page.evaluate(() => {
     const { security, player } = window.__pulau
     security.ceasefire(true)
     player.stop()
     player.revive()
   })
-  await teleport(page, -160, 40, [-352, 40])
-  await waitFrames(page, 2)
-  const br = await walkTo(-352, 40, 600)
-  if (!br.n) fail('tidak ada jalur menyeberangi Jembatan Agung')
-  else if (Math.hypot(br.s.x + 352, br.s.z - 40) > 3 || br.minY < 1.5 || br.msg) fail(`Jembatan Agung: berhenti di (${br.s.x.toFixed(1)}, ${br.s.z.toFixed(1)}), terendah ${br.minY.toFixed(2)} m, pesan "${br.msg}"`)
-  else ok(`Jembatan Agung: menyeberang ±190 m, pijakan terendah ${br.minY.toFixed(2)} m di atas laut`)
+
+  // menyeberang ke Kencana dengan perahu buatan sendiri: di pantai sebelah Dermaga Barat (Pulau
+  // Tropis) menghadap laut → 10 kayu → Buat perahu → mendekat → Naik perahu → berlayar ke barat →
+  // Turun di pantai Kencana
+  // tepi air di sebelah Dermaga Barat: pantainya landai, pangkal dermaga ±15 m dari air
+  const dockW = await page.evaluate(() => {
+    const { plan, ground } = window.__pulau
+    const d = plan.docks.find(k => k.id === 'tropis-barat')
+    for (let x = d.shore; x > d.shore - 60; x -= 0.5) if (ground.surfaceAt(x, 48) < 0.15) return x + 1.5
+    return d.shore
+  })
+  await teleport(page, dockW, 48, [dockW - 30, 48])
+  await page.evaluate(() => {
+    localStorage.removeItem('pulau-tropis:perahu')
+    window.__pulau.bag.terima('kayu', 10)
+  })
+  await waitFrames(page, 8)
+  const buildBtn = await page.evaluate(() => !document.getElementById('btn-buat-perahu').hidden)
+  if (buildBtn) await page.click('#btn-buat-perahu')
+  else await page.evaluate(() => window.__pulau.craftBoat())
+  await waitFrames(page, 3)
+  const built = await page.evaluate(() => ({ ...window.__pulau.boat.position, ok: window.__pulau.boat.built, kayu: window.__pulau.bag.jumlah('kayu') }))
+  if (!buildBtn || !built.ok || built.kayu !== 0) fail(`buat perahu: tombol ${buildBtn}, ${JSON.stringify(built)}`)
+  else ok(`perahu dibuat di tepi pantai (10 kayu terpakai), ${Math.hypot(built.x - dockW, built.z - 48).toFixed(1)} m dari pantai`)
+  // mendekat (mengarungi air) lalu naik
+  await page.evaluate(() => {
+    const { player, boat } = window.__pulau
+    const b = boat.position
+    const p = player.position
+    const d = Math.hypot(b.x - p.x, b.z - p.z)
+    const k = Math.max(0, d - 3.4) / d
+    player.placeAt(p.x + (b.x - p.x) * k, p.z + (b.z - p.z) * k, Math.atan2(b.x - p.x, b.z - p.z))
+  })
+  await waitFrames(page, 6)
+  const boardBtn = await page.evaluate(() => !document.getElementById('btn-naik').hidden)
+  if (boardBtn) await page.click('#btn-naik')
+  else await page.evaluate(() => window.__pulau.boardBoat())
+  await waitFrames(page, 4)
+  const aboard = await page.evaluate(() => ({ riding: window.__pulau.player.riding, boat: window.__pulau.boat.aboard }))
+  if (!boardBtn || !aboard.riding || !aboard.boat) fail(`naik perahu: tombol ${boardBtn}, ${JSON.stringify(aboard)}`)
+  else ok('tombol Naik perahu muncul di dekat perahu; pemain duduk di perahu')
+  // berlayar lurus ke barat (W = maju searah kamera di belakang perahu) sampai kandas di Kencana
+  // kamera di timur perahu menghadap barat: W = berlayar ke barat
+  await page.evaluate(() => window.__pulau.cam.lookFrom(Math.PI / 2))
+  await page.keyboard.down('KeyW')
+  let sail = null
+  for (let f = 0; f < 400; f += 5) {
+    await waitFrames(page, 5)
+    sail = await page.evaluate(() => ({ x: window.__pulau.boat.position.x, z: window.__pulau.boat.position.z, v: window.__pulau.boat.speed, kandas: window.__pulau.boat.aground }))
+    if (f === 30) await page.screenshot({ path: `${out}/${name}-berlayar.png` })
+    if (sail.kandas || sail.x < -318) break
+  }
+  await page.keyboard.up('KeyW')
+  await waitFrames(page, 4)
+  const turunBtn = await page.evaluate(() => !document.getElementById('btn-turun').hidden)
+  if (turunBtn) await page.click('#btn-turun')
+  else await page.evaluate(() => window.__pulau.leaveBoat())
+  await waitFrames(page, 6)
+  const landed = await state(page)
+  const landedSwim = await page.evaluate(() => window.__pulau.player.swimming)
+  if (!turunBtn || landed.x > -300 || landedSwim || Math.abs(landed.h) > 0.6) fail(`menyeberang dengan perahu: perahu ${JSON.stringify(sail)}, turun di (${landed.x.toFixed(1)}, ${landed.z.toFixed(1)}), berenang ${landedSwim}`)
+  else ok(`menyeberang ke Kencana dengan perahu: dari x ${built.x.toFixed(0)} ke x ${sail.x.toFixed(0)}, turun di pantai Kencana (${landed.x.toFixed(0)}, ${landed.z.toFixed(0)})`)
   // masuk lewat gerbang timur → spanduk "Kotaraja Kencana"
   const gate = await walkTo(-445, 40, 400)
   await waitFrames(page, 6)
@@ -484,7 +569,7 @@ for (const [name, opts, query] of cases) {
       const struck = await waitUntil(page, () => window.__pulau.soldiers.list.filter(a => a.hp < a.maxHp).map(a => `${a.hp}/${a.maxHp}`).join(' '), 120)
       if (!struck) fail('jurus Putar tidak mengenai prajurit yang mengeroyok')
       else ok(`pukulan pemain mengenai prajurit (nyawa ${struck})`)
-      // kalah → layar meredup → bangun di ujung timur Jembatan Agung, nyawa penuh
+      // kalah → layar meredup → dibuang ke pantai barat Pulau Tropis (di luar wilayah), nyawa penuh
       await page.evaluate(() => {
         window.__pesanLog.length = 0
       })
@@ -492,8 +577,8 @@ for (const [name, opts, query] of cases) {
       await page.waitForTimeout(2400)
       await waitFrames(page, 4)
       const after = await page.evaluate(() => ({ x: window.__pulau.player.position.x, hp: window.__pulau.player.hp, down: window.__pulau.player.defeated, musuh: window.__pulau.security.engaged, msg: window.__pesanLog.join(' | ') }))
-      if (after.down || after.hp < 100 || after.x < -200 || after.musuh || !after.msg.includes('dibawa keluar')) fail(`kalah: ${JSON.stringify(after)}`)
-      else ok(`kalah → dibawa keluar ke ujung timur Jembatan Agung (x ${after.x.toFixed(0)}), nyawa penuh lagi`)
+      if (after.down || after.hp < 100 || after.x < -200 || after.musuh || !after.msg.includes('pantai barat Pulau Tropis')) fail(`kalah: ${JSON.stringify(after)}`)
+      else ok(`kalah → dibuang ke pantai barat Pulau Tropis (x ${after.x.toFixed(0)}), nyawa penuh lagi`)
       // masuk lagi → diserang lagi; kabur jauh keluar wilayah → prajurit berhenti mengejar
       await teleport(page, -330, 40, [-360, 40])
       const again = await waitUntil(page, () => window.__pulau.security.engaged, 200)
@@ -505,7 +590,8 @@ for (const [name, opts, query] of cases) {
       if (!again || !calm || calm.n > 0 || !calm.msg.includes('berhenti mengejar')) fail(`masuk lagi / kabur: diserang lagi ${again}, ${JSON.stringify(calm)}`)
       else ok('masuk lagi → diserang lagi; kabur keluar wilayah → prajurit berhenti mengejar')
     }
-    // serbuan orc: tiga orc menyeberang ke Kotaraja, dihadang prajurit
+    // serbuan orc: orc naik perahu perang di pantai barat Pulau Tropis, mendarat di pantai timur
+    // Pulau Kencana, dihadang prajurit
     await teleport(page, -130, 120, [-122, 122])
     await page.evaluate(() => {
       window.__pulau.debug.timeScale = 4
@@ -518,16 +604,16 @@ for (const [name, opts, query] of cases) {
       return fighting > 0 && { orc: r.length, prajurit: fighting, x: Math.round(r[0]?.x ?? 0) }
     }, 1500, 10)
     if (!raid) fail(`serbuan orc tidak dihadang: ${JSON.stringify(await page.evaluate(() => window.__pulau.enemies.raiders()))}`)
-    else ok(`serbuan orc: ${raid.orc} orc menyeberang (x ${raid.x}), dihadang ${raid.prajurit} prajurit`)
+    else ok(`serbuan orc: ${raid.orc} orc menyeberang dengan perahu perang (x ${raid.x}), dihadang ${raid.prajurit} prajurit`)
     const beaten = await waitUntil(page, () => !window.__pulau.enemies.raidActive, 1500, 10)
     if (!beaten) fail(`orc penyerbu tidak terkalahkan: ${JSON.stringify(await page.evaluate(() => window.__pulau.enemies.raiders()))}`)
     else ok('orc penyerbu dikalahkan prajurit Kencana')
-    // pendatang dari seberang ditanyai penjaga di gerbang barat Jembatan Agung
+    // pendatang dari seberang (turun dari kapal di ujung Dermaga Timur) ditanyai penjaga di gapura
     await teleport(page, -122, 122, [-170, 170])
     await page.evaluate(() => window.__pulau.security.visitNow())
     const visitor = await waitUntil(page, () => window.__pulau.security.visitors().find(v => v.ditanya > 0 && v.fase === 'masuk'), 2500, 10)
     if (!visitor) fail(`pendatang tidak ditanyai: ${JSON.stringify(await page.evaluate(() => window.__pulau.security.visitors()))}`)
-    else ok(`pendatang dari seberang ditanyai penjaga di gerbang, lalu boleh masuk (${visitor.x.toFixed(0)}, ${visitor.z.toFixed(0)})`)
+    else ok(`pendatang turun di Dermaga Timur, ditanyai penjaga di gapura, lalu boleh masuk (${visitor.x.toFixed(0)}, ${visitor.z.toFixed(0)})`)
     await page.evaluate(() => {
       window.__pulau.debug.timeScale = 1
       window.__pulau.security.ceasefire(true)
@@ -700,7 +786,7 @@ for (const [name, opts, query] of cases) {
     if (!seller || !seller.includes('netral')) fail(`pedagang saat pemain buron: ${seller}`)
     else ok(`pedagang tetap melayani buronan: "${seller}"`)
     await page.evaluate(() => window.__pulau.shop.close())
-    // kalah oleh kesatria → dibawa ke ujung selatan Jembatan Perak
+    // kalah oleh kesatria → diantar ke pantai utara Pulau Tropis (dekat Dermaga Utara)
     await page.evaluate(() => {
       const { player } = window.__pulau
       window.__pesanLog = []
@@ -715,7 +801,7 @@ for (const [name, opts, query] of cases) {
     await waitGameTime(page, 35)
     const safe = await page.evaluate(() => ({ hp: window.__pulau.player.hp, s: window.__pulau.elfSec.stats() }))
     if (safe.hp < 100 || safe.s.penyerang) fail(`setelah dibangunkan di luar kerajaan masih diserang: ${JSON.stringify(safe)}`)
-    else ok(`35 detik di ujung selatan Jembatan Perak: aman (buron ${safe.s.buron} detik lagi)`)
+    else ok(`35 detik di pantai utara Pulau Tropis: aman (buron ${safe.s.buron} detik lagi)`)
     // Benteng Aeloria: wilayah terlarang
     await page.evaluate(() => window.__pulau.elfSec.forgive())
     await teleport(page, 10, -905, [10, -960])
@@ -820,20 +906,74 @@ for (const [name, opts, query] of cases) {
     if (dist < trunk.radius + 0.35 - 0.03) fail(`menembus batang pohon (jarak ${dist.toFixed(2)} m)`)
     else ok(`tertahan batang pohon (jarak ${dist.toFixed(2)} m ≥ ${(trunk.radius + 0.35).toFixed(2)} m)`)
 
-    // laut dalam → kembali ke pantai
-    await teleport(page, -122, 122, [0, 0])
-    await waitFrames(page, 15)
-    await teleport(page, -180, 180, [-250, 250])
-    await page.waitForFunction(() => {
+    // laut dalam → berenang (tidak dikembalikan ke pantai); kembali ke air dangkal → berjalan lagi
+    await teleport(page, -122, 122, [-170, 170])
+    await waitFrames(page, 5)
+    await page.evaluate(() => {
+      window.__pesanLog.length = 0
+    })
+    await page.keyboard.down('KeyW')
+    const swim = await waitUntil(page, () => window.__pulau.player.swimming && { y: window.__pulau.player.position.y }, 300, 3)
+    await waitFrames(page, 20)
+    await page.keyboard.up('KeyW')
+    const deep = await page.evaluate(() => {
       const { player, ground } = window.__pulau
-      return ground.heightAt(player.position.x, player.position.z) > 0.3
-    }, null, { timeout: 20000 })
-      .then(() => ok('masuk laut dalam → kembali ke pantai'))
-      .catch(() => fail('tidak kembali ke pantai setelah masuk laut dalam'))
-    const msg = await page.evaluate(() => (document.getElementById('pesan').hidden ? '' : document.getElementById('pesan').textContent))
-    if (!msg) fail('pesan kembali ke pantai tidak muncul')
-    else ok(`pesan: "${msg}"`)
-    await page.screenshot({ path: `${out}/${name}-kembali.png` })
+      return { swim: player.swimming, depth: -ground.heightAt(player.position.x, player.position.z), y: player.position.y, msg: window.__pesanLog.join(' | ') }
+    })
+    await page.screenshot({ path: `${out}/${name}-berenang.png` })
+    if (!swim || !deep.swim || deep.y < -1.3 || deep.y > 0 || deep.msg.includes('kembali ke pantai')) fail(`berenang: ${JSON.stringify({ swim, ...deep })}`)
+    else ok(`laut dalam (${deep.depth.toFixed(1)} m) → berenang di permukaan (kaki ${deep.y.toFixed(2)} m), tidak dikembalikan ke pantai`)
+    await page.keyboard.down('KeyF')
+    await page.keyboard.up('KeyF')
+    await waitFrames(page, 3)
+    const noAtk = await page.evaluate(() => ({ atk: window.__pulau.player.attacking, msg: window.__pesanLog.join(' | ') }))
+    if (noAtk.atk || !noAtk.msg.includes('sambil berenang')) fail(`menyerang sambil berenang: ${JSON.stringify(noAtk)}`)
+    else ok('tidak bisa menyerang sambil berenang (ada pesannya)')
+    // berbalik ke pantai → berjalan lagi
+    await page.evaluate(() => {
+      const { player, cam } = window.__pulau
+      player.face(-110, 110)
+      cam.lookFrom(Math.atan2(player.position.x + 110, player.position.z - 110))
+    })
+    await page.keyboard.down('KeyW')
+    const ashore = await waitUntil(page, () => !window.__pulau.player.swimming, 400, 3)
+    await page.keyboard.up('KeyW')
+    if (!ashore) fail('tidak bisa berenang kembali ke pantai')
+    else ok('berenang kembali ke air dangkal → berjalan lagi')
+
+    // obrolan dengan elf lewat tombol G: panel terbuka, menjawab pertanyaan ketikan, Escape menutup
+    if (await page.evaluate(() => !!window.__pulau.life)) {
+      const elfT = await page.evaluate(() => {
+        const { life, player, cam } = window.__pulau
+        player.placeAt(10, -640, Math.PI)
+        const a = life.around(10, -640, 40).find(k => !k.hidden && k.act !== 'kerja' && !k.down && k.phase !== 'tempur')
+        if (!a) return null
+        const x = a.x + 1.6
+        const z = a.z + 1.2
+        const h = Math.atan2(a.x - x, a.z - z)
+        player.placeAt(x, z, h)
+        player.stop()
+        cam.lookFrom(h + Math.PI)
+        return a.id
+      })
+      await waitFrames(page, 10)
+      await page.keyboard.press('KeyG')
+      await waitFrames(page, 3)
+      const opened = await page.evaluate(() => ({ panel: !document.getElementById('obrolan').hidden, cur: window.__pulau.chat.current }))
+      await page.fill('#obrolan-teks', 'di mana pasar?')
+      await page.press('#obrolan-teks', 'Enter')
+      const reply = await waitUntil(page, () => {
+        const l = [...document.querySelectorAll('#obrolan-log .ob-baris.npc:not(.mengetik)')]
+        return l.length >= 2 && l[l.length - 1].textContent
+      }, 120, 3)
+      await page.screenshot({ path: `${out}/${name}-obrolan.png` })
+      await page.press('#obrolan-teks', 'Escape')
+      await waitFrames(page, 3)
+      const closed = await page.evaluate(id => ({ panel: document.getElementById('obrolan').hidden, act: window.__pulau.life.agents[id].act }), elfT)
+      if (elfT === null || !opened.panel || !opened.cur || !reply || !reply.includes('Pasar') || !closed.panel || closed.act === 'bicara')
+        fail(`obrolan (G): ${JSON.stringify({ elfT, opened, reply, closed })}`)
+      else ok(`obrolan dengan ${opened.cur.nama} (G): "di mana pasar?" → "${reply}"; Escape menutup, elf kembali berkegiatan`)
+    }
 
     // mendaki lereng gunung dari padang barat menuju puncak
     await teleport(page, -50, -95, [70, -60])
@@ -926,6 +1066,129 @@ for (const [name, opts, query] of cases) {
     if (t1.path || Math.hypot(t1.x - t0.x, t1.z - t0.z) > 0.1) fail('ketuk tanah menggerakkan karakter')
     else ok('ketuk tanah tidak menggerakkan karakter')
 
+    // pancing dari kayu (Tas → Buat), lalu memancing di tepi pantai: Mancing → Tarik! → ikan di Tas
+    await page.evaluate(() => {
+      window.__pulau.bag.reset(20)
+      window.__pulau.bag.terima('kayu', 3)
+    })
+    await page.tap('#btn-tas')
+    await waitFrames(page, 2)
+    await page.tap('button[data-buat="pancing"]')
+    await waitFrames(page, 2)
+    const rod = await page.evaluate(() => ({ rod: !!window.__pulau.bag.punya.pancing, kayu: window.__pulau.bag.jumlah('kayu'), msg: document.getElementById('tas-pesan').textContent }))
+    await page.screenshot({ path: `${out}/${name}-tas-buat.png` })
+    await page.tap('#btn-tutup-tas')
+    if (!rod.rod || rod.kayu !== 0) fail(`buat pancing: ${JSON.stringify(rod)}`)
+    else ok(`Tas → Buat pancing (3 kayu): "${rod.msg}"`)
+    const beach = await page.evaluate(() => {
+      const { ground } = window.__pulau
+      for (let d = 0; d < 80; d += 0.5) {
+        const x = -122 - d * 0.7071
+        const z = 122 + d * 0.7071
+        if (ground.surfaceAt(x, z) < 0.15) return { x: -122 - (d - 1.5) * 0.7071, z: 122 + (d - 1.5) * 0.7071 }
+      }
+      return null
+    })
+    await teleport(page, beach.x, beach.z, [beach.x - 10, beach.z + 10])
+    await waitFrames(page, 6)
+    const fishBtn = await page.evaluate(() => !document.getElementById('btn-mancing').hidden)
+    if (fishBtn) await page.tap('#btn-mancing')
+    await waitFrames(page, 3)
+    const casting = await page.evaluate(() => window.__pulau.fishing.state)
+    await waitFrames(page, 8)
+    await page.screenshot({ path: `${out}/${name}-mancing.png` })
+    await page.evaluate(() => {
+      window.__pulau.debug.timeScale = 3
+    })
+    // Tarik! diketuk di dalam halaman begitu muncul (jendela 1,5 detik terlalu singkat untuk diketuk dari
+    // luar pada render software)
+    const bite = await page.evaluate(() => new Promise(resolve => {
+      const t0 = performance.now()
+      const btn = document.getElementById('btn-tarik')
+      const tick = () => {
+        if (window.__pulau.fishing.state === 'sambar' && !btn.hidden) {
+          btn.click()
+          resolve(true)
+        } else if (performance.now() - t0 > 150000) resolve(false)
+        else requestAnimationFrame(tick)
+      }
+      tick()
+    }))
+    await page.evaluate(() => {
+      window.__pulau.debug.timeScale = 1
+    })
+    await waitFrames(page, 3)
+    const caught = await page.evaluate(() => Object.keys(window.__pulau.bag.barang).filter(id => id.startsWith('ikan')))
+    if (!fishBtn || casting !== 'lempar' || !bite || caught.length !== 1) fail(`memancing: tombol ${fishBtn}, keadaan ${casting}, sambaran ${bite}, ikan ${JSON.stringify(caught)}`)
+    else ok(`memancing di pantai: Mancing → pelampung → Tarik! → dapat ${caught[0]}`)
+    // jual ikan ke Kios Ikan Bakar Aeloria
+    if (caught.length && await page.evaluate(() => !!window.__pulau.life)) {
+      const fishStall = await atStall('ikan', 'pasar')
+      await waitFrames(page, 8)
+      if (fishStall >= 0) await page.tap('#btn-belanja')
+      await waitFrames(page, 3)
+      const k0 = await page.evaluate(() => window.__pulau.bag.koin)
+      const sellBtn = await page.evaluate(id => !!document.querySelector(`#toko-daftar button[data-jual="${id}"]`), caught[0])
+      if (sellBtn) await page.tap(`#toko-daftar button[data-jual="${caught[0]}"]`)
+      await waitFrames(page, 3)
+      const sold = await page.evaluate(id => ({ koin: window.__pulau.bag.koin, sisa: window.__pulau.bag.jumlah(id), msg: document.getElementById('toko-pesan').textContent }), caught[0])
+      await page.screenshot({ path: `${out}/${name}-jual-ikan.png` })
+      await page.evaluate(() => window.__pulau.shop.close())
+      if (fishStall < 0 || !sellBtn || sold.koin <= k0 || sold.sisa !== 0) fail(`jual ikan: kios ${fishStall}, tombol ${sellBtn}, ${JSON.stringify(sold)}`)
+      else ok(`jual ikan ke Kios Ikan Bakar: koin ${k0} → ${sold.koin} ("${sold.msg}")`)
+    }
+
+    // obrolan dengan elf lewat tombol Bicara: topik siap pilih & memberi makanan
+    if (await page.evaluate(() => !!window.__pulau.life)) {
+      await page.evaluate(() => window.__pulau.bag.terima('rotiGandum'))
+      const elfT = await page.evaluate(() => {
+        const { life, player, cam } = window.__pulau
+        player.placeAt(10, -640, Math.PI)
+        const a = life.around(10, -640, 40).find(k => !k.hidden && k.act !== 'kerja' && !k.down && k.phase !== 'tempur' && k.kind !== 'anak')
+        if (!a) return null
+        const x = a.x + 1.6
+        const z = a.z + 1.2
+        const h = Math.atan2(a.x - x, a.z - z)
+        player.placeAt(x, z, h)
+        player.stop()
+        cam.lookFrom(h + Math.PI)
+        return a.id
+      })
+      await waitFrames(page, 10)
+      const talkBtn = await page.evaluate(() => (document.getElementById('btn-bicara').hidden ? null : document.getElementById('btn-bicara').innerText.replace(/\n/g, ' / ')))
+      if (talkBtn) await page.tap('#btn-bicara')
+      await waitFrames(page, 3)
+      // tombol Bicara memilih NPC terdekat — di pasar yang ramai bisa elf lain, jadi yang diperiksa
+      // elf yang benar-benar diajak bicara (pedagang yang sedang berjaga tidak diambil alih)
+      const held = await page.evaluate(() => {
+        const c = window.__pulau.chat.current
+        const a = c && c.kind === 'elf' ? window.__pulau.life.agents[Number(c.id.slice(1))] : null
+        return { panel: !document.getElementById('obrolan').hidden, id: a ? a.id : null, held: !!c?.held, act: a?.act, kios: !!(a && a.job === 'pedagang' && a.atWork), joy: document.getElementById('joystick').hidden }
+      })
+      const npcLines = () => page.evaluate(() => document.querySelectorAll('#obrolan-log .ob-baris.npc:not(.mengetik)').length)
+      const n0 = await npcLines()
+      await page.evaluate(n => {
+        window.__n0 = n
+      }, n0)
+      await page.tap('#obrolan-topik button:nth-child(3)')
+      const answered = await waitUntil(page, () => document.querySelectorAll('#obrolan-log .ob-baris.npc:not(.mengetik)').length > window.__n0, 120, 3)
+      const giveIdx = await page.evaluate(() => [...document.querySelectorAll('#obrolan-topik button')].findIndex(b => b.textContent.startsWith('Beri')))
+      const k1 = await page.evaluate(() => window.__pulau.bag.koin)
+      if (giveIdx >= 0) await page.tap(`#obrolan-topik button:nth-child(${giveIdx + 1})`)
+      await waitFrames(page, 4)
+      const gave = await page.evaluate(() => ({ koin: window.__pulau.bag.koin, roti: window.__pulau.bag.jumlah('rotiGandum'), last: [...document.querySelectorAll('#obrolan-log .ob-baris.npc')].pop()?.textContent }))
+      await page.screenshot({ path: `${out}/${name}-obrolan.png` })
+      await page.tap('#btn-tutup-obrolan')
+      await waitFrames(page, 3)
+      const after2 = await page.evaluate(id => ({ panel: document.getElementById('obrolan').hidden, act: id === null ? null : window.__pulau.life.agents[id].act, joy: document.getElementById('joystick').hidden }), held.id)
+      if (elfT === null || !talkBtn || !held.panel || held.id === null || (held.held ? held.act !== 'bicara' : !held.kios) || !held.joy || n0 < 1 || !answered) fail(`obrolan: ${JSON.stringify({ elfT, talkBtn, held, n0, answered })}`)
+      else ok(`tombol "${talkBtn}" → obrolan; elf berhenti & menghadap pemain, topik dijawab`)
+      if (giveIdx < 0 || (gave.roti !== 0 && gave.koin === k1 && !gave.last?.includes('kenyang'))) fail(`beri makanan: ${JSON.stringify({ giveIdx, k1, ...gave })}`)
+      else ok(`beri roti: "${gave.last}" (koin ${k1} → ${gave.koin})`)
+      if (!after2.panel || after2.act === 'bicara' || after2.joy) fail(`tutup obrolan: ${JSON.stringify(after2)}`)
+      else ok('tutup obrolan: elf kembali berkegiatan, joystick kembali')
+    }
+
     // tombol Pukul saat berjalan: prajurit berhenti di tempat dan mengayunkan pedang
     await teleport(page, -122, 122, [0, 0])
     await waitFrames(page, 3)
@@ -952,8 +1215,10 @@ for (const [name, opts, query] of cases) {
     await page.tap('#btn-pukul')
     await waitFrames(page, 2)
     const fx2 = await attackDone(page)
+    const wood = await page.evaluate(() => window.__pulau.bag.jumlah('kayu'))
     if (fx2.bursts !== fx1.bursts + 1 || fx2.lastKind !== 'pohon') fail(`Pukul batang pohon: serpihan ${fx2.bursts - fx1.bursts}, jenis ${fx2.lastKind}`)
-    else ok('Pukul batang pohon: kena, serpihan kayu & daun muncul')
+    else if (wood < 1) fail('Pukul batang pohon: tidak mendapat kayu')
+    else ok(`Pukul batang pohon: kena, serpihan kayu & daun muncul, +1 kayu (${wood})`)
     await page.screenshot({ path: `${out}/${name}-pukul.png` })
 
     // kombo: Pukul ditekan lagi selagi gerakan berjalan → gerakan berikutnya menyusul
