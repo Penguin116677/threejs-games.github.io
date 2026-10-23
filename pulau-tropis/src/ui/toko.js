@@ -228,6 +228,10 @@ export function createShop({ life, bag, player, bubbles, message, maxHp, wanted 
       for (const s of stalls) if (Math.hypot(s.x - x, s.z - z) < 2.6 || Math.hypot(s.front.x - x, s.front.z - z) < 1.6) return s
       return null
     },
+    // kios yang dijaga pedagang `a` (null bila kiosnya tidak melayani pemain)
+    stallOf(a) {
+      return stalls.find(s => s.keepers?.includes(a.id)) || null
+    },
     // pemain berjalan ke kios ini; panel dibuka saat tiba
     approach(s) {
       pending = s

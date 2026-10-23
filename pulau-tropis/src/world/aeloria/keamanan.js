@@ -188,7 +188,7 @@ export function createElfSecurity({ life, player, bubbles, message, nav, collide
   }
 
   // ---------------------------------------------------------------- kerusuhan oleh pemain
-  // kesatria terdekat yang bebas ikut melawan; kembalikan apakah ada yang berseru
+  // kesatria terdekat yang bebas ikut melawan (yang pertama berseru `shout`, bila ada)
   function recruit(radius, shout) {
     const cands = life.around(pp.x, pp.z, radius).filter(a => fighter(a) && !busy(a) && !a.hidden)
     cands.sort((a, b) => dist(a) - dist(b))

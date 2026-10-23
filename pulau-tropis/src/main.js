@@ -498,8 +498,11 @@ async function start() {
   // ketukan di layar → cari jalan ke titik itu
   function handleTap(tap) {
     if (player.defeated) return
+    // ketuk elf → kartu isi pikirannya; tetapi pedagang yang sedang berjaga (sering tertutup atap
+    // kiosnya) berarti kiosnya yang diketuk
     const elf = elfCard?.pick(tap.x, tap.y)
-    if (elf) {
+    const elfStall = elf && elf.job === 'pedagang' && elf.atWork ? shop.stallOf(elf) : null
+    if (elf && !elfStall) {
       elfCard.show(elf)
       return
     }
@@ -507,7 +510,7 @@ async function start() {
     const hit = pickGround(tap.x, tap.y)
     if (!hit) return
     // ketuk kios Aeloria: berjalan ke depan mejanya, panel toko terbuka saat tiba
-    const stall = shop.stallAt(hit.x, hit.z)
+    const stall = elfStall || shop.stallAt(hit.x, hit.z)
     const goal = stall ? stall.front : hit
     const path = nav.findPath(player.position, goal)
     shop.approach(stall && path ? stall : null)
