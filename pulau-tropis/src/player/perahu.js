@@ -74,9 +74,10 @@ export function createBoat({ ground, nav, colliders, geometry, material, depthMa
   if (saved && fits(saved.x, saved.z, saved.h)) place(saved.x, saved.z, saved.h)
 
   // titik air untuk perahu baru di dekat pemain (p = posisi, heading = arah hadap pemain): dicari
-  // melingkar mulai dari depan pemain; haluan menghadap ke laut (menjauhi pemain)
+  // melingkar mulai dari depan pemain sampai 16 m (pantai landai: air 0,8 m bisa ±8 m dari tepi air);
+  // haluan menghadap ke laut (menjauhi pemain)
   function spotNear(p, heading) {
-    for (const r of [3.5, 5, 6.5, 8, 10, 12])
+    for (const r of [3.5, 5, 6.5, 8, 10, 12, 14, 16])
       for (let k = 0; k < 16; k++) {
         const a = heading + (k % 2 ? 1 : -1) * Math.ceil(k / 2) * (Math.PI / 8)
         const x = p.x + Math.sin(a) * r
