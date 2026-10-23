@@ -9,12 +9,17 @@ reruntuhan, berinteraksi dengan NPC, mengumpulkan item, dan menyelesaikan quest 
 Eksplorasi / petualangan santai dengan kamera gaya game strategi (dilihat dari atas, ketuk tanah
 untuk berjalan — sejak v0.6.0). Prajurit punya kombo pukulan dan 4 jurus (v0.9.0) melawan musuh orc
 di perkemahan; orc di perkemahan belum menyerang balik. Sejak v0.12.0 pemain punya nyawa, dan orc
-sesekali menyerbu Kerajaan Kencana lewat Jembatan Agung.
+sesekali menyerbu Kerajaan Kencana lewat Jembatan Agung. Sejak v0.13.0 ada koin (dari orc), tas, dan
+toko: makanan & ramuan memulihkan nyawa, perlengkapan dari pandai besi elf memperkuat pemain.
 
 **Tokoh utama bukan rakyat kerajaan mana pun, jadi ia musuh setiap kerajaan** (v0.12.1, ketentuan
-pengguna). Prajurit kerajaan mana pun langsung menghadang dan menyerangnya di wilayah mereka, tanpa
-ditanyai. Kerajaan yang dibuat kemudian mengikuti aturan yang sama. Orang lain (pendatang) tetap
-ditanyai di gerbang.
+pengguna). Prajurit Kencana langsung menghadang dan menyerangnya di wilayah mereka, tanpa ditanyai.
+Orang lain (pendatang) tetap ditanyai di gerbang.
+
+**Kerajaan Elf Aeloria** (v0.13.0) membuka kotanya sebagai pasar bebas, jadi pemain bisa berbelanja.
+Ketentuan pengguna untuk Aeloria: *tokoh utama yang membuat rusuh menjadi musuh kerajaan*, dan *musuh
+kerajaan bukan berarti musuh pedagang* — pedagang tetap netral dan tetap berdagang dengannya. Benteng
+Aeloria (istana) tetap terlarang. Lihat DECISIONS #49–#51.
 
 ## Peta dunia (sejak v0.10.0)
 - **Pulau Tropis** (tengah): pantai, hutan, padang, gunung, perkemahan orc — titik mulai.
@@ -27,8 +32,12 @@ ditanyai di gerbang.
 - **Penjagaan kerajaan** (sejak v0.12.0): pasangan peronda di semua wilayah Kencana + penjaga pos di
   gerbang, keraton, dan kepala jembatan. Wilayah kerajaan dimulai di tengah Jembatan Agung; di sana
   pemain (musuh setiap kerajaan) langsung diserang.
-- Wilayah berikutnya bisa ditambahkan di sisi lain (utara/timur): batas dunia, terrain, laut,
-  dan peta jalan sudah dibuat umum (lihat DECISIONS #33, #40).
+- **Tanah Aeloria + Tanjung Perak** (sejak v0.13.0, utara Pulau Tropis, lewat Jembatan Perak): Kerajaan
+  Elf Aeloria — Kota Aeloria (pasar 51 kios, Tempa Aeloria, kedai), kawasan kesatria (Balai Makan,
+  Lapangan Latihan, Padang Pesta, perkemahan), ladang & kebun, dan Benteng Aeloria. 10.000 kesatria
+  elf + 259 penduduk + 28 anak, masing-masing dengan nama, sifat, kebutuhan, dan pilihan sendiri.
+- Wilayah berikutnya bisa ditambahkan di sisi lain (timur): batas dunia, terrain, laut, dan peta jalan
+  sudah dibuat umum (lihat DECISIONS #33, #40).
 
 ## Target perangkat
 - Utama: browser Chrome di HP Android (layar sentuh, portrait dan landscape).
@@ -41,8 +50,9 @@ dengan seed tetap, jadi bentuk pulau selalu sama setiap kali dibuka.
 
 ## Kredit aset
 - Karakter pemain (prajurit + pedang): Kenney — "Mini Arena" (CC0), www.kenney.nl, kredit tambahan
-  Tony Schär. Musuh orc: Kenney "Mini Dungeon" (CC0). Penduduk kerajaan: Kenney "Mini Characters"
-  (CC0). Kuda bala tentara: Kenney "Prototype Kit" (CC0); perisai: Kenney "Mini Dungeon" (CC0).
+  Tony Schär. Musuh orc: Kenney "Mini Dungeon" (CC0). Penduduk kerajaan & elf Aeloria: Kenney "Mini
+  Characters" (CC0). Kuda bala tentara: Kenney "Prototype Kit" (CC0); perisai: Kenney "Mini Dungeon"
+  (CC0).
   Lihat `public/models/LISENSI.txt`.
 - Semua aset lain (pulau, pohon, rumput, air, langit, bangunan kerajaan, perahu) dibuat prosedural
   di kode.
@@ -70,6 +80,9 @@ lalu dikembangkan menjadi kombo + jurus (v0.8.0) dan 4 jurus melawan musuh orc (
 Penjagaan kerajaan (v0.12.0, permintaan pengguna) membawa sebagian Milestone 4 & 6 lebih awal:
 nyawa pemain dan NPC yang bereaksi pada pemain. Dialog tanya-jawab dengan prajurit dihapus lagi di
 v0.12.1, karena pemain musuh setiap kerajaan.
+Di v0.13.0 (permintaan pengguna: kerajaan elf yang hidup bebas, pandai besi, penduduk yang berdagang,
+bertani, berkelahi saat rusuh, dan pemain bisa membeli dagangannya) sebagian Milestone 4 ikut dibuat
+lebih awal: item, inventori (Tas), toko, koin, dan NPC yang bisa "dibaca" pikirannya (ketuk elf).
 Milestone 3 dimulai di v0.10.0 dengan wilayah pilihan pengguna: kepulauan baru di barat berisi
 kerajaan besar dengan banyak penduduk (desa & bangunan, pulau kecil, jalur, landmark). Sungai, air
 terjun, gua, dan reruntuhan belum dibuat. Peta dunia (bagian Milestone 6) ikut dibuat lebih awal

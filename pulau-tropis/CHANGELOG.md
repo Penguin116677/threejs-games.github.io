@@ -1,5 +1,104 @@
 # CHANGELOG — Pulau Tropis
 
+## [0.13.0] — 2026-10-23 — Kerajaan Elf Aeloria di utara: 10.000 kesatria yang hidup bebas (permintaan pengguna)
+### Ditambahkan
+- **Tanah Aeloria + Tanjung Perak** di utara Pulau Tropis, lewat **Jembatan Perak** (jembatan batu
+  ±175 m dari pantai utara Pulau Tropis) dan gapura perak. Isinya:
+  - **Kota Aeloria** (kota bebas): Pasar Aeloria dengan 51 kios, **Tempa Aeloria** (3 bengkel pandai
+    besi + 3 kios senjata/perisai/zirah), Kedai Daun Emas, sumur, rumah-rumah;
+  - **kawasan kesatria**: Balai Makan (8 pergola, dua deret meja saji berantrean), Lapangan Latihan
+    (arena tanding, lajur panahan, lapangan baris, boneka latihan), Padang Pesta (api unggun, panggung
+    musik, meja jamuan), dua perkemahan tenda;
+  - ladang gandum & sayur, kebun buah, kincir angin, jalan setapak hutan, pohon khas elf (perak,
+    raksasa, emas, cemara, buah);
+  - **Benteng Aeloria**: istana raja elf, barak, taman — satu-satunya wilayah terlarang.
+- **10.000 kesatria elf** dalam 5 pasukan (Daun, Bulan, Fajar, Embun, Senja; pedang & perisai, tombak,
+  busur; kapten bermahkota) + **259 penduduk** (92 pedagang, 6 pandai besi, 42 petani, 16 juru
+  masak, 8 pelayan, 4 pemusik, pemilik kedai, 90 warga) + 28 anak. Tiap elf punya nama, 8 sifat
+  (rajin, riang, ramah, rakus, pemalas, petualang, pemberani, pemarah), dan kebutuhan yang naik-turun
+  (lapar, lelah, bosan, kesepian, ingin berlatih; penduduk: ingin bekerja). **Tiap elf memutuskan
+  sendiri** kegiatan berikutnya: makan di Balai Makan (mengantre, membawa mangkuk ke kursi), bekal saat penuh, berlatih
+  tanding berpasangan, memanah, baris-berbaris, memukul boneka, berpesta & menari di sekeliling api
+  unggun, menonton pemusik, mengobrol, minum di kedai, memancing atau bersantai di pantai, rebahan di
+  rumput, berjalan-jalan, berbelanja, berjaga, tidur di tenda atau barak. Penduduk berjualan,
+  menempa, bertani, memasak, melayani antrean, bermain musik, menimba air, berbelanja, pulang; anak-anak
+  bermain kejar-kejaran. Gelembung ucapan sesuai kegiatan ("Enak sekali!", "Bersulang!",
+  "Roti hangat! Roti hangat!"…).
+- **Ekonomi yang mengalir**: pandai besi yang menempa di landasan menyelesaikan satu pedang / tombak /
+  perisai / zirah / helm tiap ±70–110 detik → stok kios Tempa Aeloria bertambah. Pedagang makanan
+  menyiapkan dagangannya selama berjaga; petani mengantar sekeranjang panen ke kios roti / buah /
+  sayur. Penduduk & kesatria yang berbelanja ikut membeli, jadi stok bisa habis.
+- **Belanja untuk pemain** (25 barang):
+  - **koin**: 60 di awal, +6–12 tiap orc yang dikalahkan (angka "+n" melayang di dekat koin);
+  - makanan & minuman (Roti Gandum 4 koin … Daging Panggang 12 koin; memulihkan 10–45 nyawa),
+    ramuan (Penyembuh +70 nyawa, Kekuatan serangan ×1,5 selama 60 detik, Kecepatan lari lebih cepat
+    60 detik);
+  - perlengkapan Tempa Aeloria: Pedang Perak Elf (serangan ×1,5), Tombak Elf (×1,2 + jangkauan
+    +0,9 m), Perisai Daun / Perisai Perak (menahan 20% / 32% luka), Zirah Rantai / Zirah Perak Aeloria
+    (25% / 40%), Helm Elf (10%) — paling banyak 70% luka tertahan. **Perlengkapan tampak di badan**
+    (perisai di tangan kiri, tombak menggantikan pedang, pedang berkilau perak, zirah & pelindung bahu,
+    lingkar dahi emas bersayap).
+  - Di dekat kios muncul tombol **Belanja** (kiri bawah); **ketuk kios** untuk berjalan ke sana dan
+    panel toko terbuka saat tiba. Panel menampilkan barang (ikon bergambar), efek, stok, harga.
+  - Tombol **Tas**: makan / minum / minum ramuan, pakai / lepas perlengkapan, efek gabungan. Tas & koin
+    disimpan di browser.
+  - Kios hanya melayani bila salah satu dari **dua pedagangnya** (pemilik + pembantu, rumahnya dekat
+    pasar) sedang berjaga. Kios tutup memberi tahu pedagangnya sedang apa ("Galalis sedang di rumah").
+- **Penjagaan Aeloria** (kota & kawasan kesatria = zona damai):
+  - **Membuat rusuh** (memukul elf mana pun) → **musuh kerajaan** selama 4 menit sejak kerusuhan
+    terakhir: kesatria di dekatmu melawan (4 sekaligus, 6 mengepung dan menggantikan yang roboh),
+    kesatria lain yang melihatmu selama kamu buron ikut menyerang. Warga di sekitar kabur ("Tolong!
+    Ada yang mengamuk!"), yang pemberani ikut berkelahi dengan tangan kosong. Lolos dari kejaran atau
+    tunggu sampai dimaafkan.
+  - **Pedagang tetap netral**: tidak kabur, tidak menyerang, dan **tetap berdagang denganmu** walau
+    kamu musuh kerajaan ("Dilayani … — pedagang tetap netral walau kesatria memusuhimu").
+  - **Benteng Aeloria terlarang**: penjaganya menyerang siapa pun yang masuk; keluar = berhenti.
+  - Perburuan hanya di **wilayah Aeloria** (utara tengah Jembatan Perak): lari menyeberang ke selatan
+    → kesatria berhenti di perbatasan ("Kamu keluar dari wilayah Aeloria…"); masuk lagi selagi
+    buron → diserang lagi.
+  - Kalah oleh kesatria → dibawa ke luar kerajaan, di ujung selatan Jembatan Perak.
+  - **Tidak ada yang mati**: elf yang roboh pingsan 20–35 detik, lalu bangun dan kembali berkegiatan.
+    Anak-anak tidak bisa dipukul. Jurus Penggal hanya menyasar elf yang sedang melawanmu (roboh, tidak
+    dipenggal).
+- **Keributan warga**: sesekali dua elf pemarah berkelahi di dekatmu ("Kau curang main dadu!"),
+  elf lain berkerumun menonton dan bersorak, lalu kesatria terdekat datang melerai ("Hentikan! Tidak
+  ada perkelahian di Aeloria!"). Bila tidak ada yang melerai, yang kalah jatuh dan mereka bubar.
+- **Ketuk seorang elf → kartu isi pikirannya**: nama, peran & senjata, kegiatan sekarang, suasana
+  hati, sifat, dan bar kebutuhan; diperbarui selama kartu terbuka. Elf yang dipilih ditandai cincin
+  biru muda. Mengetuk pedagang yang sedang berjaga (sering tertutup atap kiosnya) = mengetuk kiosnya.
+- Peta: Aeloria, Jembatan Perak, titik toko (pasar & tempa). Spanduk wilayah: Pasar Aeloria, Tempa
+  Aeloria, Kota Aeloria, Balai Makan, Lapangan Latihan, Padang Pesta, Perkemahan Kesatria, Benteng
+  Aeloria ("wilayah terlarang"), Tanjung Perak, Tanah Aeloria.
+- Elf digambar dengan tubuh Kenney Mini Characters (sudah ada di penduduk.glb) + animasi tambahan
+  `elf.glb` (57 KB): telinga runcing, warna tiap bagian badan berbeda per elf, zirah / helm / jubah /
+  rambut panjang / tabung panah / sarung pedang / mahkota daun / celemek, dan ±40 gerak (makan,
+  minum, bersorak, menari, menempa, memanah, memancing, tidur, berkelahi, roboh…). Model penuh untuk
+  yang dekat (Rendah 35 / Sedang 70 / Tinggi 140 elf), model jauh ±370 titik untuk sisanya
+  (200 / 380 / 800).
+### Diubah
+- Petunjuk kontrol menyebut koin, Aeloria, ketuk kios, dan ketuk elf. Kolom tombol kanan atas:
+  **Peta** dan **Tas** sebaris.
+- Pemain: perlengkapan & ramuan mengubah kerusakan, jangkauan, luka yang tertahan, dan kecepatan lari.
+### Diperbaiki
+- **Layar mendatar: tombol jurus Hentak / Putar / Penggal naik miring ke tengah layar** (sejak
+  v0.9.0). Aturan tata letak mendatar kalah oleh aturan tegak yang lebih spesifik; kini kelima tombol
+  sebaris di bawah.
+- Ditemukan saat uji: saat Balai Makan penuh, kesatria yang makan bekal duduk di titik yang sama —
+  di awal permainan sampai 35 elf menumpuk dalam satu petak 4 × 4 m. Kini mereka mencari tempat lapang
+  5–24 m dari situ.
+- Ditemukan saat uji: tombol Belanja menutupi tombol Cincang untuk nama kios yang panjang → nama
+  pendek ("Zirah & Helm").
+- Ditemukan saat uji: kesatria yang berjalan-jalan sampai ujung selatan Jembatan Perak menyerang
+  pemain buron yang baru dibangunkan di sana, jadi ia bisa kalah berulang-ulang → perburuan kini hanya
+  di wilayah Aeloria.
+- Ditemukan saat uji: mengetuk atap kios membuka kartu pedagang yang berdiri di bawahnya, bukan
+  tokonya → mengetuk pedagang yang sedang berjaga = mengetuk kiosnya.
+### Pengujian
+- Smoke test: Aeloria (10.000 kesatria, elf terlihat di pasar, tombol Belanja, membeli roti &
+  tombak, ketuk elf → kartu, keributan dilerai), (HP tegak & komputer) kerusuhan → diserang, pedagang
+  tetap melayani, kalah → ujung selatan Jembatan Perak, Benteng Aeloria terlarang; (HP tegak) koin
+  dari orc yang dipenggal.
+
 ## [0.12.1] — 2026-10-22 — Pemain musuh setiap kerajaan (permintaan pengguna)
 ### Diubah
 - **Pemain bukan rakyat kerajaan mana pun, jadi ia musuh setiap kerajaan.** Prajurit Kencana tidak

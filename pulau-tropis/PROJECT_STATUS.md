@@ -1,9 +1,9 @@
 # PROJECT_STATUS — Pulau Tropis
 
-**Milestone aktif:** 3 — Pembangunan dunia (v0.12.1: pemain musuh setiap kerajaan — prajurit Kencana langsung menghadang & menyerang — menunggu umpan balik dari HP).
+**Milestone aktif:** 3 — Pembangunan dunia (v0.13.0: Kerajaan Elf Aeloria di utara — 10.000 kesatria & penduduk yang hidup bebas, pandai besi, toko, kerusuhan — menunggu umpan balik dari HP).
 Pengembangan karakter/jurus dihentikan sementara atas permintaan pengguna.
-**Versi:** 0.12.1
-**Terakhir diperbarui:** 2026-10-22
+**Versi:** 0.13.0
+**Terakhir diperbarui:** 2026-10-23
 
 ## Kondisi awal repository (sebelum Milestone 1)
 - Repository `threejs-games.github.io` berisi koleksi contoh Three.js lama (folder `examples/`,
@@ -63,8 +63,74 @@ Pengembangan karakter/jurus dihentikan sementara atas permintaan pengguna.
 | Prajurit peronda di semua wilayah kerajaan + penjaga pos yang bertugas | ✅ selesai (v0.12.0) |
 | Pemain (musuh setiap kerajaan) langsung dihadang & dilawan prajurit; nyawa pemain | ✅ selesai (v0.12.1; tanya-jawab v0.12.0 dihapus) |
 | Serbuan orc lewat Jembatan Agung dihadang prajurit; pendatang ditanyai di gerbang | ✅ selesai (v0.12.0) |
+| Tanah Aeloria + Tanjung Perak + Jembatan Perak: Kota Aeloria, kawasan kesatria, ladang, Benteng Aeloria | ✅ selesai (v0.13.0) |
+| 10.000 kesatria elf + penduduk + anak, masing-masing dengan nama, sifat, kebutuhan, dan pilihan sendiri | ✅ selesai (v0.13.0) |
+| Pandai besi, pedagang, petani: stok kios mengalir (dibuat, diantar, dibeli warga) | ✅ selesai (v0.13.0) |
+| Koin, Tas, toko (makanan, ramuan, perlengkapan yang tampak di badan) — bagian Milestone 4 | ✅ selesai (v0.13.0) |
+| Kerusuhan → musuh kerajaan (pedagang netral), Benteng terlarang, keributan warga dilerai kesatria | ✅ selesai (v0.13.0) |
+| Ketuk elf → kartu isi pikirannya | ✅ selesai (v0.13.0) |
 | Sungai & air terjun, gua, reruntuhan | ⏳ belum |
 | Dicoba di HP Android sungguhan | ⏳ menunggu laporan pengguna |
+
+## Yang sudah diperiksa (v0.13.0 — Kerajaan Elf Aeloria)
+- `npm run build` berhasil; ESLint (konfigurasi repo): 0 error, 0 warning.
+- Smoke test otomatis (versi build, 4 profil) — **LULUS**: 155 cek, 0 gagal (HP tegak 57, HP mendatar
+  25, HP Rendah 25, komputer 48; v0.12.1: 116), ±66 menit. Waktu siap 3,7–5,1 detik. Cek baru:
+  - semua profil: 10.000 kesatria + 259 penduduk + 28 anak, 36 kios yang melayani pemain; 347–377 elf
+    di sekitar pasar; tombol Belanja di depan Kios Roti → membeli Roti Gandum (koin 60 → 56, masuk
+    Tas); Tempa Aeloria: Tombak Elf dibeli & langsung dipakai (jangkauan +0,9 m); ketuk elf di pasar →
+    kartu isi pikiran; keributan warga dimulai lalu dilerai kesatria;
+  - HP tegak & komputer: memukul kesatria → buron 240 detik, 4–6 kesatria menyerang + 6 mengepung
+    (nyawa 100 → 85–95); pedagang tetap melayani buronan; kalah → bangun di (10, −207) dengan nyawa
+    100, lalu 35 detik di sana tetap aman; Benteng Aeloria: masuk → 4 penjaga menyerang, keluar →
+    berhenti;
+  - HP tegak: jurus Penggal pada 5 orc → koin 8 → 47.
+
+  Putaran-putaran sebelumnya GAGAL: satu bug game (kesatria menyerang buronan di ujung selatan
+  Jembatan Perak, lihat di bawah), sisanya skrip uji yang terlalu ketat.
+- **Halaman pratinjau** (versi lokal artifact, sumber tanpa bundel + model base64): termuat 5,4 detik,
+  tanpa galat atau berkas hilang, 10.000 kesatria, tombol Belanja muncul di depan Kios Buah.
+- **Uji terpisah di browser** (Chromium, render software, layar HP tegak & mendatar, Sedang):
+  - **ekonomi** (waktu dilompati 21 menit): kios yang buka 31–36 dari 36; stok 316 → 589; dibuat
+    553 barang, dibeli penduduk 280; stok Tempa naik-turun (zirah sempat habis 0, lalu ditempa lagi).
+    Dengan satu pedagang per kios, 7 kios tutup 48–100% waktu; dengan pemilik + pembantu, 31 kios
+    buka 100% dan sisanya 85–98%;
+  - **toko**: tombol Belanja muncul di depan Kios Roti → panel ("Dilayani Taunia & Tauthiel") →
+    beli Roti Madu: koin 60 → 53, stok 3 → 2, masuk Tas, pedagang berkata "Terima kasih!"; koin kurang
+    → "Koinmu kurang (2 dari 14). Kalahkan orc untuk mendapat koin."; Tempa: tombak, perisai perak,
+    zirah perak, helm elf dibeli & langsung dipakai (efek: serangan ×1,2, jangkauan +0,9 m, menahan
+    70%); luka 10 → nyawa berkurang 3; Tas: makan Roti Madu → nyawa 85 → 100; lepas/pakai tombak;
+    ketuk kios dari ±10 m → berjalan ke sana, panel terbuka saat tiba; kios yang kedua pedagangnya
+    pergi → tombol "kios tutup" + pesan pedagangnya sedang apa; orc dikalahkan → koin +11;
+  - **perlengkapan di badan** dipotret dari depan & samping (perisai daun / perak, zirah rantai / perak,
+    tombak tegak saat berdiri, pedang perak, helm elf). Versi pertama helm berbentuk piring di
+    sekeliling kepala dan tombak mengarah ke samping → diperbaiki;
+  - **keributan warga**: dimulai di pasar, 6 penonton berkerumun, kesatria datang melerai setelah
+    ±9–10 detik ("Bubar! Bubar semuanya!"), lalu semua kembali berkegiatan;
+  - **kerusuhan**: memukul kesatria → pesan musuh kerajaan, 4 penyerang + 5–6 pengepung, nyawa 100 →
+    53–60 dalam ±4 detik waktu game; Penggal → 5 elf roboh; memukul warga di tempat warga ramai →
+    5 warga & anak kabur, warga yang dipukul terhuyung lalu kabur; pedagang tetap melayani buronan
+    (beli roti: koin 200 → 196); kalah → bangun di (10, −206) dengan nyawa penuh, pesan "Kamu
+    dikalahkan kesatria Aeloria…"; Benteng: masuk → 4 penjaga menyerang, keluar → berhenti;
+  - **kartu isi pikiran**: ketuk elf → "Yavrael | Kesatria Pasukan Bulan · busur | Menuju: makan
+    bekal sambil duduk | Suasana hati: biasa saja · Sifat: mudah naik darah, doyan makan" + 5 bar
+    kebutuhan; ketuk tanah → kartu tertutup, pemain berjalan;
+  - layar mendatar: tombol jurus kini sebaris di bawah; Peta & Tas sebaris, tidak menabrak Pukul.
+- **Ditemukan & diperbaiki saat uji**:
+  - kesatria yang makan bekal menumpuk di satu titik saat Balai Makan penuh (35 elf dalam 4 × 4 m di
+    awal permainan) → kini menyebar 5–24 m; terpadat sekarang 8 per petak (deret kursi makan);
+  - tombol jurus di layar mendatar naik miring ke tengah layar (sejak v0.9.0);
+  - tombol Tas menabrak tombol Pukul di layar mendatar; tombol Belanja menutupi Cincang untuk nama
+    kios yang panjang;
+  - kesatria yang berjalan-jalan sampai ujung selatan Jembatan Perak menyerang buronan yang baru
+    dibangunkan di sana (nyawa 100 → 22 dalam ±15 detik, lalu kalah lagi) → perburuan hanya di wilayah
+    Aeloria; diuji: 58 detik di sana, kesatria lewat sampai 7 m, nyawa tetap 100; rusuh di gapura lalu
+    lari ke selatan → pengejar berhenti di perbatasan; masuk lagi → diserang lagi;
+  - mengetuk atap kios membuka kartu pedagang di bawahnya → kini membuka tokonya;
+  - smoke test: tangkapan layar kadang melewati batas 30 detik di render software sejak dunia
+    bertambah besar (normalnya 5–8 detik) → batas waktu 90 detik. Cek Aeloria yang pertama terlalu
+    ketat (≥ 8 elf di layar; keributan hanya dicoba di satu titik; status roboh 1,6 detik terlewat
+    oleh pengecekan per 5 bingkai) → diperbaiki di skrip uji.
 
 ## Yang sudah diperiksa (v0.12.1 — pemain musuh setiap kerajaan)
 - `npm run build` berhasil; ESLint (konfigurasi repo): 0 error, 0 warning.
@@ -324,6 +390,13 @@ Pengembangan karakter/jurus dihentikan sementara atas permintaan pengguna.
   laut dalam → kembali ke pantai + pesan, mendaki lereng (+24 m dalam 120 frame).
 
 ## Yang BELUM diperiksa
+- **FPS di Aeloria pada HP sungguhan**: pasar, Balai Makan (paling ramai), Padang Pesta saat pesta,
+  dan saat dikeroyok kesatria; juga lama memuat tambahan ("Menghidupkan 10.000 kesatria Aeloria…").
+- Apakah elf terasa hidup bagi pengguna, dan apakah harga barang, kekuatan perlengkapan, lama buron
+  (4 menit), serta kekuatan kesatria terasa pas.
+- Mengetuk elf kecil di layar HP untuk membuka kartunya (radius 38 piksel) — hanya diuji dengan
+  sentuhan tiruan.
+- Tas & koin tersimpan di browser HP (localStorage) setelah halaman ditutup.
 - **Rasa penjagaan di HP sungguhan**: apakah prajurit terlalu kuat/lemah, apakah kota masih enak
   dijelajahi padahal pemain (musuh setiap kerajaan) terus diserang, dan FPS saat dikeroyok atau
   saat serbuan orc.
@@ -348,6 +421,21 @@ Pengembangan karakter/jurus dihentikan sementara atas permintaan pengguna.
 - Apakah URL hosting (githack / GitHub Pages) terbuka di HP — tidak bisa diakses dari lingkungan pengembangan.
 
 ## Performa (segitiga per frame termasuk bayangan, dari smoke test)
+v0.13.0 di Aeloria, layar HP tegak (Pixel 7), kamera strategi 22 m (versi build, render software;
+dalam kurung: elf model penuh + model jauh yang digambar):
+| Tingkat | Gapura | Pasar | Tempa | Balai Makan | Lapangan Latihan | Padang Pesta | Depan Benteng |
+|---|---|---|---|---|---|---|---|
+| Rendah | 129 rb / 44 dc (9) | 230 rb / 41 dc (21) | 213 rb / 43 dc (15) | 210 rb / 39 dc (19) | 131 rb / 38 dc (35+10) | 146 rb / 38 dc (35+2) | 173 rb / 41 dc (34) |
+| Sedang | 151 rb / 38 dc (10) | 225 rb / 34 dc (14) | 220 rb / 38 dc (12) | 256 rb / 39 dc (19) | 143 rb / 34 dc (40) | 174 rb / 40 dc (32) | 185 rb / 36 dc (24) |
+| Tinggi | 229 rb / 39 dc (4) | 371 rb / 48 dc (14) | 302 rb / 49 dc (13) | 414 rb / 37 dc (27) | 198 rb / 39 dc (43) | 243 rb / 43 dc (36) | 392 rb / 44 dc (28) |
+- Aeloria tidak lebih berat dari Kotaraja Kencana (Sedang 210–326 rb di v0.12.0). Elf digambar per
+  bentuk badan (8) × 2 tingkat (penuh & jauh) + barang di tangan; tiap kelompok satu draw call
+  instanced, kosong = tidak digambar.
+- Biaya JS simulasi 10.000+ elf: 1,4–4 ms per bingkai di komputer uji (memproses kejadian, memilah
+  elf yang terlihat, mengisi instance). Penjagaan Aeloria & toko: < 0,2 ms bila tidak ada kerusuhan.
+- Waktu siap di render software: 4,3 / 5,2 / 5,6 detik (Rendah / Sedang / Tinggi; v0.12.1: 2,5–4,2
+  detik). Tambahannya: membangun Aeloria, memanggang rangka elf, dan menyiapkan 10.000 elf.
+
 v0.12.0, layar HP tegak (Pixel 7), kamera strategi 22 m, pemain sebagai tamu (tanpa tanya-jawab):
 | Tingkat | Titik mulai | Jembatan Agung | Gerbang timur | Pasar | Alun-alun | Depan barisan |
 |---|---|---|---|---|---|---|
@@ -394,6 +482,22 @@ v0.3.0: Rendah ±300 rb, Sedang ±400 rb, Tinggi ±850 rb. Tambahan v0.4.0 beras
 yang lebih rapat (untuk ombak) dan buah kelapa. v0.2.0 (HP): ±230 ribu.
 
 ## Masalah yang diketahui
+- (v0.13.0) Kesatria pemanah tidak ikut bertarung (belum ada panah yang terbang); di lajur panahan
+  anak panahnya juga belum digambar. Yang melawan pemain hanya kesatria berpedang & bertombak, dan
+  warga pemberani dengan tangan kosong.
+- (v0.13.0) Elf yang berjalan tidak saling menghindar (bisa berpapasan menembus satu sama lain); yang
+  sedang bertarung, kabur, atau menonton keributan saling mendorong sederhana dan bisa berdesakan.
+- (v0.13.0) Belum ada siang–malam: kios buka selama pedagangnya berjaga, bukan menurut jam. Harga
+  barang tetap (belum naik-turun menurut stok).
+- (v0.13.0) Status buron Aeloria tidak disimpan (hilang bila halaman dimuat ulang); koin & isi tas
+  disimpan di browser. Elf tidak mengingat pemain secara pribadi (tidak ada dendam per elf).
+- (v0.13.0) Keributan warga hanya terjadi di dekat pemain; di tempat lain Aeloria tidak ada keributan.
+- (v0.13.0) Perlengkapan di badan berbentuk balok/kerucut sederhana; jambul merah helm prajurit tetap
+  terlihat di bawah Helm Elf. Model elf jauh tidak membawa barang di tangan.
+- (v0.13.0) Di Balai Makan yang penuh, ratusan kesatria makan bekal di sekitar pergola, jadi kawasan
+  itu sangat ramai (sudah tidak menumpuk di satu titik).
+- (v0.13.0) Prajurit Kencana dan kesatria Aeloria tidak saling berinteraksi; orc tidak menyerbu
+  Aeloria.
 - (v0.12.0) Prajurit, orc, dan pemain hanya saling mendorong sederhana: saat ramai mereka bisa
   berdesakan rapat. Prajurit belum punya serangan jarak jauh (pemanah di barisan tetap diam).
 - (v0.12.0) Penduduk tidak bereaksi pada perkelahian (tidak lari menjauh). Orc penyerbu yang lolos

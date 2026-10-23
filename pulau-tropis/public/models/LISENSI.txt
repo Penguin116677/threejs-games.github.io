@@ -29,3 +29,14 @@ bala.glb
   Diubah : digabung jadi satu file tanpa tekstur; uv dipetakan ulang ke palet colormap Kenney
            "Mini Arena" (prajurit.glb) supaya prajurit, senjata, dan kuda memakai satu tekstur;
            warna kuda per bagian (scripts/pack-bala.py). Dipakai bala tentara di Pulau Wira.
+
+elf.glb
+  Sumber : Kenney "Mini Characters" 1.0 — rangka & animasi karakter yang sama dengan penduduk.glb
+           (www.kenney.nl)
+  Lisensi: Creative Commons Zero (CC0 1.0).
+  Diubah : hanya rangka + 18 animasi Kenney (idle, walk, sprint, jump, sit, crouch, die, pick-up,
+           emote, interact, holding, attack-melee, attack-kick), tanpa mesh & tekstur
+           (scripts/pack-penduduk.py, prasetel `elf`). Badan para elf Aeloria memakai mesh
+           penduduk.glb; warna tiap bagian badan diatur di shader. Gerak makan, menari, menempa,
+           memanah, tidur, dll. dirangkai dari animasi itu di kode; telinga runcing, zirah, helm,
+           jubah, dan barang di tangan juga dibuat di kode.

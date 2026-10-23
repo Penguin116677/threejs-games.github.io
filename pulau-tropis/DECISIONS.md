@@ -328,3 +328,72 @@ tandai sebagai "diganti" bila berubah.
       ucapan tetap dipakai untuk seruan prajurit & pendatang.
     - Pengujian otomatis memakai `security.ceasefire(true)` ("gencatan senjata") di luar uji
       penjagaan, supaya uji kota & bala tentara tidak diganggu prajurit.
+49. **Aeloria = zona damai; kerusuhan menjadikan pemain musuh kerajaan; Benteng Aeloria satu-satunya
+    wilayah terlarang** (v0.13.0, permintaan pengguna). Aturan #48 ("musuh setiap kerajaan") disesuaikan
+    untuk kerajaan elf, karena pengguna meminta pemain bisa membeli dagangan penduduknya, dan menetapkan:
+    *"Tokoh utama ketika membuat rusuh maka jadi musuh kerajaan."*
+    - Kota Aeloria ("pasar bebas: siapa pun boleh berdagang") dan kawasan kesatria terbuka untuk
+      pemain. Kesatria tidak menghiraukannya selama ia tidak membuat rusuh.
+    - Memukul elf mana pun = rusuh → musuh kerajaan selama 240 detik sejak kerusuhan terakhir. Kesatria
+      dalam 32 m langsung melawan (4 penyerang, 6 pengepung yang menggantikan yang roboh). Selama
+      buron, kesatria yang melihat pemain dalam 22 m ikut menyerang. Pemanah tidak ikut (belum ada
+      panah terbang).
+    - Lolos: tidak ada penyerang dalam 30 m selama 8 detik → pengejar berhenti, status buron tetap
+      sampai waktunya habis ("Kerusuhanmu sudah dimaafkan"). Kalah → dibawa ke ujung selatan Jembatan
+      Perak (di luar kerajaan) dengan masa tenang 20 detik.
+    - Perburuan hanya di wilayah Aeloria (utara tengah Jembatan Perak). Pengejar berhenti di
+      perbatasan; masuk lagi selagi buron = diserang lagi. Ditemukan saat uji: kesatria yang
+      berjalan-jalan sampai ujung selatan jembatan menyerang buronan yang baru dibangunkan di sana
+      setelah masa tenang, jadi pemain bisa kalah berulang-ulang di titik yang sama.
+    - Benteng Aeloria (istana & barak) terlarang: penjaga dalam 45 m menyerang siapa pun yang masuk;
+      keluar > 25 m dari tembok = berhenti, bila tidak sedang buron.
+    - Warga dalam 16 m dari kerusuhan kabur 5–9 detik. Yang pemberani (sifat > 0,68, paling banyak 2)
+      ikut berkelahi dengan tangan kosong. Ini memenuhi "berkelahi ketika ada yang rusuh".
+50. **Pedagang tetap netral** (v0.13.0, ketentuan pengguna: *"Musuh kerajaan bukan berarti akan menjadi
+    musuh pedagang"*). Pedagang tidak kabur, tidak menyerang, dan tetap melayani pemain walaupun
+    kesatria sedang memburunya; panel toko menuliskannya. Pedagang yang dipukul hanya terhuyung lalu
+    kembali ke kiosnya. Bila dipukul terus ia pingsan seperti elf lain, dan kiosnya tutup sampai ia
+    bangun: itu akibat ulah pemain, bukan permusuhan.
+51. **Tidak ada elf yang mati.** Elf yang roboh (pukulan, Penggal, kalah berkelahi) pingsan 20–35 detik
+    lalu bangun dan melanjutkan hidupnya. Kerajaan ini dimaksudkan terasa hidup, dan 10.000 kesatria
+    tidak bisa "habis". Anak-anak tidak bisa dipukul (pukulan menembus mereka). Penggal hanya menyasar
+    elf yang sedang melawan pemain, supaya jurus di dekat orc tidak memulai kerusuhan tanpa sengaja.
+52. **Elf = tubuh Kenney Mini Characters + rig yang dipanggang + slot warna per titik** (v0.13.0).
+    Semua elf (tubuh penduduk.glb + animasi tambahan elf.glb 57 KB) memakai satu tekstur tulang yang
+    dipanggang sekali. Tiap titik model punya "slot" (kulit, rambut, baju, celana, sepatu, hiasan,
+    zirah, panji + bagian opsional). Tiap elf membawa 4 angka palet (instance attribute), jadi 10.000
+    elf tampak berbeda tanpa tekstur tambahan; bagian opsional yang tidak dipakai menyusut ke satu
+    titik. Gerak baru dibuat dari klip yang ada saat dipanggang (mis. makan = duduk + lengan ke mulut).
+    Dua tingkat: model penuh untuk yang terdekat (dengan barang di tangan), model jauh ±370 titik
+    untuk sisanya.
+53. **Simulasi kehidupan berbasis kejadian** (v0.13.0). Elf tidak dihitung tiap bingkai: hanya saat
+    kegiatannya selesai (antrean waktu), ia menimbang kebutuhan, sifat, jarak, dan tempat yang masih
+    kosong, lalu memilih kegiatan berikutnya. Elf yang berjalan letaknya dihitung dari waktu di
+    sepanjang rutenya (Dijkstra di jaringan jalan, diluruskan bila lapang). Tiap bingkai hanya elf di
+    dekat titik fokus dan di dalam pandangan yang diletakkan & digambar, yang terdekat lebih dulu.
+    Biaya JS di komputer uji 1,4–3,6 ms per bingkai untuk 10.000+ elf.
+    - Kerusuhan, kabur, keributan, dan melerai butuh gerak per bingkai: keamanan.js "mengambil alih"
+      elf yang terlibat (keluar dari jadwalnya), lalu mengembalikannya ke kehidupannya. Paling banyak
+      ±27 elf sekaligus.
+    - Keributan warga hanya dimulai di dekat pemain (7–32 m, di antara elf yang terlihat), supaya
+      selalu ada yang menyaksikan dan tidak ada biaya untuk keributan yang tidak terlihat.
+54. **Ekonomi: stok mengalir, kios dijaga dua orang** (v0.13.0).
+    - Produksi: pandai besi yang sedang menempa di landasan (±70–110 detik per barang), pedagang
+      makanan yang berjaga (±40–70 detik), petani yang selesai bekerja (70%: sekeranjang = 3 barang).
+      Konsumsi: 45% elf yang berbelanja di kios yang buka benar-benar membeli. Dalam 20 menit simulasi:
+      dibuat ±550 barang, dibeli penduduk ±280 — stok cenderung terisi, tetapi barang bisa habis
+      (paling banyak 8 makanan, 4 ramuan, 3 perlengkapan per jenis).
+    - Kios yang melayani pemain (36: makanan, minuman, ramuan, 3 kios Tempa) dijaga pemilik + pembantu
+      yang rumahnya dekat pasar. Dengan satu pedagang, beberapa kios tutup 50–100% waktu (pulang,
+      makan, perjalanan jauh); dengan dua, kebanyakan kios buka 95–100%.
+    - Koin hanya dari orc (6–12 per orc). Merobohkan elf tidak memberi koin, supaya kerusuhan tidak
+      menguntungkan.
+    - Perlengkapan memakai slot: senjata, perisai, zirah, helm; luka tertahan paling banyak 70%. Tombak
+      menambah jangkauan pukulan ke depan (pukulan di sekeliling badan tidak berubah). Tas & koin
+      disimpan di localStorage (dicoba-tangkap: mode privat tetap jalan tanpa disimpan).
+55. **Ketuk elf = kartu isi pikirannya** (v0.13.0). Supaya "setiap kesatria punya pikiran sendiri"
+    bisa dilihat, bukan hanya dipercaya: kartu menampilkan kegiatan, suasana hati, sifat, dan kebutuhan
+    dari simulasi yang sama yang dipakai elf untuk memutuskan. Ketukan yang mengenai elf (≤ 38 piksel
+    dari badannya) membuka kartu, bukan berjalan; ketuk tanah menutupnya. Pengecualian: pedagang yang
+    sedang berjaga berdiri di bawah atap kiosnya, jadi ketukan di atap kios mengenai dia — ketukan itu
+    dianggap mengetuk kiosnya (berjalan ke sana & belanja). Kartunya bisa dilihat saat ia pergi.

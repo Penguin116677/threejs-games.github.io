@@ -27,7 +27,7 @@ npm run test:smoke # (dengan preview berjalan) tes otomatis + screenshot ke scre
 Smoke test butuh Chromium untuk Playwright. FPS yang dilaporkan smoke test berasal dari render
 software dan **tidak** mencerminkan performa HP. Untuk menjalankan sebagian kasus saja:
 `SMOKE_CASES=hp-portrait,desktop npm run test:smoke` (kasus: hp-portrait, hp-landscape, hp-rendah,
-desktop). Satu putaran penuh ±1 jam di render software.
+desktop). Satu putaran penuh ±1–1,5 jam di render software (batas waktu tiap langkah 90 detik).
 
 Penduduk kerajaan (`public/models/penduduk.glb`) dibuat ulang dari paket Kenney "Mini Characters"
 dengan `python3 scripts/pack-penduduk.py "<folder GLB format>" public/models/penduduk.glb`.
@@ -201,3 +201,46 @@ menghadang dan menyerang (sejak v0.12.1; kartu tanya-jawab v0.12.0 sudah dihapus
 
 Laporkan: model HP, FPS, apakah prajurit terlalu kuat / terlalu lemah, apakah kota terlalu sulit
 dijelajahi karena terus diserang, dan langkah yang gagal.
+
+## Daftar uji manual — v0.13.0 (Kerajaan Elf Aeloria di utara)
+1. Buka **Peta**: Tanah Aeloria di utara Pulau Tropis, dengan Jembatan Perak dan dua titik toko
+   (Pasar Aeloria, Tempa Aeloria). Berjalan dari titik mulai ke pantai utara, seberangi **Jembatan
+   Perak** → gapura perak dengan dua kesatria berjaga. Mereka **tidak** menyerangmu (zona damai).
+2. Jelajahi kota & kawasan kesatria. Perhatikan elf berkegiatan sendiri-sendiri: mengantre lalu makan
+   di Balai Makan, berlatih tanding & memanah di Lapangan Latihan, berpesta & menari di Padang Pesta,
+   mengobrol, berbelanja, tidur di tenda, memancing di pantai. Gelembung ucapan muncul sesekali.
+3. **Ketuk seorang elf** → kartu isi pikirannya (nama, peran, kegiatan, suasana hati, sifat, bar
+   kebutuhan) dan cincin biru di kakinya. Tunggu: isinya berubah saat elf itu berganti kegiatan.
+   Ketuk tanah → kartu tertutup dan kamu berjalan. (Mengetuk pedagang yang sedang berjaga = mengetuk
+   kiosnya.)
+4. **Pasar Aeloria**: ketuk sebuah kios (mis. roti) → kamu berjalan ke depan mejanya dan panel toko
+   terbuka. Atau berdiri di depan kios → tombol **Belanja** (kiri bawah). Beli Roti Madu (7 koin):
+   koin berkurang, pedagang berkata "Terima kasih!". Coba barang yang lebih mahal dari koinmu →
+   "Koinmu kurang…".
+5. **Tas** (kanan atas, di samping Peta): terluka dulu (lawan orc), lalu Makan Roti Madu → nyawa +25.
+6. Kalahkan beberapa orc (koin +6–12 per orc, angka "+n" melayang di samping koin).
+7. **Tempa Aeloria** (timur pasar): lihat pandai besi menempa di landasan. Beli Perisai Daun (60 koin)
+   → perisai tampak di tangan kiri; beli Tombak Elf → tombak menggantikan pedang. Pakai/lepas lewat
+   Tas. Stok tempa bertambah perlahan selama pandai besi bekerja.
+8. Kios yang kedua pedagangnya sedang pergi: tombol berbunyi "kios tutup", dan pesan menyebut
+   pedagangnya sedang apa. Coba kios lain atau tunggu.
+9. **Keributan warga**: diam beberapa menit di dekat keramaian (pasar, Balai Makan). Dua elf mulai
+   berkelahi, yang lain berkerumun bersorak, lalu kesatria datang melerai ("Hentikan!…").
+10. **Kerusuhan**: pukul seorang kesatria → pesan "Kamu membuat rusuh di Aeloria! Kini kamu musuh
+    kerajaan…", kesatria di dekatmu melawan (4 menyerang, lainnya mengepung), warga di dekatmu kabur.
+    Lalu buka toko di pasar → pedagang **tetap melayani** ("pedagang tetap netral…"). Lari jauh →
+    "Kamu lolos dari kejaran kesatria…", atau lari menyeberangi Jembatan Perak ke selatan →
+    pengejar berhenti di tengah jembatan. Atau biarkan kalah → bangun di ujung selatan Jembatan Perak;
+    kesatria yang lewat di sana tidak menyerangmu, tetapi masuk lagi ke Aeloria selagi buron =
+    diserang lagi.
+11. **Benteng Aeloria** (paling utara, di balik Balai Makan): masuk lewat gerbang → "wilayah
+    terlarang", penjaga menyerang. Keluar → mereka berhenti.
+12. Catat FPS di pasar, di Balai Makan (paling ramai), di Padang Pesta saat pesta, dan saat dikeroyok,
+    untuk tiap tingkat kualitas; juga lama memuat ("Menghidupkan 10.000 kesatria Aeloria…").
+
+Untuk pengujian di komputer, konsol browser bisa memakai `__pulau.life.stats()` (jumlah elf per
+kegiatan, waktu JS per bingkai, ekonomi), `__pulau.elfSec.stats()` (buron, penyerang, keributan),
+`__pulau.elfSec.startBrawl()`, `__pulau.elfSec.forgive()`, dan `__pulau.bag.reset(koin)`.
+
+Laporkan: model HP, FPS di tiap tingkat kualitas, apakah elf terasa hidup, apakah harga & kekuatan
+perlengkapan pas, dan langkah yang gagal.
