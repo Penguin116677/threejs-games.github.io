@@ -92,6 +92,8 @@ const KEGIATAN = {
   kabur: { teks: 'kabur dari keributan', lega: {}, lelah: 0.2, lama: [0, 0] },
   sorak: { teks: 'menonton perkelahian', lega: { bosan: 0.6 }, lama: [0, 0] },
   roboh: { teks: 'pingsan', lega: {}, lama: [0, 0] },
+  // diambil alih ui/obrolan.js selama pemain mengajaknya bicara (gaya = gerak: talk/nod/shake/…)
+  bicara: { teks: 'mengobrol denganmu', lega: { sepi: 0.6, bosan: 0.3 }, lama: [0, 0] },
   jaga: { teks: 'berjaga', lega: { latih: 0.1 }, lama: [600, 1200] },
   kerja: { teks: 'bekerja', lega: { kerja: 0.25 }, lama: [600, 1200] },
   sumur: { teks: 'menimba air di sumur', lega: { sepi: 0.2 }, lama: [40, 100] },
@@ -1483,6 +1485,11 @@ export function createLife({ ground, plan, routes, folk, quality, free = () => t
       case 'roboh':
         out.clip = 'die'
         out.t = t
+        return out
+      case 'bicara':
+        // gerak diatur obrolan.js; gerak sekali (angguk, geleng, membungkuk, melambai) dari awal
+        out.clip = a.gaya || 'idle'
+        out.t = out.clip === 'talk' || out.clip === 'idle' || out.clip === 'cheer' ? t + ph : t
         return out
       default:
         out.clip = 'idle'

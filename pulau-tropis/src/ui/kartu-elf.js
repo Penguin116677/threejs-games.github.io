@@ -3,6 +3,7 @@ import * as THREE from 'three'
 // Kartu "isi pikiran" elf Aeloria: ketuk seorang elf untuk melihat nama, peran, kegiatannya
 // sekarang, suasana hati, sifat, dan kebutuhannya (lapar, lelah, bosan, kesepian, ingin berlatih).
 // Isinya diperbarui selama kartu terbuka, karena elfnya terus menimbang dan berganti kegiatan.
+// Tombol "Ajak bicara" → onTalk(elf) (pemain berjalan ke elf itu lalu mengobrol).
 const $ = id => document.getElementById(id)
 const PICK_PX = 38 // jarak layar (piksel CSS) dari titik ketuk ke badan elf
 const BUTUH = [['lapar', 'Lapar'], ['lelah', 'Lelah'], ['bosan', 'Bosan'], ['sepi', 'Kesepian'], ['latih', 'Ingin berlatih']]
@@ -10,7 +11,7 @@ const IKON_TUTUP = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12
 const huruf = s => s.charAt(0).toUpperCase() + s.slice(1)
 
 // life = createLife; camera; canvas; markers (cincin penanda elf terpilih)
-export function createElfCard({ life, camera, canvas, markers }) {
+export function createElfCard({ life, camera, canvas, markers, onTalk = null }) {
   const el = $('kartu-elf')
   const v = new THREE.Vector3()
   let cur = null
@@ -24,6 +25,7 @@ export function createElfCard({ life, camera, canvas, markers }) {
       + `<div class="ke-peran">${huruf(d.peran)}${d.senjata ? ` · ${d.senjata}` : ''}</div>`
       + `<div class="ke-kegiatan">${huruf(d.kegiatan)}</div>`
       + `<div class="ke-baris">Suasana hati: <b>${d.suasana}</b> · Sifat: ${d.sifat.join(', ')}</div>${bars}`
+      + (onTalk ? '<button type="button" class="ke-bicara">Ajak bicara</button>' : '')
     if (html === shown) return
     shown = html
     el.innerHTML = html
@@ -36,6 +38,11 @@ export function createElfCard({ life, camera, canvas, markers }) {
   }
   el.addEventListener('click', e => {
     if (e.target.closest('.ke-tutup')) hide()
+    else if (e.target.closest('.ke-bicara') && cur) {
+      const a = cur
+      hide()
+      onTalk(a)
+    }
   })
 
   return {

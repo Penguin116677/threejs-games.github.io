@@ -255,7 +255,7 @@ export function createShop({ life, bag, player, bubbles, message, maxHp, wanted 
     if (near) openShop(near)
   })
   window.addEventListener('keydown', e => {
-    if (e.repeat) return
+    if (e.repeat || e.target instanceof HTMLInputElement) return
     if (e.code === 'KeyE' && near && !current) openShop(near)
     else if (e.code === 'KeyB') el.tas.click()
     else if (e.code === 'Escape') {
@@ -296,6 +296,8 @@ export function createShop({ life, bag, player, bubbles, message, maxHp, wanted 
     },
     // buka panel Tas (mis. dari pesan "buat perahu di Tas")
     openBag,
+    // buka panel kios s (mis. dari obrolan dengan pedagangnya)
+    openStall: s => openShop(s),
     close() {
       closeShop()
       closeBag()

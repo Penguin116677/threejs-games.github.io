@@ -9,11 +9,12 @@ import { bakeRig, rigGeometry, bakedMatrix, attach, toBufferGeometry, boneTextur
 //   digambar dalam SATU draw call (InstancedMesh), tanpa SkinnedMesh.
 // - hanya orang di sekitar kamera yang ditulis ke buffer instance (yang jauh tidak digambar).
 // Penduduk berjalan dari simpul ke simpul jaringan jalan (routes.js), sesekali berhenti, dan
-// menoleh + melambai saat prajurit mendekat.
+// menoleh + melambai saat prajurit mendekat. Saat diajak bicara pemain (ui/obrolan.js) a.talk = klip
+// yang diputar; orangnya berhenti dan menghadap pemain.
 
 const SCALE = 2.3 // sama dengan prajurit pemain
-const CLIPS = { idle: 'idle', walk: 'walk', sit: 'sit', interact: 'interact-right', pickup: 'pick-up', wave: 'emote-yes' }
-const SPECS = Object.fromEntries(Object.entries(CLIPS).map(([key, clip]) => [key, { clip, loop: key !== 'wave' }]))
+const CLIPS = { idle: 'idle', walk: 'walk', sit: 'sit', interact: 'interact-right', pickup: 'pick-up', wave: 'emote-yes', no: 'emote-no' }
+const SPECS = Object.fromEntries(Object.entries(CLIPS).map(([key, clip]) => [key, { clip, loop: key !== 'wave' && key !== 'no' }]))
 const WALK_ANIM_SPEED = 1.4 // m/s yang cocok dengan klip walk pada kecepatan 1×
 const FADE = 0.25 // detik peralihan antar animasi
 const NEAR = 2.6 // m: menoleh & melambai ke prajurit
@@ -259,7 +260,11 @@ export function createVillagers({ ground, routes, spots, quality, villagerGltf, 
     const r2 = range * range
     for (const a of agents) {
       if (a.hidden) continue
-      if (a.scripted) {
+      if (a.talk) {
+        // diajak bicara: berhenti, menghadap pemain, klipnya diatur obrolan.js
+        setClip(a, a.talk)
+        a.heading = turn(a.heading, Math.atan2(playerPos.x - a.x, playerPos.z - a.z), Math.min(1, dt * 6))
+      } else if (a.scripted) {
         // digerakkan dari luar
       } else if (a.fixed) stepFixed(a, dt, playerPos)
       else stepWalker(a, dt, playerPos)
@@ -315,6 +320,8 @@ export function createVillagers({ ground, routes, spots, quality, villagerGltf, 
     update,
     pushOut,
     setClip,
+    // nama jenis badan orang a ('male-a', 'female-c', 'raja', 'prajurit', …)
+    typeName: a => types[a.type]?.name || '',
     scripted: agents.filter(a => a.scripted),
     stats: () => ({ total: agents.filter(a => !a.scripted).length, fixed: agents.filter(a => a.fixed).length, visible, jenis: types.length }),
   }

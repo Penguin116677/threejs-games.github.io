@@ -1058,3 +1058,172 @@ body {
 .titik.perahu {
   background: #3fd0d4;
 }
+
+/* panel obrolan dengan NPC: kartu di atas (layar tegak) / di kanan (mendatar) supaya NPC & pemain
+   tetap terlihat dan papan ketik HP tidak menutupinya */
+#obrolan {
+  position: absolute;
+  left: 50%;
+  top: max(10px, env(safe-area-inset-top));
+  transform: translateX(-50%);
+  width: min(440px, calc(100% - 24px));
+  pointer-events: auto;
+  text-shadow: none;
+  z-index: 3;
+}
+
+.obrolan-kartu {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: min(56vh, 520px);
+  padding: 10px 12px 12px;
+  border-radius: 16px;
+  background: rgba(8, 30, 42, 0.96);
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.4);
+}
+
+.obrolan-kepala {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.obrolan-kepala b {
+  display: block;
+  font-size: 17px;
+}
+
+.obrolan-kepala small {
+  display: block;
+  font-size: 12px;
+  opacity: 0.8;
+}
+
+#hud #btn-tutup-obrolan {
+  flex: none;
+  width: 40px;
+  min-height: 40px;
+  padding: 0;
+  display: grid;
+  place-items: center;
+}
+
+#hud #btn-tutup-obrolan svg {
+  width: 20px;
+  height: 20px;
+}
+
+#obrolan-log {
+  flex: 1 1 auto;
+  min-height: 70px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 2px;
+}
+
+.ob-baris {
+  max-width: 85%;
+  padding: 7px 11px;
+  border-radius: 12px;
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+.ob-baris.npc {
+  align-self: flex-start;
+  background: #f4efe2;
+  color: #222;
+  border-bottom-left-radius: 4px;
+}
+
+.ob-baris.pemain {
+  align-self: flex-end;
+  background: #1f9c8a;
+  color: #fff;
+  border-bottom-right-radius: 4px;
+}
+
+.ob-baris.mengetik {
+  opacity: 0.7;
+  letter-spacing: 3px;
+}
+
+/* topik siap pilih: satu baris yang bisa digeser (tidak ikut menyusut — riwayat yang menyusut) */
+#obrolan-topik {
+  flex: none;
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  padding-bottom: 2px;
+}
+
+#hud #obrolan-topik button {
+  flex: none;
+  min-height: 34px;
+  padding: 6px 12px;
+  border-radius: 17px;
+  font-size: 13px;
+  background: rgba(255, 255, 255, 0.14);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+#obrolan-form {
+  flex: none;
+  display: flex;
+  gap: 8px;
+}
+
+#obrolan-teks {
+  flex: 1 1 auto;
+  min-width: 0;
+  height: 42px;
+  padding: 0 12px;
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  border-radius: 21px;
+  background: rgba(255, 255, 255, 0.95);
+  color: #222;
+  font-size: 16px; /* 16px: Safari/Chrome HP tidak memperbesar halaman saat mengetik */
+}
+
+#hud #btn-kirim {
+  flex: none;
+  width: 46px;
+  min-height: 42px;
+  padding: 0;
+  border-radius: 21px;
+  display: grid;
+  place-items: center;
+  background: #1f9c8a;
+}
+
+#hud #btn-kirim svg {
+  width: 22px;
+  height: 22px;
+}
+
+@media (orientation: landscape) {
+  #obrolan {
+    left: auto;
+    right: max(12px, env(safe-area-inset-right));
+    transform: none;
+    width: min(420px, 48%);
+  }
+
+  .obrolan-kartu {
+    max-height: calc(100vh - 24px);
+  }
+}
+
+/* kartu elf: tombol Ajak bicara */
+#hud .ke-bicara {
+  margin-top: 8px;
+  width: 100%;
+  min-height: 38px;
+  background: rgba(40, 130, 75, 0.9);
+  font-weight: 700;
+}

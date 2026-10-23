@@ -82,6 +82,25 @@
     <div id="petunjuk"></div>
     <div id="wilayah"><div class="wilayah-nama"></div><div class="wilayah-ket"></div></div>
     <div id="kartu-elf" hidden></div>
+    <!-- obrolan dengan NPC: riwayat, topik siap pilih, kolom ketik -->
+    <div id="obrolan" hidden>
+      <div class="obrolan-kartu">
+        <div class="obrolan-kepala">
+          <div><b id="obrolan-nama"></b><small id="obrolan-peran"></small></div>
+          <button type="button" id="btn-tutup-obrolan" aria-label="Tutup obrolan">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18" stroke="#fff" stroke-width="2.6" stroke-linecap="round" /></svg>
+          </button>
+        </div>
+        <div id="obrolan-log"></div>
+        <div id="obrolan-topik"></div>
+        <form id="obrolan-form" autocomplete="off">
+          <input id="obrolan-teks" type="text" maxlength="120" placeholder="Ketik pesanmu…" enterkeyhint="send" aria-label="Pesan untuk NPC">
+          <button type="submit" id="btn-kirim" aria-label="Kirim">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3.5 11.2 20 4.2l-5.6 16.3-3.2-6.6z" fill="#fff" /><path d="M11.2 13.9 20 4.2" stroke="#1f7a6a" stroke-width="1.4" /></svg>
+          </button>
+        </form>
+      </div>
+    </div>
     <div id="toko" class="panel-layar" hidden>
       <div class="toko-kartu">
         <div class="toko-kepala">
