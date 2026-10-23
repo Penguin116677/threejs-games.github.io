@@ -25,6 +25,12 @@ import { mkdirSync } from 'node:fs'
 //   dibawa keluar wilayah, kabur keluar wilayah → berhenti dikejar, serbuan orc dihadang
 //   prajurit, pendatang ditanyai penjaga di gerbang. Di luar uji penjagaan prajurit dibuat tidak
 //   menghiraukan pemain (gencatan senjata), supaya uji kota & bala tentara tidak terganggu.
+// - Kerajaan Elf Aeloria (utara): 10.000 kesatria + penduduk, elf terlihat di pasar, tombol Belanja
+//   di depan kios, membeli makanan & perlengkapan (koin berkurang, tombak dipakai), ketuk elf →
+//   kartu isi pikiran, keributan warga dilerai kesatria; (HP tegak & komputer) memukul kesatria →
+//   kerusuhan (musuh kerajaan, kesatria menyerang), pedagang tetap melayani, kalah → dibawa ke ujung
+//   selatan Jembatan Perak, Benteng Aeloria terlarang (masuk → diserang, keluar → berhenti);
+//   (HP tegak) jurus Penggal pada orc memberi koin
 // Waktu tunggu dihitung dalam FRAME (fisika berjalan per frame), bukan detik, karena
 // render software jauh lebih lambat dari HP.
 // Pemakaian: npm run build && npm run preview (terminal lain) && npm run test:smoke
@@ -166,6 +172,9 @@ async function waitReady(page) {
 for (const [name, opts, query] of cases) {
   const ctx = await browser.newContext(opts)
   const page = await ctx.newPage()
+  // render software: satu bingkai 0,3–0,8 detik, tangkapan layar 5–8 detik; batas bawaan Playwright
+  // (30 detik) sesekali terlewati sejak dunia bertambah besar
+  page.setDefaultTimeout(90000)
   const logs = []
   page.on('console', m => logs.push(`[${m.type()}] ${m.text()}`))
   page.on('pageerror', e => logs.push(`[pageerror] ${e.message}`))
@@ -535,6 +544,211 @@ for (const [name, opts, query] of cases) {
       window.__pulau.security.ceasefire(true)
     })
   }
+
+  // ===== Kerajaan Elf Aeloria (utara): rakyat, toko, kartu elf, keributan, kerusuhan, benteng
+  const elf = await page.evaluate(() => {
+    const { life } = window.__pulau
+    if (!life) return null
+    const s = life.stats()
+    return { kesatria: s.kesatria, penduduk: s.penduduk, anak: s.anak, kios: life.economy.stalls.length }
+  })
+  if (!elf || elf.kesatria !== 10000 || elf.penduduk < 150 || elf.kios < 30) fail(`rakyat Aeloria: ${JSON.stringify(elf)}`)
+  else ok(`Aeloria: ${elf.kesatria} kesatria, ${elf.penduduk} penduduk, ${elf.anak} anak, ${elf.kios} kios yang melayani pemain`)
+  // berdiri di depan kios yang buka (barang `goods`), menghadapnya; hasil: indeks kios atau -1
+  const atStall = (goods, area) => page.evaluate(([goods, area]) => {
+    const { life, player, cam } = window.__pulau
+    const i = life.economy.stalls.findIndex(s => s.goods === goods && s.area === area && life.isOpen(s))
+    if (i < 0) return -1
+    const s = life.economy.stalls[i]
+    const h = Math.atan2(s.x - s.front.x, s.z - s.front.z)
+    player.placeAt(s.front.x, s.front.z, h)
+    player.stop()
+    cam.lookFrom(h + Math.PI)
+    cam.state.dist = 12
+    return i
+  }, [goods, area])
+  if (elf) {
+    await page.evaluate(() => window.__pulau.bag.reset(60))
+    const roti = await atStall('roti', 'pasar')
+    await waitFrames(page, 12)
+    const shown = await page.evaluate(() => ({
+      ramai: window.__pulau.life.around(10, -630, 60).length,
+      dekat: window.__pulau.life.stats().dekat,
+      tombol: document.getElementById('btn-belanja').hidden ? null : document.getElementById('btn-belanja').textContent,
+    }))
+    if (roti < 0 || shown.ramai < 30 || shown.dekat < 2 || !shown.tombol) fail(`pasar Aeloria: kios ${roti}, ${JSON.stringify(shown)}`)
+    else ok(`pasar Aeloria: ${shown.ramai} elf di sekitar pasar, ${shown.dekat} digambar dekat, tombol "${shown.tombol}"`)
+    await page.screenshot({ path: `${out}/${name}-aeloria-pasar.png` })
+    if (shown.tombol) {
+      await page.click('#btn-belanja')
+      await waitFrames(page, 3)
+      const id = await page.evaluate(i => Object.keys(window.__pulau.life.economy.stalls[i].stock).find(k => window.__pulau.life.economy.stalls[i].stock[k] > 0), roti)
+      await page.click(`#toko-daftar button[data-id="${id}"]`)
+      await waitFrames(page, 3)
+      const buy = await page.evaluate(id => ({ koin: window.__pulau.bag.koin, punya: window.__pulau.bag.barang[id] || 0, panel: !document.getElementById('toko').hidden }), id)
+      await page.screenshot({ path: `${out}/${name}-aeloria-toko.png` })
+      if (!buy.panel || buy.koin >= 60 || buy.punya !== 1) fail(`membeli ${id}: ${JSON.stringify(buy)}`)
+      else ok(`membeli ${id} di Kios Roti: koin 60 → ${buy.koin}, masuk tas`)
+      await page.click('#btn-tutup-toko')
+    }
+    // Tempa Aeloria: tombak langsung dipakai (jangkauan +0,9 m)
+    await page.evaluate(() => window.__pulau.bag.reset(500))
+    const tempa = await atStall('senjata', 'tempa')
+    if (tempa >= 0) {
+      await page.evaluate(i => {
+        const s = window.__pulau.life.economy.stalls[i]
+        s.stock.tombakElf = Math.max(1, s.stock.tombakElf)
+      }, tempa)
+      await waitFrames(page, 8)
+      await page.click('#btn-belanja')
+      await waitFrames(page, 3)
+      await page.click('#toko-daftar button[data-id="tombakElf"]')
+      await waitFrames(page, 3)
+      await page.click('#btn-tutup-toko')
+      const gear = await page.evaluate(() => ({ pakai: window.__pulau.bag.pakai.senjata, efek: window.__pulau.bag.effect() }))
+      if (gear.pakai !== 'tombakElf' || gear.efek.jangkau !== 0.9) fail(`tombak dari Tempa Aeloria: ${JSON.stringify(gear)}`)
+      else ok('Tempa Aeloria: Tombak Elf dibeli dan langsung dipakai (jangkauan +0,9 m)')
+    } else fail('kios senjata Tempa Aeloria tutup')
+    await page.evaluate(() => window.__pulau.bag.reset(0))
+    // ketuk / klik elf → kartu isi pikiran (di tengah pasar yang ramai; pedagang yang berjaga tidak
+    // dihitung, karena mengetuknya = mengetuk kiosnya)
+    await page.evaluate(() => {
+      const { player, cam } = window.__pulau
+      player.placeAt(5, -628, 0.6)
+      player.stop()
+      cam.lookFrom(0.6)
+      cam.state.dist = 18
+    })
+    await waitFrames(page, 8)
+    const target = await page.evaluate(() => {
+      const { life, camera } = window.__pulau
+      let best = null
+      let bd = 1e9
+      for (const a of life.near) {
+        if (a.hidden || (a.job === 'pedagang' && a.atWork)) continue // pedagang yang berjaga = ketuk kios
+        const v = camera.position.clone().set(a.x, a.y + 0.85 * a.scale, a.z).project(camera)
+        const sx = (v.x + 1) / 2 * innerWidth
+        const sy = (1 - v.y) / 2 * innerHeight
+        const d = Math.hypot(sx - innerWidth / 2, sy - innerHeight * 0.55)
+        if (d < bd && sy > 140 && sy < innerHeight - 140) {
+          bd = d
+          best = { x: sx, y: sy }
+        }
+      }
+      return best
+    })
+    if (target) {
+      if (name.startsWith('hp')) await page.touchscreen.tap(target.x, target.y)
+      else await page.mouse.click(target.x, target.y)
+      await waitFrames(page, 4)
+    }
+    const card = await page.evaluate(() => document.getElementById('kartu-elf').hidden ? null : document.getElementById('kartu-elf').innerText.split('\n')[0])
+    if (!card) fail(`ketuk elf: kartu tidak terbuka (${JSON.stringify(target)})`)
+    else ok(`ketuk elf: kartu isi pikiran "${card}"`)
+    await page.screenshot({ path: `${out}/${name}-aeloria-kartu.png` })
+    await page.evaluate(() => window.__pulau.elfCard.hide())
+    // keributan warga: dua elf berkelahi, kesatria terdekat datang melerai. Keributan hanya dimulai
+    // di antara elf tenang yang terlihat, jadi dicoba di beberapa tempat ramai
+    let brawl = false
+    for (const [x, z, yaw] of [[5, -628, 0.6], [10, -752, 0.4], [-20, -640, 2.2], [235, -790, 0.3]]) {
+      await page.evaluate(([x, z, yaw]) => {
+        const { player, cam } = window.__pulau
+        player.placeAt(x, z, yaw)
+        player.stop()
+        cam.lookFrom(yaw)
+        cam.state.dist = 28
+      }, [x, z, yaw])
+      await waitFrames(page, 8)
+      for (let k = 0; k < 3 && !brawl; k++) {
+        brawl = await page.evaluate(() => window.__pulau.elfSec.startBrawl())
+        if (!brawl) await waitFrames(page, 8)
+      }
+      if (brawl) break
+    }
+    const calmed = brawl && await waitUntil(page, () => {
+      const k = window.__pulau.elfSec.stats().keributan
+      return !k || k.fase !== 'adu'
+    }, 400, 10)
+    const brawlEnd = await page.evaluate(() => window.__pulau.elfSec.stats())
+    if (!brawl) fail('keributan warga tidak bisa dimulai di pasar')
+    else if (!calmed) fail(`keributan tidak berakhir: ${JSON.stringify(brawlEnd)}`)
+    else ok(`keributan warga: ${brawlEnd.keributan ? `fase ${brawlEnd.keributan.fase}, pelerai ${brawlEnd.keributan.pelerai}` : 'sudah bubar'}`)
+  }
+  if (elf && (name === 'hp-portrait' || name === 'desktop')) {
+    // kerusuhan: memukul kesatria → musuh kerajaan, kesatria menyerang
+    const knight = await page.evaluate(() => {
+      const { life, player, cam } = window.__pulau
+      const p = player.position
+      const a = life.around(p.x, p.z, 40).filter(k => k.kind === 'kesatria' && k.weapon !== 'busur' && k.phase !== 'tempur' && !k.down)
+        .sort((u, v) => Math.hypot(u.x - p.x, u.z - p.z) - Math.hypot(v.x - p.x, v.z - p.z))[0]
+      if (!a) return null
+      const x = a.x + 0.9
+      const { z } = a
+      const h = Math.atan2(a.x - x, a.z - z)
+      player.placeAt(x, z, h)
+      player.stop()
+      cam.lookFrom(h + Math.PI)
+      return a.id
+    })
+    await page.keyboard.press('KeyF')
+    const riot = await waitUntil(page, () => {
+      const s = window.__pulau.elfSec.stats()
+      return s.buron > 0 && s.penyerang > 0 && s
+    }, 60, 3)
+    if (knight === null || !riot) fail(`kerusuhan: kesatria ${knight}, ${JSON.stringify(await page.evaluate(() => window.__pulau.elfSec.stats()))}`)
+    else ok(`kerusuhan: musuh kerajaan ${riot.buron} detik, ${riot.penyerang} kesatria menyerang, ${riot.pengepung} mengepung`)
+    const hp0 = await page.evaluate(() => window.__pulau.player.hp)
+    const hurt = await waitUntil(page, () => window.__pulau.player.hp < 100 && window.__pulau.player.hp, 300, 10)
+    if (!hurt) fail(`kesatria tidak menyerang (nyawa ${hp0})`)
+    else ok(`kesatria menyerang pemain: nyawa ${Math.round(hp0)} → ${Math.round(hurt)}`)
+    await page.screenshot({ path: `${out}/${name}-aeloria-rusuh.png` })
+    // pedagang tetap netral
+    const buah = await atStall('buah', 'pasar')
+    await waitFrames(page, 6)
+    if (buah >= 0) await page.click('#btn-belanja').catch(() => {})
+    await waitFrames(page, 3)
+    const seller = await page.evaluate(() => document.getElementById('toko').hidden ? null : document.getElementById('toko-penjual').textContent)
+    if (!seller || !seller.includes('netral')) fail(`pedagang saat pemain buron: ${seller}`)
+    else ok(`pedagang tetap melayani buronan: "${seller}"`)
+    await page.evaluate(() => window.__pulau.shop.close())
+    // kalah oleh kesatria → dibawa ke ujung selatan Jembatan Perak
+    await page.evaluate(() => {
+      const { player } = window.__pulau
+      window.__pesanLog = []
+      player.damage(player.hp - 2, null)
+    })
+    // status roboh hanya ±1,6 detik waktu nyata: tunggu pesan kekalahannya (muncul setelah dibangunkan)
+    const down = await waitUntil(page, () => window.__pesanLog.some(m => m.includes('dikalahkan kesatria Aeloria')), 600, 3)
+    const out1 = await page.evaluate(() => ({ x: window.__pulau.player.position.x, z: window.__pulau.player.position.z, hp: window.__pulau.player.hp }))
+    if (!down || out1.z < -215 || out1.z > -180 || out1.hp < 100) fail(`kalah oleh kesatria Aeloria: ${JSON.stringify({ down, ...out1 })}`)
+    else ok(`kalah → dibawa ke luar kerajaan (${out1.x.toFixed(0)}, ${out1.z.toFixed(0)}), nyawa ${out1.hp}`)
+    // di luar wilayah Aeloria, kesatria yang lewat tidak menyerang buronan (masa tenang 20 detik + 15)
+    await waitGameTime(page, 35)
+    const safe = await page.evaluate(() => ({ hp: window.__pulau.player.hp, s: window.__pulau.elfSec.stats() }))
+    if (safe.hp < 100 || safe.s.penyerang) fail(`setelah dibangunkan di luar kerajaan masih diserang: ${JSON.stringify(safe)}`)
+    else ok(`35 detik di ujung selatan Jembatan Perak: aman (buron ${safe.s.buron} detik lagi)`)
+    // Benteng Aeloria: wilayah terlarang
+    await page.evaluate(() => window.__pulau.elfSec.forgive())
+    await teleport(page, 10, -905, [10, -960])
+    const guard = await waitUntil(page, () => {
+      const s = window.__pulau.elfSec.stats()
+      return s.benteng && s.penyerang > 0 && s
+    }, 120, 5)
+    if (!guard) fail(`Benteng Aeloria: ${JSON.stringify(await page.evaluate(() => window.__pulau.elfSec.stats()))}`)
+    else ok(`masuk Benteng Aeloria → ${guard.penyerang} penjaga menyerang`)
+    await page.screenshot({ path: `${out}/${name}-aeloria-benteng.png` })
+    await teleport(page, 10, -850, [10, -800])
+    const left = await waitUntil(page, () => {
+      const s = window.__pulau.elfSec.stats()
+      return !s.benteng && !s.penyerang
+    }, 60, 5)
+    if (!left) fail(`keluar benteng: ${JSON.stringify(await page.evaluate(() => window.__pulau.elfSec.stats()))}`)
+    else ok('keluar Benteng Aeloria → penjaga berhenti menyerang')
+    await page.evaluate(() => {
+      window.__pulau.elfSec.forgive()
+      window.__pulau.player.heal(100)
+    })
+  }
   await teleport(page, -122, 122, [-170, 170])
 
   if (name === 'desktop') {
@@ -822,6 +1036,7 @@ for (const [name, opts, query] of cases) {
     await nearOrc(page, 0, 7)
     await waitFrames(page, 5)
     const pg0 = await state(page)
+    const coin0 = await page.evaluate(() => window.__pulau.bag.koin)
     await page.tap('#btn-penggal')
     await waitFrames(page, 2)
     const aimed = await page.evaluate(() => window.__pulau.enemies.list.filter(e => e.marked).length)
@@ -834,6 +1049,9 @@ for (const [name, opts, query] of cases) {
     else if (o4.filter(o => o.headless).length !== 5 || fx4.cuts < 5) fail(`jurus Penggal: kepala terpotong ${o4.filter(o => o.headless).length}, garis potong ${fx4.cuts}`)
     else if (Math.hypot(pg1.x - pg0.x, pg1.z - pg0.z) < 3 || cd4 < 10) fail(`jurus Penggal: prajurit pindah ${Math.hypot(pg1.x - pg0.x, pg1.z - pg0.z).toFixed(1)} m, jeda ${cd4.toFixed(1)}`)
     else ok(`jurus Penggal: 5 leher dibidik lalu dipenggal sekaligus, prajurit melesat ${Math.hypot(pg1.x - pg0.x, pg1.z - pg0.z).toFixed(1)} m`)
+    const coin1 = await page.evaluate(() => window.__pulau.bag.koin)
+    if (coin1 - coin0 < 30 || coin1 - coin0 > 60) fail(`koin dari 5 orc: ${coin0} → ${coin1}`)
+    else ok(`koin dari 5 orc yang dipenggal: ${coin0} → ${coin1}`)
     await waitFrames(page, 4)
     await page.screenshot({ path: `${out}/${name}-penggal.png` })
 
