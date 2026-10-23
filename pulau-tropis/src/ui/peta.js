@@ -17,7 +17,7 @@ const LABELS = [
   { text: 'Pulau Nelayan', x: -760, z: 452, size: 13 },
   { text: 'Pura Segara', x: -890, z: 58, size: 12 },
   { text: 'Dermaga Timur', x: -318, z: 24, size: 10 },
-  { text: 'Dermaga Barat', x: -190, z: 24, size: 10 },
+  { text: 'Dermaga Barat', x: -190, z: 58, size: 10 }, // di bawah dermaganya: label Dermaga Timur dekat
   { text: 'Pelabuhan', x: -553, z: 236, size: 11 },
   { text: 'Pulau Wira', x: -270, z: 620, size: 14 },
   { text: 'Tegal Wira · 25.000 prajurit', x: -270, z: 352, size: 11 },
@@ -197,7 +197,7 @@ export function createWorldMap({ ground, plans, regions, camps = [], shops = [] 
     ctx.fillText(text, x, y)
   }
 
-  // marks: penanda tambahan [{ x, z, label }] (mis. perahu pemain): titik toska berlabel
+  // marks: penanda tambahan [{ x, z, label? }] (mis. perahu pemain): titik toska, berlabel bila ada label
   function draw(player, heading, marks) {
     if (!base) drawBase()
     const rect = canvas.getBoundingClientRect()
@@ -234,7 +234,7 @@ export function createWorldMap({ ground, plans, regions, camps = [], shops = [] 
       ctx.arc(px(m.x) * s, pz(m.z) * s, 4.5 * scale, 0, Math.PI * 2)
       ctx.fill()
       ctx.stroke()
-      label(m.label, px(m.x) * s, pz(m.z) * s - 12 * scale, 10, scale)
+      if (m.label) label(m.label, px(m.x) * s, pz(m.z) * s - 12 * scale, 10, scale)
     }
     // prajurit: panah ke arah hadap
     const x = px(player.x) * s

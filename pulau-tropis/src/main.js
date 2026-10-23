@@ -846,7 +846,8 @@ async function start() {
     else {
       $('panel-kualitas').hidden = true
       hideHint()
-      worldMap.show(player.position, player.heading, boat.built ? [{ ...boat.position, label: 'Perahu' }] : [])
+      // perahu: titik toska tanpa tulisan (dijelaskan di keterangan peta; tulisannya menimpa label dermaga)
+      worldMap.show(player.position, player.heading, boat.built ? [boat.position] : [])
     }
   }
   $('btn-peta').addEventListener('click', toggleMap)
