@@ -1050,10 +1050,7 @@ export function createLife({ ground, plan, routes, folk, quality, free = () => t
         // semua penuh: tidak berkeliling mencari meja lain — makan bekal sambil duduk di dekat sini
         const spot = choose(a, 'santai', { spread: 20 })
         if (spot) goTo(a, 'bekal', spot.site, spot.slot)
-        else {
-          a.act = 'bekal'
-          begin(a, 'bekal', null, -1, between(...KEGIATAN.bekal.lama))
-        }
+        else bekalNear(a)
         return
       }
       if (goal === 'antre') {
@@ -1159,7 +1156,7 @@ export function createLife({ ground, plan, routes, folk, quality, free = () => t
         // semua kursi penuh: makanannya dibawa, dimakan sambil duduk di dekat sini
         const spot = choose(a, 'santai', { spread: 20 })
         if (spot) goTo(a, 'bekal', spot.site, spot.slot)
-        else begin(a, 'bekal', null, -1, between(...KEGIATAN.bekal.lama))
+        else bekalNear(a)
       }
       return
     }
@@ -1188,6 +1185,22 @@ export function createLife({ ground, plan, routes, folk, quality, free = () => t
       return
     }
     decide(a)
+  }
+
+  // makan bekal di tempat lapang beberapa meter dari sini — bukan di titik yang sama dengan yang lain
+  // (saat Balai Makan penuh, ratusan kesatria bisa tiba di titik yang sama dan menumpuk)
+  function bekalNear(a) {
+    for (let k = 0; k < 10; k++) {
+      const ang = rand() * Math.PI * 2
+      const r = between(5, 24)
+      const x = a.x + Math.sin(ang) * r
+      const z = a.z + Math.cos(ang) * r
+      if (ground.heightAt(x, z) < 1 || !free(x, z, 0.7) || !clearLine(a.x, a.z, x, z)) continue
+      goToPoint(a, 'bekal', x, z, { direct: true })
+      return
+    }
+    a.act = 'bekal'
+    begin(a, 'bekal', null, -1, between(...KEGIATAN.bekal.lama))
   }
 
   function decide(a) {
