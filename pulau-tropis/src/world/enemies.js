@@ -9,10 +9,12 @@ import { clone as cloneSkinned } from 'three/addons/utils/SkeletonUtils.js'
 //   roboh (animasi die) saat nyawa habis, terbaring sebentar, tenggelam ke tanah, lalu muncul lagi
 //   di perkemahan setelah RESPAWN detik.
 // - Jurus Penggal: tanda bidik merah di kepala, lalu kepala terlepas & terlempar (tanpa darah).
-// - SERBUAN: sesekali (diatur keamanan.js) tiga orc dari perkemahan terdekat berjalan ke Kotaraja
-//   Kencana lewat Jembatan Agung. Orc penyerbu menyerang prajurit kerajaan yang menghadang (dan
-//   pemain yang memukulnya); yang selamat pulang ke perkemahan. Orc di perkemahan tetap tidak
-//   menyerang.
+// - SERBUAN: sesekali (diatur keamanan.js) tiga orc dari perkemahan terdekat menyerbu Kotaraja
+//   Kencana. Pulau-pulau tidak tersambung jembatan, jadi mereka berjalan ke pantai barat Pulau
+//   Tropis, mengarungi air dangkal ke PERAHU PERANG mereka, berlayar ke pantai timur Pulau Kencana
+//   (di utara Dermaga Timur), turun, lalu berjalan ke gerbang timur. Orc penyerbu menyerang prajurit
+//   kerajaan yang menghadang (dan pemain yang memukulnya); yang selamat pulang lewat jalan yang sama
+//   (naik perahu lagi). Orc di perkemahan tetap tidak menyerang.
 // Hemat untuk HP: orc yang jauh (> VIEW m dari prajurit) tidak digambar dan tidak dianimasikan.
 
 export const MAX_HP = 6
@@ -28,7 +30,11 @@ const PER_CAMP = 5
 const HEAD_Y = 1.3 // m: tinggi pusat kepala (kepala besar: leher ±0,8 m, ubun-ubun ±1,8 m)
 const RAID = { size: 3, speed: 2.4, sight: 7, reach: 1.3, hit: 0.24, dur: 0.42, linger: 25, view: 150 }
 const RAID_GOAL = { x: -425, z: 40 } // tepat di dalam gerbang timur Kotaraja Kencana
-const BRIDGE_HEAD = { x: -160, z: 40 } // ujung timur Jembatan Agung (perkemahan terdekat yang menyerbu)
+// perahu perang: lintasan di garis z (utara Dermaga Timur & Dermaga Barat), kecepatan (m/s), tempat
+// duduk penumpang (ruang lokal perahu, haluan = +z), air tempat orc naik/turun (m), perahu menunggu
+// penumpang yang masih dalam perjalanan ke tambatan paling lama `wait` detik; orc yang tertinggal
+// perahu menyerah setelah `giveUp` detik
+const SHIP = { z: 66, speed: 6, seats: [[0.5, 2.2], [-0.5, 0.8], [0.5, -0.6], [-0.5, -2]], wade: 0.75, draft: 1.3, wait: 30, giveUp: 45 }
 const ME = { kind: 'pemain' }
 
 // tanda bidik: cincin + 4 garis pendek (bidang XY, menghadap kamera)
@@ -69,8 +75,9 @@ function findCamp(ground, colliders, nav, x, z) {
   return null
 }
 
-// asset: hasil loadPlayerModel untuk orc; spawn: titik mulai prajurit
-export function createEnemies({ ground, colliders, nav, asset, spawn }) {
+// asset: hasil loadPlayerModel untuk orc; spawn: titik mulai prajurit; shipMesh: mesh perahu perang
+// (tanpa perahu = tidak ada serbuan)
+export function createEnemies({ ground, colliders, nav, asset, spawn, shipMesh = null }) {
   const group = new THREE.Group()
   group.name = 'musuh'
   const list = []
@@ -173,6 +180,7 @@ export function createEnemies({ ground, colliders, nav, asset, spawn }) {
     e.marked = false
     e.target = null
     e.raid = null
+    e.ride = false
     play(e, 'die', 0.08)
   }
 
@@ -184,11 +192,125 @@ export function createEnemies({ ground, colliders, nav, asset, spawn }) {
     e.kx = e.kz = 0
     e.flash = e.barTime = 0
     e.model.position.y = 0
+    e.ride = false
     e.pos.set(e.home.x, ground.heightAt(e.home.x, e.home.z), e.home.z)
     e.actions.die.stop()
     e.current.stop()
     e.current = e.actions.idle
     e.current.reset().play()
+  }
+
+  // --- perahu perang: ditambatkan di pantai barat Pulau Tropis ('tropis'); saat serbuan berlayar ke
+  // pantai timur Pulau Kencana ('kencana') lalu kembali. Tiap tambatan: tempat perahu (air sedalam
+  // SHIP.draft) dan tempat orc naik/turun sambil mengarungi air (sedalam SHIP.wade)
+  const waterline = (x0, dir, depth) => {
+    for (let x = x0; Math.abs(x - x0) < 260; x += dir * 0.5) if (ground.heightAt(x, SHIP.z) < -depth) return x
+    return null
+  }
+  const stopAt = (x0, dir) => {
+    const boat = waterline(x0, dir, SHIP.draft)
+    const wade = waterline(x0, dir, SHIP.wade)
+    return boat === null || wade === null ? null : { boat: { x: boat, z: SHIP.z }, wade: { x: wade, z: SHIP.z } }
+  }
+  const stops = { tropis: stopAt(-150, -1), kencana: stopAt(-360, 1) }
+  const ship = shipMesh && stops.tropis && stops.kencana
+    ? { mesh: shipMesh, at: 'tropis', to: null, state: 'tambat', x: stops.tropis.boat.x, z: SHIP.z, heading: -Math.PI / 2, waitT: 0, t: 0, y: 0 }
+    : null
+  if (ship) group.add(shipMesh)
+  const seatPos = k => {
+    const [sx, sz] = SHIP.seats[k % SHIP.seats.length]
+    const c = Math.cos(ship.heading)
+    const s = Math.sin(ship.heading)
+    return { x: ship.x + sx * c + sz * s, z: ship.z - sx * s + sz * c }
+  }
+  const wrap = a => Math.atan2(Math.sin(a), Math.cos(a))
+  const sailLeg = e => e.raid && e.raid.legs[e.raid.li]?.sail
+  // tujuan pelayaran berikutnya yang masih harus ditempuh penyerbu e (null bila tidak ada)
+  const nextSail = e => (e.state === 'hidup' && !e.ride && e.raid ? e.raid.legs.slice(e.raid.li).find(l => l.sail)?.sail ?? null : null)
+  function updateShip(dt) {
+    if (!ship) return
+    ship.t += dt
+    const riders = list.filter(e => e.ride && e.state === 'hidup')
+    if (ship.state === 'tambat') {
+      // penyerbu yang masih dalam perjalanan ke tambatan ini (berjalan / mengarungi air) — ditunggu
+      const w = stops[ship.at].wade
+      const coming = list.some(e => {
+        const to = nextSail(e)
+        return to && to !== ship.at && Math.hypot(e.pos.x - w.x, e.pos.z - w.z) < 160
+      })
+      if (riders.length) {
+        ship.waitT += dt
+        if (!coming || ship.waitT > SHIP.wait) {
+          ship.to = sailLeg(riders[0])
+          ship.state = 'berlayar'
+        }
+      } else if (!coming && ship.at !== 'tropis' && !list.some(e => e.raid && e.state === 'hidup')) {
+        // semua penyerbu kalah: perahu kosong kembali ke tambatannya
+        ship.to = 'tropis'
+        ship.state = 'berlayar'
+      } else ship.waitT = 0
+    }
+    if (ship.state === 'berlayar') {
+      const goal = stops[ship.to].boat
+      const dx = goal.x - ship.x
+      const dz = goal.z - ship.z
+      const d = Math.hypot(dx, dz)
+      if (d < 0.4) {
+        ship.state = 'tambat'
+        ship.at = ship.to
+        ship.waitT = 0
+      } else {
+        ship.heading += wrap(Math.atan2(dx, dz) - ship.heading) * Math.min(1, dt * 1.5)
+        const step = Math.min(Math.min(SHIP.speed, 0.6 + d * 0.5) * dt, d)
+        ship.x += (dx / d) * step
+        ship.z += (dz / d) * step
+      }
+    }
+    ship.y = 0.12 + Math.sin(ship.t * 1.2) * 0.07
+    ship.mesh.position.set(ship.x, ship.y, ship.z)
+    ship.mesh.rotation.set(Math.sin(ship.t * 0.8) * 0.02, ship.heading, Math.sin(ship.t * 1.05) * 0.04)
+    for (const e of riders) {
+      const s = seatPos(e.seat)
+      e.pos.set(s.x, ship.y + 0.25, s.z)
+      e.heading = ship.heading
+    }
+  }
+  // penyerbu di bagian perjalanan perahu: mengarungi air ke perahu, naik, menunggu tiba, turun
+  function sailStep(e, R, leg, dt) {
+    if (!ship) {
+      e.raid = null
+      return 0
+    }
+    if (e.ride) {
+      if (ship.state === 'tambat' && ship.at === leg.sail) {
+        e.ride = false
+        const w = stops[ship.at].wade
+        e.pos.set(w.x + (Math.random() - 0.5) * 2, 0, w.z + (Math.random() - 0.5) * 2)
+        R.li++
+        R.i = 0
+      }
+      return 0
+    }
+    // perahu sedang di tempat lain / berlayar: menunggu di tepi air; tertinggal terlalu lama =
+    // menyerah (berhenti menyerbu)
+    if (ship.state !== 'tambat' || ship.at === leg.sail) {
+      if ((R.waitShip = (R.waitShip || 0) + dt) > SHIP.giveUp) e.raid = null
+      return 0
+    }
+    R.waitShip = 0
+    const s = seatPos(e.seat)
+    const dx = s.x - e.pos.x
+    const dz = s.z - e.pos.z
+    const d = Math.hypot(dx, dz)
+    if (d < 1.6) {
+      e.ride = true
+      return 0
+    }
+    turn(e, Math.atan2(dx, dz), dt)
+    const v = RAID.speed * 0.6 // mengarungi air
+    e.pos.x += (dx / d) * Math.min(v * dt, d)
+    e.pos.z += (dz / d) * Math.min(v * dt, d)
+    return v
   }
 
   // titik jalan-jalan acak di sekitar perkemahan
@@ -211,9 +333,12 @@ export function createEnemies({ ground, colliders, nav, asset, spawn }) {
   // --- serbuan: lawan (prajurit kerajaan / pemain) dicari & diserang lewat foes (dari main.js):
   // near(x, z, r) → sasaran | null, pos(sasaran) → { x, z } | null, strike(orc, sasaran, kerusakan)
   let foes = { near: () => null, pos: () => null, strike: () => {} }
-  // langkah orc penyerbu; true = bergerak (animasi lari)
+  // langkah orc penyerbu; hasil = kecepatan (0 = diam). R.legs = bagian perjalanan berurutan:
+  // { walk: [titik…] } berjalan kaki / { sail: tujuan } naik perahu perang
   function stepRaider(e, dt, pp) {
     const R = e.raid
+    const leg = R.legs[R.li]
+    if (leg?.sail) return sailStep(e, R, leg, dt)
     if (R.target) {
       const tp = R.target === ME ? pp : foes.pos(R.target)
       if (!tp || (R.target === ME && Math.hypot(tp.x - e.pos.x, tp.z - e.pos.z) > 25)) R.target = null
@@ -255,16 +380,21 @@ export function createEnemies({ ground, colliders, nav, asset, spawn }) {
       }
       goal = tp
       if (d < 4) speed = 1.6
-    } else if (R.i < R.path.length) {
-      goal = R.path[R.i]
+    } else if (leg && R.i < leg.walk.length) {
+      goal = leg.walk[R.i]
       if (Math.hypot(goal.x - e.pos.x, goal.z - e.pos.z) < 1.2) R.i++
+    } else if (leg) {
+      // ujung bagian jalan kaki ini → bagian berikutnya (naik perahu / jalan lagi)
+      R.li++
+      R.i = 0
+      return false
     } else if (!R.back) {
-      // sampai tujuan: berkeliaran sebentar, lalu pulang lewat jalan yang sama
+      // sampai tujuan: berkeliaran sebentar, lalu pulang lewat jalan yang sama (naik perahu lagi)
       R.idle += dt
       if (R.idle > RAID.linger) {
         R.back = true
-        R.path = [...R.path].reverse()
-        R.path.push({ x: e.home.x, z: e.home.z })
+        R.legs = R.homeLegs
+        R.li = 0
         R.i = 0
       }
       return false
@@ -433,26 +563,40 @@ export function createEnemies({ ground, colliders, nav, asset, spawn }) {
     setFoes(f) {
       foes = f
     },
-    // mulai serbuan ke Kotaraja dari perkemahan terdekat dengan Jembatan Agung yang tidak sedang
-    // didekati pemain (avoid); false bila tidak ada jalan / orc
+    // mulai serbuan ke Kotaraja dari perkemahan terdekat dengan tambatan perahu perang yang tidak
+    // sedang didekati pemain (avoid): jalan ke pantai → perahu → pantai Kencana → gerbang timur.
+    // false bila perahu tidak di tambatannya / tidak ada jalan / orc
     startRaid(avoid) {
+      if (!ship || ship.state !== 'tambat' || ship.at !== 'tropis') return false
+      const dock = stops.tropis.wade
+      const ashore = nav.findPath(stops.kencana.wade, RAID_GOAL)
+      if (!ashore) return false
       const ok = camps
         .filter(c => Math.hypot(c.x - avoid.x, c.z - avoid.z) > 60)
         .map(c => ({ c, members: list.filter(e => e.home.camp === c && e.state === 'hidup' && !e.raid) }))
         .filter(o => o.members.length >= 2)
-        .sort((a, b) => Math.hypot(a.c.x - BRIDGE_HEAD.x, a.c.z - BRIDGE_HEAD.z) - Math.hypot(b.c.x - BRIDGE_HEAD.x, b.c.z - BRIDGE_HEAD.z))
+        .sort((a, b) => Math.hypot(a.c.x - dock.x, a.c.z - dock.z) - Math.hypot(b.c.x - dock.x, b.c.z - dock.z))
       for (const { c, members } of ok) {
-        const path = nav.findPath({ x: c.x, z: c.z }, RAID_GOAL)
-        if (!path) continue
+        const toShore = nav.findPath({ x: c.x, z: c.z }, dock)
+        if (!toShore) continue
         members.slice(0, RAID.size).forEach((e, k) => {
           e.target = null
-          e.raid = { path: path.slice(), i: 0, target: null, scan: k * 0.13, cd: 0, atk: null, idle: 0, back: false }
+          e.seat = k
+          e.raid = {
+            legs: [{ walk: toShore.slice() }, { sail: 'kencana' }, { walk: ashore.slice() }],
+            homeLegs: [{ walk: [...ashore].reverse() }, { sail: 'tropis' }, { walk: [...toShore].reverse().concat([{ x: e.home.x, z: e.home.z }]) }],
+            li: 0, i: 0, target: null, scan: k * 0.13, cd: 0, atk: null, idle: 0, back: false,
+          }
           // berangkat berurutan (beberapa langkah di belakang yang di depan)
           e.raid.delay = k * 0.9
         })
         return true
       }
       return false
+    },
+    // perahu perang orc (untuk pengujian & peta): { x, z, at, state } atau null
+    get ship() {
+      return ship && { x: ship.x, z: ship.z, at: ship.at, state: ship.state, riders: list.filter(e => e.ride && e.state === 'hidup').length }
     },
     get raidActive() {
       return list.some(e => e.raid && e.state === 'hidup')
@@ -472,6 +616,7 @@ export function createEnemies({ ground, colliders, nav, asset, spawn }) {
     // focus = titik pandang kamera (mode "Lihat pulau": orc digambar di sekitar titik itu)
     update(dt, camera, player, focus = player.position) {
       clock += dt
+      updateShip(dt)
       const pp = player.position
       // saat Penggal prajurit melesat menembus barisan orc — orc tidak didorong
       const through = player.attackMove === 'penggal'
@@ -534,23 +679,26 @@ export function createEnemies({ ground, colliders, nav, asset, spawn }) {
             e.target = pickWander(e)
             e.wait = 2
           }
-          // tidak menempel prajurit (orc yang bergeser), sesama orc, dan batang pohon
-          if (!through && dist < 0.75 && dist > 1e-4) {
-            e.pos.x = pp.x + (dx / dist) * 0.75
-            e.pos.z = pp.z + (dz / dist) * 0.75
-          }
-          for (const o of list) {
-            if (o === e || o.state !== 'hidup') continue
-            const ox = e.pos.x - o.pos.x
-            const oz = e.pos.z - o.pos.z
-            const od = Math.hypot(ox, oz)
-            if (od < 0.7 && od > 1e-4) {
-              e.pos.x += (ox / od) * (0.7 - od) * 0.5
-              e.pos.z += (oz / od) * (0.7 - od) * 0.5
+          // tidak menempel prajurit (orc yang bergeser), sesama orc, dan batang pohon (penumpang
+          // perahu perang tetap di tempat duduknya — letaknya diatur updateShip)
+          if (!e.ride) {
+            if (!through && dist < 0.75 && dist > 1e-4) {
+              e.pos.x = pp.x + (dx / dist) * 0.75
+              e.pos.z = pp.z + (dz / dist) * 0.75
             }
+            for (const o of list) {
+              if (o === e || o.state !== 'hidup' || o.ride) continue
+              const ox = e.pos.x - o.pos.x
+              const oz = e.pos.z - o.pos.z
+              const od = Math.hypot(ox, oz)
+              if (od < 0.7 && od > 1e-4) {
+                e.pos.x += (ox / od) * (0.7 - od) * 0.5
+                e.pos.z += (oz / od) * (0.7 - od) * 0.5
+              }
+            }
+            colliders.resolve(e.pos, RADIUS, tmp.set(0, 0, 0))
+            e.pos.y = ground.surfaceAt(e.pos.x, e.pos.z)
           }
-          colliders.resolve(e.pos, RADIUS, tmp.set(0, 0, 0))
-          e.pos.y = ground.surfaceAt(e.pos.x, e.pos.z)
           if (e.raid?.atk) {
             // ayunan serangan sedang diputar
           } else if (raidMove) {

@@ -16,7 +16,8 @@ const LABELS = [
   { text: 'Pulau Sawah', x: -660, z: -425, size: 13 },
   { text: 'Pulau Nelayan', x: -760, z: 452, size: 13 },
   { text: 'Pura Segara', x: -890, z: 58, size: 12 },
-  { text: 'Jembatan Agung', x: -252, z: 24, size: 11 },
+  { text: 'Dermaga Timur', x: -318, z: 24, size: 10 },
+  { text: 'Dermaga Barat', x: -190, z: 24, size: 10 },
   { text: 'Pelabuhan', x: -553, z: 236, size: 11 },
   { text: 'Pulau Wira', x: -270, z: 620, size: 14 },
   { text: 'Tegal Wira · 25.000 prajurit', x: -270, z: 352, size: 11 },
@@ -25,7 +26,8 @@ const LABELS = [
   { text: 'Benteng Aeloria', x: 10, z: -876, size: 12 },
   { text: 'Lapangan Latihan', x: -220, z: -718, size: 11 },
   { text: 'Padang Pesta', x: 235, z: -718, size: 11 },
-  { text: 'Jembatan Perak', x: 52, z: -310, size: 11 },
+  { text: 'Dermaga Perak', x: 54, z: -384, size: 10 },
+  { text: 'Dermaga Utara', x: 54, z: -238, size: 10 },
 ]
 
 const lerp = (a, b, t) => a + (b - a) * t
@@ -46,7 +48,7 @@ export function regionAt(x, z, ground, spans) {
     const along = b.axis === 'x' ? x : z
     const across = b.axis === 'x' ? z : x
     if (Math.abs(across - b.at) < b.width && along > Math.min(b.a, b.b) && along < Math.max(b.a, b.b))
-      return { id: `jembatan-${b.id}`, name: b.name, sub: b.id === 'agung' ? 'Penghubung Pulau Tropis dan Kerajaan Kencana' : b.id === 'perak' ? 'Penghubung Pulau Tropis dan Aeloria' : 'Kepulauan Kencana' }
+      return { id: `jembatan-${b.id}`, name: b.name, sub: 'Kepulauan Kencana' }
   }
   if (ground.heightAt(x, z) < -1.2) return null
   if (Math.hypot(x, z) < 340) return { id: 'tropis', name: 'Pulau Tropis', sub: 'Pulau tengah' }
@@ -167,6 +169,20 @@ export function createWorldMap({ ground, plans, regions, camps = [], shops = [] 
       }
       g.stroke()
     }
+    // dermaga (kayu / batu putih)
+    for (const d of plans.flatMap(p => p.docks ?? [])) {
+      g.strokeStyle = d.elf ? '#f4efe2' : '#b98a55'
+      g.lineWidth = Math.max(2, d.width / M_PER_PX)
+      g.beginPath()
+      if (d.axis === 'x') {
+        g.moveTo(px(d.s0), pz(d.at))
+        g.lineTo(px(d.s1), pz(d.at))
+      } else {
+        g.moveTo(px(d.at), pz(d.s0))
+        g.lineTo(px(d.at), pz(d.s1))
+      }
+      g.stroke()
+    }
     base = c
   }
 
@@ -181,7 +197,8 @@ export function createWorldMap({ ground, plans, regions, camps = [], shops = [] 
     ctx.fillText(text, x, y)
   }
 
-  function draw(player, heading) {
+  // marks: penanda tambahan [{ x, z, label }] (mis. perahu pemain): titik toska berlabel
+  function draw(player, heading, marks) {
     if (!base) drawBase()
     const rect = canvas.getBoundingClientRect()
     const dpr = Math.min(2, window.devicePixelRatio || 1)
@@ -209,6 +226,16 @@ export function createWorldMap({ ground, plans, regions, camps = [], shops = [] 
       ctx.stroke()
     }
     for (const l of LABELS) label(l.text, px(l.x) * s, pz(l.z) * s, l.size, scale)
+    for (const m of marks) {
+      ctx.fillStyle = '#3fd0d4'
+      ctx.strokeStyle = '#06292b'
+      ctx.lineWidth = 1.5 * scale
+      ctx.beginPath()
+      ctx.arc(px(m.x) * s, pz(m.z) * s, 4.5 * scale, 0, Math.PI * 2)
+      ctx.fill()
+      ctx.stroke()
+      label(m.label, px(m.x) * s, pz(m.z) * s - 12 * scale, 10, scale)
+    }
     // prajurit: panah ke arah hadap
     const x = px(player.x) * s
     const y = pz(player.z) * s
@@ -233,9 +260,9 @@ export function createWorldMap({ ground, plans, regions, camps = [], shops = [] 
     get open() {
       return !panel.hidden
     },
-    show(player, heading) {
+    show(player, heading, marks = []) {
       panel.hidden = false
-      draw(player, heading)
+      draw(player, heading, marks)
     },
     hide() {
       panel.hidden = true

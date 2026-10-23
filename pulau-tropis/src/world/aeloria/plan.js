@@ -1,8 +1,8 @@
 import { rng } from '../../core/random.js'
 import { rectDistance, inRect } from '../kencana/layout.js'
-import { bridgeSpans, BRIDGE_END_Y } from '../kencana/height.js'
+import { dockSpans, BRIDGE_END_Y } from '../kencana/height.js'
 import {
-  LANDS, TOWN, MARKET, SMITHY, TAVERN, MESS, TRAINING, FEAST, CAMPS, CITADEL, FIELDS, ORCHARDS, BRIDGES, STREETS, TRAILS, landDistance,
+  LANDS, TOWN, MARKET, SMITHY, TAVERN, MESS, TRAINING, FEAST, CAMPS, CITADEL, FIELDS, ORCHARDS, DOCKS, STREETS, TRAILS, landDistance,
 } from './layout.js'
 
 // Rencana rinci Aeloria: letak setiap bangunan, penghalang, lantai yang bisa diinjak, cat jalan /
@@ -20,10 +20,11 @@ const facing = (x, z, tx, tz) => Math.atan2(tx - x, tz - z)
 export function planAeloria(ground) {
   const rand = rng(4242)
   const between = (a, b) => a + (b - a) * rand()
-  const spans = bridgeSpans(ground.heightAt, BRIDGES)
+  const docks = dockSpans(ground.heightAt, DOCKS)
 
   const P = {
-    spans,
+    spans: [], // Aeloria tidak punya jembatan (Jembatan Perak dibongkar, diganti dermaga)
+    docks, // Dermaga Perak & Dermaga Utara Pulau Tropis (dockSpans)
     build: [], // { type, x, y, z, rot, ... }
     colliders: [],
     surfaces: [],
@@ -144,40 +145,37 @@ export function planAeloria(ground) {
     P.tracks.push([ax, az, bx, bz, 2.4])
   }
 
-  // ===================================================================== Jembatan Perak + gapura
-  for (const br of spans) {
-    const s0 = Math.min(br.a, br.b) - 4
-    const s1 = Math.max(br.a, br.b) + 4
-    const mid = (s0 + s1) / 2
-    const half = (s1 - s0) / 2
-    const endY = BRIDGE_END_Y + 0.15
-    const rot = br.axis === 'x' ? Math.PI / 2 : 0
-    const [x, z] = br.axis === 'x' ? [mid, br.at] : [br.at, mid]
-    const tA = (Math.min(br.a, br.b) - s0) / (2 * half)
-    const tB = (Math.max(br.a, br.b) - s0) / (2 * half)
-    const surf = { x, z, hx: br.width / 2, hz: half, rot, y0: endY, y1: endY, arch: br.rise, a0: tA, a1: tB }
-    P.surfaces.push(surf)
-    add({ type: 'jembatan-perak', x, y: 0, z, rot, len: 2 * half, w: br.width, surface: surf, a: br.a, b: br.b, axis: br.axis, at: br.at })
-    for (const sgn of [-1, 1]) {
-      const o = sgn * (br.width / 2 - 0.2)
-      P.colliders.push({ x: br.at + o, z: mid, hx: 0.2, hz: half - 1, rot, kind: 'batu' })
+  // ===================================================================== dermaga + gapura
+  // Pengganti Jembatan Perak: Dermaga Perak (batu putih) di ujung Tanjung Perak, berpangkal di
+  // gapura perak yang dijaga dua kesatria (zona damai: hanya menghadang orc / pembuat onar); Dermaga
+  // Utara (kayu) di pantai utara Pulau Tropis tempat perahu berangkat ke Aeloria.
+  for (const d of docks) {
+    const deckY = d.elf ? BRIDGE_END_Y + 0.1 : 1.75
+    const lo = Math.min(d.s0, d.s1)
+    const hi = Math.max(d.s0, d.s1)
+    const len = hi - lo
+    const mid = (lo + hi) / 2
+    add({ type: d.elf ? 'dermaga-elf' : 'dermaga', x: d.at, y: deckY, z: mid, rot: 0, w: d.width, len })
+    P.surfaces.push({ x: d.at, z: mid, hx: d.width / 2, hz: len / 2, rot: 0, y0: deckY, y1: deckY })
+    block(d.at, mid, d.width + 2, len + 2)
+    P.paths.push([d.at, d.s0 - d.dir * 8, d.at, d.s1 - d.dir * 2])
+    if (!d.gate) {
+      // jalan setapak dari pangkal dermaga ke darat (Pulau Tropis)
+      P.roads.push([d.at, d.s0 + d.dir, d.at, d.s0 - d.dir * 30, 3.5])
+      continue
     }
-    block(x, z, br.width + 3, 2 * half + 6, rot)
-    // jalan di kedua ujung (Pulau Tropis di selatan, Aeloria di utara) + lantai jembatan
-    P.roads.push([br.at, s1, br.at, s1 + 32, br.width - 1], [br.at, s0 - 12, br.at, s0, br.width - 1])
-    P.paths.push([br.at, s0 - 2, br.at, s1 + 2])
-    // gapura di ujung Aeloria + lantai batu putih + lentera
-    const gz = s0 - 7
-    add({ type: 'gapura-perak', x: br.at, y: yAt(br.at, gz), z: gz, rot: 0, w: br.width + 1 })
-    for (const sgn of [-1, 1]) circle(br.at + sgn * ((br.width + 1) / 2 + 1.4), gz, 1.7, 'batu')
-    P.pave.push({ x0: br.at - 11, z0: gz - 22, x1: br.at + 11, z1: gz + 3 })
+    P.roads.push([d.at, d.s0 + d.dir, d.at, d.s0 - d.dir * 14, 7])
+    // gapura di pangkal + lantai batu putih + lentera
+    const gz = d.shore - d.dir * 9
+    add({ type: 'gapura-perak', x: d.at, y: yAt(d.at, gz), z: gz, rot: 0, w: d.width + 2.5 })
+    for (const sgn of [-1, 1]) circle(d.at + sgn * ((d.width + 2.5) / 2 + 1.4), gz, 1.7, 'batu')
+    P.pave.push({ x0: d.at - 11, z0: gz - 22, x1: d.at + 11, z1: gz + 3 })
     for (const sgn of [-1, 1]) {
-      lamp(br.at + sgn * 7, gz - 8, sgn > 0 ? FACE.barat : FACE.timur)
-      lamp(br.at + sgn * 7, gz - 18, sgn > 0 ? FACE.barat : FACE.timur)
+      lamp(d.at + sgn * 7, gz - 8, sgn > 0 ? FACE.barat : FACE.timur)
+      lamp(d.at + sgn * 7, gz - 18, sgn > 0 ? FACE.barat : FACE.timur)
     }
-    // dua kesatria berjaga di gapura (zona damai: hanya menghadang orc / pembuat onar)
-    site({ type: 'jaga', area: 'gapura', x: br.at, z: gz - 2, slots: [-1, 1].map(sgn => ({ x: br.at + sgn * 4.2, z: gz - 3, rot: FACE.selatan, pose: 'guard' })) })
-    P.gateway = { x: br.at, z: gz }
+    site({ type: 'jaga', area: 'gapura', x: d.at, z: gz - 2, slots: [-1, 1].map(sgn => ({ x: d.at + sgn * 4.2, z: gz - 3, rot: FACE.selatan, pose: 'guard' })) })
+    P.gateway = { x: d.at, z: gz }
   }
 
   // ===================================================================== Kota Aeloria
@@ -748,7 +746,7 @@ export function planAeloria(ground) {
         const x = L.x + dx * L.rx * u
         const z = L.z + dz * L.rz * u
         if (yAt(x, z) > 1.8) continue
-        // bukan di kaki Jembatan Perak, bukan di dalam kawasan berbangunan
+        // bukan di pangkal Dermaga Perak, bukan di dalam kawasan berbangunan
         if ((Math.abs(x - 10) < 18 && z > -470) || P.clear(x, z, 0)) break
         slots.push({ x, z, rot: Math.atan2(dx * L.rz, dz * L.rx), pose: i % 3 ? 'duduk' : 'fish' })
         break

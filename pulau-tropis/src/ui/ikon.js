@@ -13,6 +13,10 @@ const DAGING = c => `<ellipse cx="14.6" cy="9.4" rx="6.2" ry="5" transform="rota
 const MINUM = c => `<path d="M5.5 6.5h10.5v9.8a3 3 0 0 1-3 3H8.5a3 3 0 0 1-3-3z" fill="#c98a3d"/><path d="M16 9h1.4a2.6 2.6 0 0 1 0 5.2H16" fill="none" stroke="#c98a3d" stroke-width="2"/><path d="M7 9.4h7.5" stroke="${c}" stroke-width="2.4" stroke-linecap="round"/>`
 const SAYUR = '<path d="M16.6 7.4c-2-2-4.6-.8-6.1.7L4.3 18.5c-.6.9.4 1.9 1.3 1.3l10.4-6.2c1.5-1.5 2.6-4.2.6-6.2z" fill="#ef8a2c"/><path d="M16.2 7.8l3.2-4M16.7 8.4l4.1-1.4M15.6 7.4l.4-4.7" stroke="#4f9a3c" stroke-width="1.7" stroke-linecap="round"/>'
 const IKAN = '<path d="M2.5 12c3-4.6 9.2-5.6 13.3-2l4.4-3.2v10.4L15.8 14c-4.1 3.6-10.3 2.6-13.3-2z" fill="#6aa9d8"/><circle cx="7.2" cy="11.1" r="1.15" fill="#1d3b52"/><path d="M11 9.6c.8 1.4.8 3.4 0 4.8" fill="none" stroke="#4a86b4" stroke-width="1.2"/>'
+// ikan segar hasil memancing: warna badan, warna sirip/garis, hiasan di belakang / di depan badan
+const IKAN_SEGAR = (c, s, behind = '', front = '') => `${behind}<path d="M2.5 12c3-4.6 9.2-5.6 13.3-2l4.4-3.2v10.4L15.8 14c-4.1 3.6-10.3 2.6-13.3-2z" fill="${c}"/><circle cx="7" cy="11.1" r="1.1" fill="#16222c"/><path d="M10.8 9.5c.8 1.4.8 3.5 0 5M5 13.4c2.6 1.3 6.6 1.3 9.4-.4" fill="none" stroke="${s}" stroke-width="1.1" stroke-linecap="round"/>${front}`
+const KAYU = '<rect x="2.5" y="12.4" width="17" height="5.2" rx="2.6" fill="#9a6b3e"/><rect x="4.5" y="6.6" width="17" height="5.2" rx="2.6" fill="#b07a46"/><ellipse cx="19" cy="9.2" rx="2.1" ry="2.6" fill="#e2c08e"/><ellipse cx="17" cy="15" rx="2.1" ry="2.6" fill="#d8b27c"/><path d="M19 8.2v2M17 14v2" stroke="#9a6b3e" stroke-width=".9"/>'
+const PANCING = '<path d="M4 21 19 3.5" stroke="#8a5a32" stroke-width="1.9" stroke-linecap="round"/><path d="M19 3.5c1.6 4 1.8 9.4.6 13.6" fill="none" stroke="#e8eef2" stroke-width=".9"/><circle cx="19.6" cy="17.8" r="1.6" fill="#e0352b"/><circle cx="7.2" cy="17.2" r="1.7" fill="#c9c3b8" stroke="#6f6a62" stroke-width=".8"/>'
 const KEJU = '<path d="M2.8 15.5 14.6 6.8 21.2 10.4V18H2.8z" fill="#f4cd55"/><path d="M2.8 15.5h18.4" stroke="#c9a02a" stroke-width="1.2"/><circle cx="8" cy="16.9" r="1" fill="#c9a02a"/><circle cx="16.2" cy="12.8" r="1.2" fill="#c9a02a"/><circle cx="12.6" cy="16.8" r=".8" fill="#c9a02a"/>'
 const RAMUAN = c => `<path d="M9.7 2.8h4.6v2h-.6v4.4l4.8 7.4a2.3 2.3 0 0 1-1.9 3.6H7.4a2.3 2.3 0 0 1-1.9-3.6l4.8-7.4V4.8h-.6z" fill="#eaf4ff" fill-opacity=".85"/><path d="M7.3 14.4h9.4l1.3 2.1a1.6 1.6 0 0 1-1.4 2.6H7.4A1.6 1.6 0 0 1 6 16.5z" fill="${c}"/><circle cx="11" cy="16.6" r=".9" fill="#fff" fill-opacity=".7"/>`
 const PEDANG = c => `<path transform="rotate(45 12 12)" d="M12 1.5 13.5 4v11h-3V4z" fill="${c}"/><path transform="rotate(45 12 12)" d="M7 15h10v2H7zm4 2h2v4h-2zm-.75 4h3.5v2h-3.5z" fill="#d9b44a"/>`
@@ -47,6 +51,15 @@ const GAMBAR = {
   zirahRantai: ZIRAH('#8d939b', '#5d636b'),
   zirahPerak: ZIRAH('#dfe6ee', '#d9b44a'),
   helmElf: HELM,
+  ikanBelanak: IKAN_SEGAR('#b9c6cf', '#7d8e9a'),
+  ikanKakap: IKAN_SEGAR('#e2584a', '#a8322a'),
+  ikanTongkol: IKAN_SEGAR('#3f6fa3', '#a9c4de'),
+  ikanKerapu: IKAN_SEGAR('#9a6a44', '#5e3d24', '', '<circle cx="9" cy="12.6" r=".7" fill="#5e3d24"/><circle cx="12.5" cy="11.4" r=".7" fill="#5e3d24"/>'),
+  ikanLayaran: IKAN_SEGAR('#2f5f9e', '#9fc2ea', '<path d="M6.5 9.4 9 3.6l5.6 1.6-1.4 4.6z" fill="#4c7fc0"/>'),
+  kayu: KAYU,
+  pancing: PANCING,
+  // bukan barang tas: gambar resep "Perahu jukung" di bagian Buat
+  perahu: '<path d="M2 14h20l-2.7 4.6a2 2 0 0 1-1.7 1H6.4a2 2 0 0 1-1.7-1z" fill="#c98a4a"/><path d="M2 14h20" stroke="#2f62a8" stroke-width="1.4"/><path d="M11.4 2.8V13H4.6z" fill="#e0352b"/><path d="M11.4 2.8V13" stroke="#5e3d24" stroke-width="1.2"/>',
 }
 
 export function ikonBarang(id) {

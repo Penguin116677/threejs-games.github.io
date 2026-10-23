@@ -1,8 +1,8 @@
 import { rng } from '../../core/random.js'
 import {
-  CITY, GATES, KERATON, ALUN, CANDI, PASAR, PURA, TEGAL, CAMPS, SITI_COLS, STREETS, island, rectDistance, segmentDistance, inRect,
+  CITY, GATES, KERATON, ALUN, CANDI, PASAR, PURA, TEGAL, CAMPS, SITI_COLS, STREETS, DOCKS, island, rectDistance, segmentDistance, inRect,
 } from './layout.js'
-import { bridgeSpans, BRIDGE_END_Y } from './height.js'
+import { bridgeSpans, dockSpans, BRIDGE_END_Y } from './height.js'
 import { formation, DIVISIONS } from './barisan.js'
 
 // Rencana rinci Kepulauan Kencana: letak setiap bangunan, penghalang (collider), lantai yang bisa
@@ -17,9 +17,11 @@ export function planKencana(ground) {
   const between = (a, b) => a + (b - a) * rand()
   const pick = list => list[Math.floor(rand() * list.length)]
   const spans = bridgeSpans(ground.heightAt)
+  const docks = dockSpans(ground.heightAt, DOCKS)
 
   const P = {
     spans,
+    docks, // dermaga penyeberangan (dockSpans): Dermaga Timur Kencana & Dermaga Barat Pulau Tropis
     build: [], // { type, x, y, z, rot, ... }
     colliders: [], // lingkaran / kotak (lihat colliders.js)
     surfaces: [], // lantai yang bisa diinjak (lihat terrain.js setSurfaces)
@@ -463,24 +465,49 @@ export function planKencana(ground) {
     block(x, z, br.width + 3, 2 * half + 6, rot)
     P.roads.push(br.axis === 'x' ? [s0 - 6, br.at, s1 + 6, br.at, br.width - 1] : [br.at, s0 - 6, br.at, s1 + 6, br.width - 1])
     P.paths.push(br.axis === 'x' ? [s0 - 2, br.at, s1 + 2, br.at] : [br.at, s0 - 2, br.at, s1 + 2])
-    // Jembatan Agung: gapura candi bentar di kedua ujung + umbul-umbul + lantai batu di kepala jembatan
-    if (br.stone)
-      for (const end of [s0 - 7, s1 + 7]) {
-        for (const sgn of [-1, 1]) {
-          const o = sgn * (br.width / 2 + 1.7)
-          const [gx, gz] = br.axis === 'x' ? [end, br.at + o] : [br.at + o, end]
-          add({ type: 'bentar', x: gx, y: ground.heightAt(gx, gz), z: gz, rot, w: 3.4, d: 3.4, h: 9, mirror: -sgn })
-          box(gx, gz, 3.4, 3.4, 0, 'bata')
-          P.spots.push({ x: end + (end < mid ? -2.8 : 2.8), z: br.at + sgn * (br.width / 2 - 0.4), rot: end < mid ? FACE.barat : FACE.timur, role: 'penjaga', anim: 'idle' })
-        }
-        const [px, pz] = br.axis === 'x' ? [end + (end < mid ? -6 : 6), br.at] : [br.at, end]
-        P.pave.push({ x0: px - 9, z0: pz - 9, x1: px + 9, z1: pz + 9 })
-        for (const sgn of [-1, 1]) {
-          const [ux, uz] = [px + (end < mid ? -1 : 1) * 3, pz + sgn * 8]
-          add({ type: 'umbul', x: ux, y: ground.heightAt(ux, uz), z: uz, rot: 0, h: 9, color: sgn > 0 ? 0 : 2 })
-          P.colliders.push({ x: ux, z: uz, radius: 0.18, kind: 'kayu' })
-        }
-      }
+  }
+
+  // ===================================================================== dermaga penyeberangan
+  // Pengganti Jembatan Agung: lantai kayu menjorok ke laut dengan perahu bersandar di sisinya.
+  // Dermaga Timur (Kencana) berpangkal di gapura candi bentar yang dijaga prajurit, dengan lantai
+  // batu & umbul-umbul; kapal penyeberangan berlabuh di dekatnya. Dermaga Barat (Pulau Tropis)
+  // hanya dermaga nelayan sederhana.
+  for (const d of docks) {
+    const deckY = 1.75
+    const lo = Math.min(d.s0, d.s1)
+    const hi = Math.max(d.s0, d.s1)
+    const len = hi - lo
+    const rot = d.axis === 'x' ? Math.PI / 2 : 0
+    const along = (s, o = 0) => (d.axis === 'x' ? [s, d.at + o] : [d.at + o, s])
+    const [x, z] = along((lo + hi) / 2)
+    add({ type: 'dermaga', x, y: deckY, z, rot, w: d.width, len })
+    P.surfaces.push({ x, z, hx: d.width / 2, hz: len / 2, rot, y0: deckY, y1: deckY })
+    block(x, z, d.width + 2, len + 2, rot)
+    P.paths.push([...along(d.s0 - d.dir * 8), ...along(d.s1 - d.dir * 2)])
+    P.roads.push([...along(d.s0 - d.dir * 14), ...along(d.s0 + d.dir * 1), d.gate ? 7 : 3.5])
+    for (const [side, off] of [[1, 5], [-1, 12]]) {
+      const [bx, bz] = along(d.s1 - d.dir * off, side * (d.width / 2 + 2.3))
+      P.boats.push({ type: 'jukung', x: bx, z: bz, rot: rot + (side > 0 ? 0 : Math.PI) + between(-0.1, 0.1) })
+    }
+    if (!d.gate) continue
+    const end = d.shore - d.dir * 9
+    for (const sgn of [-1, 1]) {
+      const [gx, gz] = along(end, sgn * 5.2)
+      add({ type: 'bentar', x: gx, y: ground.heightAt(gx, gz), z: gz, rot, w: 3.4, d: 3.4, h: 9, mirror: -sgn })
+      box(gx, gz, 3.4, 3.4, 0, 'bata')
+      const [sx, sz] = along(end - d.dir * 2.8, sgn * 3.1)
+      P.spots.push({ x: sx, z: sz, rot: d.dir > 0 ? FACE.timur : FACE.barat, role: 'penjaga', anim: 'idle' })
+    }
+    const [px, pz] = along(end - d.dir * 6)
+    P.pave.push({ x0: px - 9, z0: pz - 9, x1: px + 9, z1: pz + 9 })
+    for (const sgn of [-1, 1]) {
+      const [ux, uz] = along(end - d.dir * 9, sgn * 8)
+      add({ type: 'umbul', x: ux, y: ground.heightAt(ux, uz), z: uz, rot: 0, h: 9, color: sgn > 0 ? 0 : 2 })
+      P.colliders.push({ x: ux, z: uz, radius: 0.18, kind: 'kayu' })
+    }
+    const [jx, jz] = along(d.s1 - d.dir * 9, -(d.width / 2 + 6.5))
+    P.boats.push({ type: 'jong', x: jx, z: jz, rot: rot + 0.04 })
+    P.gate = { x: end, z: d.at } // gapura Dermaga Timur (pendatang ditanyai di sini)
   }
 
   // ===================================================================== Pulau Sawah: dukuh petani

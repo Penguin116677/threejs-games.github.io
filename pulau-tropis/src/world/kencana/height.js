@@ -75,6 +75,26 @@ export function westHeight(x, z) {
 // turun di bawah BRIDGE_END_Y (a) lalu naik lagi di atasnya (b). heightAt = tinggi tanah dunia.
 // Hasil: [{ ...jembatan, a, b, length }] — a, b = koordinat sepanjang sumbu jembatan.
 // list = daftar jembatan (bawaan: jembatan Kepulauan Kencana)
+// Dermaga: dari titik darat `from` berjalan searah `dir` sampai tanah turun di bawah BRIDGE_END_Y
+// (tepi pantai `shore`); lantai mulai 2 m di darat (s0) dan berakhir `len` m di laut (s1).
+// Hasil: [{ ...dermaga, shore, s0, s1, tip: { x, z } (ujung di laut), base: { x, z } (pangkal) }]
+export function dockSpans(heightAt, list) {
+  return list.map(d => {
+    const at = s => (d.axis === 'x' ? heightAt(s, d.at) : heightAt(d.at, s))
+    let shore = null
+    for (let s = d.from, k = 0; k < 1200; s += d.dir * 0.25, k++)
+      if (at(s) < BRIDGE_END_Y) {
+        shore = s
+        break
+      }
+    if (shore === null) throw new Error(`tepi pantai ${d.name} tidak ditemukan`)
+    const s0 = shore - d.dir * 2
+    const s1 = shore + d.dir * d.len
+    const point = s => (d.axis === 'x' ? { x: s, z: d.at } : { x: d.at, z: s })
+    return { ...d, shore, s0, s1, tip: point(s1), base: point(s0) }
+  })
+}
+
 export function bridgeSpans(heightAt, list = BRIDGES) {
   return list.map(br => {
     const dir = Math.sign(br.to - br.from)

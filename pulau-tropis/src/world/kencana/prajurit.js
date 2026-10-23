@@ -28,7 +28,7 @@ const RESPAWN = 30 // detik menghilang sebelum kembali bertugas
 const ATTACK = { hit: 0.24, dur: 0.42 } // detik: saat kena & lama klip serang
 const PATROL = { rendah: 40, sedang: 64, tinggi: 96 } // peronda (berpasangan)
 // porsi pasangan peronda per wilayah tugas (paling sedikit satu pasangan per wilayah)
-const ZONE_SHARE = { kota: 0.28, wira: 0.22, kencana: 0.2, agung: 0.08, sawah: 0.08, nelayan: 0.07, pura: 0.07 }
+const ZONE_SHARE = { kota: 0.28, wira: 0.22, kencana: 0.2, dermaga: 0.08, sawah: 0.08, nelayan: 0.07, pura: 0.07 }
 
 // jenis seragam: jaga (penjaga pos, jambul hitam — beda dari jambul merah pemain), tombak (peronda,
 // jambul biru), pedang (peronda, jambul hijau, pedang + perisai). reach = jangkauan serang (m)

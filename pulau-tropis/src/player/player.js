@@ -6,10 +6,11 @@ import { ATTACK_CLIPS, createCombat } from './combat.js'
 
 // Karakter pemain: prajurit Kenney "Mini Arena" (CC0) membawa pedang, dengan animasi bawaan
 // idle / walk / sprint / jump / fall + animasi serang (tebasan, tinju, tendangan — lihat combat.js).
-// Bergerak mengikuti jalur hasil ketukan layar (atau keyboard di komputer), dengan fisika sederhana:
-// gravitasi, lompat, batas kemiringan lereng, tabrakan batang pohon, batu & dinding bangunan,
-// berpijak di tanah atau lantai bangunan (jembatan, dermaga, batur — ground.surfaceAt),
-// berjalan di air dangkal, dan kembali ke tempat aman bila masuk laut dalam.
+// Bergerak dengan joystick / keyboard (relatif kamera) atau mengikuti jalur ke kios yang diketuk,
+// dengan fisika sederhana: gravitasi, lompat, batas kemiringan lereng, tabrakan batang pohon, batu &
+// dinding bangunan, berpijak di tanah atau lantai bangunan (jembatan, dermaga, batur —
+// ground.surfaceAt), berjalan di air dangkal, BERENANG di air yang lebih dalam dari dada (mengapung,
+// tidak bisa menyerang), dan bisa duduk di perahu (posisinya diatur perahu.js).
 // Nyawa: berkurang bila terkena serangan (prajurit Kencana yang bermusuhan, orc penyerbu), pulih
 // perlahan setelah beberapa detik aman; habis = roboh (main.js memindahkan pemain ke tempat aman).
 
@@ -25,7 +26,16 @@ const COYOTE_TIME = 0.12 // masih boleh lompat sesaat setelah meninggalkan tanah
 const JUMP_BUFFER = 0.15 // tombol lompat yang ditekan sesaat sebelum mendarat tetap dihitung
 const MAX_SLOPE = 1.3 // kemiringan maksimum yang bisa didaki (±52°)
 const WADE_DEPTH = 0.35 // mulai melambat di air
-const DEEP_DEPTH = 1.3 // lebih dalam dari ini = kembali ke pantai
+// berenang: mulai bila air lebih dalam dari SWIM_DEPTH (sedada), kembali berjalan di bawah SWIM_EXIT
+// (jeda supaya tidak bolak-balik di batasnya)
+const SWIM_DEPTH = 1.15
+const SWIM_EXIT = 0.95
+const SWIM_SPEED = 2.4 // m/s (joystick penuh)
+const SWIM_ACCEL = 5
+// titik kaki di bawah permukaan air: mengapung tegak (kepala di atas air) / berenang maju (badan
+// mendatar, dimiringkan SWIM_TILT radian ke depan)
+const SWIM_SINK = { tegak: 1.02, maju: 0.32 }
+const SWIM_TILT = 1.25
 const WORLD_MARGIN = 30 // m dari tepi dunia (data laut & pantai berakhir di sana)
 export const MAX_HP = 100
 const REGEN = { delay: 6, rate: 5 } // pulih 5 nyawa/detik setelah 6 detik tidak terkena
@@ -99,9 +109,11 @@ export function createPlayer({ ground, colliders, quality, asset }) {
   const mixer = asset ? new THREE.AnimationMixer(model) : null
   const actions = {}
   // lompat & serangan diputar sekali lalu berhenti di pose akhir sampai berganti animasi
-  const once = ['jump', 'die', ...ATTACK_CLIPS]
+  // + duduk di perahu (sit, drive), memegang pancing (holding-right), melempar kail
+  // (interact-right), mengangkat ikan (emote-yes)
+  const once = ['jump', 'die', 'interact-right', 'emote-yes', 'pick-up', ...ATTACK_CLIPS]
   if (mixer)
-    for (const name of ['idle', 'walk', 'sprint', 'fall', ...once]) {
+    for (const name of ['idle', 'walk', 'sprint', 'fall', 'sit', 'drive', 'holding-right', ...once]) {
       const clip = THREE.AnimationClip.findByName(asset.clips, name)
       if (!clip) continue
       const a = mixer.clipAction(clip)
@@ -149,7 +161,12 @@ export function createPlayer({ ground, colliders, quality, asset }) {
   let coyote = 0
   let jumpBuffer = 0
   let airTime = 0
-  let deepTime = 0
+  let swimming = false
+  let swimPose = 0 // 0 = mengapung tegak, 1 = berenang maju (badan mendatar)
+  let swimT = 0
+  let ride = null // duduk di perahu: fungsi → { x, y, z, heading, vx, vz, moving }
+  let pose = null // klip yang dipaksakan modul lain (mis. memegang pancing)
+  let gestureT = 0 // detik sisa gerakan sekali (gesture) yang tidak boleh ditimpa
   let safeTimer = 0
   let onRespawnNeeded = () => {}
   let frozen = false
@@ -197,12 +214,15 @@ export function createPlayer({ ground, colliders, quality, asset }) {
   }
 
   function placeAt(x, z, h) {
-    pos.set(x, ground.surfaceAt(x, z), z)
+    // di air dalam (mis. terjun dari perahu): langsung mengapung
+    const gy = ground.surfaceAt(x, z)
+    const deep = ISLAND.seaLevel - gy > SWIM_DEPTH
+    pos.set(x, deep ? ISLAND.seaLevel - SWIM_SINK.tegak : gy, z)
     vel.set(0, 0, 0)
     heading = h
     root.rotation.y = h
-    grounded = true
-    deepTime = 0
+    grounded = !deep
+    swimming = deep
     // hanya titik di darat yang boleh menjadi tempat kembali
     if (pos.y > 0.4) {
       lastSafe.copy(pos)
@@ -228,6 +248,56 @@ export function createPlayer({ ground, colliders, quality, asset }) {
     arm.getWorldQuaternion(qArm)
     qWant.setFromAxisAngle(Y, heading).multiply(qTilt)
     sword.quaternion.copy(qArm.invert().multiply(qWant))
+  }
+
+  // joran pancing di tangan kanan (dibuat saat pertama dipakai, hanya tampak saat memancing): arah
+  // dunianya dihitung tiap frame — ke depan & 40° ke atas — lalu diubah ke ruang tulang lengan, jadi
+  // tetap benar apa pun animasinya. Ujungnya dipakai mancing.js untuk tali pancing.
+  let rod = null
+  let rodTip = null
+  const rodDir = new THREE.Vector3()
+  const qRod = new THREE.Quaternion()
+  function makeRod() {
+    rod = new THREE.Group()
+    const k = 1 / MODEL_SCALE // ruang tulang memakai satuan model asli
+    const wood = new THREE.MeshLambertMaterial({ color: '#7a5230' })
+    const stick = new THREE.Mesh(new THREE.CylinderGeometry(0.012 * k, 0.022 * k, 1.9 * k, 5).translate(0, 0.95 * k, 0), wood)
+    const reel = new THREE.Mesh(new THREE.CylinderGeometry(0.04 * k, 0.04 * k, 0.05 * k, 8).rotateZ(Math.PI / 2).translate(0.03 * k, 0.25 * k, 0), new THREE.MeshLambertMaterial({ color: '#c9c3b8' }))
+    stick.castShadow = quality.shadows
+    rodTip = new THREE.Object3D()
+    rodTip.position.set(0, 1.9 * k, 0)
+    rod.add(stick, reel, rodTip)
+    rod.position.fromArray(WEAPON_GRIP.hand)
+    arm?.add(rod)
+  }
+  function orientRod() {
+    const on = pose === 'holding-right'
+    if (!on) {
+      if (rod) rod.visible = false
+      return
+    }
+    if (!rod) makeRod()
+    rod.visible = true
+    if (!arm) return
+    arm.getWorldQuaternion(qArm)
+    rodDir.set(Math.sin(heading) * 0.77, 0.64, Math.cos(heading) * 0.77)
+    qRod.setFromUnitVectors(Y, rodDir)
+    rod.quaternion.copy(qArm.invert().multiply(qRod))
+  }
+
+  // berenang maju: model dimiringkan ke depan (mendatar) dan digeser ke belakang supaya badannya
+  // tetap di atas titik letak pemain; mengapung tegak = pose biasa
+  function setSwimPose(k) {
+    model.rotation.x = k * SWIM_TILT
+    model.position.z = -k * 0.55
+  }
+  // pedang (dan perlengkapan lain di badan) disembunyikan saat berenang, di perahu, atau memegang
+  // pancing
+  let gearShown = true
+  function showGear(on) {
+    if (on === gearShown) return
+    gearShown = on
+    if (sword) sword.visible = on
   }
 
   // --- serangan (kombo pukulan + jurus): logikanya di combat.js, badan prajurit dipinjamkan di sini
@@ -290,7 +360,59 @@ export function createPlayer({ ground, colliders, quality, asset }) {
     },
   })
 
+  // berenang: tanpa gravitasi & serangan; badan mengapung di permukaan, lebih lambat dari berjalan
+  function swimStep(dt, input, camYaw) {
+    let dx = 0
+    let dz = 0
+    let m = 0
+    if (Math.abs(input.moveX) + Math.abs(input.moveY) > 0.01) {
+      path.length = 0
+      const fx = -Math.sin(camYaw)
+      const fz = -Math.cos(camYaw)
+      const rx = Math.cos(camYaw)
+      const rz = -Math.sin(camYaw)
+      dx = rx * input.moveX + fx * input.moveY
+      dz = rz * input.moveX + fz * input.moveY
+      const len = Math.hypot(dx, dz)
+      m = Math.min(1, len)
+      dx /= len
+      dz /= len
+    }
+    const speed = SWIM_SPEED * m * Math.min(speedBoost, 1.15)
+    const accel = SWIM_ACCEL * dt
+    const ddx = dx * speed - vel.x
+    const ddz = dz * speed - vel.z
+    const dl = Math.hypot(ddx, ddz)
+    if (dl <= accel) {
+      vel.x = dx * speed
+      vel.z = dz * speed
+    } else {
+      vel.x += (ddx / dl) * accel
+      vel.z += (ddz / dl) * accel
+    }
+    if (m > 0.05) {
+      const diff = Math.atan2(Math.sin(Math.atan2(dx, dz) - heading), Math.cos(Math.atan2(dx, dz) - heading))
+      heading += diff * Math.min(1, 6 * dt)
+    }
+    pos.x += vel.x * dt
+    pos.z += vel.z * dt
+    colliders.resolve(pos, RADIUS, vel)
+    // mengapung: makin cepat berenang makin mendatar badannya; sedikit naik-turun mengikuti ombak
+    const want = Math.min(1, Math.hypot(vel.x, vel.z) / 1.2)
+    swimPose += (want - swimPose) * Math.min(1, dt * 4)
+    const sink = SWIM_SINK.tegak + (SWIM_SINK.maju - SWIM_SINK.tegak) * swimPose
+    const wy = ISLAND.seaLevel - sink + Math.sin(swimT * 2.3) * 0.035
+    pos.y += (wy - pos.y) * Math.min(1, dt * 5)
+    vel.y = 0
+    grounded = false
+    jumpBuffer = 0
+  }
+
   function step(dt, input, camYaw) {
+    if (swimming) {
+      swimStep(dt, input, camYaw)
+      return
+    }
     let dx = 0
     let dz = 0
     let m = 0
@@ -353,7 +475,7 @@ export function createPlayer({ ground, colliders, quality, asset }) {
     // lompat (dengan coyote time dan buffer tombol)
     coyote = grounded ? COYOTE_TIME : coyote - dt
     jumpBuffer = input.jump ? JUMP_BUFFER : jumpBuffer - dt
-    if (jumpBuffer > 0 && coyote > 0 && depth < DEEP_DEPTH * 0.8 && !atk) {
+    if (jumpBuffer > 0 && coyote > 0 && depth < SWIM_EXIT && !atk) {
       vel.y = JUMP_SPEED
       grounded = false
       coyote = 0
@@ -421,6 +543,51 @@ export function createPlayer({ ground, colliders, quality, asset }) {
     },
     get hasPath() {
       return path.length > 0
+    },
+    // sedang berenang / duduk di perahu
+    get swimming() {
+      return swimming
+    },
+    get riding() {
+      return !!ride
+    },
+    // tinggi titik putar kamera di atas titik letak pemain: kepala tetap di tengah pandangan saat
+    // badan terbenam (berenang) atau duduk di perahu
+    get cameraHeight() {
+      if (ride) return 1.3
+      if (swimming) return ISLAND.seaLevel + 0.75 - pos.y
+      return 1.5
+    },
+    // duduk di perahu: fn() → { x, y, z, heading, vx, vz, moving } tiap frame; null = turun
+    setRide(fn) {
+      ride = fn
+      path.length = 0
+      combat.reset()
+      if (!fn) {
+        play('idle', 0.1)
+        vel.set(0, 0, 0)
+      }
+    },
+    // paksa satu klip (mis. 'holding-right' saat memancing); null = kembali otomatis
+    setPose(name) {
+      pose = name
+    },
+    // posisi dunia ujung joran pancing (untuk tali pancing); tanpa joran: di atas kepala
+    rodTip(out) {
+      if (rodTip && rod?.visible) {
+        root.updateMatrixWorld(true)
+        return rodTip.getWorldPosition(out)
+      }
+      return out.set(pos.x + Math.sin(heading) * 0.6, pos.y + 1.6, pos.z + Math.cos(heading) * 0.6)
+    },
+    // putar satu gerakan sekali (mis. melempar kail, mengangkat ikan)
+    gesture(name, seconds = 0) {
+      const a = actions[name]
+      if (!a) return
+      a.reset()
+      play(name, 0.1)
+      a.play()
+      gestureT = seconds || a.getClip().duration
     },
     get attacking() {
       return combat.busy
@@ -537,8 +704,33 @@ export function createPlayer({ ground, colliders, quality, asset }) {
         return
       }
       if (hp < MAX_HP && (calmT += dt) > REGEN.delay) hp = Math.min(MAX_HP, hp + REGEN.rate * dt)
+      swimT += dt
+      // duduk di perahu: letak & arah mengikuti perahu (perahu.js), tanpa fisika
+      if (ride) {
+        const r = ride()
+        pos.set(r.x, r.y, r.z)
+        vel.set(r.vx, 0, r.vz);
+        ({ heading } = r)
+        root.rotation.y = heading
+        setSwimPose(0)
+        if ((gestureT -= dt) <= 0) play(pose || (r.moving ? 'drive' : 'sit'), 0.25)
+        mixer?.update(dt)
+        orientRod()
+        showGear(false)
+        if (blob) blob.visible = false
+        return
+      }
+      // masuk air yang dalam (berjalan / jatuh dari dermaga) → berenang; ke air dangkal → berjalan
+      const depth0 = ISLAND.seaLevel - ground.surfaceAt(pos.x, pos.z)
+      if (!swimming && depth0 > SWIM_DEPTH && pos.y < ISLAND.seaLevel - 0.25) {
+        swimming = true
+        combat.reset()
+        path.length = 0
+        vel.y = 0
+      } else if (swimming && depth0 < SWIM_EXIT) swimming = false
       // pukulan (kombo) & jurus — sebelum fisika agar gerak langsung berhenti saat mulai menyerang
-      if (!frozen) combat.update(dt, input)
+      // (tidak bisa menyerang sambil berenang)
+      if (!frozen && !swimming) combat.update(dt, input)
       if (!frozen) {
         // langkah kecil saat frame lambat atau bergerak cepat (Serbuan 22 m/s): maks. ±0,3 m per
         // langkah, kalau tidak prajurit bisa "menembus" batang pohon dalam satu langkah
@@ -564,12 +756,9 @@ export function createPlayer({ ground, colliders, quality, asset }) {
         }
       }
 
-      // laut dalam / terlalu jauh → kembali ke pantai
+      // terlalu jauh (tepi dunia) → kembali ke pantai
       const gy = ground.surfaceAt(pos.x, pos.z)
-      const depth = ISLAND.seaLevel - gy
-      deepTime = depth > DEEP_DEPTH ? deepTime + dt : 0
-      if (!frozen && deepTime > 0.6) onRespawnNeeded('laut')
-      else if (!frozen && !insideWorld(pos.x, pos.z, WORLD_MARGIN)) onRespawnNeeded('jauh')
+      if (!frozen && !insideWorld(pos.x, pos.z, WORLD_MARGIN)) onRespawnNeeded('jauh')
 
       // simpan posisi aman (di darat, tidak curam) secara berkala
       safeTimer += dt
@@ -579,21 +768,30 @@ export function createPlayer({ ground, colliders, quality, asset }) {
         lastSafeHeading = heading
       }
 
-      // animasi menurut keadaan (animasi serangan dibiarkan selesai dulu)
+      // animasi menurut keadaan (animasi serangan dibiarkan selesai dulu). Berenang: klip lari
+      // dengan badan mendatar (gaya bebas) / klip jalan pelan dengan badan tegak (mengapung)
       const hs = Math.hypot(vel.x, vel.z)
-      if (!combat.busy) {
+      if (swimming) play(swimPose > 0.45 ? 'sprint' : 'walk', 0.3)
+      else if ((gestureT -= dt) > 0) {
+        // gerakan sekali sedang diputar
+      } else if (pose && !combat.busy) play(pose, 0.2)
+      else if (!combat.busy) {
         let anim = null
         if (grounded) anim = hs < 0.3 ? 'idle' : hs < 3.6 ? 'walk' : 'sprint'
         else if (airTime > 0.12) anim = vel.y > 0 && current === actions.jump ? 'jump' : 'fall'
         if (anim) play(anim, 0.18)
       }
-      if (actions.walk) actions.walk.timeScale = THREE.MathUtils.clamp(hs / 1.4, 0.6, 1.6)
-      if (actions.sprint) actions.sprint.timeScale = THREE.MathUtils.clamp(hs / 3.6, 0.8, 1.6)
+      if (actions.walk) actions.walk.timeScale = swimming ? 0.55 : THREE.MathUtils.clamp(hs / 1.4, 0.6, 1.6)
+      if (actions.sprint) actions.sprint.timeScale = swimming ? 0.75 : THREE.MathUtils.clamp(hs / 3.6, 0.8, 1.6)
+      setSwimPose(swimming ? swimPose : 0)
       mixer?.update(dt)
       orientSword()
+      orientRod()
+      showGear(!swimming && !pose)
 
       if (blob) {
         const h = pos.y - gy
+        blob.visible = !swimming
         blob.position.set(pos.x, gy + 0.05, pos.z)
         blob.material.opacity = Math.max(0, 1 - h / 3)
         blob.scale.setScalar(1 + h * 0.15)

@@ -52,6 +52,8 @@ function partsFor(b, ground) {
     case 'patung': return E.patung()
     case 'panji': return E.panji(b.color, b.h)
     case 'meja-saji': return E.mejaSaji()
+    case 'dermaga-elf': return E.dermagaElf(b.w, b.len, b.y)
+    case 'dermaga': return B.dermaga(b.w, b.len, b.y)
     case 'jembatan-perak': {
       const s = b.surface
       const deck = t => s.y0 + (s.y1 - s.y0) * t + s.arch * Math.sin(Math.PI * Math.min(1, Math.max(0, (t - s.a0) / (s.a1 - s.a0))))

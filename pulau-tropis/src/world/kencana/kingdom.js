@@ -118,6 +118,23 @@ function jukungGeometry() {
   return P.build()
 }
 
+// perahu perang orc: lambung kayu gelap lebih lebar, delapan dayung, layar kulit persegi merah tua
+function orcBoatGeometry() {
+  const P = new B.Parts()
+  hull(P, 8.6, 1.9, 0.7, '#4b3a2c', '#7a1f1a')
+  for (const s of [-1, 1])
+    for (const z of [-2.4, -0.8, 0.8, 2.4]) P.box(1.9, 0.06, 0.12, B.COL.kayuTua, B.K.KAYU, { x: s * 1.45, y: 0.12, z, rz: s * 0.45 })
+  P.cyl(0.08, 0.11, 4.4, 5, B.COL.kayuTua, B.K.KAYU, { y: 0.2, z: 0.5 })
+  P.box(2.8, 2.1, 0.05, '#6b2a1e', B.K.POLOS, { y: 2.0, z: 0.55, sway: 0.03 })
+  P.box(3.0, 0.1, 0.1, B.COL.kayuTua, B.K.KAYU, { y: 4.1, z: 0.55 })
+  return P.build()
+}
+
+// geometri perahu untuk modul lain (perahu pemain: 'jukung', perahu serbuan orc: 'orc')
+export function boatGeometry(type) {
+  return type === 'orc' ? orcBoatGeometry() : type === 'jong' ? jongGeometry() : jukungGeometry()
+}
+
 function jongGeometry() {
   const P = new B.Parts()
   hull(P, 18, 5, 2.2, '#7a5236', B.COL.emas)

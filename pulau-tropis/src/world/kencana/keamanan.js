@@ -7,8 +7,9 @@ import { inKingdom } from './wilayah.js'
 //   MAX_ATTACKERS sekaligus; yang roboh atau tertinggal digantikan). Kalah → dibawa keluar wilayah
 //   (diurus main.js). Lolos keluar wilayah (tak ada penyerang di dekatnya) → berhenti dikejar,
 //   tetapi masuk lagi = diserang lagi.
-// - ORC (penyerbu lewat Jembatan Agung): langsung dihadang dan dilawan.
-// - PENDATANG (penduduk dari seberang): ditanyai di gerbang Jembatan Agung, lalu boleh lewat.
+// - ORC (penyerbu yang mendarat dengan perahu perang di pantai timur): langsung dihadang & dilawan.
+// - PENDATANG (penduduk dari seberang, turun dari kapal penyeberangan di Dermaga Timur): ditanyai
+//   di gapura dermaga, lalu boleh lewat.
 // Tubuh & gerak prajurit ada di prajurit.js; modul ini hanya memberi perintah.
 
 const DETECT = 40 // m: prajurit sejauh ini melihat pemain di wilayah kerajaan
@@ -22,16 +23,17 @@ const LEASH = 60 // m: penyerang yang tertinggal sejauh ini menyerah (yang lebih
 const PURSUE_OUT = 35
 const RAID_JOIN = 80 // m: … ikut menghadang orc
 // lolos: di luar wilayah tanpa penyerang sedekat `range` m selama `time` detik → berhenti dikejar
-// (berjalan di separuh timur jembatan sambil diburu bukan lolos)
+// (berenang / berperahu di dekat pantai Kencana sambil diburu bukan lolos)
 const LOST = { range: 20, time: 6 }
 // detik prajurit di luar wilayah belum menyerang lagi: setelah berhenti mengejar / setelah pemain
-// dibawa keluar (supaya tidak langsung dikeroyok penjaga kepala jembatan begitu bangun)
+// dibawa keluar (supaya tidak langsung dikeroyok penjaga begitu bangun)
 const GRACE = { calm: 10, thrown: 30 }
 const RAID_FIRST = 100 // detik sejak game dimulai sampai serbuan orc pertama
 const RAID_EVERY = [150, 210] // detik antar-serbuan
 const VISIT = { first: 35, every: [60, 110], speed: 1.4, shop: [18, 30] } // pendatang (detik, m/s)
 const VISITOR_LINES = [
   'Saya pedagang kain dari Pulau Tropis, mau berjualan di pasar.',
+  'Saya baru turun dari perahu penyeberangan, mau ke pasar.',
   'Saya mau mengantar ikan asin ke pasar kota.',
   'Saya hendak menjenguk saudara di Kampung Nelayan.',
   'Saya membawa kelapa muda untuk dijual di pasar.',
@@ -165,11 +167,11 @@ export function createSecurity({ soldiers, enemies, player, bubbles, message, vi
       }
     }
     for (const r of enemies.raiders()) {
-      // dihadang begitu masuk wilayah, atau bila sudah dekat prajurit (mis. di separuh timur jembatan)
+      // dihadang begitu masuk wilayah (mendarat di pantai Kencana), atau bila sudah dekat prajurit
       if (!inKingdom(r.x, r.z) && !soldiers.nearest(r.x, r.z, 15, free)) continue
       if (!raidAnnounced) {
         raidAnnounced = true
-        if (Math.hypot(r.x - pp.x, r.z - pp.z) < 300) message('Gerombolan orc menyerbu Jembatan Agung! Prajurit Kencana menghadang mereka.', 4200)
+        if (Math.hypot(r.x - pp.x, r.z - pp.z) < 300) message('Perahu perang orc mendarat di pantai timur Pulau Kencana! Prajurit Kencana menghadang mereka.', 4200)
       }
       const t = orcTarget(r.id)
       let n = 0
@@ -183,9 +185,9 @@ export function createSecurity({ soldiers, enemies, player, bubbles, message, vi
   }
 
   // ---------------------------------------------------------------- pendatang dari seberang
-  // Muncul di ujung timur Jembatan Agung (bila pemain jauh), berjalan ke gerbang barat, berhenti
-  // ditanyai penjaga pos terdekat, menjawab, lalu boleh lewat ke pasar; sesudah berbelanja pulang
-  // lagi lewat jembatan dan menghilang di ujung timur.
+  // Muncul di ujung Dermaga Timur seolah baru turun dari kapal penyeberangan (bila pemain jauh),
+  // berjalan ke gapura dermaga, berhenti ditanyai penjaga pos terdekat, menjawab, lalu boleh lewat
+  // ke pasar; sesudah berbelanja kembali ke ujung dermaga dan menghilang (naik kapal lagi).
   const visitors = (villagers && visit ? villagers.scripted : []).map((a, k) => ({ a, phase: 'tunggu', t: VISIT.first + k * 45, path: [], target: { kind: 'orang', ref: a }, guard: null, asked: 0 }))
   const sayAt = (a, text, ms) => bubbles.say(() => (a.hidden ? null : { x: a.x, y: ground.surfaceAt(a.x, a.z) + 1.95, z: a.z }), text, ms, `v${villagers.agents.indexOf(a)}`)
   function walk(v, dt) {

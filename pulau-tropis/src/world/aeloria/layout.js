@@ -1,6 +1,6 @@
 // Rencana Kerajaan Aeloria — kerajaan ras elf di utara Pulau Tropis: satu sumber kebenaran untuk
 // letak daratan, kawasan (kota bebas, pasar, pandai besi, ladang, balai makan, lapangan latihan,
-// padang pesta, perkemahan, benteng), jalan, dan jembatan. Murni data + fungsi kecil (tanpa
+// padang pesta, perkemahan, benteng), jalan, dan dermaga. Murni data + fungsi kecil (tanpa
 // Three.js). Satuan meter; sumbu −x = barat, −z = utara (sama seperti kencana/layout.js).
 
 // Daratan: badan utama (elips besar) + tanjung di selatan yang menjorok ke Pulau Tropis
@@ -42,16 +42,23 @@ export const ORCHARDS = [
   { x0: 172, x1: 268, z0: -612, z1: -575 },
 ]
 
-// Jembatan Perak dari pantai utara Pulau Tropis ke Tanjung Perak (sumbu z, di garis x = at).
-// `from` = titik darat di Aeloria, `to` = titik darat di Pulau Tropis (lihat bridgeSpans)
-export const BRIDGES = [
-  { id: 'perak', name: 'Jembatan Perak', axis: 'z', at: 10, from: -430, to: -190, width: 6.5, rise: 2.2, stone: true, elf: true },
+// Dermaga penyeberangan (pengganti Jembatan Perak yang dibongkar di v0.14.0 — Aeloria, Pulau Tropis,
+// dan Kencana tidak tersambung jembatan, DECISIONS #57): lantai dari pantai di garis x = at
+// menjorok `len` m ke laut searah `dir` (+1 = ke selatan). Dermaga Perak (Aeloria, batu putih) di
+// ujung Tanjung Perak berpangkal di gapura perak yang dijaga kesatria; Dermaga Utara (kayu) di
+// pantai utara Pulau Tropis. Lihat kencana/height.js dockSpans.
+export const DOCKS = [
+  { id: 'perak', name: 'Dermaga Perak', axis: 'z', at: 10, from: -430, dir: 1, len: 26, width: 5, elf: true, gate: true },
+  { id: 'tropis-utara', name: 'Dermaga Utara', axis: 'z', at: 10, from: -190, dir: -1, len: 34, width: 4 },
 ]
+// batas wilayah Aeloria: garis tengah Selat Perak (z) di antara kedua dermaga — utaranya wilayah
+// Aeloria, selatannya Pulau Tropis (lihat keamanan.js)
+export const SELAT_Z = -310
 
 // jalan: [ax, az, bx, bz, lebar]
 const AVE = 10 // garis jalan raya utara–selatan
 export const STREETS = [
-  // jalan raya: kepala jembatan → kota → balai makan → gerbang benteng
+  // jalan raya: pangkal Dermaga Perak → kota → balai makan → gerbang benteng
   [AVE, -440, AVE, -890, 9],
   // jalan lingkar kota
   [TOWN.x0, TOWN.z0, TOWN.x1, TOWN.z0, 5], [TOWN.x0, TOWN.z1, TOWN.x1, TOWN.z1, 5],

@@ -166,7 +166,26 @@ export function gerbangElf(w, h) {
   return P
 }
 
-// gapura Jembatan Perak: dua menara ramping + lengkung daun perak, lebar celah w
+// dermaga elf: lantai batu putih di atas tiang-tiang batu, langkan rendah di kedua sisi, lentera
+// emas di ujungnya (sepanjang z lokal, panjang len, lebar w, lantai di y = deckY dunia → y lokal 0)
+export function dermagaElf(w, len, deckY) {
+  const P = new Parts()
+  P.box(w, 0.32, len, '#cfccc2', K.BATU, { y: -0.32 })
+  for (const s of [-1, 1]) {
+    P.box(0.28, 0.5, len, EC.putih, K.BATU, { x: s * (w / 2 - 0.14) })
+    P.box(0.36, 0.08, len, EC.emas, K.POLOS, { x: s * (w / 2 - 0.14), y: 0.5 })
+  }
+  const posts = Math.max(2, Math.round(len / 5))
+  for (let i = 0; i <= posts; i++)
+    for (const s of [-1, 1]) P.box(0.7, deckY + 4.2, 0.7, EC.batu, K.BATU, { x: s * (w / 2 - 0.4), y: -deckY - 4.2, z: -len / 2 + (i * len) / posts })
+  for (const s of [-1, 1]) {
+    P.cyl(0.07, 0.1, 2.4, 6, EC.besiTua, K.POLOS, { x: s * (w / 2 - 0.14), y: 0.5, z: len / 2 - 0.4 })
+    P.box(0.3, 0.42, 0.3, EC.lentera, K.CAHAYA, { x: s * (w / 2 - 0.14), y: 2.6, z: len / 2 - 0.4 })
+  }
+  return P
+}
+
+// gapura Dermaga Perak: dua menara ramping + lengkung daun perak, lebar celah w
 export function gapuraPerak(w) {
   const P = new Parts()
   for (const s of [-1, 1]) merge(P, menaraElf(1.1, 7.5, ROOF[0]), { x: s * (w / 2 + 1.4) })

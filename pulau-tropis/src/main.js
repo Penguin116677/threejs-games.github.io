@@ -18,7 +18,8 @@ import { createNavGrid } from './world/navgrid.js'
 import { createEnemies } from './world/enemies.js'
 import { planKencana } from './world/kencana/plan.js'
 import { createRegionMask } from './world/kencana/mask.js'
-import { createKencana } from './world/kencana/kingdom.js'
+import { createKencana, boatGeometry } from './world/kencana/kingdom.js'
+import { buildingMaterial, buildingDepthMaterial } from './world/kencana/material.js'
 import { createVillagers } from './world/kencana/villagers.js'
 import { createArmy, balaParts } from './world/kencana/pasukan.js'
 import { createSoldiers } from './world/kencana/prajurit.js'
@@ -32,6 +33,7 @@ import { createWorldMap, createRegionBanner } from './ui/peta.js'
 import { createBubbles, createHealthBar } from './ui/tanya.js'
 import { createShop } from './ui/toko.js'
 import { createElfCard } from './ui/kartu-elf.js'
+import { createActionButton, IKON_AKSI } from './ui/aksi.js'
 import { createInput } from './player/input.js'
 import { createFollowCamera } from './player/camera.js'
 import { createMarkers } from './player/marker.js'
@@ -40,6 +42,9 @@ import { SKILLS } from './player/combat.js'
 import { createPlayer, loadPlayerModel, MAX_HP } from './player/player.js'
 import { createBag } from './player/tas.js'
 import { createGear } from './player/perlengkapan.js'
+import { createBoat, KAYU_PERAHU } from './player/perahu.js'
+import { createFishing, KAYU_PANCING } from './player/mancing.js'
+import { createRipples } from './player/riak.js'
 
 const $ = id => document.getElementById(id)
 
@@ -94,12 +99,16 @@ function findSpawn(ground, colliders) {
   return { x: -128, z: 128, heading: Math.atan2(128, -128) }
 }
 
-const HINT_TOUCH = '<b>Joystick</b> (kiri bawah): berjalan, dorong penuh = lari · Geser layar: putar kamera · Cubit: zoom<br><b>Pukul</b> berulang = kombo · 4 <b>jurus</b> · orc kalah = <b>koin</b><br><b>Peta</b>: Kencana (barat) memusuhimu · Aeloria (utara) damai bila kamu tidak rusuh<br>Di Aeloria: <b>ketuk kios</b> untuk belanja, <b>ketuk elf</b> untuk melihat isi pikirannya'
-const HINT_KEYS = '<b>WASD / panah</b>: berjalan (Shift = pelan) · Seret: putar kamera · Roda: zoom<br>F: pukul (kombo) · 1–4: jurus · Spasi: lompat · orc kalah = koin · B: tas<br>M: peta — Kencana (barat) memusuhimu · Aeloria (utara) damai bila kamu tidak rusuh<br>Di Aeloria: klik kios / E untuk belanja, klik elf untuk melihat isi pikirannya'
+const HINT_TOUCH = '<b>Joystick</b> (kiri bawah): berjalan, dorong penuh = lari · Geser layar: putar kamera · Cubit: zoom<br><b>Pukul</b> berulang = kombo · 4 <b>jurus</b> · orc kalah = <b>koin</b><br>Pukul pohon = <b>kayu</b> → buat <b>pancing</b> &amp; <b>perahu</b> di <b>Tas</b> · pulau tidak berjembatan: berenang / berlayar<br><b>Peta</b>: Kencana (barat) memusuhimu · Aeloria (utara) damai bila kamu tidak rusuh · <b>ketuk kios / elf</b>'
+const HINT_KEYS = '<b>WASD / panah</b>: berjalan (Shift = pelan) · Seret: putar kamera · Roda: zoom<br>F: pukul (kombo) · 1–4: jurus · Spasi: lompat · orc kalah = koin · B: tas<br>Pukul pohon = kayu → buat pancing &amp; perahu di Tas · C: mancing / tarik · V: naik / turun perahu<br>M: peta — Kencana (barat) memusuhimu · Aeloria (utara) damai bila kamu tidak rusuh · klik kios / elf'
 
 // FOV kamera (tegak, mendatar): layar tegak butuh FOV lebih lebar agar sisi kiri-kanan tetap
 // terlihat dari kamera di belakang karakter
 const FOV = { main: [70, 52], lihat: [70, 55] }
+// jarak pandang mode main (m): kamera rendah di belakang karakter bisa melihat sampai cakrawala, jadi
+// petak pohon, bangunan & daratan yang jauh tidak digambar — kabut menutupinya lebih dulu, pulau
+// seberang tetap tampak samar. Mode Lihat pulau melihat seluruh dunia dari atas (5 km, kabut tipis).
+const VIEW = { rendah: 420, sedang: 560, tinggi: 950 }
 
 function setupQualityMenu() {
   const btn = $('btn-kualitas')
@@ -162,11 +171,15 @@ async function start() {
   const shore = createShoreData(ground, quality.water.shoreRes)
   // rencana Kepulauan Kencana (kota, jalan, sawah) & Aeloria (kerajaan elf di utara) dulu: catnya
   // ikut digambar shader tanah. Masker Aeloria 1,5 m per texel (jalan tetap halus, memori kecil);
-  // juga menjangkau pantai utara Pulau Tropis (kepala Jembatan Perak)
+  // juga menjangkau pantai utara Pulau Tropis (Dermaga Utara)
   const plan = planKencana(ground)
   const region = createRegionMask(plan, ground)
   const elfPlan = planAeloria(ground)
   const elfMask = createRegionMask(elfPlan, ground, { rect: { x0: -450, z0: -1140, x1: 450, z1: -165 }, cell: 1.5, style: 1, free: null })
+  // dermaga penyeberangan (pengganti jembatan antarpulau yang dibongkar)
+  const dockTimur = plan.docks.find(d => d.id === 'timur')
+  const dockBarat = plan.docks.find(d => d.id === 'tropis-barat')
+  const dockUtara = elfPlan.docks.find(d => d.id === 'tropis-utara')
   const terrain = createTerrain(ground, { ...shared, regions: [region, elfMask] })
   scene.add(terrain)
   const reservedAll = (x, z, r) => region.reserved(x, z, r) || elfMask.reserved(x, z, r)
@@ -175,8 +188,8 @@ async function start() {
   await nextFrame()
   const grid = new PlacementGrid(8)
   // pohon & batu Pulau Tropis ditebar di atas bentuk pulau tengah saja (area lama 1000 m),
-  // jadi letaknya sama persis seperti sebelum Kepulauan Kencana ada; kepala Jembatan Agung
-  // di pantai barat dikosongkan
+  // jadi letaknya sama persis seperti sebelum Kepulauan Kencana ada; pangkal Dermaga Barat & Dermaga
+  // Utara dikosongkan
   const centralGround = createGround(quality.terrainSegments, { heightFn: islandHeight, rect: { minX: -500, maxX: 500, minZ: -500, maxZ: 500 } })
   const trees = createTrees({ ground: centralGround, grid, quality, noiseTexture, reserved: reservedAll })
   const rocks = createRocks({ ground: centralGround, grid, quality, reserved: reservedAll })
@@ -307,20 +320,78 @@ async function start() {
   }
   bag.onChange(applyGear)
   applyGear()
+  // air: riak, perahu buatan sendiri (jukung), memancing; kayu dari menebang pohon untuk membuatnya
+  const ripples = createRipples()
+  scene.add(ripples.object)
+  // perahu (pemain & perahu perang orc) memakai bahan bangunan tanpa tembus pandang
+  const boatMaterial = buildingMaterial(noiseTexture, false)
+  const boatDepth = buildingDepthMaterial()
+  const boat = createBoat({
+    ground, nav, colliders, geometry: boatGeometry('jukung'), material: boatMaterial, depthMaterial: boatDepth, shadows: quality.shadows,
+  })
+  scene.add(boat.object)
+  const fishing = createFishing({ ground, player, bag, ripples, message: showMessage })
+  scene.add(fishing.object)
+  function craftRod() {
+    bag.ambil('kayu', KAYU_PANCING)
+    bag.terima('pancing')
+    return 'Pancing jadi! Berdirilah di tepi air (pantai, dermaga, atau di perahu) menghadap laut, lalu tekan Mancing.'
+  }
+  function craftBoat() {
+    if (bag.jumlah('kayu') < KAYU_PERAHU) return `Butuh ${KAYU_PERAHU} kayu untuk membuat perahu (punya ${bag.jumlah('kayu')}).`
+    if (player.swimming || boat.aboard) return 'Naiklah ke darat dulu untuk membuat perahu.'
+    const spot = boat.spotNear(player.position, player.heading)
+    if (!spot) return 'Perahu dibuat di tepi pantai: berdirilah di pasir dekat air yang cukup dalam, lalu coba lagi.'
+    const replaced = boat.built
+    bag.ambil('kayu', KAYU_PERAHU)
+    boat.build(spot)
+    ripples.spawn(spot.x, spot.z, 3, 0.7)
+    return `Perahu jadi${replaced ? ' (perahu lamamu ditinggalkan)' : ''}! Dekati lalu tekan Naik perahu. Letaknya juga terlihat di Peta.`
+  }
+  const recipes = [
+    { id: 'pancing', nama: 'Pancing', ikon: 'pancing', kayu: KAYU_PANCING, ket: 'untuk memancing di tepi air / dari perahu', ada: () => !!bag.punya.pancing, buat: craftRod },
+    { id: 'perahu', nama: 'Perahu jukung', ikon: 'perahu', kayu: KAYU_PERAHU, ket: 'dibuat di tepi pantai, untuk menyeberang laut', ada: () => false, buat: craftBoat },
+  ]
   // koin, tombol Belanja di dekat kios Aeloria, panel toko & Tas (+ gelembung ucapan yang juga
   // dipakai penjaga & rakyat elf)
   const bubbles = createBubbles($('gelembung'), camera)
   // penjagaan Aeloria: zona damai, kerusuhan → musuh kerajaan (pedagang tetap netral), benteng
   // terlarang, keributan warga yang dilerai kesatria
   const elfSec = life ? createElfSecurity({ life, player, bubbles, message: showMessage, nav, colliders, ground }) : null
-  const shop = createShop({ life, bag, player, bubbles, message: showMessage, maxHp: MAX_HP, wanted: () => !!elfSec?.wanted })
+  const shop = createShop({ life, bag, player, bubbles, message: showMessage, maxHp: MAX_HP, wanted: () => !!elfSec?.wanted, recipes })
+  // kayu: tiap pukulan yang mengenai batang pohon memberi 1 kayu, paling banyak KAYU_POHON per pohon
+  // (pohon itu "tumbuh lagi" setelah TUMBUH detik)
+  const KAYU_POHON = 3
+  const TUMBUH = 180
+  const chopped = new Map() // collider batang → { n, t, told }
+  function chopWood(hits) {
+    const tree = hits.find(o => o.kind === 'pohon')
+    if (!tree) return
+    const now = performance.now() / 1000
+    let c = chopped.get(tree)
+    if (!c || now - c.t > TUMBUH) chopped.set(tree, c = { n: 0, t: now, told: false })
+    if (c.n >= KAYU_POHON) {
+      if (!c.told) showMessage('Kayu pohon ini sudah habis — coba pohon lain (tumbuh lagi beberapa menit kemudian).', 2400)
+      c.told = true
+      return
+    }
+    c.n++
+    bag.terima('kayu')
+    shop.toast(`+1 kayu (${bag.jumlah('kayu')})`)
+  }
   // hadiah koin: 6–12 per orc yang dikalahkan
   const orcCoins = n => {
     let c = 0
     for (let i = 0; i < n; i++) c += 6 + Math.floor(Math.random() * 7)
     return c
   }
-  const enemies = orcAsset ? createEnemies({ ground, colliders, nav, asset: orcAsset, spawn }) : null
+  // orc + perahu perang mereka (serbuan ke Kencana lewat laut)
+  const orcShip = new THREE.Mesh(boatGeometry('orc'), boatMaterial)
+  orcShip.name = 'perahu-orc'
+  orcShip.castShadow = quality.shadows
+  orcShip.receiveShadow = quality.shadows
+  orcShip.customDepthMaterial = boatDepth
+  const enemies = orcAsset ? createEnemies({ ground, colliders, nav, asset: orcAsset, spawn, shipMesh: orcShip }) : null
   if (enemies) scene.add(enemies.object)
   // penjagaan kerajaan (dibuat setelah input, lihat di bawah); sasaran jurus Penggal: orc & prajurit
   // Kencana hidup terdekat (pemain musuh setiap kerajaan). id: 'o3' = orc ke-3, 's12' = prajurit ke-12
@@ -387,6 +458,82 @@ async function start() {
   // ketuk elf → kartu isi pikirannya
   const elfCard = life ? createElfCard({ life, camera, canvas, markers }) : null
 
+  // yang diikuti kamera: kepala pemain (lebih rendah saat berenang), lebih jauh saat naik perahu
+  const camTarget = {
+    get position() {
+      return player.position
+    },
+    get heading() {
+      return player.heading
+    },
+    get speed() {
+      return player.speed
+    },
+    get height() {
+      return player.cameraHeight
+    },
+    get distScale() {
+      return player.riding ? 1.45 : 1
+    },
+  }
+
+  // mode "main" (mengendalikan karakter) atau "lihat" (kamera bebas melihat pulau)
+  let mode = 'main'
+  // tombol aksi sesuai keadaan: naik / turun perahu, mancing / tarik, buat perahu
+  const aksiBox = $('aksi-konteks')
+  let toldBoat = false
+  function boardBoat() {
+    if (boat.aboard || boat.reachable(player.position) === null || player.defeated) return
+    fishing.cancel()
+    player.stop()
+    markers.hideTarget()
+    shop.close()
+    elfCard?.hide()
+    boat.board()
+    player.setRide(() => boat.seat())
+    cam.lookFrom(boat.heading + Math.PI, false)
+    if (!toldBoat)
+      showMessage(touchUI ? 'Joystick: arahkan perahu (dorong penuh = cepat) · Turun: ke darat terdekat, atau terjun ke air' : 'WASD: arahkan perahu · V: turun', 4200)
+    toldBoat = true
+  }
+  function leaveBoat() {
+    if (!boat.aboard) return
+    fishing.cancel()
+    const spot = boat.leave()
+    player.setRide(null)
+    player.placeAt(spot.x, spot.z, spot.heading)
+    if (spot.water) showMessage('Tidak ada daratan di dekat perahu — kamu terjun ke air. Berenanglah, atau naik perahu lagi.', 3000)
+  }
+  const fishPress = () => (fishing.state ? fishing.pull() : fishing.start())
+  const toggleBoat = () => (boat.aboard ? leaveBoat() : boardBoat())
+  const btnNaik = createActionButton(aksiBox, { id: 'btn-naik', icon: IKON_AKSI.perahu }, boardBoat)
+  const btnTurun = createActionButton(aksiBox, { id: 'btn-turun', icon: IKON_AKSI.turun }, leaveBoat)
+  const btnMancing = createActionButton(aksiBox, { id: 'btn-mancing', icon: IKON_AKSI.mancing, cls: 'biru' }, fishPress)
+  const btnTarik = createActionButton(aksiBox, { id: 'btn-tarik', icon: IKON_AKSI.tarik, cls: 'biru' }, fishPress)
+  const btnBuatPerahu = createActionButton(aksiBox, { id: 'btn-buat-perahu', icon: IKON_AKSI.buat, cls: 'coklat' }, () => showMessage(craftBoat(), 3800))
+  let actionT = 0
+  let buildSpot = null
+  function updateActions(dt) {
+    if ((actionT -= dt) > 0) return
+    actionT = 0.1
+    const p = player.position
+    const free = mode === 'main' && !player.defeated
+    btnNaik.set(free && !fishing.state && boat.reachable(p) !== null, 'Naik perahu', player.swimming ? 'naik dari air' : '')
+    btnTurun.set(free && boat.aboard, 'Turun', boat.aground ? 'perahu kandas' : '')
+    // Mancing muncul saat berdiri diam di tepi air yang cukup dalam (di perahu: saat perahu diam)
+    const still = player.speed < 0.5 || (boat.aboard && boat.speed < 0.6)
+    const fishHere = free && !player.swimming && (!!fishing.state || (still && !!fishing.spot()))
+    const hasRod = !!bag.punya.pancing
+    btnMancing.set(fishHere && fishing.state !== 'sambar', fishing.state ? 'Menunggu ikan…' : 'Mancing',
+      fishing.state ? 'ketuk untuk berhenti' : hasRod ? '' : `buat pancing: ${KAYU_PANCING} kayu`, hasRod || fishing.state ? '' : 'redup')
+    btnTarik.set(free && fishing.state === 'sambar', 'Tarik!', 'ikan menyambar', 'menyala')
+    // Buat perahu: di tepi pantai dengan kayu cukup (dan perahu lama jauh / belum ada)
+    const wantBuild = free && !boat.aboard && !player.swimming && player.speed < 0.5 && bag.jumlah('kayu') >= KAYU_PERAHU
+      && (!boat.built || Math.hypot(boat.position.x - p.x, boat.position.z - p.z) > 40)
+    buildSpot = wantBuild ? boat.spotNear(p, player.heading) : null
+    btnBuatPerahu.set(!!buildSpot, 'Buat perahu', `${KAYU_PERAHU} kayu`)
+  }
+
   // serangan: yang terkena (orc → nyawa berkurang & terpental; batang/batu → serpihan) + efeknya
   const effects = createSwingEffects(ground)
   scene.add(effects.object)
@@ -445,7 +592,9 @@ async function start() {
       for (const a of guards) struck.push({ x: a.x, y: a.y, z: a.z })
       // elf Aeloria: memukul elf = membuat rusuh (kesatria melawan, warga kabur / ikut berkelahi)
       if (elfSec) struck.push(...elfSec.hit(shape, damage, ev.knock, ev.origin))
-      effects.attack(ev, colliders.hitAll(ev.x, ev.z, ev.r, 5), struck)
+      const hits = colliders.hitAll(ev.x, ev.z, ev.r, 5)
+      chopWood(hits)
+      effects.attack(ev, hits, struck)
       if (ev.plant) cam.shake(0.4)
       else if (struck.length && ev.spin) cam.shake(0.12)
       return
@@ -548,17 +697,15 @@ async function start() {
     controls.target.y = Math.max(ground.surfaceAt(controls.target.x, controls.target.z), 0) + 3
   }
 
-  let mode = 'main'
-  const agung = plan.spans.find(s => s.id === 'agung')
   // gelembung ucapan, nyawa pemain
   life?.setBubbles(bubbles)
   const health = createHealthBar($('nyawa'), $('luka'))
-  // pendatang: dari ujung timur Jembatan Agung ke gerbang baratnya (ditanyai penjaga), lalu ke pasar
-  const bridgeWest = Math.min(agung.a, agung.b) - 11
+  // pendatang: turun dari kapal penyeberangan di ujung Dermaga Timur, ditanyai penjaga di luar
+  // gapuranya, lalu ke pasar
   const visit = {
-    start: { x: Math.max(agung.a, agung.b) + 22, z: agung.at + 1.2 },
-    gate: { x: bridgeWest + 3.2, z: agung.at + 0.8 },
-    market: [{ x: -421, z: agung.at + 1.2 }, { x: -461, z: agung.at + 2.5 }, { x: -466, z: 51 }],
+    start: { x: dockTimur.tip.x - dockTimur.dir * 1.5, z: dockTimur.at + 1 },
+    gate: { x: plan.gate.x + dockTimur.dir * 3.2, z: dockTimur.at + 0.8 },
+    market: [{ x: -421, z: dockTimur.at + 1.2 }, { x: -461, z: dockTimur.at + 2.5 }, { x: -466, z: 51 }],
   }
   if (soldiers)
     security = createSecurity({ soldiers, enemies, player, bubbles, villagers, visit, ground, message: showMessage })
@@ -568,6 +715,9 @@ async function start() {
     renderer.setSize(w, h, false)
     camera.aspect = w / h
     camera.fov = FOV[mode][w < h ? 0 : 1]
+    camera.far = mode === 'main' ? VIEW[quality.level] ?? VIEW.sedang : 5000
+    scene.fog.near = mode === 'main' ? camera.far * 0.3 : 380
+    scene.fog.far = mode === 'main' ? camera.far * 0.95 : 2400
     camera.updateProjectionMatrix()
   }
   window.addEventListener('resize', resize)
@@ -619,7 +769,7 @@ async function start() {
     else {
       $('panel-kualitas').hidden = true
       hideHint()
-      worldMap.show(player.position, player.heading)
+      worldMap.show(player.position, player.heading, boat.built ? [{ ...boat.position, label: 'Perahu' }] : [])
     }
   }
   $('btn-peta').addEventListener('click', toggleMap)
@@ -629,6 +779,8 @@ async function start() {
   })
   window.addEventListener('keydown', e => {
     if (e.code === 'KeyM' && !e.repeat) toggleMap()
+    else if (e.code === 'KeyV' && !e.repeat && mode === 'main') toggleBoat()
+    else if (e.code === 'KeyC' && !e.repeat && mode === 'main' && !player.swimming) fishPress()
     else if (e.code === 'Escape') {
       worldMap.hide()
       elfCard?.hide()
@@ -636,22 +788,26 @@ async function start() {
   })
   setMode('main')
 
-  // nyawa habis → roboh, layar meredup, bangun di tempat aman: dikalahkan prajurit Kencana = dibawa
-  // keluar wilayah kerajaan (pantai di ujung timur Jembatan Agung, cukup jauh dari penjaga kepala
-  // jembatan); dikeroyok orc = titik mulai
-  const exitPoint = { x: Math.max(agung.a, agung.b) + 26, z: agung.at, heading: Math.PI / 2 }
+  // nyawa habis → roboh, layar meredup, bangun di tempat aman: dikalahkan prajurit Kencana = dibuang
+  // ke pantai barat Pulau Tropis (di dekat Dermaga Barat, di luar wilayah kerajaan); dikeroyok orc =
+  // titik mulai
+  const exitPoint = { x: dockBarat.base.x - dockBarat.dir * 14, z: dockBarat.at + 3, heading: Math.PI / 2 }
   player.onHurt(() => {
     health.hurt()
     cam.shake(0.12)
   })
-  // dikalahkan kesatria Aeloria = dibawa ke luar kerajaan, di ujung selatan Jembatan Perak
-  const perak = elfPlan.spans.find(s => s.id === 'perak')
-  const elfExit = { x: perak.at, z: Math.max(perak.a, perak.b) + 14, heading: 0 }
+  // dikalahkan kesatria Aeloria = diantar ke luar kerajaan: pantai utara Pulau Tropis (Dermaga Utara)
+  const elfExit = { x: dockUtara.at + 3, z: dockUtara.base.z - dockUtara.dir * 12, heading: 0 }
   player.onDefeated(() => {
     const byKingdom = security ? security.playerDefeated() : false
     const byElves = elfSec ? elfSec.playerDefeated() : false
     markers.hideTarget()
     shop.close()
+    fishing.cancel()
+    if (boat.aboard) {
+      boat.leave()
+      player.setRide(null)
+    }
     setTimeout(() => $('tirai').classList.add('gelap'), 1100)
     setTimeout(() => {
       const p = byElves ? elfExit : byKingdom ? exitPoint : spawn
@@ -660,9 +816,9 @@ async function start() {
       cam.lookFrom(player.heading + Math.PI)
       $('tirai').classList.remove('gelap')
       showMessage(byElves
-        ? 'Kamu dikalahkan kesatria Aeloria dan dibawa ke luar kerajaan, di ujung selatan Jembatan Perak.'
+        ? 'Kamu dikalahkan kesatria Aeloria dan diantar perahu ke luar kerajaan: pantai utara Pulau Tropis.'
         : byKingdom
-          ? 'Kamu dikalahkan prajurit Kencana dan dibawa keluar dari wilayah kerajaan.'
+          ? 'Kamu dikalahkan prajurit Kencana dan dibuang ke pantai barat Pulau Tropis, di luar wilayah kerajaan.'
           : 'Kamu pingsan dikeroyok orc… dan terbangun di pantai.', 4200)
     }, 1600)
   })
@@ -708,11 +864,39 @@ async function start() {
   // shader prajurit bertugas (dan bayangannya) disiapkan di layar loading, supaya tidak tersendat
   // saat prajurit pertama kali terlihat
   if (soldiers) {
-    cam.update(0.016, player, NO_INPUT)
+    cam.update(0.016, camTarget, NO_INPUT)
     env.update(0, camera, player.position)
     soldiers.warmUp(player.position)
     renderer.render(scene, camera)
     soldiers.warmUp(null)
+  }
+
+  // riak di sekitar pemain yang berenang & di buritan perahu yang melaju; petunjuk pertama berenang
+  let rippleT = 0
+  let toldSwim = false
+  function waterFx(dt) {
+    ripples.update(dt)
+    if ((rippleT -= dt) > 0) return
+    const p = player.position
+    if (player.swimming) {
+      const moving = player.speed > 0.6
+      ripples.spawn(p.x, p.z, moving ? 1.3 : 0.9, moving ? 0.45 : 0.3)
+      rippleT = moving ? 0.35 : 0.9
+      if (!toldSwim) showMessage('Kamu berenang. Menyeberang lebih cepat dengan perahu: kumpulkan kayu dari pohon, lalu buat di Tas.', 4200)
+      toldSwim = true
+    } else if (boat.speed > 1.2) {
+      const b = boat.position
+      const h = boat.heading
+      ripples.spawn(b.x - Math.sin(h) * 3, b.z - Math.cos(h) * 3, 1.6 + boat.speed * 0.15, 0.4)
+      rippleT = 0.22
+    } else rippleT = 0.2
+  }
+  let blockedT = 0
+  function blockedAttack() {
+    const now = performance.now()
+    if (now - blockedT < 2500) return
+    blockedT = now
+    showMessage(player.riding ? 'Tidak bisa menyerang dari perahu.' : 'Tidak bisa menyerang sambil berenang.', 1600)
   }
 
   const clock = new THREE.Clock()
@@ -733,12 +917,16 @@ async function start() {
     if (mode === 'main') {
       const inp = input.read()
       for (const tap of inp.taps) handleTap(tap)
+      if ((inp.attack || inp.skill) && (player.swimming || player.riding)) blockedAttack()
+      // di perahu: joystick mengemudikan perahu (pemain hanya duduk)
+      boat.update(dt, boat.aboard ? inp : null, cam.yaw)
       player.update(dt, inp, cam.yaw)
+      fishing.update(dt, Math.abs(inp.moveX) + Math.abs(inp.moveY) > 0.1 || player.hasPath || (boat.aboard && boat.speed > 0.6))
       villagers?.pushOut(player.position)
       soldiers?.pushOut(player.position)
       life?.pushOut(player.position)
       if (!player.hasPath) markers.hideTarget()
-      cam.update(dt, player, inp)
+      cam.update(dt, camTarget, inp)
       if (!hintGone && (player.speed > 0.5 || (hintTime += dt) > 15)) hideHint()
       // tajuk pohon & bangunan di antara kamera dan prajurit dibuat berlubang;
       // di bawah atap besar (pendopo, bale, gerbang) lubangnya diperlebar
@@ -748,12 +936,16 @@ async function start() {
       const roof = roofs.find(r => Math.abs(p.x - r.x) < r.hx && Math.abs(p.z - r.z) < r.hz)
       seeThrough.r.value += ((roof ? roof.r : 3.5) - seeThrough.r.value) * (1 - Math.exp(-6 * dt))
     } else {
+      boat.update(dt, null, cam.yaw)
       player.update(dt, NO_INPUT, cam.yaw)
+      fishing.update(dt, false)
       controls.update()
       keepCameraAboveGround()
       seeThrough.r.value = 0
     }
     markers.update(dt)
+    waterFx(dt)
+    updateActions(dt)
     enemies?.update(dt, camera, player, mode === 'main' ? player.position : controls.target)
     if (banner.update(dt, player.position, mode === 'main')) hideHint()
     villagers?.update(dt, camera, mode === 'main' ? player.position : controls.target, player.position, mode === 'main' ? 110 : 260)
@@ -812,6 +1004,7 @@ async function start() {
   window.__pulau = {
     renderer, scene, camera, controls, ground, shore, quality, trees, rocks, grass, water, env, kencana, region, plan, villagers, army, worldMap, banner, aeloria, elfPlan, elfMask, life,
     player, cam, input, colliders, nav, markers, effects, enemies, soldiers, security, bubbles, pickGround, setMode, getMode: () => mode, bag, gear, shop, elfSec, elfCard,
+    boat, fishing, ripples, recipes, craftBoat, boardBoat, leaveBoat,
     frames: () => frameCount, debug,
   }
 }

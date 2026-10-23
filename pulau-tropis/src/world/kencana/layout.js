@@ -1,5 +1,5 @@
 // Rencana Kepulauan Kencana (di barat Pulau Tropis): satu sumber kebenaran untuk letak pulau,
-// kota, jalan, dan jembatan. Murni data + fungsi kecil (tanpa Three.js), dipakai bentuk tanah,
+// kota, jalan, jembatan antarpulau Kencana, dan dermaga. Murni data + fungsi kecil (tanpa Three.js), dipakai bentuk tanah,
 // masker jalan, bangunan, peta, dan penduduk. Satuan meter; sumbu −x = barat, −z = utara.
 
 // Pulau-pulau: pusat, jari-jari pantai (r, atau rx × rz untuk pulau lonjong), seberapa berkelok garis
@@ -18,7 +18,7 @@ export const CITY = { x0: -700, x1: -420, z0: -60, z1: 140, y: 5.5 }
 
 // Gerbang kota (candi bentar) — titik tengah celah pada tembok, lebar celah
 export const GATES = [
-  { id: 'timur', x: -420, z: 40, w: 10, axis: 'x' }, // ke Jembatan Agung
+  { id: 'timur', x: -420, z: 40, w: 10, axis: 'x' }, // ke Dermaga Timur
   { id: 'barat', x: -700, z: 110, w: 7, axis: 'x' }, // ke Pulau Pura & Pulau Nelayan
   { id: 'utara', x: -647, z: -60, w: 7, axis: 'z' }, // ke Pulau Sawah
   { id: 'selatan', x: -553, z: 140, w: 8, axis: 'z' }, // ke pelabuhan
@@ -56,21 +56,32 @@ export const STREETS = [
   // jalan raya: gerbang timur → alun-alun → gerbang keraton
   [-420, 40, -508, 40, 10], [-508, 40, -602, 40, 8],
   // jalan dari jalan lingkar, menembus gerbang kota, ke luar
-  [-420, 40, -300, 40, 7], // ke Jembatan Agung
+  [-420, 40, -338, 40, 7], // ke Dermaga Timur
   [-553, 134, -553, 282, 6], // ke pelabuhan
   [-647, -54, -647, -195, 5], // ke Pulau Sawah
   [-694, 110, -800, 110, 5], // ke Pulau Pura
   [-730, 110, -730, 228, 5], // ke Pulau Nelayan
 ]
 
-// Jembatan lurus searah sumbu x atau z, di garis `at`. `from` = titik darat di Pulau Kencana,
-// `to` = titik darat di pulau seberang; ujung jembatan dicari dari bentuk tanah (height.js)
+// Jembatan lurus searah sumbu x atau z, di garis `at`, HANYA di antara pulau-pulau Kencana sendiri.
+// `from` = titik darat di Pulau Kencana, `to` = titik darat di pulau seberang; ujung jembatan dicari
+// dari bentuk tanah (height.js). Jembatan Agung ke Pulau Tropis sudah dibongkar (v0.14.0, DECISIONS
+// #57): Kencana, Pulau Tropis, dan Aeloria tidak tersambung jembatan — menyeberang dengan perahu.
 export const BRIDGES = [
-  { id: 'agung', name: 'Jembatan Agung', axis: 'x', at: 40, from: -360, to: -160, width: 7, rise: 2.2, stone: true },
   { id: 'sawah', name: 'Jembatan Sawah', axis: 'z', at: -646, from: -150, to: -280, width: 4.6, rise: 1.2 },
   { id: 'pura', name: 'Jembatan Pura', axis: 'x', at: 110, from: -770, to: -880, width: 4.6, rise: 1.2 },
   { id: 'nelayan', name: 'Jembatan Nelayan', axis: 'z', at: -730, from: 200, to: 300, width: 4.6, rise: 1.2 },
   { id: 'wira', name: 'Jembatan Wira', axis: 'z', at: -470, from: 230, to: 360, width: 6, rise: 1.6 },
+]
+
+// Dermaga penyeberangan (pengganti Jembatan Agung): lantai kayu dari pantai di garis `at` (sumbu
+// `axis`) menjorok `len` m ke laut searah `dir` (+1 = ke timur). `from` = titik darat tempat mencari
+// tepi pantai (height.js dockSpans). gate = gapura candi bentar & penjaga di pangkalnya.
+// Dermaga Timur milik Kencana; Dermaga Barat di Pulau Tropis (di luar wilayah kerajaan) tempat
+// perahu-perahu berangkat ke Kencana.
+export const DOCKS = [
+  { id: 'timur', name: 'Dermaga Timur', axis: 'x', at: 40, from: -360, dir: 1, len: 40, width: 5, gate: true },
+  { id: 'tropis-barat', name: 'Dermaga Barat', axis: 'x', at: 40, from: -150, dir: -1, len: 36, width: 4 },
 ]
 
 // Nama wilayah untuk spanduk "memasuki …" dan peta (diperiksa berurutan: yang pertama cocok menang)

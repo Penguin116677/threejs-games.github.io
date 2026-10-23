@@ -1,14 +1,15 @@
-import { BARANG, PAKAIAN, KATALOG, NAMA_KIOS, efekTeks } from '../world/aeloria/ekonomi.js'
+import { BARANG, PAKAIAN, KATALOG, NAMA_KIOS, IKAN, efekTeks } from '../world/aeloria/ekonomi.js'
 import { ikonBarang, IKON_KOIN, IKON_TAS } from './ikon.js'
 
 // Belanja di Aeloria: koin di HUD, tombol Belanja di dekat kios, panel toko (daftar barang, stok,
-// harga) dan panel Tas (makan / minum / ramuan, pakai-lepas perlengkapan). Kios hanya melayani bila
+// harga; Kios Ikan Bakar juga membeli ikan hasil memancing) dan panel Tas (makan / minum / ramuan /
+// ikan, pakai-lepas perlengkapan, membuat pancing & perahu dari kayu). Kios hanya melayani bila
 // salah satu pedagangnya sedang berjaga di balik meja — bila tidak, pemain diberi tahu pedagangnya
 // sedang apa. Pedagang tetap melayani walau pemain dimusuhi kerajaan (DECISIONS #50).
 const $ = id => document.getElementById(id)
 const NEAR = 3.4 // m dari depan meja: tombol Belanja muncul
 const FAR = 7 // m: panel toko tertutup sendiri bila pemain menjauh
-const KATA_PAKAI = { makanan: 'Makan', minuman: 'Minum', ramuan: 'Minum' }
+const KATA_PAKAI = { makanan: 'Makan', minuman: 'Minum', ramuan: 'Minum', ikan: 'Makan' }
 const JENIS_TEKS = { senjata: 'Senjata', perisai: 'Perisai', zirah: 'Zirah', helm: 'Helm' }
 const TERIMA_KASIH = ['Terima kasih!', 'Semoga bermanfaat!', 'Datang lagi, ya!', 'Pilihan yang bagus!']
 // nama pendek di tombol Belanja (tombolnya sempit: di sebelahnya ada tombol jurus)
@@ -21,8 +22,9 @@ const koinHtml = n => `${IKON_KOIN}<span>${n}</span>`
 
 // life = createLife (kios & pedagangnya; null bila rakyat Aeloria gagal dibuat — koin & Tas tetap
 // jalan), bag = createBag, player, bubbles (gelembung ucapan), message(teks, ms), maxHp,
-// wanted() = pemain sedang dimusuhi kerajaan Aeloria (pedagang tetap melayani)
-export function createShop({ life, bag, player, bubbles, message, maxHp, wanted = () => false }) {
+// wanted() = pemain sedang dimusuhi kerajaan Aeloria (pedagang tetap melayani), recipes = daftar
+// barang yang bisa dibuat dari Tas: [{ id, nama, kayu, ket, ada() (sudah dimiliki), buat() → pesan }]
+export function createShop({ life, bag, player, bubbles, message, maxHp, wanted = () => false, recipes = [] }) {
   const stalls = life ? life.economy.stalls : []
   const el = {
     koin: $('koin'), tombol: $('btn-belanja'), tas: $('btn-tas'),
@@ -67,7 +69,8 @@ export function createShop({ life, bag, player, bubbles, message, maxHp, wanted 
   function renderShop(force = false) {
     const s = current
     const open = life.isOpen(s)
-    const key = `${open}|${wanted()}|${bag.koin}|${KATALOG[s.goods].map(id => `${s.stock[id]}${bag.punya[id] ? 'p' : ''}`).join()}`
+    const fish = s.goods === 'ikan' ? IKAN.filter(id => bag.jumlah(id) > 0) : []
+    const key = `${open}|${wanted()}|${bag.koin}|${KATALOG[s.goods].map(id => `${s.stock[id]}${bag.punya[id] ? 'p' : ''}`).join()}|${fish.map(id => bag.jumlah(id)).join()}`
     if (!force && key === shownShop) return
     shownShop = key
     el.judul.textContent = NAMA_KIOS[s.goods]
@@ -86,7 +89,22 @@ export function createShop({ life, bag, player, bubbles, message, maxHp, wanted 
       const label = owned ? 'Dimiliki' : n > 0 ? koinHtml(b.harga) : 'Habis'
       return `<div class="barang"><span class="ikon">${ikonBarang(id)}</span><div class="info"><b>${b.nama}</b><small>${efekTeks(b)} · stok ${n}</small></div>`
         + `<button type="button" class="beli${can ? '' : ' redup'}" data-id="${id}">${label}</button></div>`
-    }).join('')
+    }).join('') + (fish.length
+      ? `<div class="toko-bagian">Jual ikan hasil pancinganmu</div>${fish.map(id => `<div class="barang"><span class="ikon">${ikonBarang(id)}</span><div class="info"><b>${BARANG[id].nama} <i>×${bag.jumlah(id)}</i></b><small>dibeli ${BARANG[id].harga} koin per ekor</small></div>`
+        + `<button type="button" class="jual${open ? '' : ' redup'}" data-jual="${id}">Jual</button></div>`).join('')}`
+      : '')
+  }
+  function sell(id) {
+    const s = current
+    if (!s) return
+    if (!life.isOpen(s)) {
+      el.tokoPesan.textContent = closedText(s)
+      return
+    }
+    const r = life.economy.sell(s, id, bag)
+    el.tokoPesan.textContent = r.ok ? `${BARANG[id].nama} terjual: +${r.koin} koin. Pedagang membakarnya untuk dijual lagi.` : r.alasan
+    if (r.ok) sayThanks(s)
+    renderShop(true)
   }
   function openShop(s) {
     pending = null
@@ -96,7 +114,8 @@ export function createShop({ life, bag, player, bubbles, message, maxHp, wanted 
     }
     closeBag()
     current = s
-    el.tokoPesan.textContent = s.area === 'tempa' ? 'Perlengkapan langsung kamu pakai setelah dibeli.' : 'Makanan & ramuan masuk ke Tas.'
+    el.tokoPesan.textContent = s.area === 'tempa' ? 'Perlengkapan langsung kamu pakai setelah dibeli.'
+      : s.goods === 'ikan' ? 'Makanan masuk ke Tas. Kios ini juga membeli ikan hasil memancing.' : 'Makanan & ramuan masuk ke Tas.'
     renderShop(true)
     el.toko.hidden = false
   }
@@ -129,6 +148,8 @@ export function createShop({ life, bag, player, bubbles, message, maxHp, wanted 
   el.daftar.addEventListener('click', e => {
     const btn = e.target.closest('button[data-id]')
     if (btn) buy(btn.dataset.id)
+    const sellBtn = e.target.closest('button[data-jual]')
+    if (sellBtn) sell(sellBtn.dataset.jual)
   })
   $('btn-tutup-toko').addEventListener('click', closeShop)
   el.toko.addEventListener('click', e => {
@@ -139,7 +160,7 @@ export function createShop({ life, bag, player, bubbles, message, maxHp, wanted 
   function renderBag(force = false) {
     const e = bag.effect()
     const { buff } = bag
-    const key = `${bag.koin}|${JSON.stringify(bag.barang)}|${JSON.stringify(bag.pakai)}|${Object.keys(bag.punya).join()}|${Math.ceil(buff.kuat)}|${Math.ceil(buff.cepat)}|${Math.round(player.hp)}`
+    const key = `${bag.koin}|${JSON.stringify(bag.barang)}|${JSON.stringify(bag.pakai)}|${Object.keys(bag.punya).join()}|${Math.ceil(buff.kuat)}|${Math.ceil(buff.cepat)}|${Math.round(player.hp)}|${recipes.map(r => r.ada()).join()}`
     if (!force && key === shownBag) return
     shownBag = key
     el.tasKoin.innerHTML = koinHtml(bag.koin)
@@ -151,20 +172,34 @@ export function createShop({ life, bag, player, bubbles, message, maxHp, wanted 
     const rows = []
     for (const [id, n] of Object.entries(bag.barang)) {
       const b = BARANG[id]
+      const verb = KATA_PAKAI[b.jenis]
       rows.push(`<div class="barang"><span class="ikon">${ikonBarang(id)}</span><div class="info"><b>${b.nama} <i>×${n}</i></b><small>${efekTeks(b)}</small></div>`
-        + `<button type="button" class="pakai" data-id="${id}">${KATA_PAKAI[b.jenis]}</button></div>`)
+        + (verb ? `<button type="button" class="pakai" data-id="${id}">${verb}</button>` : '<span class="label-barang">Bahan</span>') + '</div>')
     }
     for (const id of Object.keys(bag.punya)) {
       const b = BARANG[id]
+      if (b.jenis === 'alat') {
+        rows.push(`<div class="barang"><span class="ikon">${ikonBarang(id)}</span><div class="info"><b>${b.nama}</b><small>Alat · ${efekTeks(b)}</small></div><span class="label-barang">Alat</span></div>`)
+        continue
+      }
       const on = bag.pakai[b.jenis] === id
       rows.push(`<div class="barang${on ? ' dipakai' : ''}"><span class="ikon">${ikonBarang(id)}</span><div class="info"><b>${b.nama}</b><small>${JENIS_TEKS[b.jenis]} · ${efekTeks(b)}${on ? ' · dipakai' : ''}</small></div>`
         + `<button type="button" class="pakai${on ? ' lepas' : ''}" data-id="${id}">${on ? 'Lepas' : 'Pakai'}</button></div>`)
     }
-    el.tasDaftar.innerHTML = rows.length ? rows.join('') : '<div class="kosong">Tas masih kosong. Belanja makanan & ramuan di Pasar Aeloria, perlengkapan di Tempa Aeloria (lihat Peta).</div>'
+    // membuat barang dari kayu (pancing, perahu)
+    const kayu = bag.jumlah('kayu')
+    const craft = recipes.map(r => {
+      const owned = r.ada()
+      const can = !owned && kayu >= r.kayu
+      return `<div class="barang"><span class="ikon">${ikonBarang(r.ikon)}</span><div class="info"><b>${r.nama}</b><small>${r.kayu} kayu · ${r.ket}</small></div>`
+        + `<button type="button" class="buat${can ? '' : ' redup'}" data-buat="${r.id}">${owned ? 'Dimiliki' : 'Buat'}</button></div>`
+    }).join('')
+    el.tasDaftar.innerHTML = (rows.length ? rows.join('') : '<div class="kosong">Tas masih kosong. Belanja makanan & ramuan di Pasar Aeloria, perlengkapan di Tempa Aeloria (lihat Peta).</div>')
+      + (recipes.length ? `<div class="toko-bagian">Buat dari kayu (punya ${kayu}) — pukul batang pohon untuk mendapat kayu</div>${craft}` : '')
   }
   function openBag() {
     closeShop()
-    el.tasPesan.textContent = 'Koin didapat dari mengalahkan orc.'
+    el.tasPesan.textContent = 'Koin didapat dari mengalahkan orc dan menjual ikan.'
     renderBag(true)
     el.panelTas.hidden = false
   }
@@ -192,6 +227,13 @@ export function createShop({ life, bag, player, bubbles, message, maxHp, wanted 
   el.tasDaftar.addEventListener('click', e => {
     const btn = e.target.closest('button[data-id]')
     if (btn) use(btn.dataset.id)
+    const make = e.target.closest('button[data-buat]')
+    const r = make && recipes.find(x => x.id === make.dataset.buat)
+    if (!r) return
+    if (r.ada()) el.tasPesan.textContent = `Kamu sudah punya ${r.nama.toLowerCase()}.`
+    else if (bag.jumlah('kayu') < r.kayu) el.tasPesan.textContent = `Butuh ${r.kayu} kayu (punya ${bag.jumlah('kayu')}). Pukul batang pohon untuk mendapat kayu.`
+    else el.tasPesan.textContent = r.buat()
+    renderBag(true)
   })
   el.tas.addEventListener('click', () => (el.panelTas.hidden ? openBag() : closeBag()))
   $('btn-tutup-tas').addEventListener('click', closeBag)
@@ -239,15 +281,21 @@ export function createShop({ life, bag, player, bubbles, message, maxHp, wanted 
     // hadiah koin (mis. mengalahkan orc): angka "+n" melayang di dekat koin HUD
     reward(n) {
       bag.dapat(n)
+      this.toast(`+${n}`)
+    },
+    // tulisan kecil yang melayang di dekat koin HUD (mis. "+1 kayu")
+    toast(text) {
       const tip = document.createElement('span')
       tip.className = 'koin-tambah'
-      tip.textContent = `+${n}`
+      tip.textContent = text
       el.koin.appendChild(tip)
       setTimeout(() => tip.remove(), 1300)
     },
     get open() {
       return !!current || !el.panelTas.hidden
     },
+    // buka panel Tas (mis. dari pesan "buat perahu di Tas")
+    openBag,
     close() {
       closeShop()
       closeBag()

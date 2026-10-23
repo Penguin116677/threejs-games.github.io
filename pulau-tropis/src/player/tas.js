@@ -1,8 +1,9 @@
 import { BARANG, PAKAIAN } from '../world/aeloria/ekonomi.js'
 
-// Tas pemain: koin, barang bawaan (makanan, minuman, ramuan), perlengkapan yang dimiliki & yang
-// sedang dipakai, dan ramuan yang sedang bekerja. Disimpan di localStorage bila browser
-// mengizinkan (mode privat / pratinjau bisa memblokir — tas tetap jalan tanpa disimpan).
+// Tas pemain: koin, barang bawaan (makanan, minuman, ramuan, ikan hasil memancing, kayu), perlengkapan
+// & alat (pancing) yang dimiliki, perlengkapan yang sedang dipakai, dan ramuan yang sedang bekerja.
+// Disimpan di localStorage bila browser mengizinkan (mode privat / pratinjau bisa memblokir — tas
+// tetap jalan tanpa disimpan).
 const KEY = 'pulau-tropis:tas'
 export const KOIN_AWAL = 60
 const TAHAN_MAKS = 0.7 // luka yang tertahan paling banyak 70%
@@ -85,20 +86,34 @@ export function createBag() {
       state.koin = Math.max(0, state.koin - n)
       changed()
     },
-    // barang hasil membeli: perlengkapan langsung dipakai, lainnya masuk tas
-    terima(id) {
+    // barang hasil membeli / memancing / menebang / membuat: perlengkapan langsung dipakai, alat
+    // (pancing) dimiliki, lainnya masuk tas (n buah)
+    terima(id, n = 1) {
       const b = BARANG[id]
       if (!b) return
       if (PAKAIAN.includes(b.jenis)) {
         state.punya[id] = true
         state.pakai[b.jenis] = id
-      } else state.barang[id] = (state.barang[id] || 0) + 1
+      } else if (b.jenis === 'alat') state.punya[id] = true
+      else state.barang[id] = (state.barang[id] || 0) + n
       changed()
+    },
+    // banyaknya barang `id` di tas
+    jumlah(id) {
+      return state.barang[id] || 0
+    },
+    // ambil n barang (mis. kayu untuk membuat perahu, ikan yang dijual); false bila kurang
+    ambil(id, n = 1) {
+      if ((state.barang[id] || 0) < n) return false
+      state.barang[id] -= n
+      if (!state.barang[id]) delete state.barang[id]
+      changed()
+      return true
     },
     // pakai / lepas perlengkapan yang dimiliki
     kenakan(id) {
       const b = BARANG[id]
-      if (!b || !state.punya[id]) return
+      if (!b || !state.punya[id] || !PAKAIAN.includes(b.jenis)) return
       state.pakai[b.jenis] = state.pakai[b.jenis] === id ? null : id
       changed()
     },

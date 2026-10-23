@@ -1,4 +1,4 @@
-import { CITADEL, BRIDGES } from './layout.js'
+import { CITADEL, SELAT_Z } from './layout.js'
 
 // Penjagaan Aeloria. Kota bebas & kawasan kesatria adalah zona damai (DECISIONS #49): pemain boleh
 // berjalan, berbelanja, dan menonton tanpa diganggu.
@@ -8,9 +8,9 @@ import { CITADEL, BRIDGES } from './layout.js'
 //   menyerang. Warga biasa di sekitar kerusuhan kabur — yang pemberani ikut berkelahi.
 //   PEDAGANG TETAP NETRAL (DECISIONS #50): tidak kabur, tidak menyerang, dan tetap berdagang dengan
 //   pemain walaupun ia musuh kerajaan.
-// - Semua itu hanya di WILAYAH AELORIA (utara tengah Jembatan Perak): kesatria tidak memburu pemain
-//   keluar kerajaan — mereka berhenti di perbatasan, dan pemain yang dibangunkan di ujung selatan
-//   jembatan aman dari kesatria yang sedang berjalan-jalan sampai ke sana.
+// - Semua itu hanya di WILAYAH AELORIA (utara garis tengah Selat Perak): kesatria tidak memburu
+//   pemain keluar kerajaan — mereka tidak berenang (berhenti di pantai), dan pemain yang dibangunkan
+//   di pantai Pulau Tropis aman dari mereka.
 // - BENTENG AELORIA: satu-satunya wilayah terlarang — penjaganya menyerang siapa pun yang masuk;
 //   keluar dari benteng = berhenti dikejar (bila tidak sedang buron).
 // - KERIBUTAN WARGA: sesekali dua elf pemarah berkelahi di dekat pemain, elf lain berkerumun
@@ -40,9 +40,9 @@ const SPEED = { kejar: 4.1, dekati: 2.4, kabur: 4.0, jalan: 1.6 }
 const RUN_ANIM = 4.0 // m/s yang cocok dengan klip run (kehidupan.js)
 const WALK_ANIM = 1.4
 const RADIUS = 0.35
-// perbatasan: tengah Jembatan Perak (z). Utaranya wilayah Aeloria, selatannya Pulau Tropis
-const PERAK = BRIDGES.find(b => b.id === 'perak')
-const BORDER_Z = (PERAK.from + PERAK.to) / 2
+// perbatasan: garis tengah Selat Perak (z) di antara Dermaga Perak dan Dermaga Utara. Utaranya
+// wilayah Aeloria, selatannya Pulau Tropis
+const BORDER_Z = SELAT_Z
 const inLand = z => z < BORDER_Z
 const BRAWL = { first: [35, 60], every: [70, 140], knightAfter: [6, 9], alone: 16, watchers: 6 }
 // kegiatan tenang: elf yang sedang begini boleh terseret keributan / menontonnya

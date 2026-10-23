@@ -110,14 +110,17 @@ vec3 buildingPattern(vec3 col) {
 }
 `
 
-export function buildingMaterial(noiseTexture) {
+// seeThroughOn = false: tidak pernah dilubangi (mis. perahu yang dinaiki pemain — badannya selalu
+// berada di antara kamera dan pemain)
+export function buildingMaterial(noiseTexture, seeThroughOn = true) {
   const mat = new THREE.MeshLambertMaterial({ vertexColors: true })
+  const off = { value: 0 }
   mat.onBeforeCompile = shader => {
     shader.uniforms.uTime = buildingTime
     shader.uniforms.uNoise = { value: noiseTexture }
     shader.uniforms.uSeeA = seeThrough.a
     shader.uniforms.uSeeB = seeThrough.b
-    shader.uniforms.uSeeR = seeThrough.r
+    shader.uniforms.uSeeR = seeThroughOn ? seeThrough.r : off
     shader.vertexShader = vertexPars + shader.vertexShader.replace(
       '#include <begin_vertex>',
       `#include <begin_vertex>

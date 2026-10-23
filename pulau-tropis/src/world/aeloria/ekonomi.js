@@ -9,7 +9,9 @@
 //   kerajaan (DECISIONS #50).
 
 // jenis: makanan / minuman / ramuan (dipakai dari tas), senjata / perisai / zirah / helm (dipakai
-// di badan). pulih = nyawa; kuat / cepat = lama ramuan (detik); serang = pengali kerusakan;
+// di badan), ikan (hasil memancing: dimakan atau dijual ke Kios Ikan Bakar — harga = harga jual),
+// bahan (kayu dari menebang pohon, untuk membuat pancing & perahu), alat (pancing; dimiliki, tidak
+// dipakai di badan). pulih = nyawa; kuat / cepat = lama ramuan (detik); serang = pengali kerusakan;
 // jangkau = jangkauan tambahan (m); tahan = bagian kerusakan yang ditahan
 export const BARANG = {
   rotiGandum: { nama: 'Roti Gandum', jenis: 'makanan', harga: 4, pulih: 15 },
@@ -37,11 +39,23 @@ export const BARANG = {
   zirahRantai: { nama: 'Zirah Rantai', jenis: 'zirah', harga: 110, tahan: 0.25 },
   zirahPerak: { nama: 'Zirah Perak Aeloria', jenis: 'zirah', harga: 240, tahan: 0.4 },
   helmElf: { nama: 'Helm Elf', jenis: 'helm', harga: 55, tahan: 0.1 },
+  ikanBelanak: { nama: 'Ikan Belanak', jenis: 'ikan', harga: 4, pulih: 8 },
+  ikanKakap: { nama: 'Kakap Merah', jenis: 'ikan', harga: 8, pulih: 12 },
+  ikanTongkol: { nama: 'Ikan Tongkol', jenis: 'ikan', harga: 11, pulih: 14 },
+  ikanKerapu: { nama: 'Ikan Kerapu', jenis: 'ikan', harga: 16, pulih: 18 },
+  ikanLayaran: { nama: 'Ikan Layaran', jenis: 'ikan', harga: 30, pulih: 24 },
+  kayu: { nama: 'Kayu', jenis: 'bahan', harga: 0 },
+  pancing: { nama: 'Pancing', jenis: 'alat', harga: 0 },
 }
+// ikan yang dibeli Kios Ikan Bakar (dibakar & dijual lagi sebagai Ikan Bakar)
+export const IKAN = Object.keys(BARANG).filter(id => BARANG[id].jenis === 'ikan')
 export const PAKAIAN = ['senjata', 'perisai', 'zirah', 'helm']
 
 // kalimat keterangan efek barang (untuk daftar toko & tas)
 export function efekTeks(b) {
+  if (b.jenis === 'ikan') return `+${b.pulih} nyawa · dijual ${b.harga} koin`
+  if (b.jenis === 'bahan') return 'untuk membuat pancing & perahu'
+  if (b.jenis === 'alat') return 'untuk memancing di tepi air / dari perahu'
   if (b.pulih) return `+${b.pulih} nyawa`
   if (b.kuat) return `serangan ×1,5 selama ${b.kuat} detik`
   if (b.cepat) return `lari lebih cepat selama ${b.cepat} detik`
@@ -90,6 +104,7 @@ export function createEconomy({ sites, rand = Math.random }) {
   }
   const smithStall = goods => stalls.find(s => s.area === 'tempa' && s.goods === goods)
   let soldToPlayer = 0
+  let boughtFromPlayer = 0
   let harvests = 0
 
   // tambah satu barang acak yang belum penuh di kios s; hasil id barang atau null
@@ -144,6 +159,17 @@ export function createEconomy({ sites, rand = Math.random }) {
       tas.terima(id)
       return { ok: true }
     },
+    // pemain menjual ikan hasil memancing ke Kios Ikan Bakar: dibayar seharga ikannya, lalu ikan itu
+    // dibakar pedagangnya (stok Ikan Bakar bertambah); hasil { ok, alasan, koin }
+    sell(stall, id, tas) {
+      const b = BARANG[id]
+      if (stall.goods !== 'ikan' || !IKAN.includes(id)) return { ok: false, alasan: 'Kios ini tidak membeli barang itu.' }
+      if (!tas.ambil(id, 1)) return { ok: false, alasan: `Kamu tidak punya ${b.nama}.` }
+      tas.dapat(b.harga)
+      stall.stock.ikanBakar = Math.min(maxOf('ikanBakar'), (stall.stock.ikanBakar || 0) + 1)
+      boughtFromPlayer++
+      return { ok: true, koin: b.harga }
+    },
     // kios penghasil makanan dari ladang (tujuan antar petani)
     farmStalls: stalls.filter(s => ['roti', 'buah', 'sayur'].includes(s.goods)),
     stats: () => ({
@@ -151,6 +177,7 @@ export function createEconomy({ sites, rand = Math.random }) {
       dibuat: stalls.reduce((n, s) => n + s.made, 0),
       dibeliPenduduk: stalls.reduce((n, s) => n + s.sold, 0),
       dibeliPemain: soldToPlayer,
+      ikanDariPemain: boughtFromPlayer,
       antarPanen: harvests,
       stokTempa: Object.fromEntries(stalls.filter(s => s.area === 'tempa').map(s => [s.goods, { ...s.stock }])),
     }),
