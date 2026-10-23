@@ -240,6 +240,8 @@ export function planAeloria(ground) {
     circle(x, z, 1.0, 'kayu')
   }
   P.shops.push({ id: 'pasar', name: 'Pasar Aeloria — makanan, minuman & ramuan', kind: 'makanan', x: 10, z: -630 })
+  // lorong-lorong pasar (di depan deretan kios) supaya pembeli & pedagang tidak menembus kios
+  P.paths.push([-45, -651.7, 65, -651.7], [-45, -637, 65, -637], [-45, -623, 65, -623], [-45, -608.2, 65, -608.2], [-38, -660, -38, -600], [58, -660, 58, -600])
   // lingkaran mengobrol & lentera di alun-alun
   for (const [x, z] of [[-33, -646], [52, -637], [-37, -623], [53, -622], [-6, -637]]) chat(x, z, 'pasar')
   for (const [x, z] of [[-45, -660], [65, -660], [-45, -600], [65, -600], [4, -640], [16, -620]]) lamp(x, z)
@@ -292,7 +294,7 @@ export function planAeloria(ground) {
       add({ type: 'meja', x: tx, y: TOWN.y, z: tz, rot: 0, len: 5 })
       box(tx, tz, 5.2, 1.2, 0, 'kayu')
       take(tx, tz, 6, 3, 0)
-      for (let i = 0; i < 6; i++) for (const sz of [-1, 1]) seats.push({ x: tx - 2 + i * 0.8, z: tz + sz * 0.95, rot: sz > 0 ? FACE.utara : FACE.selatan, pose: 'drink' })
+      for (let i = 0; i < 4; i++) for (const sz of [-1, 1]) seats.push({ x: tx - 1.75 + i * 1.15, z: tz + sz * 0.95, rot: sz > 0 ? FACE.utara : FACE.selatan, pose: 'drink' })
     }
     site({ type: 'kedai', area: 'kota', x: -106, z: -612, slots: seats })
     // pemilik kedai di depan pintu
@@ -418,37 +420,41 @@ export function planAeloria(ground) {
         for (const tz of [z - 2.5, z + 2.5]) {
           add({ type: 'meja', x, y: M.y, z: tz, rot: 0, len: 16 })
           box(x, tz, 16.2, 2.4, 0, 'kayu')
-          for (let i = 0; i < 20; i++)
+          for (let i = 0; i < 13; i++)
             for (const sz of [-1, 1]) {
-              const sx = x - 8 + 0.4 + i * 0.8
+              const sx = x - 8 + 1.1 + i * 1.15
               // datang dari ujung meja terdekat menyusuri bangku (tidak menembus meja)
               seats.push({ x: sx, z: tz + sz * 0.95, rot: sz > 0 ? FACE.utara : FACE.selatan, pose: 'eat', via: { x: sx < x ? x - 10.8 : x + 10.8, z: tz + sz * 1.3 } })
             }
         }
       }
     site({ type: 'makan', area: 'makan', x: 10, z: -765, slots: seats })
-    for (const x of COLS) {
-      // dapur + juru masak
-      const kx = x - 4
-      add({ type: 'dapur', x: kx, y: M.y, z: -777, rot: FACE.selatan })
-      box(kx, -777, 3.6, 2.4, 0, 'batu')
-      site({ type: 'kerja', job: 'masak', area: 'makan', x: kx, z: -777, slots: [{ x: kx - 1.2, z: -775.2, rot: FACE.utara, pose: 'cook' }, { x: kx + 1.0, z: -775.2, rot: FACE.utara, pose: 'cook' }] })
-      // meja saji: pelayan di belakang, antrean memanjang ke selatan
-      const sx = x + 3.5
-      add({ type: 'meja-saji', x: sx, y: M.y, z: -777, rot: FACE.selatan })
-      box(sx, -777, 4.4, 1.3, 0, 'kayu')
-      const queue = []
-      for (let k = 0; k < 8; k++) queue.push({ x: sx, z: -775.4 + k * 0.95, rot: FACE.utara, pose: 'queue' })
-      site({ type: 'antre', area: 'makan', x: sx, z: -775, server: { x: sx, z: -778.3, rot: FACE.selatan, pose: 'serve' }, slots: queue })
-      add({ type: 'tumpukan', x: x - 8.5, y: M.y, z: -778, rot: rand() * Math.PI })
-      circle(x - 8.5, -778, 1.0, 'kayu')
-    }
+    // dua deret dapur + meja saji di kedua sisi jalan tengah (z −765), antrean memanjang ke arah
+    // jalan: sisi utara menghadap selatan, sisi selatan menghadap utara
+    for (const x of COLS)
+      for (const sgn of [-1, 1]) {
+        const rz = -765 + sgn * 12 // baris dapur & meja saji
+        const face = sgn < 0 ? FACE.selatan : FACE.utara
+        const kx = x - 4
+        add({ type: 'dapur', x: kx, y: M.y, z: rz, rot: face })
+        box(kx, rz, 3.6, 2.4, 0, 'batu')
+        site({ type: 'kerja', job: 'masak', area: 'makan', x: kx, z: rz, slots: [{ x: kx - 1.2, z: rz - sgn * 1.8, rot: face + Math.PI, pose: 'cook' }, { x: kx + 1.0, z: rz - sgn * 1.8, rot: face + Math.PI, pose: 'cook' }] })
+        // meja saji: pelayan di belakang, antrean memanjang menjauhi meja
+        const sx = x + 3.5
+        add({ type: 'meja-saji', x: sx, y: M.y, z: rz, rot: face })
+        box(sx, rz, 4.4, 1.3, 0, 'kayu')
+        const queue = []
+        for (let k = 0; k < 10; k++) queue.push({ x: sx, z: rz - sgn * (1.6 + k * 0.95), rot: face + Math.PI, pose: 'queue' })
+        site({ type: 'antre', area: 'makan', x: sx, z: rz, server: { x: sx, z: rz + sgn * 1.3, rot: face, pose: 'serve' }, slots: queue })
+        add({ type: 'tumpukan', x: x - 8.5, y: M.y, z: rz + sgn * 0.5, rot: rand() * Math.PI })
+        circle(x - 8.5, rz + sgn * 0.5, 1.0, 'kayu')
+      }
     P.pave.push({ x0: M.x0, z0: M.z0, x1: M.x1, z1: M.z1 })
     // jalan setapak di antara pergola & di tepi balai
     for (const x of [-77, -42, -3, 23, 62, 97]) P.paths.push([x, M.z0, x, M.z1])
     P.paths.push([M.x0, -765, M.x1, -765], [M.x0, -729.5, M.x1, -729.5], [M.x0, -798.5, M.x1, -798.5])
     for (const [x, z] of [[-77, -740], [97, -740], [-77, -795], [97, -795], [-42, -765], [62, -765]]) lamp(x + 1.5, z)
-    for (const [x, z] of [[-42, -755], [62, -755], [-3, -752], [23, -752], [-60, -760], [80, -760]]) chat(x, z, 'makan')
+    for (const [x, z] of [[-42, -758], [62, -758], [-3, -770], [23, -770], [-42, -772], [62, -772]]) chat(x, z, 'makan')
   }
 
   // ===================================================================== Lapangan Latihan
@@ -509,7 +515,7 @@ export function planAeloria(ground) {
       for (const x of [F.x0 + 22, F.x0 + 58, F.x0 + 94, F.x0 + 130, F.x0 + 166]) {
         add({ type: 'meja', x, y: F.y, z, rot: 0, len: 14, feast: true })
         box(x, z, 15.4, 2.4, 0, 'kayu')
-        for (let i = 0; i < 17; i++) for (const sz of [-1, 1]) seats.push({ x: x - 7 + 0.4 + i * 0.8, z: z + sz * 0.95, rot: sz > 0 ? FACE.utara : FACE.selatan, pose: 'feast' })
+        for (let i = 0; i < 12; i++) for (const sz of [-1, 1]) seats.push({ x: x - 7 + 0.68 + i * 1.15, z: z + sz * 0.95, rot: sz > 0 ? FACE.utara : FACE.selatan, pose: 'feast' })
       }
     site({ type: 'jamuan', area: 'pesta', x: (F.x0 + F.x1) / 2, z: F.z1 - 20, slots: seats })
     // api unggun + lingkaran tari & bangku kayu
@@ -593,7 +599,7 @@ export function planAeloria(ground) {
       const ring = []
       for (let j = 0; j < 7; j++) {
         const a = (j / 7) * Math.PI * 2
-        ring.push({ x: x + Math.cos(a) * 2.8, z: z + Math.sin(a) * 2.8, rot: facing(x + Math.cos(a) * 2.8, z + Math.sin(a) * 2.8, x, z), pose: 'sit' })
+        ring.push({ x: x + Math.cos(a) * 2.8, z: z + Math.sin(a) * 2.8, rot: facing(x + Math.cos(a) * 2.8, z + Math.sin(a) * 2.8, x, z), pose: 'duduk' })
       }
       site({ type: 'api', area: 'kemah', x, z, slots: ring, fire: { x, z } })
     }
@@ -742,7 +748,7 @@ export function planAeloria(ground) {
         if (yAt(x, z) > 1.8) continue
         // bukan di kaki Jembatan Perak, bukan di dalam kawasan berbangunan
         if ((Math.abs(x - 10) < 18 && z > -470) || P.clear(x, z, 0)) break
-        slots.push({ x, z, rot: Math.atan2(dx * L.rz, dz * L.rx), pose: i % 3 ? 'sit' : 'fish' })
+        slots.push({ x, z, rot: Math.atan2(dx * L.rz, dz * L.rx), pose: i % 3 ? 'duduk' : 'fish' })
         break
       }
     }
@@ -750,11 +756,17 @@ export function planAeloria(ground) {
   }
 
   // ===================================================================== kawasan terbuka: obrolan & bangku
-  // lingkaran mengobrol di tepi jalan raya & hutan (kesatria berjalan-jalan berhenti di sini)
+  // lingkaran mengobrol di tepi jalan raya & hutan (kesatria berjalan-jalan berhenti di sini), di
+  // tepi lapangan latihan & padang pesta, dan di antara perkemahan
   for (let z = -720; z >= -880; z -= 40) {
     chat(-14, z + 6, 'jalan')
     chat(34, z - 6, 'jalan')
   }
+  for (let z = -745; z >= -875; z -= 32) {
+    chat(TRAINING.x1 + 9, z, 'latihan')
+    chat(FEAST.x0 - 9, z + 14, 'pesta')
+  }
+  for (const c of CAMPS) for (const x of [c.x0 - 7, c.x1 + 7]) for (const z of [c.z0 + 15, c.z1 - 15]) if (onLand(x, z, 0.85)) chat(x, z, 'kemah')
   for (const [ax, az, bx, bz] of TRAILS)
     for (let t = 0.3; t < 1; t += 0.4) {
       const x = ax + (bx - ax) * t + 4

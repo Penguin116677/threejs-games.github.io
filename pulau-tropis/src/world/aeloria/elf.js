@@ -116,6 +116,16 @@ const SPECS = {
       turnTo(b[6], _ax, 0.1 * k)
     },
   },
+  // makan bekal sambil duduk di tanah: tangan di pangkuan, menyuap
+  bekal: {
+    clip: 'sit', frames: 66,
+    mod: (b, t) => {
+      const k = bump((t / 2.2) % 1, 0.05, 0.3, 0.45, 0.7)
+      aim(b, 5, mix3([0.15, -0.55, 1], MOUTH, k))
+      aim(b, 4, [0.15, -0.55, 1])
+      turnTo(b[6], _ax, 0.1 * k)
+    },
+  },
   // minum dari cangkir (duduk di bangku / berdiri), kepala menengadah saat meneguk
   drink: {
     clip: 'sit', frames: 111,

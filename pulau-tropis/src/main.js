@@ -25,6 +25,8 @@ import { createSoldiers } from './world/kencana/prajurit.js'
 import { createSecurity } from './world/kencana/keamanan.js'
 import { planAeloria } from './world/aeloria/plan.js'
 import { createAeloria } from './world/aeloria/kingdom.js'
+import { createElfFolk } from './world/aeloria/elf.js'
+import { createLife, ELF_CAPS } from './world/aeloria/kehidupan.js'
 import { createWorldMap, createRegionBanner } from './ui/peta.js'
 import { createBubbles, createHealthBar } from './ui/tanya.js'
 import { createInput } from './player/input.js'
@@ -248,14 +250,30 @@ async function start() {
   setStatus('Mengundang penduduk kerajaan…')
   await nextFrame()
   let villagers = null
+  let villagerGltf = null
   try {
-    const villagerGltf = await new GLTFLoader().loadAsync(modelUrl('penduduk.glb'))
+    villagerGltf = await new GLTFLoader().loadAsync(modelUrl('penduduk.glb'))
     const spots = soldiers ? kencana.spots.filter(s => s.role !== 'penjaga') : kencana.spots
     villagers = createVillagers({ ground, routes: kencana.routes, spots, quality, villagerGltf, soldier: soldiers ? null : asset, scripted: soldiers ? 2 : 0 })
     scene.add(villagers.object)
   } catch (err) {
     console.warn('Penduduk gagal dimuat:', err)
   }
+  // rakyat Aeloria: 10.000 kesatria elf + penduduk, masing-masing berkegiatan sesuai pikirannya
+  // sendiri (badan: penduduk.glb, animasi tambahan: elf.glb)
+  setStatus('Menghidupkan 10.000 kesatria Aeloria…')
+  await nextFrame()
+  let life = null
+  if (villagerGltf)
+    try {
+      const elfGltf = await new GLTFLoader().loadAsync(modelUrl('elf.glb'))
+      const folk = createElfFolk({ villagerGltf, elfGltf, quality, caps: ELF_CAPS[quality.level] ?? ELF_CAPS.sedang })
+      scene.add(folk.object)
+      life = createLife({ ground, plan: elfPlan, routes: aeloria.routes, folk, quality, free: (x, z, r) => colliders.isFree(x, z, r) })
+      life.folk = folk
+    } catch (err) {
+      console.warn('Rakyat Aeloria gagal dibuat:', err)
+    }
   // bala tentara di Tegal Wira (Pulau Wira): butuh model prajurit + kuda & perisai
   setStatus('Membariskan 25.000 prajurit…')
   await nextFrame()
@@ -466,6 +484,7 @@ async function start() {
   const agung = plan.spans.find(s => s.id === 'agung')
   // gelembung ucapan, nyawa pemain
   const bubbles = createBubbles($('gelembung'), camera)
+  life?.setBubbles(bubbles)
   const health = createHealthBar($('nyawa'), $('luka'))
   // pendatang: dari ujung timur Jembatan Agung ke gerbang baratnya (ditanyai penjaga), lalu ke pasar
   const bridgeWest = Math.min(agung.a, agung.b) - 11
@@ -640,6 +659,7 @@ async function start() {
       player.update(dt, inp, cam.yaw)
       villagers?.pushOut(player.position)
       soldiers?.pushOut(player.position)
+      life?.pushOut(player.position)
       if (!player.hasPath) markers.hideTarget()
       cam.update(dt, player.position, inp)
       if (!hintGone && (player.speed > 0.5 || (hintTime += dt) > 15)) hideHint()
@@ -661,6 +681,7 @@ async function start() {
     if (banner.update(dt, player.position, mode === 'main')) hideHint()
     villagers?.update(dt, camera, mode === 'main' ? player.position : controls.target, player.position, mode === 'main' ? 110 : 260)
     army?.update(dt, camera, mode === 'main' ? player.position : controls.target)
+    life?.update(dt, camera, mode === 'main' ? player.position : controls.target, mode === 'main' ? 110 : 260)
     security?.update(dt)
     soldiers?.update(dt, {
       camera,
@@ -709,7 +730,7 @@ async function start() {
 
   // akses untuk debugging / pengujian otomatis
   window.__pulau = {
-    renderer, scene, camera, controls, ground, shore, quality, trees, rocks, grass, water, env, kencana, region, plan, villagers, army, worldMap, banner, aeloria, elfPlan, elfMask,
+    renderer, scene, camera, controls, ground, shore, quality, trees, rocks, grass, water, env, kencana, region, plan, villagers, army, worldMap, banner, aeloria, elfPlan, elfMask, life,
     player, cam, input, colliders, nav, markers, effects, enemies, soldiers, security, bubbles, pickGround, setMode, getMode: () => mode,
     frames: () => frameCount, debug,
   }
