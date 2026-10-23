@@ -4,10 +4,11 @@ import { mkdirSync } from 'node:fs'
 // HP kualitas Rendah, dan komputer. Memeriksa:
 // - game termuat tanpa error, karakter prajurit (model + pedang) muncul berdiri di tanah
 // - rumput di lereng gunung, data garis pantai (ombak) valid; memotret pantai & kelapa
-// - komputer: klik tanah untuk berjalan, jalan (W), lompat (Spasi), tabrakan batang pohon,
-//   laut dalam → kembali ke pantai, mendaki lereng gunung
-// - HP: ketuk tanah untuk berjalan (jalur memutari batang pohon), ketuk laut → berhenti di
-//   air dangkal, tombol Pukul (berhenti + mengayun, mengenai batang pohon → serpihan,
+// - komputer: klik tanah tidak menggerakkan karakter, jalan (W), lompat (Spasi), tabrakan batang
+//   pohon, laut dalam → kembali ke pantai, mendaki lereng gunung
+// - HP: joystick (jalan menjauhi kamera, lepas = berhenti, tertahan batang pohon, kamera kembali
+//   ke belakang karakter), ketuk tanah tidak menggerakkan karakter, tombol Pukul saat berjalan
+//   (berhenti + mengayun, mengenai batang pohon → serpihan,
 //   kombo tebas → tinju → tendang), jurus Cincang / Hentak / Putar / Penggal terhadap orc
 //   (+ jeda pakai, Penggal tanpa musuh, orc hidup lagi), tombol Lompat, geser kamera
 //   (tanpa memicu jalan), cubit zoom, tombol Lihat pulau, menu Kualitas
@@ -87,18 +88,6 @@ const screenOf = (page, x, z) => page.evaluate(([x, z]) => {
   const v = camera.position.clone().set(x, Math.max(ground.heightAt(x, z), 0), z).project(camera)
   return { x: (v.x + 1) / 2 * innerWidth, y: (1 - v.y) / 2 * innerHeight }
 }, [x, z])
-
-// tunggu sampai pemain selesai mengikuti jalur; catat jarak terdekat ke titik `near` ([x, z])
-async function walkUntilDone(page, maxFrames, near) {
-  let s = await state(page)
-  let closest = Infinity
-  for (let f = 0; f < maxFrames && s.path; f += 2) {
-    await waitFrames(page, 2)
-    s = await state(page)
-    if (near) closest = Math.min(closest, Math.hypot(s.x - near[0], s.z - near[1]))
-  }
-  return { ...s, closest }
-}
 
 // titik lapang (bisa diinjak, jauh dari batang/batu) 10–20 m dari (x, z) ke arah `toward`
 const openSpot = (page, x, z, toward) => page.evaluate(([x, z, toward]) => {
@@ -752,8 +741,9 @@ for (const [name, opts, query] of cases) {
   await teleport(page, -122, 122, [-170, 170])
 
   if (name === 'desktop') {
-    // klik tanah → berjalan ke titik itu (klik lewat CDP dengan cap waktu eksplisit, tombol
-    // ditekan 80 ms: render software lambat bisa membuat jeda tekan–lepas terbaca "ditahan")
+    // klik tanah tidak menggerakkan karakter (berjalan memakai WASD) — klik lewat CDP dengan cap
+    // waktu eksplisit, tombol ditekan 80 ms: render software lambat bisa membuat jeda tekan–lepas
+    // terbaca "ditahan"
     const cdp = await ctx.newCDPSession(page)
     async function click({ x, y }) {
       const now = Date.now() / 1000
@@ -765,13 +755,12 @@ for (const [name, opts, query] of cases) {
     await teleport(page, -122, 122, [0, 0])
     await waitFrames(page, 5)
     const goal = await openSpot(page, -122, 122, [0, 0])
+    const c0 = await state(page)
     await click(await screenOf(page, ...goal))
-    await waitFrames(page, 2)
-    if (!(await state(page)).path) fail('klik tanah tidak membuat jalur')
-    const end = await walkUntilDone(page, 200)
-    const miss = Math.hypot(end.x - goal[0], end.z - goal[1])
-    if (end.path || miss > 0.6) fail(`klik tanah: berhenti ${miss.toFixed(2)} m dari titik klik`)
-    else ok(`klik tanah: sampai ${miss.toFixed(2)} m dari titik klik`)
+    await waitFrames(page, 10)
+    const c1 = await state(page)
+    if (c1.path || Math.hypot(c1.x - c0.x, c1.z - c0.z) > 0.1) fail('klik tanah menggerakkan karakter')
+    else ok('klik tanah tidak menggerakkan karakter (berjalan memakai WASD)')
 
     // jalan maju dengan W
     await teleport(page, -122, 122, [0, 0])
@@ -873,82 +862,86 @@ for (const [name, opts, query] of cases) {
       await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [], timestamp: now + 0.08 })
     }
 
-    // ketuk tanah di depan → berjalan sampai ke titik itu
+    // joystick: jari kiri bawah didorong ke atas penuh → berlari menjauhi kamera, tetap di tanah;
+    // dilepas → berhenti. Joystick muncul di tempat ibu jari menyentuh.
+    const vp = page.viewportSize()
+    const joy = { x: 100, y: vp.height - 160 }
+    async function holdJoystick(dx, dy) {
+      await touch('touchStart', [{ x: joy.x, y: joy.y, id: 1 }])
+      for (let i = 1; i <= 6; i++) await touch('touchMove', [{ x: joy.x + (dx * i) / 6, y: joy.y + (dy * i) / 6, id: 1 }])
+    }
     await teleport(page, -122, 122, [0, 0])
     await waitFrames(page, 5)
-    const goal = await openSpot(page, -122, 122, [0, 0])
-    await tap(await screenOf(page, ...goal))
-    await waitFrames(page, 2)
-    const st1 = await state(page)
-    const markerOn = await page.evaluate(() => window.__pulau.markers.objects[0].visible)
-    if (!st1.path || !markerOn) fail(`ketuk tanah: jalur ${st1.path}, penanda tujuan ${markerOn}`)
-    await waitFrames(page, 10)
-    await page.screenshot({ path: `${out}/${name}-ketuk.png` })
-    const end = await walkUntilDone(page, 200)
-    const miss = Math.hypot(end.x - goal[0], end.z - goal[1])
-    if (end.path || miss > 0.6 || Math.abs(end.h) > 0.05) fail(`ketuk tanah: berhenti ${miss.toFixed(2)} m dari titik ketuk`)
-    else ok(`ketuk tanah: berjalan ${Math.hypot(goal[0] + 122, goal[1] - 122).toFixed(1)} m, sampai ${miss.toFixed(2)} m dari titik ketuk`)
+    const j0 = await state(page)
+    await holdJoystick(0, -70)
+    await waitFrames(page, 30)
+    const j1 = await state(page)
+    const joyOn = await page.evaluate(() => window.__pulau.input.joystickActive && document.getElementById('joystick').classList.contains('aktif'))
+    await page.screenshot({ path: `${out}/${name}-joystick.png` })
+    await touch('touchEnd', [])
+    await waitFrames(page, 20)
+    const j2 = await state(page)
+    // arah lari dibanding arah pandang kamera (kamera di yaw: maju = (−sin yaw, −cos yaw))
+    const runDir = Math.atan2(j1.x - j0.x, j1.z - j0.z)
+    const camFwd = Math.atan2(-Math.sin(j0.yaw), -Math.cos(j0.yaw))
+    const off = Math.abs(Math.atan2(Math.sin(runDir - camFwd), Math.cos(runDir - camFwd)))
+    const ran = Math.hypot(j1.x - j0.x, j1.z - j0.z)
+    if (!joyOn) fail('joystick tidak tampil aktif saat ditahan')
+    if (ran < 5 || off > 0.3 || Math.abs(j1.h) > 0.05) fail(`joystick maju: pindah ${ran.toFixed(1)} m, menyimpang ${off.toFixed(2)} rad dari arah kamera`)
+    else ok(`joystick maju: lari ${ran.toFixed(1)} m menjauhi kamera (simpang ${off.toFixed(2)} rad), tetap di tanah`)
+    if (j2.speed > 0.3) fail(`joystick dilepas: masih bergerak ${j2.speed.toFixed(2)} m/s`)
+    else ok('joystick dilepas: berhenti')
 
-    // ketuk di balik batang pohon: jalur memutarinya, tidak menembus / tersangkut
+    // joystick serong kanan-depan: kamera ikut berputar ke arah lari (kembali ke belakang karakter)
+    await teleport(page, -122, 122, [0, 0])
+    await waitFrames(page, 3)
+    const k0 = await state(page)
+    await holdJoystick(50, -50)
+    await waitFrames(page, 40)
+    const k1 = await state(page)
+    await touch('touchEnd', [])
+    // kamera berputar searah jarum jam (yaw berkurang) saat karakter berbelok ke kanan
+    if (k0.yaw - k1.yaw < 0.2) fail(`kamera mengikuti: putar ${(k1.yaw - k0.yaw).toFixed(2)} rad`)
+    else ok(`kamera ikut berputar ke arah lari (${(k1.yaw - k0.yaw).toFixed(2)} rad)`)
+
+    // joystick menabrak batang pohon: tertahan, tidak menembus
     const trunk = await openTrunk(page)
     await teleport(page, trunk.x - 4, trunk.z, [trunk.x, trunk.z])
-    await waitFrames(page, 5)
-    await tap(await screenOf(page, trunk.x + 4, trunk.z))
-    await waitFrames(page, 2)
-    const around = await walkUntilDone(page, 200, [trunk.x, trunk.z])
-    const miss2 = Math.hypot(around.x - trunk.x - 4, around.z - trunk.z)
-    if (around.path || miss2 > 0.6) fail(`memutari pohon: berhenti ${miss2.toFixed(2)} m dari tujuan`)
-    else if (around.closest < trunk.radius + 0.35 - 0.03) fail(`memutari pohon: menembus batang (jarak ${around.closest.toFixed(2)} m)`)
-    else ok(`memutari batang pohon: sampai, jarak terdekat ke batang ${around.closest.toFixed(2)} m`)
+    await waitFrames(page, 3)
+    await holdJoystick(0, -70)
+    await waitFrames(page, 25)
+    await touch('touchEnd', [])
+    const tb = await state(page)
+    const td = Math.hypot(tb.x - trunk.x, tb.z - trunk.z)
+    if (td < trunk.radius + 0.35 - 0.03) fail(`joystick: menembus batang pohon (jarak ${td.toFixed(2)} m)`)
+    else ok(`joystick: tertahan batang pohon (jarak ${td.toFixed(2)} m)`)
 
-    // ketuk laut dalam → berhenti di air dangkal, tidak "tenggelam" (tidak kembali ke pantai)
-    // (zoom keluar dulu agar laut dalam terlihat di layar)
-    await teleport(page, -122, 122, [-170, 170])
-    await page.evaluate(() => {
-      window.__pulau.cam.state.dist = 60
-    })
-    await waitFrames(page, 15)
-    const sea = await page.evaluate(() => {
-      // titik paling atas layar yang masih laut dalam
-      const { pickGround, ground } = window.__pulau
-      for (let y = 0.05; y < 0.5; y += 0.05) {
-        const p = pickGround(innerWidth / 2, innerHeight * y)
-        if (p && ground.heightAt(p.x, p.z) < -1.5) return { x: innerWidth / 2, y: innerHeight * y, depth: -ground.heightAt(p.x, p.z) }
-      }
-      return null
-    })
-    if (!sea) fail('tidak ada laut dalam di layar untuk diuji')
-    else {
-      await tap(sea)
-      await waitFrames(page, 2)
-      const wade = await walkUntilDone(page, 200)
-      const depth = await page.evaluate(() => {
-        const { player, ground } = window.__pulau
-        return -ground.heightAt(player.position.x, player.position.z)
-      })
-      const respawned = await page.evaluate(() => !document.getElementById('pesan').hidden)
-      if (respawned || depth > 1.0) fail(`ketuk laut: kedalaman ${depth.toFixed(2)} m, kembali ke pantai ${respawned}`)
-      else ok(`ketuk laut (dalam ${sea.depth.toFixed(1)} m): berhenti di air dangkal ${Math.max(0, depth).toFixed(2)} m`)
-      if (wade.path) fail('ketuk laut: masih berjalan setelah 200 frame')
-    }
-    await page.evaluate(() => {
-      window.__pulau.cam.state.dist = 22
-    })
+    // ketuk tanah (di luar daerah joystick) tidak menggerakkan karakter
+    await teleport(page, -122, 122, [0, 0])
+    await waitFrames(page, 5)
+    const t0 = await state(page)
+    await tap({ x: vp.width * 0.7, y: vp.height * 0.45 })
+    await waitFrames(page, 10)
+    const t1 = await state(page)
+    if (t1.path || Math.hypot(t1.x - t0.x, t1.z - t0.z) > 0.1) fail('ketuk tanah menggerakkan karakter')
+    else ok('ketuk tanah tidak menggerakkan karakter')
 
     // tombol Pukul saat berjalan: prajurit berhenti di tempat dan mengayunkan pedang
     await teleport(page, -122, 122, [0, 0])
     await waitFrames(page, 3)
-    await tap(await screenOf(page, ...(await openSpot(page, -122, 122, [0, 0]))))
+    await page.keyboard.down('KeyW')
     await waitFrames(page, 6)
     const fx0 = await page.evaluate(() => window.__pulau.effects.stats())
     const run = await state(page)
     await page.tap('#btn-pukul')
     await waitFrames(page, 2)
     const swing = await state(page)
+    await page.keyboard.up('KeyW')
     const fx1 = await attackDone(page)
+    await waitFrames(page, 10)
     const after = await state(page)
-    if (!run.path || run.speed < 1) fail('uji Pukul: prajurit tidak sedang berjalan sebelum menekan Pukul')
-    else if (!swing.attacking || swing.path) fail(`tombol Pukul: mengayun ${swing.attacking}, masih berjalan ${swing.path}`)
+    if (run.speed < 1) fail('uji Pukul: prajurit tidak sedang berjalan sebelum menekan Pukul')
+    else if (!swing.attacking) fail('tombol Pukul: tidak mengayun')
     else if (after.attacking || fx1.slashes !== fx0.slashes + 1 || after.speed > 0.3) fail(`tombol Pukul: selesai ${!after.attacking}, sabetan ${fx1.slashes - fx0.slashes}, kecepatan ${after.speed.toFixed(2)}`)
     else ok('tombol Pukul: berhenti berjalan, mengayunkan pedang (1 sabetan), lalu diam')
 

@@ -446,9 +446,16 @@ body {
   border: 1px solid rgba(255, 255, 255, 0.35);
 }
 
-/* layar mendatar: petunjuk di ruang kosong atas, di antara judul dan tombol;
-   tombol jurus & Lompat sebaris di kiri tombol Pukul (tinggi layar terbatas) */
+/* layar mendatar: petunjuk di ruang kosong atas, di antara judul dan tombol; tombol kanan atas
+   2 × 2 (kolomnya pendek); Lompat di atas tombol Pukul, 4 jurus sebaris di kirinya — kiri layar
+   untuk joystick */
 @media (orientation: landscape) {
+  .hud-kanan {
+    display: grid;
+    grid-template-columns: auto auto;
+    justify-items: end;
+  }
+
   /* `bottom` diulang per tombol: aturan tegak per-id (#hud #btn-…) lebih spesifik daripada
      #hud .jurus, jadi tanpa ini tombol jurus tetap di busur tegak dan naik miring ke tengah layar */
   #hud #btn-cincang {
@@ -472,8 +479,8 @@ body {
   }
 
   #hud #btn-lompat {
-    right: calc(var(--r) + 360px);
-    bottom: calc(var(--b) + 14px);
+    right: calc(var(--r) + 14px);
+    bottom: calc(var(--b) + 96px);
   }
 
   #petunjuk {
@@ -645,11 +652,8 @@ body {
   height: 18px;
 }
 
-/* tombol Belanja di dekat kios: kiri bawah (kanan bawah dipakai tombol serangan) */
+/* tombol Belanja di dekat kios (di baris aksi konteks) */
 #hud #btn-belanja {
-  position: absolute;
-  left: max(16px, env(safe-area-inset-left));
-  bottom: max(26px, env(safe-area-inset-bottom));
   display: grid;
   grid-template-columns: auto auto;
   column-gap: 8px;
@@ -922,5 +926,80 @@ body {
     left: max(12px, env(safe-area-inset-left));
     top: calc(max(10px, env(safe-area-inset-top)) + 104px);
     transform: none;
+  }
+}
+
+/* joystick (layar sentuh): dasar bulat + kenop; letaknya diatur input.js lewat transform —
+   muncul di tempat ibu jari kiri menyentuh, beristirahat di kiri bawah sebagai petunjuk */
+#joystick {
+  position: fixed;
+  left: 0;
+  top: 0;
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, 0.4);
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.06) 0 52%, rgba(255, 255, 255, 0.16) 53% 100%);
+  pointer-events: none;
+  opacity: 0.5;
+  transition: opacity 0.15s;
+}
+
+#joystick.aktif {
+  opacity: 1;
+}
+
+#joystick .kenop {
+  position: absolute;
+  left: 32px;
+  top: 32px;
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.78);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
+}
+
+/* tombol Peta: ikon saja */
+#hud #btn-peta {
+  width: 48px;
+  padding: 0;
+  display: grid;
+  place-items: center;
+}
+
+#hud #btn-peta svg {
+  width: 28px;
+  height: 28px;
+}
+
+/* tombol aksi sesuai keadaan (Belanja, Bicara, …): layar tegak di tengah, di atas joystick &
+   busur tombol serangan; layar mendatar di kanan, di atas deretan jurus */
+#aksi-konteks {
+  position: absolute;
+  left: 50%;
+  bottom: calc(max(22px, env(safe-area-inset-bottom)) + 250px);
+  transform: translateX(-50%);
+  width: max-content;
+  max-width: calc(100% - 24px);
+  display: flex;
+  flex-wrap: wrap-reverse;
+  justify-content: center;
+  gap: 8px;
+  pointer-events: none;
+}
+
+#aksi-konteks button {
+  pointer-events: auto;
+}
+
+@media (orientation: landscape) {
+  #aksi-konteks {
+    left: auto;
+    right: calc(max(20px, env(safe-area-inset-right)) + 110px);
+    bottom: calc(max(22px, env(safe-area-inset-bottom)) + 104px);
+    transform: none;
+    max-width: 46%;
+    justify-content: flex-end;
   }
 }

@@ -33,7 +33,7 @@ import { createBubbles, createHealthBar } from './ui/tanya.js'
 import { createShop } from './ui/toko.js'
 import { createElfCard } from './ui/kartu-elf.js'
 import { createInput } from './player/input.js'
-import { createStrategyCamera } from './player/camera.js'
+import { createFollowCamera } from './player/camera.js'
 import { createMarkers } from './player/marker.js'
 import { createSwingEffects } from './player/effects.js'
 import { SKILLS } from './player/combat.js'
@@ -94,12 +94,12 @@ function findSpawn(ground, colliders) {
   return { x: -128, z: 128, heading: Math.atan2(128, -128) }
 }
 
-const HINT_TOUCH = '<b>Ketuk tanah</b> untuk berjalan (jauh = lari) · Geser: putar kamera · Cubit: zoom<br><b>Pukul</b> berulang = kombo · 4 <b>jurus</b> · orc kalah = <b>koin</b><br><b>Peta</b>: Kencana (barat) memusuhimu · Aeloria (utara) damai bila kamu tidak rusuh<br>Di Aeloria: <b>ketuk kios</b> untuk belanja, <b>ketuk elf</b> untuk melihat isi pikirannya'
-const HINT_KEYS = '<b>Klik tanah</b> untuk berjalan · WASD / panah juga bisa · Seret: putar kamera · Roda: zoom<br>F: pukul (kombo) · 1–4: jurus · Spasi: lompat · orc kalah = koin · B: tas<br>M: peta — Kencana (barat) memusuhimu · Aeloria (utara) damai bila kamu tidak rusuh<br>Di Aeloria: klik kios / E untuk belanja, klik elf untuk melihat isi pikirannya'
+const HINT_TOUCH = '<b>Joystick</b> (kiri bawah): berjalan, dorong penuh = lari · Geser layar: putar kamera · Cubit: zoom<br><b>Pukul</b> berulang = kombo · 4 <b>jurus</b> · orc kalah = <b>koin</b><br><b>Peta</b>: Kencana (barat) memusuhimu · Aeloria (utara) damai bila kamu tidak rusuh<br>Di Aeloria: <b>ketuk kios</b> untuk belanja, <b>ketuk elf</b> untuk melihat isi pikirannya'
+const HINT_KEYS = '<b>WASD / panah</b>: berjalan (Shift = pelan) · Seret: putar kamera · Roda: zoom<br>F: pukul (kombo) · 1–4: jurus · Spasi: lompat · orc kalah = koin · B: tas<br>M: peta — Kencana (barat) memusuhimu · Aeloria (utara) damai bila kamu tidak rusuh<br>Di Aeloria: klik kios / E untuk belanja, klik elf untuk melihat isi pikirannya'
 
-// FOV kamera: mode main (kamera atas) lebih sempit agar prajurit tidak terlalu kecil;
-// layar tegak butuh FOV lebih lebar agar sisi kiri-kanan tetap terlihat
-const FOV = { main: [55, 42], lihat: [70, 55] }
+// FOV kamera (tegak, mendatar): layar tegak butuh FOV lebih lebar agar sisi kiri-kanan tetap
+// terlihat dari kamera di belakang karakter
+const FOV = { main: [70, 52], lihat: [70, 55] }
 
 function setupQualityMenu() {
   const btn = $('btn-kualitas')
@@ -373,13 +373,15 @@ async function start() {
       },
     })
 
-  // Kamera strategi dari atas (mode main) + input ketuk/keyboard
+  // Kamera di belakang karakter (mode main) + joystick / keyboard
   const touchUI = navigator.maxTouchPoints > 0 || 'ontouchstart' in window
-  const cam = createStrategyCamera(camera, ground)
+  const cam = createFollowCamera(camera, ground)
   cam.lookFrom(spawn.heading + Math.PI) // di belakang prajurit, menghadap gunung
   const skillButtons = { cincang: $('btn-cincang'), hentak: $('btn-hentak'), putar: $('btn-putar'), penggal: $('btn-penggal') }
-  const input = createInput({ canvas, jumpButton: $('btn-lompat'), attackButton: $('btn-pukul'), skillButtons, touch: touchUI })
-  const NO_INPUT = { moveX: 0, moveY: 0, jump: false, attack: false, skill: null, lookDX: 0, zoom: 1, taps: [] }
+  const input = createInput({
+    canvas, joystick: $('joystick'), knob: $('joystick').querySelector('.kenop'), jumpButton: $('btn-lompat'), attackButton: $('btn-pukul'), skillButtons, touch: touchUI,
+  })
+  const NO_INPUT = { moveX: 0, moveY: 0, jump: false, attack: false, skill: null, lookDX: 0, lookDY: 0, zoom: 1, taps: [], lookRecent: false }
   const markers = createMarkers(ground)
   scene.add(...markers.objects)
   // ketuk elf → kartu isi pikirannya
@@ -495,7 +497,8 @@ async function start() {
     return null // menunjuk ke langit
   }
 
-  // ketukan di layar → cari jalan ke titik itu
+  // ketukan di layar: elf → kartu isi pikirannya; kios → berjalan ke depan mejanya. Berjalan biasa
+  // memakai joystick (mengetuk tanah tidak menggerakkan karakter)
   function handleTap(tap) {
     if (player.defeated) return
     // ketuk elf → kartu isi pikirannya; tetapi pedagang yang sedang berjaga (sering tertutup atap
@@ -507,22 +510,18 @@ async function start() {
       return
     }
     elfCard?.hide()
-    const hit = pickGround(tap.x, tap.y)
-    if (!hit) return
+    const hit = elfStall ? null : pickGround(tap.x, tap.y)
     // ketuk kios Aeloria: berjalan ke depan mejanya, panel toko terbuka saat tiba
-    const stall = elfStall || shop.stallAt(hit.x, hit.z)
-    const goal = stall ? stall.front : hit
-    const path = nav.findPath(player.position, goal)
-    shop.approach(stall && path ? stall : null)
+    const stall = elfStall || (hit && shop.stallAt(hit.x, hit.z))
+    if (!stall) return
+    const path = nav.findPath(player.position, stall.front)
+    shop.approach(path ? stall : null)
     if (path) {
       player.followPath(path)
       const end = path[path.length - 1]
       markers.showTarget(end.x, end.z, true)
       hideHint()
-    } else {
-      markers.showTarget(hit.x, hit.z, false)
-      showMessage('Tidak ada jalan ke sana.', 1600)
-    }
+    } else showMessage('Tidak ada jalan ke kios itu.', 1600)
   }
 
   // Kamera orbit untuk mode "Lihat pulau" (melihat pulau dari atas, karakter diam)
@@ -709,7 +708,7 @@ async function start() {
   // shader prajurit bertugas (dan bayangannya) disiapkan di layar loading, supaya tidak tersendat
   // saat prajurit pertama kali terlihat
   if (soldiers) {
-    cam.update(0.016, player.position, NO_INPUT)
+    cam.update(0.016, player, NO_INPUT)
     env.update(0, camera, player.position)
     soldiers.warmUp(player.position)
     renderer.render(scene, camera)
@@ -739,7 +738,7 @@ async function start() {
       soldiers?.pushOut(player.position)
       life?.pushOut(player.position)
       if (!player.hasPath) markers.hideTarget()
-      cam.update(dt, player.position, inp)
+      cam.update(dt, player, inp)
       if (!hintGone && (player.speed > 0.5 || (hintTime += dt) > 15)) hideHint()
       // tajuk pohon & bangunan di antara kamera dan prajurit dibuat berlubang;
       // di bawah atap besar (pendopo, bale, gerbang) lubangnya diperlebar
