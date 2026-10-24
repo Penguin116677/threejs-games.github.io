@@ -19,12 +19,14 @@ uniform vec3 uSunColor;
 uniform sampler2D uNoise;
 uniform float uTime;
 varying vec3 vDir;
+// pixel art: gradasi langit, halo matahari, dan awan dibulatkan ke beberapa tingkat
+float qn(float v, float n) { return floor(clamp(v, 0.0, 0.999) * n) / (n - 1.0); }
 void main() {
   vec3 d = normalize(vDir);
   float up = max(d.y, 0.0);
-  vec3 col = mix(uHorizon, uZenith, pow(up, 0.5));
+  vec3 col = mix(uHorizon, uZenith, qn(pow(up, 0.5), 9.0));
   float s = max(dot(d, uSunDir), 0.0);
-  col += uSunColor * (pow(s, 12.0) * 0.22 + pow(s, 120.0) * 0.4);
+  col += uSunColor * (qn(pow(s, 12.0), 4.0) * 0.22 + step(0.985, s) * 0.4);
 
   // awan: diproyeksikan ke "langit-langit" datar, bergerak pelan
   if (d.y > 0.0) {
@@ -32,13 +34,14 @@ void main() {
     float n = texture2D(uNoise, uv).b * 0.62
       + texture2D(uNoise, uv * 2.9 + 0.31).g * 0.28
       + texture2D(uNoise, uv * 7.3 + 0.67).r * 0.1;
-    float cover = smoothstep(0.5, 0.74, n) * smoothstep(0.0, 0.16, d.y);
-    vec3 cloud = mix(vec3(0.72, 0.78, 0.86), vec3(1.0), smoothstep(0.5, 0.82, n));
-    cloud += uSunColor * pow(s, 6.0) * 0.25; // tepi awan bercahaya ke arah matahari
+    // awan: badan bertepi tegas, 3 nada (bawah kelabu, tengah, puncak putih)
+    float cover = step(0.6, n) * step(0.03, d.y);
+    vec3 cloud = mix(vec3(0.72, 0.78, 0.86), vec3(1.0), qn(smoothstep(0.58, 0.8, n), 3.0));
+    cloud += uSunColor * qn(pow(s, 6.0), 3.0) * 0.25; // tepi awan bercahaya ke arah matahari
     col = mix(col, cloud, cover * 0.92);
   }
   // cakram matahari (di atas awan tipis)
-  col += uSunColor * pow(s, 1800.0) * 4.0;
+  col += uSunColor * step(0.9992, s) * 4.0;
   // di bawah cakrawala: warna kabut (menyatu dengan laut di kejauhan)
   col = mix(col, uHorizon, smoothstep(0.0, -0.05, d.y));
   gl_FragColor = vec4(col, 1.0);

@@ -78,13 +78,16 @@ varying float vFogDepth;
 varying vec2 vLocal;
 ${SHORE_GLSL}
 
-// warna langit pada arah pantulan r (gradasi + awan, sama seperti kubah langit)
+// pixel art: nilai dibulatkan ke n tingkat (pita warna tegas)
+float qn(float v, float n) { return floor(clamp(v, 0.0, 0.999) * n) / (n - 1.0); }
+
+// warna langit pada arah pantulan r (gradasi + awan, sama seperti kubah langit), bertingkat
 vec3 skyReflection(vec3 r) {
-  vec3 c = mix(uHorizon, uZenith, pow(max(r.y, 0.0), 0.5));
+  vec3 c = mix(uHorizon, uZenith, qn(pow(max(r.y, 0.0), 0.5), 5.0));
 #ifdef CLOUD_REFLECTION
   vec2 cuv = r.xz / (r.y + 0.15) * 0.22 + vec2(uWaveTime * 0.0025, uWaveTime * 0.001);
   float n = texture2D(uNoise, cuv).b * 0.62 + texture2D(uNoise, cuv * 2.9 + 0.31).g * 0.28 + 0.05;
-  float cover = smoothstep(0.5, 0.74, n) * smoothstep(0.0, 0.16, r.y);
+  float cover = step(0.62, n) * step(0.06, r.y);
   c = mix(c, vec3(0.86, 0.9, 0.95), cover * 0.85);
 #endif
   return c;
@@ -125,13 +128,14 @@ void main() {
   vec3 n = normalize(vec3(-g.x + ripple.x, 1.0, -g.y + ripple.y));
 
   vec3 V = normalize(cameraPosition - vWorld);
-  float fres = 0.02 + 0.98 * pow(1.0 - max(dot(n, V), 0.0), 5.0);
+  float fres = 0.02 + 0.98 * qn(pow(1.0 - max(dot(n, V), 0.0), 5.0), 5.0);
   vec3 R = reflect(-V, n);
   R.y = abs(R.y);
   vec3 refl = skyReflection(R);
 
   // warna badan air: toska di dangkal → biru tua di laut dalam
-  vec3 body = mix(uShallow, uDeep, smoothstep(0.5, 12.0, depth));
+  // (pita kedalaman tegas seperti peta pixel art: dangkal toska → biru tua)
+  vec3 body = mix(uShallow, uDeep, qn(smoothstep(0.5, 12.0, depth), 5.0));
   // puncak ombak lebih terang (cahaya menembus air tipis), lembah sedikit lebih gelap;
   // puncak putus-putus sepanjang pantai dan lebih samar dari jauh agar tidak seperti garis kontur
   float breakup = smoothstep(0.2, 0.6, texture2D(uNoise, p * 0.013 + 0.71).g);
@@ -142,15 +146,15 @@ void main() {
   vec2 cp = p * 0.045;
   float c1 = texture2D(uNoise, cp + vec2(uWaveTime * 0.011, uWaveTime * 0.007)).a;
   float c2 = texture2D(uNoise, cp * 1.37 + vec2(-uWaveTime * 0.009, uWaveTime * 0.012)).a;
-  float caustic = pow(smoothstep(0.55, 1.0, 1.0 - abs(c1 - c2)), 3.0);
+  float caustic = step(0.9, 1.0 - abs(c1 - c2));
   body += vec3(0.85, 1.0, 0.95) * caustic * 0.3 * (1.0 - smoothstep(0.6, 8.0, depth)) * (1.0 - far);
 #endif
   vec3 col = mix(body, refl, fres);
 
-  // kilau matahari: pantulan tajam + kilauan lebar yang lembut
+  // kilau matahari: titik-titik piksel terang (pantulan tajam) + kilauan lebar yang samar
   vec3 H = normalize(uSunDir + V);
   float NdotH = max(dot(n, H), 0.0);
-  col += uSunColor * (pow(NdotH, 320.0) * 2.6 + pow(NdotH, 48.0) * 0.07);
+  col += uSunColor * (step(0.985, NdotH) * 2.2 + step(0.93, NdotH) * 0.08);
 
   // --- buih
   float lace = texture2D(uNoise, p * 0.19 + dir * u * 0.6 + vec2(uWaveTime * 0.012, 0.0)).r * 0.65
@@ -171,13 +175,15 @@ void main() {
   // 4) sisa buih tipis berpola di air dangkal
   foam = max(foam, smoothstep(0.64, 0.86, lace) * (1.0 - smoothstep(0.3, 2.5, depth)) * 0.4);
   foam *= 1.0 - far * 0.6;
+  // buih bertepi tegas (2 tingkat: putih penuh / tipis)
+  foam = foam < 0.3 ? 0.0 : (foam < 0.6 ? 0.55 : 1.0);
   col = mix(col, vec3(0.93, 0.97, 1.0) * (0.82 + 0.18 * uSunDir.y), foam);
 
   // transparansi: air tipis tembus pandang (pasir terlihat), tepi air lembut
-  float alpha = mix(0.32, 0.96, smoothstep(0.0, 2.2, water));
+  float alpha = mix(0.32, 0.96, qn(smoothstep(0.0, 2.2, water), 4.0));
   alpha = max(alpha, fres * 0.9);
   alpha = max(alpha, foam);
-  alpha *= smoothstep(-0.005, 0.03, water);
+  alpha *= step(0.01, water);
 
   col = mix(col, uFogColor, smoothstep(uFogNear, uFogFar, vFogDepth));
   gl_FragColor = vec4(col, alpha);
@@ -280,7 +286,8 @@ export function createWater({ ground, shore, env, noiseTexture, normalTexture, q
     fragmentShader,
     defines,
     transparent: true,
-    depthWrite: false,
+    // menulis kedalaman: garis tepi pixel art tidak tergambar pada benda di bawah permukaan air
+    depthWrite: true,
     uniforms: {
       uShore: { value: shore.texture },
       uNoise: { value: noiseTexture },

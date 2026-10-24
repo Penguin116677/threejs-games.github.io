@@ -444,7 +444,8 @@ export function createArmy({ ground, plan, quality, soldier, bala, renderer, env
     uAtlas: { value: new THREE.Vector4(COLS, atlas.rows, NY, 0) },
     uPitch: { value: new THREE.Vector3(PITCH.first, PITCH.step, PITCH.count) },
   }
-  const impMat = new THREE.MeshBasicMaterial({ map: atlas.texture, alphaToCoverage: true })
+  // tepi potret tegas (pixel art; target gambar tidak ber-MSAA, jadi alpha-to-coverage tidak bisa)
+  const impMat = new THREE.MeshBasicMaterial({ map: atlas.texture, alphaTest: 0.5 })
   impMat.onBeforeCompile = shader => {
     Object.assign(shader.uniforms, uniforms)
     shader.vertexShader = IMPOSTOR_VERT + shader.vertexShader
