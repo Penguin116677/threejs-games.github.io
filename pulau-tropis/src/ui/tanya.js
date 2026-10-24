@@ -55,7 +55,8 @@ export function createBubbles(container, camera) {
         const off = v.z > 1 || v.x < -1.1 || v.x > 1.1 || v.y < -1.1 || v.y > 1.1 || far
         b.el.style.visibility = off ? 'hidden' : 'visible'
         if (off) continue
-        b.el.style.transform = `translate(${((v.x + 1) / 2) * w}px, ${((1 - v.y) / 2) * h}px) translate(-50%, -100%)`
+        // posisi dibulatkan ke piksel utuh: bingkai piksel gelembung tetap tajam
+        b.el.style.transform = `translate(${Math.round(((v.x + 1) / 2) * w)}px, ${Math.round(((1 - v.y) / 2) * h)}px) translate(-50%, -100%)`
         if (b.ms - b.t < 400) b.el.classList.add('pudar')
       }
     },

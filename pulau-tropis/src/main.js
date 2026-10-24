@@ -36,6 +36,7 @@ import { createShop } from './ui/toko.js'
 import { createElfCard } from './ui/kartu-elf.js'
 import { createActionButton, IKON_AKSI } from './ui/aksi.js'
 import { createChat } from './ui/obrolan.js'
+import { installPixelUI } from './ui/piksel-ui.js'
 import { CITY, KERATON, ALUN, CANDI, PASAR, HARBOR, ISLANDS, TEGAL } from './world/kencana/layout.js'
 import { TOWN, MARKET, SMITHY, TAVERN, MESS, TRAINING, FEAST, CAMPS as ELF_CAMPS, CITADEL, LANDS } from './world/aeloria/layout.js'
 import { createInput } from './player/input.js'
@@ -145,6 +146,9 @@ async function start() {
     showError('Browser ini tidak mendukung WebGL 2.\nCoba gunakan Chrome versi terbaru di Android.')
     return
   }
+
+  // UI bergaya pixel art: lingkaran piksel untuk tombol bulat, ikon SVG dipikselkan
+  installPixelUI($('hud'))
 
   const canvas = $('game')
   // pixel art: tanpa antialias (tepi piksel tajam); ukuran kanvas diatur createPixelRenderer
