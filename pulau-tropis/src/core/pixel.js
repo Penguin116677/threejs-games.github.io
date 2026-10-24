@@ -1,14 +1,18 @@
 import * as THREE from 'three'
 
 // Gambar pixel art HD. Dunia 3D digambar ke target beresolusi rendah (±2 px CSS per "piksel seni"),
-// lalu satu pass pasca-proses:
-// - garis tepi gelap 1 piksel di tepi benda yang berada di depan benda lain (dari kedalaman), sorot
-//   terang tipis di sudut cembung (atap, sudut bangunan, punggung bukit);
-// - tone mapping ACES + sRGB, warna 15-bit (32 tingkat per kanal, seperti konsol 16-bit) dengan
-//   dithering Bayer 4×4 supaya gradasi langit & air pecah menjadi pola piksel.
-// Kanvasnya sebesar target itu; browser memperbesarnya dengan nearest-neighbor (image-rendering:
-// pixelated) dengan skala BULAT piksel layar, jadi tiap piksel seni sama besar dan tajam.
-// Kanal alfa target = penanda garis tepi (1 = boleh bergaris tepi, 0 = tidak, mis. helai rumput).
+// lalu dua tahap pasca-proses:
+// 1. per piksel seni: tone mapping ACES + sRGB, sorot terang di sudut cembung (atap, sudut bangunan,
+//    punggung bukit), warna 15-bit (32 tingkat per kanal, seperti konsol 16-bit) dengan dithering Bayer
+//    4×4 supaya gradasi langit & air pecah menjadi pola piksel, dan tanda sisi mana yang berbatasan
+//    dengan sesuatu yang jauh lebih jauh (dari kedalaman: tepi benda yang di depan);
+// 2. per piksel layar, ke kanvas seukuran layar: tiap piksel seni diperbesar menjadi k × k piksel layar
+//    (k BULAT: semua piksel seni sama besar dan tajam), garis tepi gelap TIPIS (±0,4 piksel seni,
+//    paling tipis 1 px layar) di sisi yang ditandai.
+// Kanal alfa target dunia = penanda garis tepi (1 = boleh bergaris tepi, 0 = tidak, mis. helai rumput).
+
+// tebal garis tepi (bagian dari satu piksel seni); v0.15.0 memakai satu piksel seni penuh
+const LINE = 0.4
 
 // Pencahayaan bergaya pixel art untuk SEMUA MeshLambertMaterial (tanah, pohon, rumput, bangunan,
 // karakter): cahaya matahari langsung dibulatkan ke 4 tingkat (gelap, redup, terang, penuh) seperti
@@ -31,14 +35,24 @@ export function installPixelShading() {
 }
 
 const vertexShader = /* glsl */`
-varying vec2 vUv;
 void main() {
-  vUv = uv;
   gl_Position = vec4(position.xy, 0.0, 1.0);
 }
 `
 
-const fragmentShader = /* glsl */`
+// ambang Bayer 4×4 (0..1): 0 8 2 10 / 12 4 14 6 / 3 11 1 9 / 15 7 13 5, dari dua Bayer 2×2
+const BAYER = /* glsl */`
+float bayer2(vec2 a) { return mod(a.x * 2.0 + a.y * 3.0, 4.0); }
+float bayer4(vec2 p) {
+  vec2 q = mod(floor(p), 4.0);
+  return (4.0 * bayer2(mod(q, 2.0)) + bayer2(floor(q * 0.5)) + 0.5) / 16.0;
+}
+`
+
+// Tahap 1, per piksel seni (ke artTarget): warna akhir piksel seni (tone mapping, sorot, warna 15-bit +
+// dithering) di RGB, dan di alfa: sisi mana (kiri, kanan, bawah, atas) yang berbatasan dengan sesuatu
+// yang jauh lebih jauh — di sisi itu tahap 2 menggambar garis tepi
+const artShader = /* glsl */`
 #include <packing>
 uniform sampler2D tColor;
 uniform sampler2D tDepth;
@@ -46,13 +60,10 @@ uniform vec2 uTexel;
 uniform float uNear;
 uniform float uFar;
 uniform float uExposure;
-uniform float uOutline;
 uniform float uHighlight;
 uniform float uLevels;
 uniform float uDither;
-uniform vec3 uInk;
 uniform float uSaturation;
-varying vec2 vUv;
 
 float viewZ(vec2 uv) {
   return -perspectiveDepthToViewZ(texture2D(tDepth, uv).x, uNear, uFar);
@@ -84,45 +95,61 @@ vec3 aces(vec3 color) {
 vec3 toSRGB(vec3 c) {
   return mix(c * 12.92, pow(c, vec3(0.41666)) * 1.055 - 0.055, step(0.0031308, c));
 }
-// ambang Bayer 4×4 (0..1)
-float bayer4(vec2 p) {
-  vec2 q = mod(floor(p), 4.0);
-  float i = q.x + q.y * 4.0;
-  // urutan: 0 8 2 10 / 12 4 14 6 / 3 11 1 9 / 15 7 13 5
-  float v = 0.0;
-  if (i < 0.5) v = 0.0; else if (i < 1.5) v = 8.0; else if (i < 2.5) v = 2.0; else if (i < 3.5) v = 10.0;
-  else if (i < 4.5) v = 12.0; else if (i < 5.5) v = 4.0; else if (i < 6.5) v = 14.0; else if (i < 7.5) v = 6.0;
-  else if (i < 8.5) v = 3.0; else if (i < 9.5) v = 11.0; else if (i < 10.5) v = 1.0; else if (i < 11.5) v = 9.0;
-  else if (i < 12.5) v = 15.0; else if (i < 13.5) v = 7.0; else if (i < 14.5) v = 13.0; else v = 5.0;
-  return (v + 0.5) / 16.0;
-}
-
+${BAYER}
 void main() {
-  vec4 src = texture2D(tColor, vUv);
-  vec3 col = src.rgb;
-  float d = viewZ(vUv);
-  float dl = viewZ(vUv - vec2(uTexel.x, 0.0));
-  float dr = viewZ(vUv + vec2(uTexel.x, 0.0));
-  float du = viewZ(vUv + vec2(0.0, uTexel.y));
-  float dd = viewZ(vUv - vec2(0.0, uTexel.y));
-  // garis tepi: tetangga jauh lebih jauh → piksel ini tepi benda yang di depan
-  float far = max(max(dl, dr), max(du, dd));
+  vec2 uv = gl_FragCoord.xy * uTexel;
+  vec4 src = texture2D(tColor, uv);
+  float d = viewZ(uv);
+  float dl = viewZ(uv - vec2(uTexel.x, 0.0));
+  float dr = viewZ(uv + vec2(uTexel.x, 0.0));
+  float du = viewZ(uv + vec2(0.0, uTexel.y));
+  float dd = viewZ(uv - vec2(0.0, uTexel.y));
+  // tetangga jauh lebih jauh → piksel ini tepi benda yang di depan (kanal alfa scene = boleh bergaris
+  // tepi; langit tidak)
   float thr = 0.3 + d * 0.07;
-  float edge = step(thr, far - d) * step(0.5, src.a) * step(d, uFar * 0.98);
-  // sudut cembung: rata-rata tetangga lebih jauh dari dirinya (laplacian kedalaman positif)
+  float own = step(0.5, src.a) * step(d, uFar * 0.98);
+  vec4 jump = step(vec4(thr), vec4(dl, dr, dd, du) - d) * own;
+  // sudut cembung: rata-rata tetangga lebih jauh dari dirinya (laplacian kedalaman positif), bukan di
+  // piksel yang bergaris tepi
   float lap = (dl + dr + du + dd - 4.0 * d) / max(d, 1.0);
-  float convex = smoothstep(0.015, 0.05, lap) * (1.0 - edge) * step(0.5, src.a);
-  vec3 c = aces(col);
+  float convex = smoothstep(0.015, 0.05, lap) * (1.0 - max(max(jump.x, jump.y), max(jump.z, jump.w))) * step(0.5, src.a);
+  vec3 c = aces(src.rgb);
   // warna sedikit lebih jenuh (palet pixel art)
   float l = dot(c, vec3(0.299, 0.587, 0.114));
   c = clamp(mix(vec3(l), c, uSaturation), 0.0, 1.0);
-  c = mix(c, c * uInk, edge * uOutline);
   c = min(c * (1.0 + convex * uHighlight), 1.0);
   c = toSRGB(c);
   // warna 15-bit + dithering
-  float b = bayer4(gl_FragCoord.xy) - 0.5;
-  c = floor(c * uLevels + 0.5 + b * uDither) / uLevels;
-  gl_FragColor = vec4(clamp(c, 0.0, 1.0), 1.0);
+  c = floor(c * uLevels + 0.5 + (bayer4(gl_FragCoord.xy) - 0.5) * uDither) / uLevels;
+  gl_FragColor = vec4(clamp(c, 0.0, 1.0), dot(jump, vec4(1.0, 2.0, 4.0, 8.0)) / 15.0);
+}
+`
+
+// Tahap 2, per piksel layar (ke kanvas): piksel seni diperbesar k × k (nearest), garis tepi = pita
+// tipis selebar uLine di sisi yang ditandai tahap 1. Hanya satu baca tekstur per piksel layar.
+const screenShader = /* glsl */`
+uniform sampler2D tArt;
+uniform vec2 uTexel;
+uniform float uScale;
+uniform float uLine;
+uniform float uOutline;
+uniform vec3 uInk;
+uniform float uLevels;
+uniform float uDither;
+${BAYER}
+void main() {
+  // piksel seni tempat piksel layar ini berada (ap) dan letaknya di dalam piksel seni itu (f, 0..1)
+  vec2 ap = floor(gl_FragCoord.xy / uScale);
+  vec2 f = gl_FragCoord.xy / uScale - ap;
+  vec4 t = texture2D(tArt, (ap + 0.5) * uTexel);
+  vec4 jump = mod(floor(floor(t.a * 15.0 + 0.5) / vec4(1.0, 2.0, 4.0, 8.0)), 2.0);
+  vec4 band = vec4(step(f.x, uLine), step(1.0 - uLine, f.x), step(f.y, uLine), step(1.0 - uLine, f.y));
+  vec4 lines = jump * band;
+  float edge = max(max(lines.x, lines.y), max(lines.z, lines.w)) * uOutline;
+  // tinta dikalikan di ruang warna linear ≈ dikali tinta^(1/2.2) pada warna sRGB, lalu dibulatkan lagi
+  vec3 inked = t.rgb * pow(uInk, vec3(0.4545));
+  inked = floor(inked * uLevels + 0.5 + (bayer4(ap) - 0.5) * uDither) / uLevels;
+  gl_FragColor = vec4(mix(t.rgb, clamp(inked, 0.0, 1.0), edge), 1.0);
 }
 `
 
@@ -141,11 +168,22 @@ export function createPixelRenderer(renderer, { pixelSize = 2 } = {}) {
   })
   target.depthTexture.minFilter = THREE.NearestFilter
   target.depthTexture.magFilter = THREE.NearestFilter
+  // hasil tahap 1: warna akhir tiap piksel seni + tanda sisi bergaris tepi (8 bit cukup: warnanya
+  // sudah 15-bit)
+  const artTarget = new THREE.WebGLRenderTarget(4, 4, {
+    minFilter: THREE.NearestFilter,
+    magFilter: THREE.NearestFilter,
+    generateMipmaps: false,
+    depthBuffer: false,
+  })
 
   const uniforms = {
     tColor: { value: target.texture },
     tDepth: { value: target.depthTexture },
+    tArt: { value: artTarget.texture },
     uTexel: { value: new THREE.Vector2(0.25, 0.25) },
+    uScale: { value: 1 },
+    uLine: { value: 1 },
     uNear: { value: 0.5 },
     uFar: { value: 1000 },
     uExposure: { value: renderer.toneMappingExposure },
@@ -156,11 +194,16 @@ export function createPixelRenderer(renderer, { pixelSize = 2 } = {}) {
     uInk: { value: new THREE.Color(0.22, 0.18, 0.3) },
     uSaturation: { value: 1.15 },
   }
-  const material = new THREE.ShaderMaterial({ vertexShader, fragmentShader, uniforms, depthTest: false, depthWrite: false, toneMapped: false })
-  const quad = new THREE.Mesh(new THREE.PlaneGeometry(2, 2), material)
-  quad.frustumCulled = false
-  const postScene = new THREE.Scene()
-  postScene.add(quad)
+  const pass = fragmentShader => {
+    const material = new THREE.ShaderMaterial({ vertexShader, fragmentShader, uniforms, depthTest: false, depthWrite: false, toneMapped: false })
+    const quad = new THREE.Mesh(new THREE.PlaneGeometry(2, 2), material)
+    quad.frustumCulled = false
+    const scene = new THREE.Scene()
+    scene.add(quad)
+    return scene
+  }
+  const artScene = pass(artShader)
+  const screenScene = pass(screenShader)
   const postCamera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1)
 
   const size = { w: 4, h: 4, scale: 1 }
@@ -170,18 +213,22 @@ export function createPixelRenderer(renderer, { pixelSize = 2 } = {}) {
     get target() {
       return target
     },
-    // ukuran layar (px CSS) → ukuran gambar (piksel seni); kanvas diperbesar dengan skala bulat
+    // ukuran layar (px CSS) → ukuran gambar (piksel seni); kanvas seukuran piksel layar, tahap 2
+    // membesarkan tiap piksel seni dengan skala bulat k
     setSize(cssW, cssH) {
       const dpr = window.devicePixelRatio || 1
       const k = Math.max(1, Math.round(pixelSize * dpr)) // px layar per piksel seni
       const w = Math.max(1, Math.ceil((cssW * dpr) / k))
       const h = Math.max(1, Math.ceil((cssH * dpr) / k))
       renderer.setPixelRatio(1)
-      renderer.setSize(w, h, false)
+      renderer.setSize(w * k, h * k, false)
       canvas.style.width = `${(w * k) / dpr}px`
       canvas.style.height = `${(h * k) / dpr}px`
       target.setSize(w, h)
+      artTarget.setSize(w, h)
       uniforms.uTexel.value.set(1 / w, 1 / h)
+      uniforms.uScale.value = k
+      uniforms.uLine.value = Math.max(1, Math.round(k * LINE)) / k
       Object.assign(size, { w, h, scale: k / dpr })
       return size
     },
@@ -190,11 +237,13 @@ export function createPixelRenderer(renderer, { pixelSize = 2 } = {}) {
       uniforms.uFar.value = camera.far
       renderer.setRenderTarget(target)
       renderer.render(scene, camera)
-      renderer.setRenderTarget(null)
       // renderer.info tetap berisi statistik dunia (segitiga, draw call — seperti sebelumnya, tanpa
-      // pass bayangan) ditambah pass ini, tidak dikosongkan oleh render kedua
+      // pass bayangan) ditambah dua tahap ini, tidak dikosongkan oleh render berikutnya
       renderer.info.autoReset = false
-      renderer.render(postScene, postCamera)
+      renderer.setRenderTarget(artTarget)
+      renderer.render(artScene, postCamera)
+      renderer.setRenderTarget(null)
+      renderer.render(screenScene, postCamera)
       renderer.info.autoReset = true
     },
   }

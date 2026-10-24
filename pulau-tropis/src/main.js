@@ -151,8 +151,9 @@ async function start() {
   installPixelUI($('hud'))
 
   const canvas = $('game')
-  // pixel art: tanpa antialias (tepi piksel tajam); ukuran kanvas diatur createPixelRenderer
-  const renderer = new THREE.WebGLRenderer({ canvas, antialias: false, powerPreference: 'high-performance' })
+  // pixel art: tanpa antialias (tepi piksel tajam); ukuran kanvas diatur createPixelRenderer. Kanvas
+  // hanya menerima tahap akhir pixel art (dunia digambar ke target sendiri), jadi tanpa buffer kedalaman
+  const renderer = new THREE.WebGLRenderer({ canvas, antialias: false, depth: false, powerPreference: 'high-performance' })
   renderer.outputColorSpace = THREE.SRGBColorSpace
   renderer.toneMapping = THREE.ACESFilmicToneMapping
   renderer.toneMappingExposure = 1.0
