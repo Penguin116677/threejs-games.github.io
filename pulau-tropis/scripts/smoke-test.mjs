@@ -12,7 +12,7 @@ import { mkdirSync } from 'node:fs'
 //   (berhenti + mengayun, mengenai batang pohon → serpihan,
 //   kombo tebas → tinju → tendang), jurus Cincang / Hentak / Putar / Penggal terhadap orc
 //   (+ jeda pakai, Penggal tanpa musuh, orc hidup lagi), tombol Lompat, geser kamera
-//   (tanpa memicu jalan), cubit zoom, tombol Lihat pulau, menu Kualitas
+//   (tanpa memicu jalan), cubit zoom, tombol kanan atas (Peta, Tas, Pengaturan), Pengaturan → Kualitas
 // - musuh orc ada di perkemahan (satu dekat titik mulai)
 // - komputer: tombol F = pukul, 1–4 = jurus
 // - tidak ada lagi lingkaran hijau di bawah prajurit
@@ -1382,21 +1382,18 @@ for (const [name, opts, query] of cases) {
     if (d1 >= d0) fail(`cubit tidak mengubah jarak kamera (${d0.toFixed(1)} → ${d1.toFixed(1)})`)
     else ok(`cubit: jarak kamera ${d0.toFixed(1)} → ${d1.toFixed(1)} m`)
 
-    // tombol Lihat pulau ↔ Main lagi
-    await page.tap('#btn-mode')
-    const m1 = await page.evaluate(() => window.__pulau.getMode())
-    await page.tap('#btn-mode')
-    const m2 = await page.evaluate(() => window.__pulau.getMode())
-    if (m1 !== 'lihat' || m2 !== 'main') fail(`tombol mode: ${m1} → ${m2}`)
-    else ok('tombol Lihat pulau ↔ Main lagi')
+    // kanan atas hanya Peta, Tas, Pengaturan (Layar penuh & Lihat pulau dihapus sejak v0.15.1)
+    const topRight = await page.evaluate(() => [...document.querySelectorAll('.hud-kanan button')].filter(b => !b.hidden).map(b => b.id))
+    if (topRight.join() !== 'btn-peta,btn-tas,btn-pengaturan') fail(`tombol kanan atas: ${topRight.join(', ')}`)
+    else ok('tombol kanan atas: Peta, Tas, Pengaturan (tanpa Layar penuh & Lihat pulau)')
 
-    // menu Kualitas: pilih Rendah → dimuat ulang dengan kualitas Rendah
-    await page.tap('#btn-kualitas')
-    if (await page.isHidden('#panel-kualitas')) fail('panel Kualitas tidak terbuka')
-    await page.screenshot({ path: `${out}/${name}-menu-kualitas.png` })
-    await page.tap('#panel-kualitas button[data-q="rendah"]')
+    // Pengaturan → Kualitas: pilih Rendah → dimuat ulang dengan kualitas Rendah
+    await page.tap('#btn-pengaturan')
+    if (await page.isHidden('#panel-pengaturan')) fail('panel Pengaturan tidak terbuka')
+    await page.screenshot({ path: `${out}/${name}-pengaturan.png` })
+    await page.tap('#panel-pengaturan button[data-q="rendah"]')
     await page.waitForFunction(() => window.__pulau?.quality.level === 'rendah', null, { timeout: 180000 })
-      .then(() => ok('menu Kualitas → Rendah diterapkan'))
+      .then(() => ok('Pengaturan → kualitas Rendah diterapkan'))
       .catch(() => fail('pilihan kualitas Rendah tidak diterapkan'))
   }
 

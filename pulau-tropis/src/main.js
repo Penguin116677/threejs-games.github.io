@@ -115,10 +115,9 @@ const FOV = { main: [70, 52], lihat: [70, 55] }
 // seberang tetap tampak samar. Mode Lihat pulau melihat seluruh dunia dari atas (5 km, kabut tipis).
 const VIEW = { rendah: 420, sedang: 560, tinggi: 950 }
 
-function setupQualityMenu() {
-  const btn = $('btn-kualitas')
-  const panel = $('panel-kualitas')
-  btn.textContent = `Kualitas: ${LABEL[quality.level]}`
+// tombol Pengaturan (roda gigi) → panel berisi pilihan kualitas grafis (mengganti kualitas = memuat ulang)
+function setupSettings() {
+  const panel = $('panel-pengaturan')
   panel.querySelectorAll('button[data-q]').forEach(b => {
     b.classList.toggle('aktif', b.dataset.q === quality.level)
     b.addEventListener('click', () => {
@@ -132,11 +131,11 @@ function setupQualityMenu() {
       setTimeout(() => setQualityLevel(b.dataset.q), 50)
     })
   })
-  btn.addEventListener('click', () => {
+  $('btn-pengaturan').addEventListener('click', () => {
     panel.hidden = !panel.hidden
     $('saran').hidden = true
   })
-  $('btn-tutup-kualitas').addEventListener('click', () => {
+  $('btn-tutup-pengaturan').addEventListener('click', () => {
     panel.hidden = true
   })
 }
@@ -804,26 +803,27 @@ async function start() {
   window.addEventListener('orientationchange', () => setTimeout(resize, 200))
   resize()
 
-  // tombol layar penuh
-  const btnFull = $('btn-layar-penuh')
-  if (!document.documentElement.requestFullscreen) btnFull.hidden = true
-  btnFull.addEventListener('click', () => {
-    if (document.fullscreenElement) document.exitFullscreen()
-    else document.documentElement.requestFullscreen().catch(() => {})
-  })
-  document.addEventListener('fullscreenchange', () => {
-    btnFull.textContent = document.fullscreenElement ? 'Keluar layar penuh' : 'Layar penuh'
-  })
-  setupQualityMenu()
+  // layar penuh otomatis di HP (tanpa tombol): saat pemain pertama kali menyentuh layar — browser
+  // hanya mengizinkan layar penuh dari sentuhan. Sekali per pemuatan: bila pemain sendiri keluar dari
+  // layar penuh, tidak dipaksa masuk lagi
+  if (touchUI && document.fullscreenEnabled) {
+    const enterFullscreen = () => {
+      window.removeEventListener('pointerup', enterFullscreen, true)
+      if (!document.fullscreenElement) document.documentElement.requestFullscreen({ navigationUI: 'hide' }).catch(() => {})
+    }
+    window.addEventListener('pointerup', enterFullscreen, true)
+  }
+  setupSettings()
 
-  // mode "main" (mengendalikan karakter) ↔ "lihat" (kamera bebas melihat pulau)
+  // mode "main" (mengendalikan karakter) ↔ "lihat" (kamera bebas melihat seluruh pulau). Sejak v0.15.1
+  // tanpa tombol (peta sudah menunjukkan seluruh dunia); tetap ada untuk pengujian & tangkapan layar
+  // dari atas: __pulau.setMode('lihat') / setMode('main')
   function setMode(next) {
     const from = mode
     mode = next
     const main = mode === 'main'
     controls.enabled = !main
     input.setEnabled(main)
-    $('btn-mode').textContent = main ? 'Lihat pulau' : 'Main lagi'
     if (main && from === 'lihat') {
       // lanjut dari arah kamera sekarang, dengan transisi halus
       const p = player.position
@@ -840,15 +840,13 @@ async function start() {
     }
     resize()
   }
-  $('btn-mode').addEventListener('click', () => setMode(mode === 'main' ? 'lihat' : 'main'))
-
   // peta dunia + spanduk nama wilayah
   const worldMap = createWorldMap({ ground, plans: [plan, elfPlan], regions: [region, elfMask], camps: enemies ? enemies.camps : [], shops: elfPlan.shops })
   const banner = createRegionBanner({ ground, spans: [...plan.spans, ...elfPlan.spans] })
   function toggleMap() {
     if (worldMap.open) worldMap.hide()
     else {
-      $('panel-kualitas').hidden = true
+      $('panel-pengaturan').hidden = true
       hideHint()
       // perahu: titik toska tanpa tulisan (dijelaskan di keterangan peta; tulisannya menimpa label dermaga)
       worldMap.show(player.position, player.heading, boat.built ? [boat.position] : [])
@@ -868,6 +866,7 @@ async function start() {
     else if (e.code === 'Escape') {
       worldMap.hide()
       elfCard?.hide()
+      $('panel-pengaturan').hidden = true
     }
   })
   setMode('main')
