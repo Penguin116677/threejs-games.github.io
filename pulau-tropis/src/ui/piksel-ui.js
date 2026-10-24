@@ -105,7 +105,9 @@ async function rasterize(svg, n, fill) {
   const src = bg.getImageData(0, 0, w, w).data
   const small = document.createElement('canvas')
   small.width = small.height = n
-  const sg = small.getContext('2d')
+  // kanvas CPU (willReadFrequently): toDataURL pada kanvas GPU menunggu GPU yang sedang sibuk memuat
+  // dunia — terukur ±160 ms per ikon, 1,7 detik untuk 11 ikon di layar loading
+  const sg = small.getContext('2d', { willReadFrequently: true })
   const out = sg.createImageData(n, n)
   const count = new Map()
   for (let y = 0; y < n; y++)
