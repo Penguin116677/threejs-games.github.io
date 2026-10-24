@@ -25,6 +25,14 @@ Ketentuan pengguna untuk Aeloria: *tokoh utama yang membuat rusuh menjadi musuh 
 kerajaan bukan berarti musuh pedagang* — pedagang tetap netral dan tetap berdagang dengannya. Benteng
 Aeloria (istana) tetap terlarang. Lihat DECISIONS #49–#51.
 
+## Gaya visual (sejak v0.15.0)
+**Pixel art HD** (permintaan pengguna): dunia tetap 3D (kamera bebas, ribuan karakter beranimasi),
+tetapi digambar seperti game pixel art — resolusi rendah dengan piksel besar yang tajam (±2 px layar per
+piksel di Sedang), garis tepi gelap 1 piksel di tepi benda, cahaya 4 tingkat dan bayangan bertepi tegas,
+warna 15-bit dengan dithering, tanah / laut / langit dalam beberapa nada bertepi tegas. UI ikut bergaya
+pixel art: huruf piksel (Pixelify Sans), bingkai & tombol bulat berpiksel, ikon piksel, peta dunia
+berpiksel. Sebelumnya (v0.1.0–v0.14.0) gaya low-poly berwarna halus. Lihat DECISIONS #62–#65.
+
 ## Peta dunia (sejak v0.10.0)
 - **Pulau Tropis** (tengah): pantai, hutan, padang, gunung, perkemahan orc — titik mulai.
 - **Kepulauan Kencana** (barat), di seberang selat barat — **tanpa jembatan** sejak v0.14.0
@@ -61,8 +69,11 @@ dengan seed tetap, jadi bentuk pulau selalu sama setiap kali dibuka.
   Characters" (CC0). Kuda bala tentara: Kenney "Prototype Kit" (CC0); perisai: Kenney "Mini Dungeon"
   (CC0).
   Lihat `public/models/LISENSI.txt`.
-- Semua aset lain (pulau, pohon, rumput, air, langit, bangunan kerajaan, perahu) dibuat prosedural
-  di kode.
+- Huruf UI: **Pixelify Sans** — © 2021 The Pixelify Sans Project Authors
+  (github.com/eifetx/Pixelify-Sans), SIL Open Font License 1.1 (sejak v0.15.0), ikut di dalam game;
+  lihat `public/fonts/OFL-PixelifySans.txt`.
+- Semua aset lain (pulau, pohon, rumput, air, langit, bangunan kerajaan, perahu, ikon UI) dibuat
+  prosedural di kode.
 
 ## Rencana milestone
 1. **Fondasi game** — Vite + Three.js, terrain pulau, pantai, laut, langit, bisa dibuka di browser HP.
@@ -98,3 +109,6 @@ bala tentara 25.000 prajurit di pulau baru, Pulau Wira.
 Di v0.14.0 (permintaan pengguna) kontrol kembali ke joystick + kamera di belakang karakter, jembatan
 antar-negeri dihapus, dan pemain bisa berenang, membuat perahu, memancing, serta mengobrol dengan NPC —
 bagian Milestone 4 (NPC & dialog, membuat barang dari bahan) yang dimajukan lagi.
+Di v0.15.0 (permintaan pengguna) seluruh grafik diganti menjadi pixel art HD (bagian Milestone 5 —
+peningkatan visual — dengan arah gaya yang baru) tanpa mengubah gameplay; kamera tidak lagi berputar
+sendiri mengikuti arah karakter, dan gerakan karakter diperhalus.

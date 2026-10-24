@@ -1,9 +1,10 @@
 # PROJECT_STATUS — Pulau Tropis
 
-**Milestone aktif:** 3 — Pembangunan dunia (v0.14.0: joystick + kamera di belakang karakter, pulau tanpa jembatan, berenang, perahu, memancing, mengobrol dengan NPC — menunggu umpan balik dari HP).
+**Milestone aktif:** 3 — Pembangunan dunia (v0.15.0: seluruh grafik menjadi pixel art HD, kamera tidak lagi berputar sendiri, gerakan karakter lebih halus — menunggu umpan balik dari HP).
+Gameplay v0.15.0 sama dengan v0.14.0 (joystick, pulau tanpa jembatan, berenang, perahu, memancing, obrolan).
 Pengembangan karakter/jurus dihentikan sementara atas permintaan pengguna.
-**Versi:** 0.14.0
-**Terakhir diperbarui:** 2026-10-23
+**Versi:** 0.15.0
+**Terakhir diperbarui:** 2026-10-24
 
 ## Kondisi awal repository (sebelum Milestone 1)
 - Repository `threejs-games.github.io` berisi koleksi contoh Three.js lama (folder `examples/`,
@@ -36,7 +37,9 @@ Pengembangan karakter/jurus dihentikan sementara atas permintaan pengguna.
 | Karakter pemain: prajurit berpedang (Kenney CC0), animasi diam/jalan/lari/lompat/jatuh | ✅ selesai (diganti prajurit v0.5.1) |
 | Kamera strategi dari atas (putar, zoom 10–60 m, tidak menembus bukit) — menggantikan kamera orang ketiga | ✅ v0.6.0 — diganti v0.14.0 |
 | Ketuk tanah untuk berjalan (jalur memutari pohon/batu/tebing/laut dalam) — menggantikan joystick | ✅ v0.6.0 — diganti v0.14.0 (jalur masih dipakai untuk ketuk kios / Ajak bicara) |
-| Joystick mengambang + kamera di belakang karakter (kembali ke belakang saat berlari, tidak menembus bukit / air) | ✅ selesai (v0.14.0) |
+| Joystick mengambang + kamera di belakang karakter (tidak menembus bukit / air) | ✅ selesai (v0.14.0) |
+| Kamera tidak berputar sendiri saat karakter berbelok / berbalik (arah kamera hanya diputar pemain) | ✅ selesai (v0.15.0) |
+| Gerakan karakter diperhalus (belok & animasi pemain, arah hadap elf) | ✅ selesai (v0.15.0) |
 | Berenang (tanpa stamina; tidak bisa menyerang sambil berenang) | ✅ selesai (v0.14.0) |
 | Penanda tujuan, tajuk pohon tembus pandang di depan kamera (lingkaran hijau dihapus v0.7.0) | ✅ selesai |
 | Tombol Pukul: ayunan pedang + efek sabetan/serpihan (belum ada musuh/kerusakan) | ✅ selesai (v0.7.0) |
@@ -77,6 +80,55 @@ Pengembangan karakter/jurus dihentikan sementara atas permintaan pengguna.
 | Mengobrol dengan elf & warga Kencana (topik + ketik bebas, berbasis aturan) — bagian Milestone 4 | ✅ selesai (v0.14.0) |
 | Sungai & air terjun, gua, reruntuhan | ⏳ belum |
 | Dicoba di HP Android sungguhan | ⏳ menunggu laporan pengguna |
+
+## Milestone 5 (peningkatan visual) — status
+Sebagian sudah dikerjakan lebih awal (bayangan, tanah per-piksel, awan, kaustik — v0.3.0; ombak — v0.4.0).
+| Item | Status |
+|---|---|
+| Gaya pixel art HD: dunia beresolusi rendah bersekala bulat, garis tepi, cahaya 4 tingkat, warna 15-bit + dithering | ✅ selesai (v0.15.0) |
+| Tanah, laut, langit bernada bertingkat & bertepi tegas | ✅ selesai (v0.15.0) |
+| UI pixel art: huruf piksel, bingkai & tombol bulat berpiksel, ikon piksel, peta dunia berpiksel | ✅ selesai (v0.15.0) |
+| Partikel lanjutan, suara, animasi vegetasi lanjutan, siang–malam | ⏳ belum |
+| Dicoba di HP Android sungguhan | ⏳ menunggu laporan pengguna |
+
+## Yang sudah diperiksa (v0.15.0 — grafik pixel art HD, kamera tidak berputar sendiri, gerakan halus)
+- **Pemeriksaan kode**: ESLint (konfigurasi repo) 0 error / 0 warning. Commit fitur (kamera & gerakan →
+  renderer pixel art → UI pixel art) masing-masing di-lint, di-build, dan dibuka di browser tersendiri.
+- **Build**: `vite build` berhasil; huruf piksel ikut sebagai berkas terpisah (`pixelify-sans-*.woff2`,
+  12 KB) beserta lisensinya (`fonts/OFL-PixelifySans.txt`); CSS 19 KB, JS 1,10 MB (343 KB gzip).
+- **Smoke test otomatis** (versi build, 4 profil) — **LULUS**: 177 cek, 0 gagal (HP tegak 68, HP
+  mendatar 28, HP Rendah 28, komputer 53; sama banyaknya dengan v0.14.0). Satu putaran ±84 menit
+  (v0.14.0: > 2 jam). Cek kamera diubah: joystick serong kanan-depan → karakter berlari serong, yaw
+  kamera tidak berubah (0,000 rad), kamera tetap mengikuti 11,5 m di belakang (jarak kamera 12 m);
+  geser layar tetap memutar kamera (0,70 rad). Putaran itu memakai build sebelum empat perubahan kecil
+  terakhir (statistik render, ekor gelembung, komentar shader air, kanvas ikon); profil HP mendatar & HP
+  Rendah dijalankan ulang pada build terakhir: lulus.
+- **Uji terpisah di browser** (Chromium, render software, layar Pixel 7 tegak & mendatar, Sedang):
+  - **dunia pixel art** di titik mulai, hutan, Kotaraja, sawah Kencana, Pasar Aeloria, Tegal Wira,
+    berenang, mode Lihat pulau: piksel tajam bersekala bulat (Pixel 7 tegak: 217 × 441 piksel seni,
+    1,9 px CSS per piksel; mendatar 454 × 189), garis tepi, cahaya 4 tingkat, bayangan tegas, langit &
+    laut berdithering, tepi sawah / jalan / lantai tegas di dekat kamera, alur padi bergaris tegas;
+  - **UI**: HUD, 6 tombol bulat (Pukul, 4 jurus — siap & jeda pakai —, Lompat), joystick diam &
+    dipegang, Tas, Kualitas, Peta, obrolan, kartu elf, gelembung ucapan, pesan, spanduk wilayah, layar
+    memuat — tegak & mendatar; 11 ikon HUD + ikon tombol aksi & barang dipikselkan; huruf piksel termuat;
+  - **kamera** (sentuhan tiruan): joystick maju / kanan / ke bawah (berbalik) → karakter berbelok &
+    berbalik (arah hadap 2,36 → 0,79 → −0,79 rad), yaw kamera tetap 5,498, kamera tetap 7–8 m dari
+    pemain; geser layar → yaw 5,498 → 6,194; obrolan dengan elf → kamera ke samping, ditutup → yaw
+    kembali persis (selisih 0,000 rad);
+  - **efek**: pukul, 4 jurus (penanda Penggal), riak berenang, bar nyawa orc — tampil wajar;
+  - **halaman pratinjau** (versi lokal: src tanpa bundel + model base64): termuat 6,8 detik, huruf &
+    ikon piksel, tanpa galat atau berkas hilang.
+- **Ditemukan & diperbaiki saat uji**:
+  - pita hitam di Tegal Wira (potret impostor alpha-to-coverage tanpa MSAA) → alphaTest;
+  - garis tepi menggambar badan pemain di bawah air → permukaan laut menulis kedalaman;
+  - bayangan bergaris-garis → PCF yang dibulatkan; batas tanah / jalan masih kabur → shader bertepi tegas;
+  - ligatur "fi" pada huruf piksel; kotak petunjuk menutupi kepala karakter (huruf piksel ±9% lebih
+    lebar) → 13 px; nama jurus menimpa cincin tombol → 9 px; sambungan tipis di ekor gelembung;
+  - `renderer.info` hanya menghitung pass terakhir (2 segitiga / 1 draw call) → dunia + pass pasca-proses;
+  - **bingkai pertama tertunda ±1,6 detik setelah layar memuat** (komputer Tinggi: siap 6,6 detik vs
+    v0.14.0 5,0–5,2): ikon piksel di-encode dari kanvas GPU yang menunggu GPU sibuk memuat dunia
+    (`toDataURL` ±160 ms per ikon, 1,74 detik untuk 11 ikon) → kanvas CPU (7 ms untuk 11 ikon), siap
+    kembali 5,2 detik.
 
 ## Yang sudah diperiksa (v0.14.0 — joystick, tanpa jembatan, berenang, perahu, memancing, obrolan)
 - `vite build` berhasil; ESLint (konfigurasi repo): 0 error, 0 warning. Tiap commit fitur juga di-lint
@@ -464,6 +516,14 @@ Pengembangan karakter/jurus dihentikan sementara atas permintaan pengguna.
   laut dalam → kembali ke pantai + pesan, mendaki lereng (+24 m dalam 120 frame).
 
 ## Yang BELUM diperiksa
+- **Tampilan pixel art di HP sungguhan** (v0.15.0): ketajaman piksel (skala bulat bergantung
+  devicePixelRatio HP), apakah besar piksel Sedang (±2 px) pas, garis tepi, warna & dithering di layar
+  HP, terbacanya huruf piksel kecil (nama jurus 9 px, label peta), dan apakah piksel yang "merayap" saat
+  kamera bergerak mengganggu. Semua dilihat di Chromium dengan render software (layar Pixel 7 tiruan).
+- **FPS v0.15.0 di HP**: seharusnya lebih ringan dari v0.14.0 (piksel yang diwarnai ±8× lebih sedikit
+  di Sedang); belum diukur di HP.
+- **Kamera tanpa ikut-belakang di HP** (v0.15.0): apakah memutar kamera sendiri terasa nyaman saat lama
+  berlari menyamping / berbalik.
 - **Rasa joystick & kamera belakang di HP sungguhan** (v0.14.0): besar joystick, zona jempol kiri,
   kecepatan kamera kembali ke belakang, geser kamera dengan jari kanan sambil berjalan, cubit zoom.
   Semua diuji dengan sentuhan tiruan (CDP) di Chromium.
@@ -504,6 +564,26 @@ Pengembangan karakter/jurus dihentikan sementara atas permintaan pengguna.
 - Apakah URL hosting (githack / GitHub Pages) terbuka di HP — tidak bisa diakses dari lingkungan pengembangan.
 
 ## Performa (segitiga per frame termasuk bayangan, dari smoke test)
+v0.15.0 (pixel art HD), layar HP tegak (Pixel 7), Sedang, versi build, render software; v0.14.0 diukur
+bergantian di mesin yang sama (angka segitiga tanpa pass bayangan, seperti `renderer.info` three.js):
+| Tempat | Segitiga / draw call | Waktu per bingkai v0.14.0 | v0.15.0 |
+|---|---|---|---|
+| Titik mulai | 411 rb / 64 | 1.090 ms | 289 ms (3,8× lebih cepat) |
+| Pasar Kotaraja | 306 rb / 48 | 696 ms | 162 ms (4,3×) |
+| Depan barisan Tegal Wira | 351 rb / 31 | 1.627 ms | 788 ms (2,1×) |
+| Pasar Aeloria | 475 rb / 98 | 833 ms | 258 ms (3,2×) |
+- Segitiga & draw call tidak berubah (pass pasca-proses +2 segitiga / +1 draw call). Yang berkurang =
+  piksel yang diwarnai: Pixel 7 Sedang 217 × 441 = 96 rb piksel seni, v0.14.0 (pixel ratio 1,5)
+  618 × 1.259 = 778 rb — ±8× lebih sedikit. Tegal Wira paling sedikit membaik: bagian terberatnya
+  25.000 potret impostor (kerja vertex), bukan piksel.
+- Waktu siap (komputer 1280 × 720, Tinggi, render software, diukur bergantian): v0.15.0 5,2–5,5 detik,
+  v0.14.0 5,0–5,2 detik — tahap membangun dunia sama cepatnya. Smoke test pada build terakhir: HP Rendah
+  3,4 detik (331 rb segitiga / 67 draw call di titik mulai), HP mendatar 4,5 detik (600 rb / 118)
+  (v0.14.0: 3,6–5,6 detik; putaran 4 profil di atas 4,8–7,8 detik karena ikon masih dibuat di kanvas
+  GPU).
+- FPS di sini bukan ukuran HP (render software). FPS HP sungguhan belum diukur; seharusnya ikut membaik
+  karena HP umumnya dibatasi jumlah piksel yang diwarnai.
+
 v0.14.0, kamera di belakang karakter (jarak 8,2 m), layar HP tegak (Pixel 7), versi build, render
 software — angka dalam ribuan segitiga / draw call:
 | Tingkat | Titik mulai | Dermaga Barat | Berenang di selat | Berlayar | Gerbang timur | Pasar Kotaraja | Depan barisan | Dermaga Utara (ke Aeloria) | Pasar Aeloria |
@@ -582,6 +662,16 @@ v0.3.0: Rendah ±300 rb, Sedang ±400 rb, Tinggi ±850 rb. Tambahan v0.4.0 beras
 yang lebih rapat (untuk ombak) dan buah kelapa. v0.2.0 (HP): ±230 ribu.
 
 ## Masalah yang diketahui
+- (v0.15.0) Tanpa antialias (gaya pixel art), tepi benda "merayap" saat kamera bergerak, dan benda yang
+  lebih tipis dari satu piksel (tiang, tali layar, helai rumput jauh) bisa putus-putus atau berkedip di
+  kejauhan. Tinggi (piksel 1,6 px) paling sedikit, Rendah (2,4 px) paling terasa.
+- (v0.15.0) UI tetap HTML di atas gambar dunia: piksel UI selalu 2 px CSS, sedikit berbeda dari piksel
+  dunia di Rendah / Tinggi. Bila huruf piksel belum termuat (koneksi lambat), tulisan sesaat memakai
+  huruf sistem.
+- (v0.15.0) Layar mendatar: selama petunjuk kontrol tampil (≤ 12 detik atau sampai pemain bergerak)
+  kotaknya menutupi sebagian tombol Kualitas & Lihat pulau — sudah begitu di v0.14.0 pada layar uji
+  (lebar petunjuk 46% layar), tata letaknya tidak diubah.
+- (v0.15.0) Label tempat di Peta tetap kecil (±6 px CSS) seperti sebelumnya, kini berhuruf piksel.
 - (v0.14.0) Obrolan berbasis aturan: NPC hanya memahami topik yang dikenalnya (nama, kabar, kegiatan,
   pekerjaan, kerajaan, orc, tempat & arah, makanan, menyeberang, ikan, cerita, lelucon, saran, salam,
   terima kasih, pujian / hinaan); kalimat lain dijawab umum. Ingatan NPC hilang bila halaman dimuat

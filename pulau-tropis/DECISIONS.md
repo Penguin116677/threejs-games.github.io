@@ -36,9 +36,10 @@ tandai sebagai "diganti" bila berubah.
 12. **Tiga tingkat kualitas** di `src/core/quality.js` — satu tempat untuk semua angka performa:
     | | Rendah | Sedang | Tinggi |
     |---|---|---|---|
-    | Pixel ratio maks | 1.25 | 1.5 | 2 |
+    | Pixel ratio maks (sampai v0.14.0) | 1.25 | 1.5 | 2 |
+    | Piksel seni, px CSS (sejak v0.15.0, #62) | 2,4 | 2 | 1,6 |
     | Grid terrain | 200² | 256² | 384² |
-    | Bayangan | – | 1024, PCF soft (sejak v0.5.0; sebelumnya PCF) | 2048, PCF soft |
+    | Bayangan | – | 1024, PCF soft (v0.5.0–v0.14.0; sejak v0.15.0 PCF bertepi tegas) | 2048, sama |
     | Jumlah pohon | 0,75× | 1× | 1,5× |
     | Rumput (radius / rumpun per m² dekat / helai) | 70 m / 1,6 / 4 | 120 m / 2,4 / 6 | 170 m / 3,2 / 8 |
     | Kaustik air | – | ✓ | ✓ |
@@ -416,6 +417,7 @@ tandai sebagai "diganti" bila berubah.
       Saat berlari kamera kembali ke belakang karakter, paling cepat 1 rad/detik × cos(selisih arah) —
       tanpa faktor cos, menahan joystick ke samping membuat karakter berlari berputar-putar dalam
       lingkaran kecil (ditemukan saat uji). Setelah kamera digeser, ikut-belakang berhenti 1,2 detik.
+      *(Dihapus v0.15.0 — lihat #63: kamera tidak lagi berputar sendiri.)*
       Kamera tidak menembus bukit dan tidak turun di bawah permukaan air.
     - FOV 70° (layar tegak) / 52° (mendatar): dari belakang karakter layar tegak butuh pandangan lebih
       lebar supaya sisi kiri-kanan terlihat.
@@ -514,3 +516,80 @@ tandai sebagai "diganti" bila berubah.
     - Memberi makanan: NPC yang lapar (atau rakus) menerimanya dan membalas 2–9 koin; yang kenyang
       menolak. Obrolan berakhir bila pemain / NPC menjauh > 6,5 m, NPC sibuk (mis. kerusuhan), atau
       pemain roboh.
+62. **Grafik pixel art HD = dunia 3D yang digambar beresolusi rendah + satu pass pasca-proses, bukan
+    sprite 2D yang digambar ulang** (v0.15.0, permintaan pengguna: *"ganti semua grafiknya menjadi HD
+    pixel art sprite dan tingkatkan kualitasnya, jangan mengubah apapun selain grafiknya"*).
+    - Sprite 2D sungguhan (lembar gambar per arah × animasi) ditolak: 10.000 elf + 25.000 prajurit +
+      orc + penduduk, perlengkapan yang tampak di badan, penggal, berenang, perahu, dan kamera yang bebas
+      diputar berarti ribuan lembar gambar per model × 8 arah × tiap animasi × tiap perlengkapan —
+      unduhan sangat besar, dan sebagian gameplay (perlengkapan di badan, kamera bebas) harus diubah,
+      padahal pengguna meminta tidak ada yang berubah selain grafik. Dengan merender 3D ke target kecil,
+      semua yang sudah ada tetap jalan dan setiap karakter tetap beranimasi halus.
+    - `core/pixel.js`: dunia digambar ke `WebGLRenderTarget` kecil (half-float bila didukung, tanpa
+      antialias, filter nearest, tekstur kedalaman). Ukuran kanvas = layar ÷ k piksel, k = bulat(px CSS
+      per piksel seni × devicePixelRatio), lalu diperbesar CSS `image-rendering: pixelated` — skala bulat
+      membuat semua piksel seni sama besar. Px CSS per piksel seni ada di `quality.pixelSize` (Rendah
+      2,4 / Sedang 2 / Tinggi 1,6), menggantikan pixel ratio maks.
+    - Pass pasca-proses (satu segitiga layar penuh): garis tepi 1 piksel berwarna tinta ungu-gelap di
+      piksel yang tetangganya jauh lebih jauh (ambang 0,3 m + 7% jarak; langit tidak; kanal alfa = boleh
+      bergaris, sehingga helai rumput tidak bergaris), sorot 18% di sudut cembung (laplacian kedalaman),
+      tone mapping ACES (dipindah dari renderer ke pass ini), saturasi ×1,15, sRGB, lalu warna 15-bit
+      (32 tingkat per kanal) dengan dithering Bayer 4×4.
+    - Pencahayaan: chunk `lights_lambert_pars_fragment` di-patch sekali sebelum shader pertama dibuat,
+      jadi SEMUA `MeshLambertMaterial` (tanah, pohon, rumput, bangunan, karakter) mendapat cahaya
+      matahari 4 tingkat; bayangan matahari PCF dibulatkan `step(0.5, …)` → tepi tegas tanpa garis-garis
+      peta bayangan. Shader buatan sendiri (tanah, laut, langit) dibulatkan di dalam shadernya: nada
+      bertingkat (`q3`/`q4`/`qn`), batas pakai `step`, masker wilayah di-`step(0.5)` di dekat kamera
+      (di kejauhan, saat satu piksel layar > 1,5–4 m, tetap dibaurkan supaya jalan sempit tidak
+      hilang-muncul).
+    - Konsekuensi teknis: potret prajurit jauh memakai `alphaTest` (alpha-to-coverage butuh MSAA);
+      permukaan laut menulis kedalaman (kalau tidak, garis tepi menggambar badan pemain di bawah air).
+    - Performa: piksel yang diwarnai turun drastis. Sedang di HP 1080 × 2400 (dpr 2,625): k = 5 →
+      216 × 480 = 104 rb piksel per bingkai, dulu pixel ratio 1,5 → ±617 × 1.371 = 846 rb (±8× lebih
+      sedikit); pass pasca-proses hanya ±0,1 jt piksel. Segitiga & draw call sama (+1 draw call).
+    - Kekurangan: tanpa antialias, piksel di tepi benda "merayap" saat kamera bergerak (sifat pixel art
+      3D); benda yang lebih tipis dari satu piksel bisa berkedip di kejauhan.
+63. **Kamera tidak berputar sendiri** (v0.15.0, permintaan pengguna: *"gerakan kamera harus tetap berada
+    di belakang karakter ketika berjalan jangan langsung mengikuti secara otomatis ketika di berbelok
+    atau berbalik harus di gerakan pemain sendiri"*; menghapus ikut-belakang #56).
+    - Titik putar kamera tetap mengikuti posisi karakter (diperhalus), jadi saat berjalan maju kamera
+      tetap di belakangnya. Arah kamera (yaw) hanya berubah oleh geser layar / mouse pemain. Pengecualian
+      yang sengaja (sekali, bukan terus-menerus): saat pemain dipindahkan (bangun setelah kalah, kembali
+      dari tepi dunia), saat naik perahu (ke belakang perahu), dan saat obrolan dimulai kamera diatur
+      ulang; selesai mengobrol arah sebelum mengobrol dikembalikan.
+    - Joystick tetap relatif kamera (dorong ke atas = menjauhi kamera), jadi menahan joystick ke
+      samping membuat karakter berlari menyamping melintasi layar, tidak berputar-putar.
+    - Smoke test: joystick serong kanan-depan → karakter berbelok & berlari serong, yaw kamera tidak
+      berubah (≤ 0,01 rad) dan kamera tetap mengikuti di belakangnya (11,5 m mendatar pada jarak kamera
+      12 m). Uji terpisah di browser juga memeriksa joystick ke kanan & ke bawah (berbalik) dan geser
+      layar (memutar kamera).
+64. **Gerakan karakter diperhalus** (v0.15.0, permintaan pengguna: *"perhalus juga pergerakan setiap
+    karakter yang ada"*).
+    - Pemain: laju berbelok 12 → 9 per detik (setengah putaran ±0,3 detik, tidak patah); ambang animasi
+      berjeda (diam → jalan di 0,45 m/s, kembali di 0,25; jalan → lari di 3,9 m/s, kembali di 3,3) dan
+      peralihan 0,18 → 0,25 detik — sebelumnya kecepatan di sekitar batas membuat klip berganti-ganti.
+    - Elf Aeloria: arah yang digambar dikejar halus (10 per detik) dari arah simulasinya; elf yang baru
+      terlihat lagi langsung memakai arahnya sekarang (tidak berputar dari arah lama).
+    - Prajurit, penduduk Kencana, dan orc sudah berbelok halus (5–9 per detik) dan animasi panggangnya
+      sudah diinterpolasi 30 FPS dengan peralihan antarklip, jadi tidak diubah.
+65. **UI pixel art tanpa gambar tambahan** (v0.15.0).
+    - Huruf **Pixelify Sans** (SIL OFL 1.1, 12 KB, subset Latin) ikut di build (`src/assets/fonts`) —
+      tidak memakai Google Fonts supaya jalan tanpa internet dan tidak mengirim permintaan ke luar. Ligatur
+      dimatikan. Huruf ini ±9% lebih lebar dari huruf sistem; dua tulisan diperkecil 1 px supaya tata
+      letak tetap (#62 tidak boleh mengubah selain grafik).
+    - Bingkai = `box-shadow`: garis luar 2 px di keempat sisi tanpa sudut (sudut bertangga satu piksel),
+      tepi timbul di dalam, panel besar bergaris dalam terang seperti jendela game; tanpa gambar
+      bingkai / `border-image`, jadi warnanya tetap diatur CSS.
+    - Tombol bulat & joystick = lingkaran piksel `clip-path` (anak tangga 2 px) yang dihitung di
+      `ui/piksel-ui.js` untuk tiap diameter (cakram, cincin luar, cincin kedua; cincin memakai aturan
+      evenodd). Warnanya variabel CSS (`--isi`, `--tepi`), jadi keadaan ditekan / siap / jeda pakai tetap
+      di CSS.
+    - Ikon tetap SVG di kode (mudah diubah), tetapi saat tampil digambar ulang sekali ke kisi piksel
+      (1–2 px CSS per piksel ikon menurut ukurannya): tiap piksel memakai warna terbanyak dari 16
+      sub-sampelnya (tanpa warna campuran di tepi), terisi bila ≥ 6/16 tertutup (garis tipis tetap
+      bersambung), lalu ditampilkan nearest-neighbor. Ikon yang muncul kemudian ditangkap
+      MutationObserver; hasilnya di-cache per ikon & ukuran, jadi isi ulang panel tidak berkedip.
+    - Peta dunia: gambar dasar dibuat langsung seukuran kanvas ÷ 1,5 px CSS per piksel peta (dulu 2 m
+      per piksel lalu diperkecil halus) — warna tinggi bertingkat, masker & benda buatan dibulatkan ke
+      piksel penuh, penanda berupa kotak / belah ketupat / panah piksel, tulisan huruf piksel bergaris
+      luar 8 arah.

@@ -27,8 +27,9 @@ npm run test:smoke # (dengan preview berjalan) tes otomatis + screenshot ke scre
 Smoke test butuh Chromium untuk Playwright. FPS yang dilaporkan smoke test berasal dari render
 software dan **tidak** mencerminkan performa HP. Untuk menjalankan sebagian kasus saja:
 `SMOKE_CASES=hp-portrait,desktop npm run test:smoke` (kasus: hp-portrait, hp-landscape, hp-rendah,
-desktop). Satu putaran penuh ±2–2,5 jam di render software (sejak v0.14.0; profil komputer di kualitas
-Tinggi paling lama, ±1 jam — beri batas waktu luar yang cukup), batas waktu tiap langkah 90 detik.
+desktop). Satu putaran penuh ±1,5 jam di render software (v0.15.0: HP tegak ±35 menit, mendatar ±9,
+Rendah ±5, komputer ±35; v0.14.0 sebelum pixel art: 2–2,5 jam — beri batas waktu luar yang cukup), batas
+waktu tiap langkah 90 detik.
 
 Penduduk kerajaan (`public/models/penduduk.glb`) dibuat ulang dari paket Kenney "Mini Characters"
 dengan `python3 scripts/pack-penduduk.py "<folder GLB format>" public/models/penduduk.glb`.
@@ -262,7 +263,8 @@ perlengkapan pas, dan langkah yang gagal.
 ## Daftar uji manual — v0.14.0 (joystick, tanpa jembatan, berenang, perahu, memancing, mengobrol)
 1. **Joystick**: taruh jempol kiri di mana saja di bagian kiri bawah layar → joystick muncul di situ.
    Dorong sedikit = berjalan, dorong penuh = berlari, lepas = berhenti. Kamera di belakang karakter
-   dan kembali ke belakangnya saat berlari. Geser dengan jari lain (di luar joystick) = putar kamera
+   dan kembali ke belakangnya saat berlari (diubah v0.15.0: kamera tidak lagi berputar sendiri — lihat
+   daftar v0.15.0). Geser dengan jari lain (di luar joystick) = putar kamera
    kiri-kanan & naik-turun; cubit = zoom. Mengetuk tanah tidak lagi membuat karakter berjalan
    (mengetuk elf tetap membuka kartunya, mengetuk kios tetap berjalan ke sana).
 2. Tombol **Peta** (kanan atas) hanya berikon peta. Buka peta: tidak ada jembatan antara Pulau Tropis,
@@ -313,3 +315,33 @@ G / Enter = bicara, Esc = tutup. Konsol: `__pulau.bag.terima('kayu')`, `__pulau.
 Laporkan: model HP, FPS di tiap tingkat kualitas, apakah joystick & kamera nyaman, apakah berenang /
 berlayar / memancing terasa pas (kecepatan, waktu Tarik!), apakah jawaban NPC masuk akal, dan langkah
 yang gagal.
+
+## Daftar uji manual — v0.15.0 (grafik pixel art HD, kamera, gerakan halus)
+1. **Tampilan pixel art**: dunia tampak berpiksel besar yang tajam (bukan kabur), setiap benda
+   bergaris tepi gelap tipis, cahaya & bayangan bertepi tegas, langit & laut berpola piksel (dithering).
+   Bandingkan Rendah / Sedang / Tinggi: Tinggi = piksel paling halus, Rendah = paling besar.
+2. Putar HP (tegak ↔ mendatar): gambar tetap tajam, tidak meregang, tidak ada garis / pita hitam di
+   tepi layar.
+3. **UI**: semua tulisan berhuruf piksel; tombol & panel berbingkai piksel (sudut bertangga); tombol
+   Pukul, 4 jurus, Lompat, dan joystick berupa lingkaran piksel; jurus yang siap cincinnya menyala,
+   yang sedang jeda gelap dengan sisa detik. Ikon peta, tas, koin, tombol aksi, dan barang di Tas /
+   toko berpiksel. Gelembung ucapan berekor piksel. Tulisan tidak terpotong / menimpa (petunjuk
+   kontrol tidak menutupi karakter, nama jurus di dalam lingkaran).
+4. **Peta**: berpiksel (laut berpita kedalaman, bangunan & jembatan sebagai piksel, panah kuning
+   berpiksel), tulisan tempat terbaca.
+5. **Kamera**: berjalan maju → kamera tetap di belakang karakter. Dorong joystick ke samping atau ke
+   bawah (berbalik) → karakter berbelok / berbalik, **kamera tidak ikut berputar**. Geser layar → kamera
+   berputar (satu-satunya cara memutar kamera). Selesai mengobrol → arah kamera kembali seperti sebelum
+   mengobrol.
+6. **Gerakan halus**: karakter berbelok & berbalik lembut (tidak patah); mulai berjalan / berhenti /
+   lari tanpa animasi berkedip; elf di Aeloria berbelok halus di sudut jalan.
+7. Catat FPS di titik mulai, Kotaraja, Pasar Aeloria, dan Tegal Wira untuk tiap tingkat kualitas —
+   pixel art seharusnya **lebih ringan** daripada v0.14.0 (jauh lebih sedikit piksel yang digambar).
+
+Konsol: `__pulau.pixel.size` (ukuran gambar dalam piksel seni dan skalanya),
+`__pulau.pixel.uniforms` (mis. `uOutline.value = 0` mematikan garis tepi, `uLevels.value = 255`
+mematikan pembulatan warna, `uDither.value = 0` mematikan dithering) — untuk membandingkan.
+
+Laporkan: model HP, apakah gambar terasa "pixel art HD" yang diinginkan (piksel terlalu besar / kecil,
+garis tepi terlalu tebal / tipis, warna), apakah tulisan berhuruf piksel cukup terbaca, apakah kamera
+yang tidak berputar sendiri sudah nyaman, dan FPS dibanding versi sebelumnya.

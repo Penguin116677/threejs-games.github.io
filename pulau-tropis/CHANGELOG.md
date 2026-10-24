@@ -1,5 +1,79 @@
 # CHANGELOG — Pulau Tropis
 
+## [0.15.0] — 2026-10-24 — Grafik pixel art HD, kamera tidak berputar sendiri, gerakan karakter lebih halus (permintaan pengguna)
+### Diubah
+- **Semua grafik menjadi pixel art HD.** Gameplay, dunia, tata letak tombol, dan isi game tidak
+  berubah — hanya cara menggambarnya:
+  - dunia 3D digambar pada resolusi rendah lalu diperbesar tanpa penghalusan dengan skala **bulat**
+    piksel layar, jadi setiap piksel sama besar dan tajam: 1 piksel seni = ±2 px di Sedang, ±2,4 px di
+    Rendah, ±1,6 px di Tinggi (Tinggi = piksel paling halus);
+  - **garis tepi gelap 1 piksel** di tepi setiap benda yang berada di depan benda lain (karakter, pohon,
+    bangunan, bukit di depan laut) dan sorot terang tipis di sudut cembung (atap, sudut tembok, punggung
+    bukit), seperti sprite yang digambar tangan;
+  - cahaya matahari **4 tingkat** (gelap, redup, terang, penuh) dan bayangan bertepi tegas, bukan
+    gradasi halus;
+  - **warna 15-bit** (32 tingkat per kanal, seperti konsol 16-bit) dengan **dithering** 4×4 — gradasi
+    langit & laut pecah menjadi pola piksel — dan warna sedikit lebih jenuh;
+  - tanah: pasir, pasir basah, rumput, padang, dan batu dalam 3–4 nada bertepi tegas; jalan, lantai
+    batu, rumput alun-alun, sawah & ladang bertepi tegas di dekat kamera, alur tanam & pematang bergaris
+    tegas;
+  - laut: pantulan langit, warna kedalaman, kilau matahari, buih, dan kaustik dalam beberapa nada;
+  - langit bertingkat, awan bertepi tegas dalam 3 nada, cakram matahari tegas;
+  - prajurit jauh (potret impostor) bertepi tegas.
+- **UI pixel art**: huruf piksel **Pixelify Sans** (lisensi SIL Open Font License 1.1, ikut di dalam
+  game — tidak diunduh dari internet, `public/fonts/OFL-PixelifySans.txt`); semua tombol, panel, kartu,
+  bar nyawa, gelembung ucapan (berekor piksel), dan kolom ketik berbingkai piksel (garis luar gelap,
+  sudut bertangga, tepi timbul); tombol bulat (Pukul, 4 jurus, Lompat) dan joystick berupa **lingkaran
+  piksel**; jurus yang siap dipakai cincinnya menyala; semua **ikon** (peta, tas, koin, aksi, barang)
+  digambar ulang menjadi ikon piksel; layar memuat bergradasi pita.
+- **Peta dunia pixel art**: laut 4 pita kedalaman, tanah & gunung beberapa nada, bangunan, barisan
+  pasukan, jembatan, dan dermaga sebagai piksel utuh; perkemahan orc = kotak merah, toko = belah ketupat
+  emas, perahumu = kotak toska, panah pemain berpiksel; tulisan berhuruf piksel bergaris luar. Peta kini
+  juga lebih cepat dibuka pertama kali (gambar dasarnya ±12× lebih sedikit titik).
+- **Kamera tidak lagi berputar sendiri** saat karakter berbelok atau berbalik: kamera tetap mengikuti
+  posisi karakter (berjalan maju = kamera tetap di belakangnya), tetapi **arahnya hanya berubah bila
+  pemain sendiri menggeser layar / mouse**. (v0.14.0: kamera pelan-pelan kembali ke belakang karakter
+  saat berlari.) Selesai mengobrol, kamera kembali ke arah sebelum mengobrol.
+- **Gerakan karakter lebih halus**: pemain berbelok & berbalik lebih lembut (setengah putaran ±0,3
+  detik); pergantian animasi diam ↔ jalan ↔ lari memakai ambang berjeda (tidak lagi berganti-ganti
+  di sekitar batas kecepatan) dan peralihan lebih panjang (0,25 detik); arah hadap elf Aeloria yang
+  digambar kini berbelok halus (sebelumnya patah di sudut jalan dan saat tiba di tempatnya).
+  Prajurit, penduduk Kencana, dan orc sudah berbelok halus dan animasinya sudah berpindah halus.
+- Huruf piksel lebih lebar daripada huruf sistem, jadi ukuran beberapa tulisan disesuaikan supaya
+  tata letaknya tetap: petunjuk kontrol 14 → 13 px (mendatar 13 → 12 px; kotaknya tidak menutupi
+  karakter) dan nama jurus 10 → 9 px (muat di dalam lingkaran).
+### Diperiksa
+- Pemeriksaan kode: ESLint (konfigurasi repo) 0 error / 0 warning. Tiap commit fitur di-lint, di-build,
+  dan dibuka di browser tersendiri.
+- Build (`vite build`) berhasil; huruf piksel ikut sebagai berkas 12 KB beserta lisensinya.
+- Smoke test otomatis (versi build, 4 profil): **177 cek, 0 gagal** (HP tegak 68, HP mendatar 28,
+  HP Rendah 28, komputer 53), termasuk cek baru "berbelok dengan joystick: kamera tidak ikut berputar
+  (0,000 rad)". Satu putaran kini ±84 menit (v0.14.0: > 2 jam), karena render software menggambar
+  jauh lebih sedikit piksel. Profil HP mendatar & HP Rendah dijalankan ulang pada build terakhir: lulus.
+- Uji di browser (Chromium, render software, layar Pixel 7 tegak & mendatar): tampilan pixel art di
+  titik mulai, hutan, Kotaraja, sawah, Pasar Aeloria, Tegal Wira, berenang, mode Lihat pulau; semua panel
+  UI, peta, gelembung, joystick; kamera (joystick ke kanan & berbalik → arah kamera tetap, geser layar →
+  berputar, selesai mengobrol → kembali ke arah semula); efek pukul, 4 jurus, riak.
+- Performa (render software, Sedang, layar tegak, v0.14.0 diukur bergantian di mesin yang sama): waktu
+  per bingkai titik mulai 1.090 → 289 ms, Pasar Kotaraja 696 → 162 ms, Tegal Wira 1.627 → 788 ms,
+  Pasar Aeloria 833 → 258 ms; segitiga & draw call sama (+1 draw call pass pasca-proses); waktu memuat
+  sama (komputer Tinggi 5,2 detik). Belum diukur di HP sungguhan.
+### Diperbaiki saat uji
+- Bingkai pertama setelah layar memuat tertunda ±1,6 detik: ikon piksel dibuat di kanvas GPU yang
+  menunggu GPU sibuk memuat dunia (±160 ms per ikon) → kanvas CPU (< 1 ms per ikon).
+- Statistik render (`renderer.info`) hanya menghitung pass terakhir (2 segitiga) → dunia + pass
+  pasca-proses.
+- Ekor gelembung ucapan bersambungan tipis di antara pikselnya → digambar sebagai satu bentuk bertangga.
+- Pita hitam di Tegal Wira: potret prajurit jauh memakai alpha-to-coverage yang butuh MSAA (gambar
+  pixel art tidak ber-MSAA) → tepi potong alphaTest.
+- Garis tepi menggambar badan pemain yang terendam saat berenang → permukaan laut ikut menulis
+  kedalaman.
+- Bayangan bergaris-garis (peta bayangan tanpa penyaringan) → PCF lalu dibulatkan ke gelap / terang.
+- Batas pasir–rumput, jalan, dan lantai batu masih kabur → dibuat bertepi tegas di shader.
+- Ligatur "fi" huruf piksel ("grafis") tampak janggal → ligatur dimatikan.
+- Kotak petunjuk kontrol menutupi kepala karakter dan nama jurus menimpa cincin tombol (huruf piksel
+  lebih lebar) → ukuran huruf disesuaikan.
+
 ## [0.14.0] — 2026-10-23 — Joystick & kamera belakang, pulau tanpa jembatan, berenang, perahu, memancing, mengobrol dengan NPC (permintaan pengguna)
 ### Diubah
 - **Kontrol joystick + kamera dari belakang karakter** (menggantikan kamera strategi dari atas +
