@@ -456,7 +456,7 @@ async function start() {
   const input = createInput({
     canvas, joystick: $('joystick'), knob: $('joystick').querySelector('.kenop'), jumpButton: $('btn-lompat'), attackButton: $('btn-pukul'), skillButtons, touch: touchUI,
   })
-  const NO_INPUT = { moveX: 0, moveY: 0, jump: false, attack: false, skill: null, lookDX: 0, lookDY: 0, zoom: 1, taps: [], lookRecent: false }
+  const NO_INPUT = { moveX: 0, moveY: 0, jump: false, attack: false, skill: null, lookDX: 0, lookDY: 0, zoom: 1, taps: [] }
   const markers = createMarkers(ground)
   scene.add(...markers.objects)
   // ketuk elf → kartu isi pikirannya
@@ -521,18 +521,12 @@ async function start() {
     life, villagers, player, cam, camera, input, bag, shop, bubbles, places: placesFor, seberang,
     wantedByElves: () => !!elfSec?.wanted, feast: () => !!life?.feast, boatBuilt: () => boat.built,
   })
-  // yang diikuti kamera: kepala pemain (lebih rendah saat berenang), lebih jauh saat naik perahu;
-  // saat mengobrol: titik tengah pemain & NPC, dilihat lebih tinggi supaya keduanya tampak di bagian
-  // bawah layar (bagian atas tertutup panel obrolan)
+  // yang diikuti kamera (posisinya saja — arah kamera hanya diputar pemain): kepala pemain (lebih
+  // rendah saat berenang), lebih jauh saat naik perahu; saat mengobrol: titik tengah pemain & NPC,
+  // dilihat lebih tinggi supaya keduanya tampak di bagian bawah layar (atasnya tertutup panel obrolan)
   const camTarget = {
     get position() {
       return chat.focus || player.position
-    },
-    get heading() {
-      return player.heading
-    },
-    get speed() {
-      return chat.open ? 0 : player.speed
     },
     get height() {
       return chat.open ? 2.6 : player.cameraHeight

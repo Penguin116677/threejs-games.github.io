@@ -199,7 +199,7 @@ export function createChat({ life, villagers, player, cam, camera, input, bag, s
     input.setEnabled(false)
     shop.close()
     // kamera di samping pemain & NPC (sisi yang paling dekat dengan arah kamera sekarang)
-    savedCam = { dist: cam.state.dist, pitch: cam.state.pitch }
+    savedCam = { dist: cam.state.dist, pitch: cam.state.pitch, yaw: cam.yaw }
     const across = Math.atan2(target.ref.x - player.position.x, target.ref.z - player.position.z)
     const side = [across + Math.PI / 2, across - Math.PI / 2]
       .map(y => ({ y, d: Math.abs(Math.atan2(Math.sin(y - cam.yaw), Math.cos(y - cam.yaw))) }))
@@ -225,9 +225,10 @@ export function createChat({ life, villagers, player, cam, camera, input, bag, s
     el.panel.hidden = true
     el.teks.blur()
     input.setEnabled(true)
+    // kamera kembali ke arah sebelum mengobrol (kamera tidak berputar sendiri saat berjalan lagi)
     if (savedCam) {
       cam.state.dist = savedCam.dist
-      cam.state.pitch = savedCam.pitch
+      cam.lookFrom(savedCam.yaw, false, savedCam.pitch)
       savedCam = null
     }
   }

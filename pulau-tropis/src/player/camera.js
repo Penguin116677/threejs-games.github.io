@@ -2,9 +2,10 @@ import * as THREE from 'three'
 import { ISLAND } from '../world/island.js'
 
 // Kamera orang ketiga: mengikuti karakter dari BELAKANG, sedikit di atas bahunya.
-// - geser (sentuh/mouse) memutar kamera kiri-kanan & naik-turun; cubit / roda mouse mengatur jarak
-// - saat karakter bergerak dan kamera tidak sedang diputar, kamera pelan-pelan kembali ke belakang
-//   karakter — arah "maju" joystick selalu arah pandang kamera
+// - posisinya selalu mengikuti karakter (berjalan maju = kamera tetap di belakangnya), tetapi ARAHNYA
+//   hanya diputar pemain sendiri: geser (sentuh/mouse) = kiri-kanan & naik-turun, cubit / roda mouse
+//   = jarak. Saat karakter berbelok atau berbalik, kamera TIDAK ikut berputar sendiri (permintaan
+//   pengguna, v0.15.0). Arah "maju" joystick selalu arah pandang kamera.
 // - tidak menembus bukit dan tidak masuk ke bawah permukaan air
 const SENS_YAW = 0.0058 // radian per piksel geser
 const SENS_PITCH = 0.0045
@@ -16,14 +17,7 @@ const DIST_MAX = 18
 const DIST_DEFAULT = 8.2
 const LOOK_HEIGHT = 1.5 // titik putar kamera: sekitar bahu karakter (tinggi badan ±1,55 m)
 const LIFT = 0.06 // titik yang dilihat sedikit di atas kepala (× jarak): karakter agak di bawah tengah layar
-// kembali ke belakang karakter: radian/detik terbesar (saat berlari menjauhi kamera), kelancaran,
-// kecepatan karakter minimum. Makin menyamping arah larinya, makin pelan kamera berputar (dikali
-// cos selisih arah) — kalau tidak, menahan joystick ke kanan membuat karakter berlari berputar-putar
-// dalam lingkaran kecil; berlari ke arah kamera tidak memutarnya sama sekali
-const FOLLOW = { rate: 1.0, ease: 2.4, minSpeed: 0.8 }
 const SHAKE_TIME = 0.3 // detik
-
-const wrapAngle = a => Math.atan2(Math.sin(a), Math.cos(a))
 
 export function createFollowCamera(camera, ground) {
   const state = { yaw: 0, pitch: PITCH_DEFAULT, dist: DIST_DEFAULT }
@@ -58,19 +52,12 @@ export function createFollowCamera(camera, ground) {
       shakeA = Math.max(shakeA * (shakeT / SHAKE_TIME), amount)
       shakeT = SHAKE_TIME
     },
-    // target: { position, heading, speed, height? (titik putar di atas kaki), distScale? (pengali
-    // jarak, mis. saat naik perahu) }
+    // target: { position, height? (titik putar di atas kaki), distScale? (pengali jarak, mis. saat
+    // naik perahu) }
     update(dt, target, input) {
       state.yaw -= input.lookDX * SENS_YAW
       state.pitch = THREE.MathUtils.clamp(state.pitch + (input.lookDY || 0) * SENS_PITCH, PITCH_MIN, PITCH_MAX)
       state.dist = THREE.MathUtils.clamp(state.dist * input.zoom, DIST_MIN, DIST_MAX)
-
-      // ikuti arah gerak bila kamera tidak sedang/baru saja diputar
-      if (!input.lookRecent && (target.speed || 0) > FOLLOW.minSpeed) {
-        const diff = wrapAngle(target.heading + Math.PI - state.yaw)
-        const rate = FOLLOW.rate * Math.max(0, Math.cos(diff)) * Math.min(1, target.speed / 4)
-        state.yaw += Math.sign(diff) * Math.min(Math.abs(diff) * FOLLOW.ease, rate) * dt
-      }
 
       // titik putar diperhalus agar guncangan kecil (langkah, lompat) tidak membuat pusing
       const p = target.position

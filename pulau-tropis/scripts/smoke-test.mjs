@@ -7,8 +7,8 @@ import { mkdirSync } from 'node:fs'
 // - komputer: klik tanah tidak menggerakkan karakter, jalan (W), lompat (Spasi), tabrakan batang
 //   pohon, laut dalam → berenang (tidak dikembalikan ke pantai), mendaki lereng gunung, obrolan
 //   dengan elf lewat tombol G
-// - HP: joystick (jalan menjauhi kamera, lepas = berhenti, tertahan batang pohon, kamera kembali
-//   ke belakang karakter), ketuk tanah tidak menggerakkan karakter, tombol Pukul saat berjalan
+// - HP: joystick (jalan menjauhi kamera, lepas = berhenti, tertahan batang pohon, arah kamera tidak
+//   ikut berputar saat berbelok), ketuk tanah tidak menggerakkan karakter, tombol Pukul saat berjalan
 //   (berhenti + mengayun, mengenai batang pohon → serpihan,
 //   kombo tebas → tinju → tendang), jurus Cincang / Hentak / Putar / Penggal terhadap orc
 //   (+ jeda pakai, Penggal tanpa musuh, orc hidup lagi), tombol Lompat, geser kamera
@@ -1032,7 +1032,8 @@ for (const [name, opts, query] of cases) {
     if (j2.speed > 0.3) fail(`joystick dilepas: masih bergerak ${j2.speed.toFixed(2)} m/s`)
     else ok('joystick dilepas: berhenti')
 
-    // joystick serong kanan-depan: kamera ikut berputar ke arah lari (kembali ke belakang karakter)
+    // joystick serong kanan-depan: karakter berbelok & berlari serong, kamera TIDAK ikut berputar
+    // (arah kamera hanya diputar pemain sendiri), tetapi posisinya tetap mengikuti dari belakang
     await teleport(page, -122, 122, [0, 0])
     await waitFrames(page, 3)
     const k0 = await state(page)
@@ -1040,9 +1041,13 @@ for (const [name, opts, query] of cases) {
     await waitFrames(page, 40)
     const k1 = await state(page)
     await touch('touchEnd', [])
-    // kamera berputar searah jarum jam (yaw berkurang) saat karakter berbelok ke kanan
-    if (k0.yaw - k1.yaw < 0.2) fail(`kamera mengikuti: putar ${(k1.yaw - k0.yaw).toFixed(2)} rad`)
-    else ok(`kamera ikut berputar ke arah lari (${(k1.yaw - k0.yaw).toFixed(2)} rad)`)
+    const camGap = await page.evaluate(() => {
+      const { camera, player } = window.__pulau
+      return Math.hypot(camera.position.x - player.position.x, camera.position.z - player.position.z)
+    })
+    const kRan = Math.hypot(k1.x - k0.x, k1.z - k0.z)
+    if (Math.abs(k1.yaw - k0.yaw) > 0.01 || kRan < 3 || camGap > 12) fail(`kamera saat berbelok: putar ${(k1.yaw - k0.yaw).toFixed(3)} rad, lari ${kRan.toFixed(1)} m, jarak kamera ${camGap.toFixed(1)} m`)
+    else ok(`berbelok dengan joystick: kamera tidak ikut berputar (${(k1.yaw - k0.yaw).toFixed(3)} rad), tetap mengikuti ${camGap.toFixed(1)} m di belakang`)
 
     // joystick menabrak batang pohon: tertahan, tidak menembus
     const trunk = await openTrunk(page)

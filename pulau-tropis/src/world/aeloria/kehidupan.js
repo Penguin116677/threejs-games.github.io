@@ -1687,7 +1687,12 @@ export function createLife({ ground, plan, routes, folk, quality, free = () => t
       draw.x = a.x
       draw.y = a.y
       draw.z = a.z
-      draw.heading = a.heading
+      // arah hadap yang digambar berbelok halus (bukan patah di sudut jalan / saat tiba di
+      // tempatnya); elf yang baru terlihat lagi langsung memakai arahnya sekarang
+      if (a.drawn !== frame - 1) a.dh = a.heading
+      else a.dh += Math.atan2(Math.sin(a.heading - a.dh), Math.cos(a.heading - a.dh)) * Math.min(1, dt * 10)
+      a.drawn = frame
+      draw.heading = a.dh
       draw.clip = L.clip
       draw.t = L.t
       draw.prev = a.prev

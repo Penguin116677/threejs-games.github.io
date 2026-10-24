@@ -464,12 +464,12 @@ export function createPlayer({ ground, colliders, quality, asset }) {
       vel.x += (ddx / dl) * accel
       vel.z += (ddz / dl) * accel
     }
-    // menghadap ke arah gerak
+    // menghadap ke arah gerak (berbelok / berbalik halus, ±0,3 detik untuk setengah putaran)
     if (m > 0.05) {
       const want = Math.atan2(dx, dz)
       let diff = want - heading
       diff = Math.atan2(Math.sin(diff), Math.cos(diff))
-      heading += diff * Math.min(1, 12 * dt)
+      heading += diff * Math.min(1, 9 * dt)
     }
 
     // lompat (dengan coyote time dan buffer tombol)
@@ -777,9 +777,13 @@ export function createPlayer({ ground, colliders, quality, asset }) {
       } else if (pose && !combat.busy) play(pose, 0.2)
       else if (!combat.busy) {
         let anim = null
-        if (grounded) anim = hs < 0.3 ? 'idle' : hs < 3.6 ? 'walk' : 'sprint'
-        else if (airTime > 0.12) anim = vel.y > 0 && current === actions.jump ? 'jump' : 'fall'
-        if (anim) play(anim, 0.18)
+        // ambang berjeda (histeresis): klip tidak berganti-ganti saat kecepatan di sekitar batas
+        if (grounded) {
+          const toWalk = current === actions.idle ? 0.45 : 0.25
+          const toRun = current === actions.sprint ? 3.3 : 3.9
+          anim = hs < toWalk ? 'idle' : hs < toRun ? 'walk' : 'sprint'
+        } else if (airTime > 0.12) anim = vel.y > 0 && current === actions.jump ? 'jump' : 'fall'
+        if (anim) play(anim, 0.25)
       }
       if (actions.walk) actions.walk.timeScale = swimming ? 0.55 : THREE.MathUtils.clamp(hs / 1.4, 0.6, 1.6)
       if (actions.sprint) actions.sprint.timeScale = swimming ? 0.75 : THREE.MathUtils.clamp(hs / 3.6, 0.8, 1.6)

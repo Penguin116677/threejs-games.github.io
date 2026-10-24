@@ -29,7 +29,6 @@ export function createInput({ canvas, joystick, knob, jumpButton, attackButton, 
   let lookDX = 0
   let lookDY = 0
   let zoom = 1
-  let lastLook = -1e9
   const taps = []
 
   // joystick: jari yang memegangnya, pusatnya, dan arahnya (x = kanan, y = maju, panjang 0..1)
@@ -115,7 +114,6 @@ export function createInput({ canvas, joystick, knob, jumpButton, attackButton, 
       if (p.moved) {
         lookDX += e.clientX - p.x
         lookDY += e.clientY - p.y
-        lastLook = performance.now()
       }
     }
     p.x = e.clientX
@@ -124,7 +122,6 @@ export function createInput({ canvas, joystick, knob, jumpButton, attackButton, 
       const d = pinchLength()
       if (pinchDist > 0 && d > 0) zoom *= pinchDist / d
       pinchDist = d
-      lastLook = performance.now()
     }
   })
 
@@ -149,7 +146,6 @@ export function createInput({ canvas, joystick, knob, jumpButton, attackButton, 
     if (!enabled) return
     e.preventDefault()
     zoom *= Math.exp(e.deltaY * 0.0012)
-    lastLook = performance.now()
   }, { passive: false })
 
   // tombol aksi (Lompat, Pukul, jurus): pointerdown (bukan click) agar langsung bereaksi
@@ -218,8 +214,6 @@ export function createInput({ canvas, joystick, knob, jumpButton, attackButton, 
       const out = {
         moveX: mx, moveY: my, jump: jumpQueued, attack: attackQueued, skill: skillQueued,
         lookDX, lookDY, zoom, taps: taps.splice(0),
-        // kamera baru saja / sedang diputar pemain: kamera tidak berbalik sendiri ke belakang karakter
-        lookRecent: performance.now() - lastLook < 1200 || [...lookers.values()].some(p => p.moved),
       }
       jumpQueued = false
       attackQueued = false
