@@ -1,42 +1,32 @@
-prajurit.glb, pedang.glb
-  Sumber : Kenney "Mini Arena" 1.1 — character-soldier & weapon-sword (www.kenney.nl,
-           kredit tambahan: Tony Schär)
+Sejak v0.16.0 file-file di sini hanya berisi RANGKA (7 tulang) + ANIMASI karakter Kenney — tanpa
+badan, kulit (skin), dan tekstur. Badan semua karakter (pemain, orc, penduduk, prajurit, elf, kuda)
+dan senjatanya dibuat di kode (src/tokoh/), digambar dengan satu tekstur palet kecil.
+
+prajurit.glb
+  Sumber : Kenney "Mini Arena" 1.1 — character-soldier (www.kenney.nl, kredit tambahan: Tony Schär)
   Lisensi: Creative Commons Zero (CC0 1.0) — bebas dipakai untuk proyek pribadi,
            pendidikan, maupun komersial. Kredit ke Kenney tidak wajib, tetapi kami cantumkan.
-  Diubah : tekstur colormap.png digabung ke dalam GLB (scripts/embed-glb-texture.py).
-
-(Karakter sebelumnya — Kenney "Mini Characters" character-male-f, juga CC0 — masih ada di
-riwayat git, commit df66831, bila ingin dipakai lagi.)
+  Diubah : hanya rangka + 18 animasi yang dipakai game (idle, walk, sprint, jump, fall, sit, drive,
+           die, pick-up, emote-yes, holding, attack-melee, attack-kick, interact); mesh, skin, dan
+           tekstur dibuang (scripts/rangka-glb.py). Dipakai pemain, prajurit penjaga, dan bala
+           tentara (penunggang kuda memakai pose "drive"; titik putar kuda dari Kenney "Prototype
+           Kit" 1.0 — animal-horse, CC0 — ditulis di kode src/world/kencana/pasukan.js).
 
 orc.glb
   Sumber : Kenney "Mini Dungeon" 2.0 — character-orc (www.kenney.nl)
   Lisensi: Creative Commons Zero (CC0 1.0).
-  Diubah : tekstur colormap.png digabung ke dalam GLB (scripts/embed-glb-texture.py).
-
-penduduk.glb
-  Sumber : Kenney "Mini Characters" 1.0 — character-male-a/b/e/f & character-female-a/b/c/f
-           (www.kenney.nl)
-  Lisensi: Creative Commons Zero (CC0 1.0).
-  Diubah : delapan karakter digabung jadi satu file dengan satu rangka bersama, hanya animasi
-           idle/walk/sit/interact-right/pick-up/emote-yes, atribut dipadatkan, tekstur colormap.png
-           ikut di dalam file (scripts/pack-penduduk.py). Dipakai untuk penduduk Kerajaan Kencana;
-           penjaga kerajaan memakai prajurit.glb dengan tombak buatan kode.
-
-bala.glb
-  Sumber : kuda: Kenney "Prototype Kit" 1.0 — animal-horse; perisai: Kenney "Mini Dungeon" 2.0 —
-           shield-rectangle & shield-round (www.kenney.nl)
-  Lisensi: Creative Commons Zero (CC0 1.0).
-  Diubah : digabung jadi satu file tanpa tekstur; uv dipetakan ulang ke palet colormap Kenney
-           "Mini Arena" (prajurit.glb) supaya prajurit, senjata, dan kuda memakai satu tekstur;
-           warna kuda per bagian (scripts/pack-bala.py). Dipakai bala tentara di Pulau Wira.
+  Diubah : hanya rangka + animasi idle, walk, sprint, die, attack-melee-right; mesh, skin, dan
+           tekstur dibuang (scripts/rangka-glb.py).
 
 elf.glb
-  Sumber : Kenney "Mini Characters" 1.0 — rangka & animasi karakter yang sama dengan penduduk.glb
-           (www.kenney.nl)
+  Sumber : Kenney "Mini Characters" 1.0 — rangka & animasi karakter (www.kenney.nl)
   Lisensi: Creative Commons Zero (CC0 1.0).
   Diubah : hanya rangka + 18 animasi Kenney (idle, walk, sprint, jump, sit, crouch, die, pick-up,
            emote, interact, holding, attack-melee, attack-kick), tanpa mesh & tekstur
-           (scripts/pack-penduduk.py, prasetel `elf`). Badan para elf Aeloria memakai mesh
-           penduduk.glb; warna tiap bagian badan diatur di shader. Gerak makan, menari, menempa,
-           memanah, tidur, dll. dirangkai dari animasi itu di kode; telinga runcing, zirah, helm,
-           jubah, dan barang di tangan juga dibuat di kode.
+           (scripts/pack-penduduk.py prasetel `elf`, lalu scripts/rangka-glb.py untuk memakai
+           bersama data animasi yang kembar). Dipakai para elf Aeloria dan penduduk
+           Kerajaan Kencana. Gerak makan, menari, menempa, memanah, tidur, dll. dirangkai dari
+           animasi itu di kode.
+
+(Badan Kenney lama — penduduk.glb, bala.glb, pedang.glb, dan mesh di prajurit.glb / orc.glb —
+masih ada di riwayat git sebelum v0.16.0, bila ingin dipakai lagi.)
