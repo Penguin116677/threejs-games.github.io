@@ -635,3 +635,45 @@ tandai sebagai "diganti" bila berubah.
       kode karena dipakai pengujian untuk memotret dari atas: `__pulau.setMode('lihat' | 'main')`.
     - Kanan atas kini satu baris (Peta, Tas, Pengaturan): di layar mendatar kotak petunjuk kontrol tidak
       lagi menutupi tombol.
+68. **Karakter pixel art chibi di atas rangka Kenney** (v0.16.0, permintaan pengguna dengan gambar contoh:
+    *"Ganti karakter npc dengan contoh di gambar ini, saya mau karakter berbentuk kayak robloxnya di
+    ganti"*).
+    - Gambar contoh = lembar sprite pixel art 2D (Raja, Prajurit, Orc, Elf, Rakyat jelata, Pedagang;
+      Archer, Pemegang perisai / tombak / pedang dengan baris IDLE, WALK, ATTACK, DEFEND, SKILL, DIE).
+      Dunia tetap 3D (kamera di belakang karakter, ribuan karakter beranimasi), jadi tokohnya dibuat
+      **3D prosedural** dengan proporsi & warna sprite itu — kepala bulat ±⅓ tinggi bermata, rambut /
+      helm berjambul / tudung / mahkota, badan & anggota tubuh membulat, tabar, zirah, jubah, ransel —
+      lalu tahap pixel art (v0.15) membuatnya tampak seperti sprite. Sprite 2D papan (billboard) ditolak:
+      8 arah × semua animasi × semua jenis = atlas sangat besar, salah dilihat dari atas, dan tidak ada
+      sumber sprite berlisensi bebas untuk semua jenis.
+    - Badan ditempel **kaku** (satu tulang per titik) ke rangka Kenney 7 tulang yang sama: semua klip
+      Kenney, gerak buatan elf, rangka yang dipanggang ke tekstur, barang di tangan, dan potret jauh bala
+      tentara tetap bekerja tanpa animasi baru. Lengan dibuat menjuntai 25° dari garis bahu: pose diam
+      Kenney menurunkan lengan 45°, jadi lengan tampak rapat ke badan (±70°), tidak mengangkang.
+    - Satu tekstur palet 32 × 32 (tanpa penghalusan) untuk semua karakter; warna = uv → satu bahan,
+      karakter sejenis tetap satu draw call. Setengah bawahnya meniru tata letak colormap Kenney supaya
+      kode yang menunjuk kotak warna Kenney (kayu, besi, emas, pasangan warna elf) tetap benar.
+    - Kerumunan (bala tentara) memakai versi ringan (sisi lebih jarang), elf 0,75. Segitiga per tokoh
+      naik: pemain 513 → 1.694, penduduk 690–876 → 1.192–2.460 (raja paling banyak), orc 374 → 1.828,
+      prajurit kerumunan 513 → 920–1.428, elf 810–1.618 bagian yang tampak. Total di layar +4…+26%
+      (lihat PROJECT_STATUS); 25.000 prajurit jauh tetap potret 2 segitiga.
+    - Orc dibuat 1,2× ukuran manusia (badannya lebih kekar), kepalanya tetap mesh terpisah supaya bisa
+      terlempar oleh jurus Penggal. Karakter baru ±1,27 m (lebih pendek dari prajurit Kenney): titik
+      pandang kamera, gelembung ucapan, dan bar nyawa orc diturunkan.
+69. **Pemain ikut diganti rupa** (v0.16.0). Permintaan menyebut "karakter npc" dan "karakter berbentuk
+    kayak robloxnya di ganti"; pemain juga berbadan kotak Kenney (prajurit "Mini Arena"). Bila hanya NPC
+    yang diganti, pemain menjadi satu-satunya tokoh kotak di dunia yang bulat. Jadi pemain diberi rupa
+    sendiri yang serasi: pendekar berzirah ringan, rambut cokelat acak, syal merah, **tanpa helm** — beda
+    dari prajurit Kencana supaya mudah dikenali di tengah barisan. Perlengkapan dari toko dipasang ulang
+    pada badan baru. Bisa dikembalikan ke rupa lama bila pengguna mau (rangka & animasinya sama; badan
+    lama ada di riwayat git sebelum v0.16.0).
+70. **File model hanya rangka + animasi** (v0.16.0). Badan dibuat di kode, jadi mesh, skin, dan tekstur
+    Kenney tidak dipakai lagi. `scripts/rangka-glb.py` memangkas GLB menjadi 7 simpul rangka + klip yang
+    dipakai (accessor yang isinya kembar dipakai bersama). Rangka dibentuk dari simpul bernama
+    (`skeletonOf` di `rig.js`) dengan kebalikan pose diam relatif akar — sama dengan kebalikan bind glTF:
+    semua bingkai yang dipanggang (prajurit 18 klip, orc 5, penduduk 6, elf 18) berselisih ≤ 1,2·10⁻⁷.
+    Penduduk & elf berbagi `elf.glb` (pose diam & keenam klip penduduk sama persis dengan `penduduk.glb`
+    lama, ditambah `emote-no` yang dulu tidak ada — warga Kencana kini benar-benar menggeleng saat obrolan
+    memintanya, dulu tetap diam); titik putar kuda (dari rangka kuda Kenney "Prototype Kit") ditulis di
+    `pasukan.js`. Unduhan model 892 KB → 108 KB; `penduduk.glb`, `bala.glb`, `pedang.glb` dan skrip
+    pembuatnya dihapus.

@@ -1,5 +1,65 @@
 # CHANGELOG — Pulau Tropis
 
+## [0.16.0] — 2026-10-25 — Karakter baru bergaya pixel art (permintaan pengguna)
+### Diubah
+- **Semua karakter berganti rupa**: badan kotak-kotak (mirip Roblox, dari Kenney) diganti tokoh
+  **pixel art chibi** mengikuti gambar contoh — kepala bulat besar (±⅓ tinggi badan) bermata, rambut
+  berbagai gaya, badan / lengan / kaki membulat, pakaian dan perlengkapan berlapis. Gerakan (animasi),
+  gameplay, dan dunia tidak berubah.
+  - **Penduduk Kencana**: 8 rupa rakyat jelata (pria & wanita: kemeja, rompi, rok, kerudung, ikat kepala,
+    beraneka warna rambut & kulit), **pedagang** bertopi lebar dengan ransel besar (gulungan tikar,
+    panci), **raja** bermahkota emas, berjanggut, berjubah merah berkerah bulu dengan tongkat kerajaan,
+    **pendeta** berjubah.
+  - **Penjaga & peronda Kencana**: helm baja berjambul (warna jambul menandai tugas), zirah bertabar,
+    tombak atau pedang + perisai layang.
+  - **Bala tentara 25.000**: barisan perisai (perisai layang biru berlambang emas), tombak, pedang
+    (tanpa helm, bersyal merah), **pemanah** bertudung dengan busur & tabung panah; **kavaleri** dan
+    **senapati** di atas kuda bulat (cokelat bersurai hitam / putih bersurai kelabu) berpelana & berkain.
+    Potret prajurit jauh ikut dibuat dari rupa baru.
+  - **Orc**: hijau, bertaring, berjambul, pelindung bahu berduri, sabuk rantai, golok; badan 1,2×
+    manusia. Kepalanya tetap terlempar oleh jurus Penggal.
+  - **Elf Aeloria**: telinga runcing, 7 rupa badan & rambut; kesatria berzirah, helm berjambul tinggi,
+    jubah, tabung panah, sarung pedang; bangsawan bermahkota daun; pandai besi bercelemek. Warna tiap
+    elf tetap acak.
+  - **Pemain** (ikut diganti, lihat DECISIONS #69): pendekar berzirah ringan, rambut cokelat acak, syal
+    merah, tanpa helm — mudah dibedakan dari prajurit Kencana. Pedang dan perlengkapan dari toko
+    (perisai, tombak elf, zirah rantai / perak, lingkar kepala elf) dipasang ulang pada badan baru.
+    Bisa dikembalikan ke rupa lama bila diinginkan.
+- Karakter baru sedikit lebih pendek (±1,27 m): titik pandang kamera, gelembung ucapan, dan bar nyawa
+  orc disesuaikan.
+- Warga Kencana kini benar-benar **menggeleng** saat obrolan memintanya (dulu tetap diam).
+- **Unduhan model jauh lebih kecil**: file model kini hanya rangka + animasi, 892 KB → 108 KB
+  (`penduduk.glb`, `bala.glb`, `pedang.glb` tidak diunduh lagi); kode game +13 KB gzip.
+### Teknis
+- `src/tokoh/`: `palet.js` (satu tekstur palet 32 × 32 tanpa penghalusan untuk semua karakter; setengah
+  bawahnya meniru tata letak colormap Kenney supaya kode lama & shader warna elf tetap benar),
+  `bentuk.js` (elipsoid, kapsul, sapuan, benda putar, pita, lembaran, bentuk pipih), `rupa.js` (semua
+  rupa, senjata, perisai, busur, tongkat, golok, kuda, pelana). Badan ditempel kaku ke rangka Kenney
+  7 tulang yang sama → semua klip, rangka yang dipanggang ke tekstur, barang di tangan, dan potret jauh
+  tetap bekerja. Lengan dibuat menjuntai 25° supaya pose diam Kenney (lengan turun 45°) rapat ke badan.
+- Kerumunan memakai versi ringan (sisi lebih jarang; elf 0,75).
+- `scripts/rangka-glb.py` memangkas GLB menjadi rangka + klip yang dipakai; `skeletonOf()` (`rig.js`)
+  membentuk rangka dari simpul bernama. Penduduk & elf berbagi `elf.glb`; titik putar kuda ditulis di
+  `pasukan.js`. `scripts/pack-bala.py` & `scripts/embed-glb-texture.py` dihapus.
+### Diperiksa
+- ESLint (konfigurasi repo) 0 error / 0 warning; `vite build` berhasil (JS 1,14 MB / 356 KB gzip).
+- Smoke test otomatis (versi build, 4 profil) — **LULUS**: 177 cek, 0 gagal (HP tegak 68, HP mendatar 28,
+  HP Rendah 28, komputer 53): gerak, pukul & 4 jurus pada orc (termasuk Penggal), perahu, memancing, kota
+  & penduduk, 25.000 prajurit, penjagaan & pertarungan, Aeloria, toko & perlengkapan, obrolan. Bundel
+  rilis (setelah perbaikan kecil peringatan konsol) diuji ulang: HP Rendah & HP mendatar lulus, 28 + 28
+  cek; saat memuat hanya 3 file model yang diunduh, tanpa peringatan / galat di konsol.
+- Rangka ramping = rangka lama: semua bingkai animasi yang dipanggang sama dengan versi file Kenney
+  berbadan (selisih terbesar 1,2·10⁻⁷).
+- Di browser (Chromium, render software, layar Pixel 7 tiruan): lembar karakter semua jenis (depan,
+  samping, belakang; diam, jalan, menyerang, roboh, duduk) dan di game — Pasar Kotaraja, raja di pendopo,
+  penjaga gerbang & peronda, Tegal Wira (3D dekat & potret jauh, kavaleri, senapati, pemanah), perkemahan
+  orc, Pasar Aeloria, pemain dengan perlengkapan toko.
+- Performa (render software, bukan ukuran HP; v0.15.1 diukur bergantian, rata-rata 2 putaran): segitiga
+  di layar +4…+26% (Tegal Wira paling banyak: 351 → 441 rb di Sedang), waktu per bingkai setara (Sedang
+  −7…+3%, Rendah −5…+13% — dalam batas acak antar-putaran), waktu siap sama (Sedang ±6 detik, Rendah
+  ±5 detik).
+- **Belum** dicoba di HP sungguhan.
+
 ## [0.15.1] — 2026-10-25 — Garis tepi lebih tipis, ikon Pengaturan, kanan atas diringkas (permintaan pengguna)
 ### Diubah
 - **Garis tepi dunia lebih tipis**: dari satu piksel seni penuh (±5 px layar di HP pada Sedang) menjadi

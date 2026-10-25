@@ -31,8 +31,13 @@ desktop). Satu putaran penuh ±1,5 jam di render software (v0.15.0: HP tegak ±3
 Rendah ±5, komputer ±35; v0.14.0 sebelum pixel art: 2–2,5 jam — beri batas waktu luar yang cukup), batas
 waktu tiap langkah 90 detik.
 
-Penduduk kerajaan (`public/models/penduduk.glb`) dibuat ulang dari paket Kenney "Mini Characters"
-dengan `python3 scripts/pack-penduduk.py "<folder GLB format>" public/models/penduduk.glb`.
+Sejak v0.16.0 file `public/models/*.glb` hanya berisi rangka + animasi Kenney (badan semua karakter
+dibuat di kode, `src/tokoh/`). Membuatnya ulang dari paket Kenney:
+- `prajurit.glb` / `orc.glb`: `python3 scripts/rangka-glb.py <character-soldier.glb | character-orc.glb>
+  public/models/<nama>.glb <klip,klip,…>` (daftar klip di `public/models/LISENSI.txt`);
+- `elf.glb` (penduduk Kencana & elf): `python3 scripts/pack-penduduk.py "<folder GLB format Mini
+  Characters>" public/models/elf.glb elf` lalu `python3 scripts/rangka-glb.py public/models/elf.glb
+  public/models/elf.glb`.
 
 ## Kualitas grafis
 - Di game: ikon **Pengaturan** (roda gigi, kanan atas) → Kualitas grafis → Rendah / Sedang / Tinggi.
@@ -182,8 +187,8 @@ dengan `python3 scripts/pack-penduduk.py "<folder GLB format>" public/models/pen
    - FPS di depan barisan, di dalam lorong, dan saat zoom jauh, untuk tiap tingkat kualitas;
    - lama memuat (layar "Membariskan 25.000 prajurit…").
 
-Model kuda & perisai (`public/models/bala.glb`) dibuat ulang dari aset Kenney dengan
-`python3 scripts/pack-bala.py "<folder Kenney 3D assets>" public/models/prajurit.glb public/models/bala.glb`.
+Sejak v0.16.0 kuda, perisai, dan senjata bala tentara dibuat di kode (`src/tokoh/rupa.js`; titik putar
+kuda di `src/world/kencana/pasukan.js`) — tidak ada lagi `bala.glb`.
 
 Laporkan: model HP, angka FPS di tiap tingkat kualitas, screenshot, dan langkah yang gagal.
 
@@ -367,3 +372,29 @@ yang tidak berputar sendiri sudah nyaman, dan FPS dibanding versi sebelumnya.
 
 Laporkan: apakah garis tepinya sudah cukup tipis (atau ingin lebih tipis / lebih tebal), apakah layar
 penuh otomatis berjalan di HP-mu, dan FPS.
+
+## Daftar uji manual — v0.16.0 (karakter baru bergaya pixel art)
+1. **Pemain**: pendekar berambut cokelat acak, syal merah, zirah ringan, pedang di tangan kanan (bukan
+   lagi prajurit kotak berhelm). Jalan, lari, lompat, Pukul, 4 jurus, berenang, naik perahu, memancing,
+   duduk mengobrol — gerakannya wajar, pedang tidak menembus badan. Beli perisai / tombak / zirah /
+   lingkar kepala di Aeloria → tampak di badan.
+2. **Penduduk Kotaraja** (pasar, jalan): kepala bulat bermata, rambut / kerudung / ikat kepala berbagai
+   warna; pedagang bertopi lebar beransel; **raja** di pendopo bermahkota, berjanggut, berjubah merah
+   berkerah bulu dengan tongkat; pendeta. Tidak ada lagi tokoh kotak-kotak.
+3. **Penjaga & peronda**: helm baja berjambul, zirah bertabar, tombak atau pedang + perisai layang.
+   Mereka tetap menghadang, mengejar, dan menyerang; gelembung ucapan tepat di atas kepala.
+4. **Tegal Wira**: barisan perisai (perisai biru berlambang emas), tombak, pedang (bersyal merah, tanpa
+   helm), pemanah bertudung dengan busur; **kavaleri & senapati berkuda** (kuda bulat, tidak terpotong /
+   melayang). Dari jauh (potret) warnanya senada dengan yang dekat; peralihan dekat ↔ jauh tidak
+   meloncat mencolok.
+5. **Orc**: hijau, bertaring, berjambul, pelindung bahu berduri, sedikit lebih besar dari pemain;
+   berkeliaran, mengejar, menyerang, roboh; jurus **Penggal** → kepala orc terlempar.
+6. **Elf Aeloria**: telinga runcing; kesatria berzirah, helm berjambul tinggi, jubah, tabung panah;
+   bangsawan bermahkota daun; pandai besi bercelemek; warga beraneka warna. Kegiatan (makan, menari,
+   menempa, memanah, tidur) tetap; ketuk elf → kartu pikiran.
+7. **Bicara** dengan elf / warga: panel obrolan; NPC berhenti, menghadap pemain, mengangguk /
+   menggeleng.
+8. Catat FPS dan lama memuat di titik mulai, Kotaraja, Tegal Wira, dan Pasar Aeloria dibanding v0.15.1.
+
+Laporkan: apakah rupa karakter sudah sesuai gambar contoh (mana yang kurang mirip / ingin diubah),
+apakah pemain mau tetap berupa pendekar baru atau kembali seperti dulu, dan FPS.

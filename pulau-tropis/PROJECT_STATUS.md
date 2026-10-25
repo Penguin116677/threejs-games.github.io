@@ -1,9 +1,9 @@
 # PROJECT_STATUS — Pulau Tropis
 
-**Milestone aktif:** 3 — Pembangunan dunia (v0.15.1: garis tepi pixel art lebih tipis, ikon Pengaturan berisi kualitas grafis, tombol Layar penuh & Lihat pulau dihapus; v0.15.0: seluruh grafik menjadi pixel art HD, kamera tidak lagi berputar sendiri, gerakan karakter lebih halus — menunggu umpan balik dari HP).
-Gameplay v0.15.0 sama dengan v0.14.0 (joystick, pulau tanpa jembatan, berenang, perahu, memancing, obrolan).
-Pengembangan karakter/jurus dihentikan sementara atas permintaan pengguna.
-**Versi:** 0.15.1
+**Milestone aktif:** 3 — Pembangunan dunia (v0.16.0: semua karakter — NPC dan pemain — berganti rupa menjadi pixel art chibi sesuai gambar contoh pengguna, file model dirampingkan; v0.15.1: garis tepi pixel art lebih tipis, ikon Pengaturan berisi kualitas grafis; v0.15.0: seluruh grafik menjadi pixel art HD — menunggu umpan balik dari HP).
+Gameplay v0.16.0 sama dengan v0.14.0 (joystick, pulau tanpa jembatan, berenang, perahu, memancing, obrolan); yang berubah hanya rupa karakter.
+Pengembangan jurus dihentikan sementara atas permintaan pengguna.
+**Versi:** 0.16.0
 **Terakhir diperbarui:** 2026-10-25
 
 ## Kondisi awal repository (sebelum Milestone 1)
@@ -34,7 +34,7 @@ Pengembangan karakter/jurus dihentikan sementara atas permintaan pengguna.
 ## Milestone 2 — status
 | Item | Status |
 |---|---|
-| Karakter pemain: prajurit berpedang (Kenney CC0), animasi diam/jalan/lari/lompat/jatuh | ✅ selesai (diganti prajurit v0.5.1) |
+| Karakter pemain: prajurit berpedang (Kenney CC0), animasi diam/jalan/lari/lompat/jatuh | ✅ selesai (diganti prajurit v0.5.1; sejak v0.16.0 rupa pendekar pixel art, animasi Kenney yang sama) |
 | Kamera strategi dari atas (putar, zoom 10–60 m, tidak menembus bukit) — menggantikan kamera orang ketiga | ✅ v0.6.0 — diganti v0.14.0 |
 | Ketuk tanah untuk berjalan (jalur memutari pohon/batu/tebing/laut dalam) — menggantikan joystick | ✅ v0.6.0 — diganti v0.14.0 (jalur masih dipakai untuk ketuk kios / Ajak bicara) |
 | Joystick mengambang + kamera di belakang karakter (tidak menembus bukit / air) | ✅ selesai (v0.14.0) |
@@ -90,8 +90,43 @@ Sebagian sudah dikerjakan lebih awal (bayangan, tanah per-piksel, awan, kaustik 
 | UI pixel art: huruf piksel, bingkai & tombol bulat berpiksel, ikon piksel, peta dunia berpiksel | ✅ selesai (v0.15.0) |
 | Garis tepi tipis (±0,4 piksel seni, 2 px layar di HP) | ✅ selesai (v0.15.1) |
 | Kanan atas diringkas: Peta, Tas, ikon Pengaturan (berisi kualitas grafis); layar penuh otomatis di HP; tombol Lihat pulau dihapus | ✅ selesai (v0.15.1) |
+| Karakter pixel art chibi (kepala bulat bermata, badan membulat) menggantikan badan kotak Kenney: penduduk, raja, pedagang, penjaga, bala tentara + kuda, orc, elf, pemain | ✅ selesai (v0.16.0) |
+| File model hanya rangka + animasi (unduhan model 892 KB → 108 KB) | ✅ selesai (v0.16.0) |
 | Partikel lanjutan, suara, animasi vegetasi lanjutan, siang–malam | ⏳ belum |
 | Dicoba di HP Android sungguhan | ⏳ menunggu laporan pengguna |
+
+## Yang sudah diperiksa (v0.16.0 — karakter baru bergaya pixel art)
+- **Pemeriksaan kode**: ESLint (konfigurasi repo) 0 error / 0 warning pada setiap commit (sistem rupa →
+  penduduk, penjaga & bala tentara → elf → pemain & orc → file model ramping → dua perbaikan kecil).
+- **Build**: `vite build` berhasil (JS 1,14 MB / 356 KB gzip, +13 KB gzip dari v0.15.1); model 892 KB →
+  108 KB.
+- **Rangka ramping = rangka lama** (uji angka di browser): semua bingkai animasi yang dipanggang dari file
+  rangka-saja sama dengan yang dari file Kenney berbadan — prajurit 18 klip (260 bingkai), orc 5 (97),
+  penduduk 6 (115), elf 18 (241, mode `fresh`): selisih terbesar 1,2·10⁻⁷ (pembulatan float).
+- **Smoke test otomatis** (versi build, 4 profil) — **LULUS**: 177 cek, 0 gagal (HP tegak 68, HP
+  mendatar 28, HP Rendah 28, komputer 53) — semua cek lama (gerak & fisika pemain, pukul & 4 jurus pada
+  orc termasuk Penggal, perahu, memancing, kota & penduduk, 25.000 prajurit, penjagaan & pertarungan,
+  Aeloria, toko & perlengkapan, obrolan) tetap lulus dengan karakter baru. Pedang pemain yang kini dibuat
+  di kode diberi nama lama `weapon-sword`, jadi cek "prajurit dengan pedang termuat" tetap memeriksa
+  pedangnya. Titik mulai: HP tegak 429 rb segitiga / 65 draw call, HP mendatar 617 rb / 119, HP Rendah
+  349 rb / 68, komputer (Tinggi) 1,77 jt / 240. Bundel rilis berbeda dari yang diuji hanya karena
+  `slab()` tidak lagi memanggil `toNonIndexed` (peringatan konsol; geometrinya sama): profil HP Rendah &
+  HP mendatar dijalankan ulang padanya — lulus, 28 + 28 cek, 0 gagal. Saat memuat bundel rilis: hanya
+  `prajurit.glb`, `orc.glb`, `elf.glb` yang diunduh (v0.15.1: 6 file), tanpa peringatan / galat konsol.
+- **Halaman pratinjau** (versi lokal, three.js dari folder sendiri): termuat tanpa galat / berkas hilang,
+  huruf piksel termuat, pemain baru tampil.
+- **Uji terpisah di browser** (Chromium, render software, layar Pixel 7 tiruan, Sedang):
+  - lembar karakter (halaman uji, pencahayaan & pixel art game): 8 rakyat, 2 pedagang, raja, pendeta,
+    3 jenis penjaga, 4 jenis prajurit + kavaleri & senapati, orc, 7 badan elf × kesatria / warga /
+    pandai / bangsawan, pemain — dari depan, samping, belakang, dan dalam pose diam, jalan,
+    menyerang, roboh, duduk;
+  - di game: Pasar Kotaraja (penduduk & pedagang), raja di pendopo, penjaga gerbang & peronda, depan
+    barisan Tegal Wira (perisai, tombak, pedang, pemanah — 3D dekat & potret jauh), kavaleri & senapati
+    berkuda, pemanah, perkemahan orc, Pasar Aeloria (kesatria, warga, anak-anak), pemain dari dekat
+    (diam, memukul, perlengkapan toko). Setelah file model dirampingkan: kavaleri & senapati berbeda
+    0,4% piksel dari tangkapan sebelum dirampingkan (hanya awan & fase animasi).
+- **Performa** (render software, bukan ukuran HP; tabel di bagian Performa): segitiga di layar +4…+26%,
+  waktu per bingkai setara v0.15.1 (−7…+13%, dalam batas acak), waktu siap sama.
 
 ## Yang sudah diperiksa (v0.15.1 — garis tepi tipis, ikon Pengaturan, tanpa Layar penuh & Lihat pulau)
 - **Pemeriksaan kode**: ESLint (konfigurasi repo) 0 error / 0 warning. Tiga commit (garis tepi tipis →
@@ -553,6 +588,10 @@ Sebagian sudah dikerjakan lebih awal (bayangan, tanah per-piksel, awan, kaustik 
   laut dalam → kembali ke pantai + pesan, mendaki lereng (+24 m dalam 120 frame).
 
 ## Yang BELUM diperiksa
+- **Karakter baru di HP sungguhan** (v0.16.0): apakah wajah & mata terbaca pada besar piksel Sedang,
+  apakah rupanya sudah sesuai gambar contoh pengguna, dan FPS di HP dengan segitiga karakter yang lebih
+  banyak (terutama di depan barisan Tegal Wira dan Pasar Aeloria). Semua dilihat di Chromium dengan render
+  software (layar Pixel 7 tiruan).
 - **Layar penuh otomatis di HP sungguhan** (v0.15.1): di Chromium dengan layar HP tiruan, sentuhan
   pertama → layar penuh aktif (sekali saja, sentuhan berikutnya tidak meminta lagi; komputer tidak
   meminta), tanpa galat — tetapi layar tiruan tidak berubah ukuran, jadi hasilnya di layar HP sungguhan
@@ -610,6 +649,22 @@ Sebagian sudah dikerjakan lebih awal (bayangan, tanah per-piksel, awan, kaustik 
 - Apakah URL hosting (githack / GitHub Pages) terbuka di HP — tidak bisa diakses dari lingkungan pengembangan.
 
 ## Performa (segitiga per frame termasuk bayangan, dari smoke test)
+v0.16.0 (karakter baru), layar HP tegak (Pixel 7), versi build, render software; v0.15.1 diukur bergantian
+di mesin yang sama, rata-rata 2 putaran. Segitiga (ribu) dan waktu per bingkai (ms):
+| Tempat | Sedang v0.15.1 | Sedang v0.16.0 | Rendah v0.15.1 | Rendah v0.16.0 |
+|---|---|---|---|---|
+| Titik mulai | 411 rb · 421 ms | 429 rb (+4%) · 389 ms (−7%) | 331 rb · 211 ms | 349 rb (+5%) · 199 ms (−5%) |
+| Pasar Kotaraja | 306 rb · 282 ms | 322 rb (+5%) · 280 ms (−1%) | 231 rb · 127 ms | 245 rb (+6%) · 136 ms (+7%) |
+| Depan barisan Tegal Wira | 351 rb · 966 ms | 441 rb (+26%) · 977 ms (+1%) | 264 rb · 803 ms | 309 rb (+17%) · 766 ms (−5%) |
+| Pasar Aeloria | 476 rb · 379 ms | 552 rb (+16%) · 392 ms (+3%) | 405 rb · 180 ms | 470 rb (+16%) · 202 ms (+13%) |
+- Draw call sama (±1). Segitiga bertambah karena badan karakter lebih bulat (pemain 513 → 1.694, penduduk
+  ±700–880 → 1.192–2.460, prajurit kerumunan 513 → 920–1.428, elf dekat ±1.530–1.716 termasuk bagian
+  yang dilipat); 25.000 prajurit jauh tetap potret 2 segitiga. Di render software waktu per bingkai
+  ditentukan terutama oleh piksel & potret impostor, jadi perbedaannya tenggelam dalam batas acak
+  (±10% antar-putaran). Di GPU HP tambahan segitiga mungkin lebih terasa di Tegal Wira — belum diukur di HP.
+- Waktu siap: Sedang v0.15.1 6,1–6,7 detik, v0.16.0 5,7–6,6; Rendah 4,9–5,2 / 4,9–5,1 — sama (unduhan
+  model lebih kecil, membuat badan di kode sedikit lebih lama).
+
 v0.15.1 (garis tepi tipis), layar HP tegak (Pixel 7), versi build, render software; ketiga versi diukur
 bergantian di mesin yang sama (mesin sedang lebih lambat daripada saat tabel v0.15.0 di bawah diukur —
 bandingkan hanya di dalam tabel ini). Waktu per bingkai (ms):
@@ -727,6 +782,12 @@ v0.3.0: Rendah ±300 rb, Sedang ±400 rb, Tinggi ±850 rb. Tambahan v0.4.0 beras
 yang lebih rapat (untuk ombak) dan buah kelapa. v0.2.0 (HP): ±230 ribu.
 
 ## Masalah yang diketahui
+- (v0.16.0) Karakter 3D meniru gaya sprite gambar contoh, bukan sprite 2D-nya: gerakannya tetap animasi
+  Kenney (diam, jalan, lari, lompat, serang, roboh, duduk, …); gerak khusus per jenis di gambar contoh
+  (mis. DEFEND / SKILL pemegang perisai, tombak, pedang) belum ada.
+- (v0.16.0) Badan ditempel kaku ke 7 tulang seperti badan Kenney sebelumnya: siku & lutut tidak menekuk.
+- (v0.16.0) Segitiga karakter lebih banyak (pemain 513 → 1.694, penduduk ±700–880 → 1.192–2.460, orc
+  374 → 1.828); total di layar naik (lihat Performa). Bila terasa berat di HP: pilih Rendah.
 - (v0.15.0) Tanpa antialias (gaya pixel art), tepi benda "merayap" saat kamera bergerak, dan benda yang
   lebih tipis dari satu piksel (tiang, tali layar, helai rumput jauh) bisa putus-putus atau berkedip di
   kejauhan. Tinggi (piksel 1,6 px) paling sedikit, Rendah (2,4 px) paling terasa.

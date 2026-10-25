@@ -34,6 +34,12 @@ tegas. UI ikut bergaya pixel art: huruf piksel (Pixelify Sans), bingkai & tombol
 piksel, peta dunia berpiksel; kanan atas hanya Peta, Tas, dan Pengaturan (v0.15.1). Sebelumnya
 (v0.1.0–v0.14.0) gaya low-poly berwarna halus. Lihat DECISIONS #62–#67.
 
+**Karakter** (sejak v0.16.0, permintaan pengguna dengan gambar contoh lembar sprite): semua tokoh —
+pemain, penduduk, raja, pedagang, prajurit & bala tentara, orc, elf, kuda — bergaya **pixel art chibi**:
+kepala bulat besar (±⅓ tinggi badan) bermata, rambut / helm berjambul / tudung / mahkota, badan dan
+anggota tubuh membulat, pakaian berlapis (tabar, zirah, jubah, ransel). Menggantikan badan kotak-kotak
+Kenney (mirip Roblox). Gerakannya tetap animasi Kenney yang sama. Lihat DECISIONS #68–#70.
+
 ## Peta dunia (sejak v0.10.0)
 - **Pulau Tropis** (tengah): pantai, hutan, padang, gunung, perkemahan orc — titik mulai.
 - **Kepulauan Kencana** (barat), di seberang selat barat — **tanpa jembatan** sejak v0.14.0
@@ -65,11 +71,11 @@ Three.js (WebGL 2) + Vite, JavaScript murni (tanpa framework UI). Dunia dibuat p
 dengan seed tetap, jadi bentuk pulau selalu sama setiap kali dibuka.
 
 ## Kredit aset
-- Karakter pemain (prajurit + pedang): Kenney — "Mini Arena" (CC0), www.kenney.nl, kredit tambahan
-  Tony Schär. Musuh orc: Kenney "Mini Dungeon" (CC0). Penduduk kerajaan & elf Aeloria: Kenney "Mini
-  Characters" (CC0). Kuda bala tentara: Kenney "Prototype Kit" (CC0); perisai: Kenney "Mini Dungeon"
-  (CC0).
-  Lihat `public/models/LISENSI.txt`.
+- Rangka & animasi karakter: Kenney (www.kenney.nl, CC0) — "Mini Arena" (pemain & prajurit, kredit
+  tambahan Tony Schär), "Mini Dungeon" (orc), "Mini Characters" (penduduk kerajaan & elf Aeloria); titik
+  putar kuda dari "Prototype Kit". Sejak v0.16.0 hanya rangka + animasinya yang dipakai: badan, pakaian,
+  senjata, perisai, dan kuda dibuat di kode (`src/tokoh/`). Sampai v0.15.1 badan & tekstur Kenney ikut
+  dipakai. Lihat `public/models/LISENSI.txt`.
 - Huruf UI: **Pixelify Sans** — © 2021 The Pixelify Sans Project Authors
   (github.com/eifetx/Pixelify-Sans), SIL Open Font License 1.1 (sejak v0.15.0), ikut di dalam game;
   lihat `public/fonts/OFL-PixelifySans.txt`.
