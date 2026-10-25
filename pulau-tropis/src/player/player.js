@@ -4,6 +4,7 @@ import { ISLAND } from '../world/island.js'
 import { insideWorld } from '../world/world.js'
 import { ATTACK_CLIPS, createCombat } from './combat.js'
 import { buatRupa, splitData, skinnedFrom, paletteTexture, HAND, droopDir, pedangGeo, geoWarna } from '../tokoh/rupa.js'
+import { skeletonOf } from '../world/kencana/rig.js'
 
 // Karakter pemain: pendekar berzirah ringan bersyal merah (tokoh/rupa.js) di atas rangka & animasi
 // Kenney "Mini Arena" (CC0): idle / walk / sprint / jump / fall + animasi serang (tebasan, tinju,
@@ -60,26 +61,16 @@ function attachSword(model, material) {
   Object.defineProperty(model.userData, 'sword', { value: weapon, enumerable: false })
 }
 
-// Ganti badan kotak Kenney dengan badan rupa (dua mesh seperti aslinya: badan & kepala — kepala orc
-// bisa terlepas saat jurus Penggal), terikat pada rangka yang sama.
-function replaceBody(model, rupa, material) {
-  const old = []
-  model.traverse(o => {
-    if (o.isSkinnedMesh) old.push(o)
-  })
-  const { skeleton } = old[0]
+// Pasang badan rupa pada rangka file (models/*.glb hanya berisi rangka + animasi Kenney): dua mesh
+// seperti aslinya, badan & kepala — kepala orc bisa terlepas saat jurus Penggal.
+function addBody(model, rupa, material) {
+  const skeleton = skeletonOf(model)
   const data = buatRupa(rupa)
   const body = skinnedFrom(splitData(data, b => b !== 6), skeleton, material)
   const head = skinnedFrom(splitData(data, b => b === 6), skeleton, material)
   body.name = 'body-mesh'
   head.name = 'head-mesh'
-  const { parent } = old[0]
-  for (const o of old) {
-    o.parent.remove(o)
-    o.geometry.dispose()
-    o.material.dispose()
-  }
-  parent.add(body, head)
+  model.add(body, head)
 }
 
 // source: URL file .glb (rangka & animasi Kenney), atau isi file-nya (ArrayBuffer) — yang kedua dipakai
@@ -89,10 +80,10 @@ export async function loadPlayerModel(source, quality, { rupa = 'pemain', pedang
   const loader = new GLTFLoader()
   const gltf = await (typeof source === 'string' ? loader.loadAsync(source) : loader.parseAsync(source, ''))
   const model = gltf.scene
-  model.scale.setScalar(MODEL_SCALE)
   // Lambert + palet karakter: sama dengan dunia (ringan, warnanya senada)
   const material = new THREE.MeshLambertMaterial({ map: paletteTexture() })
-  replaceBody(model, rupa, material)
+  addBody(model, rupa, material)
+  model.scale.setScalar(MODEL_SCALE)
   if (pedang) attachSword(model, material)
 
   model.traverse(o => {

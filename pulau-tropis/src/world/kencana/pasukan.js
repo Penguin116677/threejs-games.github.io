@@ -62,16 +62,8 @@ function stick(a, b, w, d = w) {
   return g.applyMatrix4(_m.compose(a.clone().add(b).multiplyScalar(0.5), _q, new THREE.Vector3(1, 1, 1)))
 }
 
-// geometri mesh (dengan uv sendiri) dalam ruang dunia objeknya
-function worldGeometry(mesh, root) {
-  root.updateMatrixWorld(true)
-  const g = mesh.geometry.clone()
-  g.applyMatrix4(_m.copy(root.matrixWorld).invert().multiply(mesh.matrixWorld))
-  return g
-}
-
 // ------------------------------------------------------------------- rangka & bentuk tiap jenis
-function buildTypes(soldier, bala, rows) {
+function buildTypes(soldier, rows) {
   const clone = cloneSkinned(soldier.model)
   const map = paletteTexture()
   const out = []
@@ -114,7 +106,7 @@ function buildTypes(soldier, bala, rows) {
   }
 
   // --- kuda + penunggang (pose "drive") untuk kavaleri & senapati: satu rangka 15 tulang
-  const mounted = bakeMounted(clone, soldier.clips, bala, rows)
+  const mounted = bakeMounted(clone, soldier.clips, rows)
   for (let t = 4; t < 6; t++) {
     const T = TYPES[t]
     const data = body(T.id)
@@ -148,15 +140,35 @@ function buildTypes(soldier, bala, rows) {
   return out
 }
 
-// Kuda (8 bagian kaku; titik putar leher, kepala & ekor dari rangka kuda Kenney, bentuknya kudaGeo di
-// tokoh/rupa.js) + penunggang. Bingkai: penunggang memakai pose "drive" (duduk, tangan ke depan) di
-// atas pelana; kuda "bernapas": leher & kepala naik-turun pelan, ekor mengibas.
-function bakeMounted(clone, clips, bala, rows) {
+// Titik putar bagian-bagian kuda (rangka kuda Kenney "Prototype Kit", CC0; menghadap −x, tanpa
+// putaran diam): badan → 4 kaki, leher → kepala, ekor. Bentuknya kudaGeo (tokoh/rupa.js).
+function horseRig() {
+  const horse = new THREE.Object3D()
+  const node = (name, parent, x, y, z) => {
+    const o = new THREE.Object3D()
+    o.name = name
+    o.position.set(x, y, z)
+    parent.add(o)
+    return o
+  }
+  const torso = node('torso', horse, -0.05, 0.25, 0)
+  node('leg-back-left', torso, 0.2875, 0.0625, 0.09375)
+  node('leg-back-right', torso, 0.2875, 0.0625, -0.09375)
+  node('leg-front-left', torso, -0.1875, 0.0625, 0.09375)
+  node('leg-front-right', torso, -0.1875, 0.0625, -0.09375)
+  node('head', node('neck', torso, -0.18655853, 0.172996834, 0), -0.048938293, 0.189382941, 0)
+  node('tail', torso, 0.317524046, 0.23125, 0)
+  return horse
+}
+
+// Kuda (8 bagian kaku, horseRig) + penunggang. Bingkai: penunggang memakai pose "drive" (duduk,
+// tangan ke depan) di atas pelana; kuda "bernapas": leher & kepala naik-turun pelan, ekor mengibas.
+function bakeMounted(clone, clips, rows) {
   const riderRows = []
   const tmp = bakeRig(clone, clips, riderRows, { drive: { clip: 'drive' } })
   const { skeleton } = tmp
   // bagian kuda dalam ruang model penunggang: kuda Kenney menghadap −x → diputar menghadap +z
-  const { horse } = bala
+  const horse = horseRig()
   const place = new THREE.Matrix4().compose(new THREE.Vector3(0, 0, 0), new THREE.Quaternion().setFromAxisAngle(Y, Math.PI / 2), new THREE.Vector3(HORSE, HORSE, HORSE))
   const nodes = {}
   horse.traverse(o => {
@@ -312,7 +324,7 @@ vec2 cellUv(float k) {
 }
 `
 
-export function createArmy({ ground, plan, quality, soldier, bala, renderer, env }) {
+export function createArmy({ ground, plan, quality, soldier, renderer, env }) {
   const { army } = plan
   const S = army.soldiers
   const L = LEVEL[quality.level] ?? LEVEL.sedang
@@ -322,7 +334,7 @@ export function createArmy({ ground, plan, quality, soldier, bala, renderer, env
   // ------------------------------------------------------------- model dekat (3D)
   const t0 = performance.now()
   const rows = []
-  const types = buildTypes(soldier, bala, rows)
+  const types = buildTypes(soldier, rows)
   const bones = boneTexture(rows, BONES)
   const perType = TYPES.map(() => 0)
   for (let i = 0; i < S.count; i++) perType[S.type[i]]++
@@ -598,12 +610,5 @@ export function createArmy({ ground, plan, quality, soldier, bala, renderer, env
     soldier: i => ({ x: S.x[i], z: S.z[i], type: TYPES[S.type[i]].id }),
     count: S.count,
   }
-}
-
-// kuda & perisai dari bala.glb (GLTFLoader) → { horse: Object3D 'kuda', shieldRect: BufferGeometry }
-export function balaParts(gltf) {
-  const horse = gltf.scene.getObjectByName('kuda')
-  const shield = gltf.scene.getObjectByName('shield-rectangle')
-  return { horse, shieldRect: worldGeometry(shield, gltf.scene) }
 }
 

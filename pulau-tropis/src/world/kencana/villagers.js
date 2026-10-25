@@ -5,8 +5,8 @@ import { buatRupa, paletteTexture, HAND, tombakGeo, geoWarna } from '../../tokoh
 
 // Penduduk Kerajaan Kencana: ratusan orang berjalan di jalan-jalan kota, berdagang di pasar,
 // bertani, menjaga gerbang. Rupa: tokoh/rupa.js (rakyat jelata, pedagang beransel, raja, pendeta,
-// penjaga bertombak) di atas rangka & animasi Kenney "Mini Characters" (CC0, penduduk.glb) dan
-// "Mini Arena" (penjaga). Supaya ringan di HP:
+// penjaga bertombak) di atas rangka & animasi Kenney "Mini Characters" (CC0, elf.glb — rangka +
+// animasi saja, sama dengan para elf) dan "Mini Arena" (penjaga). Supaya ringan di HP:
 // - animasi rangka (7 tulang) DIPANGGANG sekali ke tekstur (rig.js), jadi semua orang sejenis
 //   digambar dalam SATU draw call (InstancedMesh), tanpa SkinnedMesh.
 // - hanya orang di sekitar kamera yang ditulis ke buffer instance (yang jauh tidak digambar).
@@ -28,16 +28,16 @@ const PEDAGANG = 0.12 // bagian pejalan kaki yang pedagang
 
 const _m = new THREE.Matrix4()
 
-// villagerGltf: hasil GLTFLoader untuk penduduk.glb; soldier: aset prajurit pemain ({ model, clips })
+// rigGltf: hasil GLTFLoader untuk elf.glb (rangka + animasi); soldier: aset prajurit pemain ({ model, clips })
 // scripted = banyak orang yang digerakkan modul lain (pendatang, keamanan.js): disembunyikan sampai
 // dipakai, lalu posisi/arah/animasinya diatur dari luar
-export function createVillagers({ ground, routes, spots, quality, villagerGltf, soldier, scripted = 0 }) {
+export function createVillagers({ ground, routes, spots, quality, rigGltf, soldier, scripted = 0 }) {
   const group = new THREE.Group()
   group.name = 'penduduk'
   const rows = []
 
   // --- rangka & rupa penduduk (semua memakai satu tekstur palet)
-  const villagerRig = bakeRig(villagerGltf.scene, villagerGltf.animations, rows, SPECS)
+  const villagerRig = bakeRig(rigGltf.scene.clone(), rigGltf.animations, rows, SPECS)
   const map = paletteTexture()
   const { table } = villagerRig
   const types = []

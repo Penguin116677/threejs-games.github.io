@@ -22,7 +22,7 @@ import { createRegionMask } from './world/kencana/mask.js'
 import { createKencana, boatGeometry } from './world/kencana/kingdom.js'
 import { buildingMaterial, buildingDepthMaterial } from './world/kencana/material.js'
 import { createVillagers } from './world/kencana/villagers.js'
-import { createArmy, balaParts } from './world/kencana/pasukan.js'
+import { createArmy } from './world/kencana/pasukan.js'
 import { createSoldiers } from './world/kencana/prajurit.js'
 import { createSecurity } from './world/kencana/keamanan.js'
 import { planAeloria } from './world/aeloria/plan.js'
@@ -256,15 +256,6 @@ async function start() {
   } catch (err) {
     console.warn('Model musuh gagal dimuat:', err)
   }
-  // kuda & perisai (bala.glb) untuk bala tentara dan prajurit penjaga
-  let bala = null
-  if (asset)
-    try {
-      const balaGltf = await new GLTFLoader().loadAsync(modelUrl('bala.glb'))
-      bala = balaParts(balaGltf)
-    } catch (err) {
-      console.warn('Model kuda & perisai gagal dimuat:', err)
-    }
   // prajurit yang bertugas: peronda di semua wilayah + penjaga pos (gerbang, keraton, jembatan)
   setStatus('Menugaskan prajurit penjaga…')
   await nextFrame()
@@ -281,37 +272,37 @@ async function start() {
   setStatus('Mengundang penduduk kerajaan…')
   await nextFrame()
   let villagers = null
-  let villagerGltf = null
+  // rangka + animasi Kenney untuk penduduk & elf (elf.glb, tanpa badan: badannya dari tokoh/rupa.js)
+  let rigGltf = null
   try {
-    villagerGltf = await new GLTFLoader().loadAsync(modelUrl('penduduk.glb'))
+    rigGltf = await new GLTFLoader().loadAsync(modelUrl('elf.glb'))
     const spots = soldiers ? kencana.spots.filter(s => s.role !== 'penjaga') : kencana.spots
-    villagers = createVillagers({ ground, routes: kencana.routes, spots, quality, villagerGltf, soldier: soldiers ? null : asset, scripted: soldiers ? 2 : 0 })
+    villagers = createVillagers({ ground, routes: kencana.routes, spots, quality, rigGltf, soldier: soldiers ? null : asset, scripted: soldiers ? 2 : 0 })
     scene.add(villagers.object)
   } catch (err) {
     console.warn('Penduduk gagal dimuat:', err)
   }
   // rakyat Aeloria: 10.000 kesatria elf + penduduk, masing-masing berkegiatan sesuai pikirannya
-  // sendiri (badan: penduduk.glb, animasi tambahan: elf.glb)
+  // sendiri (rangka yang sama dengan penduduk Kencana)
   setStatus('Menghidupkan 10.000 kesatria Aeloria…')
   await nextFrame()
   let life = null
-  if (villagerGltf)
+  if (rigGltf)
     try {
-      const elfGltf = await new GLTFLoader().loadAsync(modelUrl('elf.glb'))
-      const folk = createElfFolk({ villagerGltf, elfGltf, quality, caps: ELF_CAPS[quality.level] ?? ELF_CAPS.sedang })
+      const folk = createElfFolk({ rigGltf, quality, caps: ELF_CAPS[quality.level] ?? ELF_CAPS.sedang })
       scene.add(folk.object)
       life = createLife({ ground, plan: elfPlan, routes: aeloria.routes, folk, quality, free: (x, z, r) => colliders.isFree(x, z, r) })
       life.folk = folk
     } catch (err) {
       console.warn('Rakyat Aeloria gagal dibuat:', err)
     }
-  // bala tentara di Tegal Wira (Pulau Wira): butuh model prajurit + kuda & perisai
+  // bala tentara di Tegal Wira (Pulau Wira): rangka prajurit (kuda & senjata dibuat di kode)
   setStatus('Membariskan 25.000 prajurit…')
   await nextFrame()
   let army = null
-  if (asset && bala)
+  if (asset)
     try {
-      army = createArmy({ ground, plan, quality, soldier: asset, bala, renderer, env })
+      army = createArmy({ ground, plan, quality, soldier: asset, renderer, env })
       scene.add(army.object)
     } catch (err) {
       console.warn('Bala tentara gagal dimuat:', err)

@@ -1,11 +1,10 @@
 import * as THREE from 'three'
-import { clone as cloneSkinned } from 'three/addons/utils/SkeletonUtils.js'
 import { bakeRig, toBufferGeometry, boneTexture, animate, frameOf as clipFrame, FPS } from '../kencana/rig.js'
 import { elfBadan, ELF_BADAN, ELF_TANGAN, armDir, paletteTexture } from '../../tokoh/rupa.js'
 
 // Rupa para elf Aeloria (kesatria & penduduk) dan cara menggambarnya dengan murah.
 // - Badan: rupa elf (tokoh/rupa.js: kepala bulat bertelinga runcing, rambut, tunik, zirah) di atas
-//   rangka Kenney "Mini Characters" (penduduk.glb, CC0) + animasi tambahan (elf.glb) + gerak
+//   rangka + animasi Kenney "Mini Characters" (elf.glb, CC0; dipakai juga penduduk Kencana) + gerak
 //   buatan dari klip yang ada (makan, minum, bersorak, menari, memetik kecapi, memanah, mengaduk,
 //   tidur, …). Semua dipanggang ke satu tekstur tulang (rig.js): semua elf berbadan sama digambar
 //   dalam SATU draw call.
@@ -427,14 +426,14 @@ function dyeShader(shader, bones, { simple = false, map = true } = {}) {
 }
 
 // ------------------------------------------------------------------- pembuat
-// villagerGltf: penduduk.glb (badan), elfGltf: elf.glb (animasi), caps = { near, far } banyak
-// instance maksimum per jenis badan untuk model dekat & jauh
-export function createElfFolk({ villagerGltf, elfGltf, quality, caps }) {
+// rigGltf: elf.glb (rangka + animasi), caps = { near, far } banyak instance maksimum per jenis
+// badan untuk model dekat & jauh
+export function createElfFolk({ rigGltf, quality, caps }) {
   const group = new THREE.Group()
   group.name = 'elf'
   const rows = []
-  // salinan adegan penduduk: rangkanya masih pada pose bind (tidak terpengaruh pemanggangan lain)
-  const rig = bakeRig(cloneSkinned(villagerGltf.scene), elfGltf.animations, rows, SPECS, { fresh: true })
+  // salinan adegan rangka: masih pada pose bind (tidak terpengaruh pemanggangan lain)
+  const rig = bakeRig(rigGltf.scene.clone(), rigGltf.animations, rows, SPECS, { fresh: true })
   const CLIP = rig.table
   // matriks tulang j pada baris bingkai `row` (ruang model) → m
   const boneMatrixOf = (row, j, m) => {

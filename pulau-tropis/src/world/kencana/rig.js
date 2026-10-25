@@ -28,6 +28,21 @@ export function packMatrix(m, out, o) {
   out[o + 11] = e[14]
 }
 
+// Rangka 7 tulang Kenney di bawah `root`: dari SkinnedMesh bila ada; file rangka tanpa badan
+// (models/*.glb sejak v0.16.0) → dibuat dari simpul bernama, titik ikatnya = pose diam relatif akar.
+const TULANG = ['root', 'leg-left', 'leg-right', 'torso', 'arm-left', 'arm-right', 'head']
+export function skeletonOf(root) {
+  let skinned = null
+  root.traverse(o => {
+    if (!skinned && o.isSkinnedMesh) skinned = o
+  })
+  if (skinned) return skinned.skeleton
+  root.updateMatrixWorld(true)
+  _inv.copy(root.matrixWorld).invert()
+  const bones = TULANG.map(name => root.getObjectByName(name))
+  return new THREE.Skeleton(bones, bones.map(b => new THREE.Matrix4().multiplyMatrices(_inv, b.matrixWorld).invert()))
+}
+
 // Panggang klip-klip sebuah rangka. specs: { kunci: { clip, loop = true, hold: { tulang: 'klip' } } }
 // — hold = tulang yang dikunci pada pose bingkai pertama klip lain (mis. lengan kiri memegang
 // perisai ke depan, sementara badan tetap bernapas dengan klip idle).
@@ -39,11 +54,7 @@ export function packMatrix(m, out, o) {
 // klip idle — tidak mewarisi pose klip sebelumnya).
 // Hasil { table: { kunci: { row, n, loop } }, skeleton }; bingkai ditambahkan ke `rows`.
 export function bakeRig(root, clips, rows, specs, { fresh = false } = {}) {
-  let skinned = null
-  root.traverse(o => {
-    if (!skinned && o.isSkinnedMesh) skinned = o
-  })
-  const { skeleton } = skinned
+  const skeleton = skeletonOf(root)
   const mixer = new THREE.AnimationMixer(root)
   const poses = {}
   const poseOf = name => {

@@ -1,4 +1,8 @@
-"""Kemas beberapa karakter Kenney "Mini Characters" menjadi satu GLB ringkas: penduduk.glb.
+"""Kemas beberapa karakter Kenney "Mini Characters" menjadi satu GLB ringkas.
+
+Sejak v0.16.0 game hanya memakai prasetel `elf` (rangka + animasi, tanpa mesh & tekstur) untuk
+penduduk Kencana dan elf Aeloria — badannya dibuat di kode (src/tokoh/). Prasetel bawaan
+(penduduk.glb: rangka + delapan badan Kenney) tidak dipakai lagi, disimpan untuk pembanding.
 
 Semua karakter Mini Characters memakai rangka (7 tulang) dan animasi yang sama, jadi file ini
 berisi SATU rangka + animasi yang dipakai penduduk (idle, walk, sit, interact-right, pick-up,
@@ -9,7 +13,7 @@ colormap.png ikut di dalam file.
 Pemakaian: python3 scripts/pack-penduduk.py "<folder GLB format Mini Characters>" public/models/penduduk.glb
 
 Dengan argumen ketiga `elf`, file berisi rangka + animasi tambahan untuk para elf Aeloria saja
-(tanpa mesh & tekstur — badan elf memakai mesh penduduk.glb, warnanya diganti di shader):
+(tanpa mesh & tekstur):
     python3 scripts/pack-penduduk.py "<folder>" public/models/elf.glb elf
 """
 import json
