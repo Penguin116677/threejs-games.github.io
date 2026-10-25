@@ -101,7 +101,7 @@ export function createChat({ life, villagers, player, cam, camera, input, bag, s
     return best
   }
   const npcOf = t => (t.kind === 'elf' ? elfNpc(t.ref) : wargaNpc(t.ref, t.n))
-  const headOf = t => (t.kind === 'elf' ? { x: t.ref.x, y: t.ref.y + 2.25 * t.ref.scale, z: t.ref.z } : { x: t.ref.x, y: (t.ref.y ?? player.position.y) + 1.95, z: t.ref.z })
+  const headOf = t => (t.kind === 'elf' ? { x: t.ref.x, y: t.ref.y + 1.75 * t.ref.scale, z: t.ref.z } : { x: t.ref.x, y: (t.ref.y ?? player.position.y) + 1.6, z: t.ref.z })
 
   // ---------------------------------------------------------------- konteks pemain untuk jawaban
   function context(npc) {

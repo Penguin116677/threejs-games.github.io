@@ -62,7 +62,7 @@ export function createShop({ life, bag, player, bubbles, message, maxHp, wanted 
     const d = life.sellers(s).jaga[0]
     const a = d && life.agents[d.id]
     if (!a) return
-    bubbles.say(() => ({ x: a.x, y: a.y + 2.25 * a.scale, z: a.z }), TERIMA_KASIH[Math.floor(Math.random() * TERIMA_KASIH.length)], 2200, `elf${a.id}`)
+    bubbles.say(() => ({ x: a.x, y: a.y + 1.75 * a.scale, z: a.z }), TERIMA_KASIH[Math.floor(Math.random() * TERIMA_KASIH.length)], 2200, `elf${a.id}`)
   }
 
   // ----------------------------------------------------------------- panel toko

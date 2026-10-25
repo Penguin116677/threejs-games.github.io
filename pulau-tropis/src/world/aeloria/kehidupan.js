@@ -1777,7 +1777,7 @@ export function createLife({ ground, plan, routes, folk, quality, free = () => t
     const lines = linesOf(a)
     if (!lines) return
     a.say = T
-    bubbles.say(() => (a.hidden ? null : { x: a.x, y: a.y + 2.25 * a.scale, z: a.z }), pick(lines), 2600, `elf${a.id}`)
+    bubbles.say(() => (a.hidden ? null : { x: a.x, y: a.y + 1.75 * a.scale, z: a.z }), pick(lines), 2600, `elf${a.id}`)
   }
 
   // ----------------------------------------------------------------- untuk UI & pengujian

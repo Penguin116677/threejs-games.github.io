@@ -82,7 +82,7 @@ export function createElfSecurity({ life, player, bubbles, message, nav, collide
   const pp = player.position
   const tmpVel = { x: 0, z: 0 }
 
-  const say = (a, text, ms = 2400) => bubbles.say(() => (a.hidden ? null : { x: a.x, y: a.y + 2.25 * a.scale, z: a.z }), text, ms, `elf${a.id}`)
+  const say = (a, text, ms = 2400) => bubbles.say(() => (a.hidden ? null : { x: a.x, y: a.y + 1.75 * a.scale, z: a.z }), text, ms, `elf${a.id}`)
   const dist = a => Math.hypot(a.x - pp.x, a.z - pp.z)
   const busy = a => a.phase === 'tempur' || a.down
   const merchant = a => a.job === 'pedagang'

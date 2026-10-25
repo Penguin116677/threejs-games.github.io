@@ -1,9 +1,11 @@
 import * as THREE from 'three'
 import { clone as cloneSkinned } from 'three/addons/utils/SkeletonUtils.js'
-import { bakeRig, rigGeometry, toBufferGeometry, boneTexture, animate, frameOf as clipFrame, FPS } from '../kencana/rig.js'
+import { bakeRig, toBufferGeometry, boneTexture, animate, frameOf as clipFrame, FPS } from '../kencana/rig.js'
+import { elfBadan, ELF_BADAN, ELF_TANGAN, armDir, paletteTexture } from '../../tokoh/rupa.js'
 
 // Rupa para elf Aeloria (kesatria & penduduk) dan cara menggambarnya dengan murah.
-// - Badan: Kenney "Mini Characters" (penduduk.glb, CC0) + animasi tambahan (elf.glb) + gerak
+// - Badan: rupa elf (tokoh/rupa.js: kepala bulat bertelinga runcing, rambut, tunik, zirah) di atas
+//   rangka Kenney "Mini Characters" (penduduk.glb, CC0) + animasi tambahan (elf.glb) + gerak
 //   buatan dari klip yang ada (makan, minum, bersorak, menari, memetik kecapi, memanah, mengaduk,
 //   tidur, …). Semua dipanggang ke satu tekstur tulang (rig.js): semua elf berbadan sama digambar
 //   dalam SATU draw call.
@@ -11,8 +13,7 @@ import { bakeRig, rigGeometry, toBufferGeometry, boneTexture, animate, frameOf a
 //   zirah, warna pasukan); tiap elf memilih warna palet sendiri untuk tiap slot (aDye), jadi tak ada
 //   dua elf yang persis sama. Bagian opsional (zirah, helm berjambul, jubah, rambut panjang, tabung
 //   panah, sarung pedang, mahkota daun, celemek) ikut di geometri tetapi dilipat ke satu titik bila
-//   tidak dipakai orang itu.
-// - Telinga runcing untuk semua elf.
+//   tidak dipakai orang itu. Telinga runcing untuk semua elf.
 // - Dua tingkat detail: DEKAT = model penuh (peralihan halus antar-klip, bayangan, barang di
 //   tangan), JAUH = model disederhanakan (titik-titiknya digumpalkan) dengan shader yang lebih murah
 //   + bayangan bulat di kaki. Barang di tangan (pedang, tombak, busur, perisai, cangkir, mangkuk,
@@ -22,7 +23,7 @@ import { bakeRig, rigGeometry, toBufferGeometry, boneTexture, animate, frameOf a
 export const SCALE = 2.3 // sama dengan prajurit pemain & penduduk Kencana
 const BONES = 7 // root, kaki kiri, kaki kanan, badan, lengan kiri, lengan kanan, kepala
 const FADE = 0.25 // detik peralihan antar-klip
-const FAR_CELL = 0.08 // kisi penggumpalan model jauh (satuan model; badan ±0,7)
+const FAR_CELL = 0.045 // kisi penggumpalan model jauh (satuan model; badan ±0,55)
 export { FADE }
 
 // pasangan warna palet colormap Kenney: 0–7 = kolom 0–7 baris 4–5 (terang–gelap), 8–15 = baris 6–7
@@ -35,7 +36,6 @@ const pairOf = (u, v) => {
   const r = Math.floor(v * 8)
   return r >= 6 ? 8 + c : r >= 4 ? c : -1
 }
-const PAIR = n => (n[0] === 'A' ? 0 : 8) + Number(n[1]) // 'A3' → 3, 'B5' → 13
 // uv di tengah kotak warna terang (baris genap) / gelap (ganjil) sebuah pasangan
 const uvOf = (pair, dark = false) => [((pair % 8) + 0.5) / 8, ((pair < 8 ? 4 : 6) + (dark ? 1 : 0) + 0.5) / 8]
 
@@ -56,25 +56,13 @@ const SLOT_FLAG = [
   BAGIAN.helm, BAGIAN.mahkota, BAGIAN.celemek, BAGIAN.tabung, BAGIAN.sarung, BAGIAN.zirah,
 ]
 
-// Badan yang dipakai + aturan slot titik aslinya: [kelompok tulang, pasangan warna asli, slot];
-// aturan pertama yang cocok berlaku. Kelompok: kepala (6), badan (3), lengan (4, 5), kaki (1, 2), *.
-// Mata (hitam di muka kepala) tidak pernah ikut diwarnai rambut.
-const BODY_RULES = {
-  'male-a': [['*', 'B6', 'kulit'], ['kepala', 'B0', 'rambut'], ['badan', 'A1', 'baju'], ['lengan', 'A1', 'baju'], ['kaki', 'A5', 'celana'], ['badan', 'B5', 'celana'], ['kaki', 'A2', 'sepatu']],
-  'male-b': [['kaki', 'B5', 'sepatu'], ['*', 'B7', 'kulit'], ['kepala', 'B5', 'rambut'], ['*', 'A4', 'baju'], ['kaki', 'A5', 'celana']],
-  'male-f': [['*', 'B5', 'kulit'], ['kepala', 'B0', 'rambut'], ['badan', 'A1', 'baju'], ['lengan', 'A1', 'baju'], ['lengan', 'B7', 'baju'], ['kaki', 'B7', 'celana'], ['badan', 'B0', 'hias'], ['badan', 'B1', 'hias'], ['kaki', 'B1', 'sepatu']],
-  'female-a': [['*', 'B6', 'kulit'], ['kepala', 'B0', 'rambut'], ['badan', 'A7', 'baju'], ['lengan', 'A7', 'baju'], ['lengan', 'A5', 'baju'], ['kaki', 'A5', 'celana'], ['badan', 'B5', 'celana'], ['kaki', 'B7', 'sepatu'], ['lengan', 'B3', 'hias']],
-  'female-b': [['*', 'B7', 'kulit'], ['kepala', 'B5', 'rambut'], ['kepala', 'A2', 'hias'], ['badan', 'A2', 'baju'], ['lengan', 'A2', 'baju'], ['kaki', 'A7', 'celana'], ['badan', 'A7', 'celana'], ['kaki', 'B0', 'sepatu']],
-  'female-c': [['kaki', 'B5', 'sepatu'], ['*', 'B5', 'kulit'], ['kepala', 'B1', 'rambut'], ['kepala', 'A4', 'hias'], ['badan', 'A4', 'hias'], ['badan', 'A5', 'baju'], ['lengan', 'A5', 'baju'], ['kaki', 'B1', 'celana']],
-  'female-f': [['*', 'B7', 'kulit'], ['kepala', 'B6', 'rambut'], ['kepala', 'B5', 'rambut'], ['badan', 'B0', 'baju'], ['lengan', 'B0', 'baju'], ['badan', 'A2', 'hias'], ['lengan', 'A2', 'hias'], ['kaki', 'A5', 'celana'], ['badan', 'B1', 'celana'], ['kaki', 'A7', 'sepatu']],
-}
-export const BODIES = Object.keys(BODY_RULES)
-const GROUP = ['*', 'kaki', 'kaki', 'badan', 'lengan', 'lengan', 'kepala']
+export const BODIES = ELF_BADAN
 
 // ------------------------------------------------------------------- klip
 // Kunci klip yang dipakai simulasi (kehidupan.js). Rangka Kenney: saat bind, lengan terentang ke
 // samping (kiri ke +x, kanan ke −x), kaki & badan tegak; gerak buatan mengarahkan lengan ke arah
-// tertentu di ruang badan (aim) lalu menambah anggukan / lompatan / putaran badan.
+// tertentu di ruang badan (aim) lalu menambah anggukan / lompatan / putaran badan. Lengan rupa baru
+// menjuntai saat bind (armDir), jadi arah bind-nya itu yang diarahkan ke tujuan.
 const _ax = new THREE.Vector3(1, 0, 0)
 const _ay = new THREE.Vector3(0, 1, 0)
 const _az = new THREE.Vector3(0, 0, 1)
@@ -83,7 +71,7 @@ const _dir = new THREE.Vector3()
 // arahkan lengan j (4 = kiri, 5 = kanan) ke [keluar, atas, depan] (ruang badan)
 function aim(b, j, [out, up, fwd]) {
   const s = j === 4 ? 1 : -1
-  _bind.set(s, 0, 0)
+  _bind.copy(armDir(j))
   b[j].quaternion.setFromUnitVectors(_bind, _dir.set(s * out, up, fwd).normalize())
 }
 const mix3 = (a, c, k) => [a[0] + (c[0] - a[0]) * k, a[1] + (c[1] - a[1]) * k, a[2] + (c[2] - a[2]) * k]
@@ -91,7 +79,7 @@ const turnTo = (bone, axis, a) => bone.quaternion.setFromAxisAngle(axis, a)
 // tonjolan halus 0..1..0 dalam satu siklus: naik [a, b], tahan, turun [c, d]
 const bump = (u, a, b, c, d) => (u < a || u > d ? 0 : u < b ? THREE.MathUtils.smoothstep(u, a, b) : u < c ? 1 : 1 - THREE.MathUtils.smoothstep(u, c, d))
 // arah lengan
-const REST = [0.7, -0.7, 0]
+const REST = [0.34, -0.94, 0]
 const DOWN = [0.22, -1, 0.04]
 const MOUTH = [-0.38, 0.55, 0.72]
 const TABLE = [0.12, -0.12, 1]
@@ -266,161 +254,11 @@ const SPECS = {
 }
 export const CLIP_KEYS = Object.keys(SPECS)
 
-// ------------------------------------------------------------------- bentuk tambahan
-const _m = new THREE.Matrix4()
+// ------------------------------------------------------------------- model jauh
 const _v = new THREE.Vector3()
 const _w = new THREE.Vector3()
 const _q = new THREE.Quaternion()
 const Y = new THREE.Vector3(0, 1, 0)
-
-// kotak dari batas min..max (ruang bind)
-const boxAt = (x0, y0, z0, x1, y1, z1) => new THREE.BoxGeometry(x1 - x0, y1 - y0, z1 - z0).translate((x0 + x1) / 2, (y0 + y1) / 2, (z0 + z1) / 2)
-// limas terpancung beralas persegi panjang: alas w0 × d0 di y = 0, atas w1 × d1 di y = h
-function frustum(w0, d0, w1, d1, h) {
-  const g = new THREE.CylinderGeometry(Math.SQRT1_2, Math.SQRT1_2, h, 4, 1).rotateY(Math.PI / 4).translate(0, h / 2, 0)
-  const p = g.attributes.position
-  for (let i = 0; i < p.count; i++) {
-    const top = p.getY(i) > h / 2
-    p.setX(i, p.getX(i) * (top ? w1 : w0))
-    p.setZ(i, p.getZ(i) * (top ? d1 : d0))
-  }
-  g.computeVertexNormals()
-  return g
-}
-// kerucut pipih dari titik a ke b (telinga runcing)
-function spike(a, b, r, flat) {
-  const len = a.distanceTo(b)
-  const g = new THREE.ConeGeometry(r, len, 4).rotateY(Math.PI / 4).scale(1, 1, flat).translate(0, len / 2, 0)
-  _q.setFromUnitVectors(Y, _v.subVectors(b, a).normalize())
-  return g.applyMatrix4(_m.compose(a, _q, _w.set(1, 1, 1)))
-}
-
-// tambahkan geometri (ruang bind) ke data badan: ikut tulang j, satu warna (uv), slot
-function addPart(d, geo, j, uv, slot) {
-  const g = geo.index ? geo.toNonIndexed() : geo
-  const p = g.attributes.position
-  const n = g.attributes.normal
-  const base = d.pos.length / 3
-  for (let i = 0; i < p.count; i++) {
-    d.pos.push(p.getX(i), p.getY(i), p.getZ(i))
-    d.nor.push(n.getX(i), n.getY(i), n.getZ(i))
-    d.uv.push(uv[0], uv[1])
-    d.bone.push(j)
-    d.slot.push(slot)
-    d.index.push(base + i)
-  }
-}
-
-// batas tiap tulang (ruang bind) + batas kulit muka (untuk telinga & helm)
-function boundsOf(d) {
-  const B = Array.from({ length: BONES }, () => new THREE.Box3())
-  const face = new THREE.Box3()
-  for (let i = 0; i < d.bone.length; i++) {
-    _v.set(d.pos[i * 3], d.pos[i * 3 + 1], d.pos[i * 3 + 2])
-    B[d.bone[i]].expandByPoint(_v)
-    if (d.bone[i] === 6 && d.slot[i] === SLOT.kulit) face.expandByPoint(_v)
-  }
-  if (face.isEmpty()) face.copy(B[6])
-  // tangan = ujung lengan (saat bind lengan terentang ke samping: kiri ke +x, kanan ke −x)
-  const hands = [4, 5].map(j => {
-    const end = j === 4 ? B[j].max.x : B[j].min.x
-    const c = new THREE.Vector3()
-    let n = 0
-    for (let i = 0; i < d.bone.length; i++)
-      if (d.bone[i] === j && Math.abs(d.pos[i * 3] - end) < 0.05) {
-        c.x += d.pos[i * 3]
-        c.y += d.pos[i * 3 + 1]
-        c.z += d.pos[i * 3 + 2]
-        n++
-      }
-    return c.multiplyScalar(1 / Math.max(1, n))
-  })
-  // "tangan" badan (untuk kecapi): di depan perut
-  const belly = new THREE.Vector3(0, B[3].min.y + 0.075, B[3].max.z + 0.03)
-  return { B, face, hands: { 3: belly, 4: hands[0], 5: hands[1] } }
-}
-
-function addAttachments(d, bounds) {
-  const { B, face } = bounds
-  const T = B[3]
-  const H = B[6]
-  const hx = Math.max(Math.abs(face.min.x), Math.abs(face.max.x))
-  const kulit = uvOf(0)
-  // telinga runcing: dari sisi kepala setinggi mata, ke atas-belakang-luar
-  for (const s of [-1, 1]) {
-    const a = new THREE.Vector3(s * (hx - 0.012), face.min.y + (face.max.y - face.min.y) * 0.42, (face.min.z + face.max.z) / 2 - 0.02)
-    const b = new THREE.Vector3(s * (hx + 0.11), a.y + 0.13, a.z - 0.06)
-    addPart(d, spike(a, b, 0.05, 0.42), 6, kulit, SLOT.kulit)
-  }
-  // rambut panjang terurai di punggung kepala sampai bahu, menyempit ke bawah
-  addPart(d, frustum(hx * 1.5, 0.07, hx * 1.2, 0.05, face.max.y - 0.03 - (T.max.y - 0.08)).translate(0, T.max.y - 0.08, H.min.z - 0.012), 6, uvOf(0), SLOT.rambutPanjang)
-  // mahkota daun emas melingkar di dahi
-  addPart(d, boxAt(face.min.x - 0.012, face.max.y - 0.09, face.min.z - 0.012, face.max.x + 0.012, face.max.y - 0.06, face.max.z + 0.012), 6, uvOf(0), SLOT.mahkota)
-  // --- zirah kesatria: pelat dada, bahu, sabuk, kain pasukan di depan, pelindung tulang kering
-  const pad = 0.014
-  addPart(d, boxAt(T.min.x - pad, T.min.y + 0.012, T.min.z - pad, T.max.x + pad, T.max.y - 0.005, T.max.z + pad), 3, uvOf(0), SLOT.zirah)
-  addPart(d, boxAt(T.min.x - pad - 0.004, T.min.y + 0.004, T.min.z - pad - 0.004, T.max.x + pad + 0.004, T.min.y + 0.036, T.max.z + pad + 0.004), 3, uvOf(0, true), SLOT.sabuk)
-  addPart(d, boxAt(-0.045, T.min.y + 0.05, T.max.z + pad, 0.045, T.min.y + 0.13, T.max.z + pad + 0.008), 3, uvOf(0), SLOT.panji)
-  addPart(d, boxAt(T.min.x * 0.62, T.min.y - 0.06, T.max.z + pad - 0.004, T.max.x * 0.62, T.min.y + 0.03, T.max.z + pad + 0.006), 3, uvOf(0), SLOT.panji)
-  // pelindung bahu: membungkus pangkal lengan (lengan terentang ke samping saat bind)
-  for (const j of [4, 5]) {
-    const A = B[j]
-    const s = j === 4 ? 1 : -1
-    const x0 = s * (T.max.x - 0.06)
-    const x1 = s * (T.max.x + 0.075)
-    addPart(d, boxAt(Math.min(x0, x1), A.min.y - 0.012, A.min.z - 0.016, Math.max(x0, x1), A.max.y + 0.022, A.max.z + 0.016), j, uvOf(0), SLOT.zirah)
-  }
-  for (const j of [1, 2]) {
-    const L = B[j]
-    addPart(d, boxAt(L.min.x - 0.012, L.min.y + 0.06, L.min.z - 0.012, L.max.x + 0.012, L.min.y + 0.12, L.max.z + 0.012), j, uvOf(0), SLOT.zirah)
-  }
-  // helm: lingkar logam di atas mata, kubah meruncing ke atas, jambul warna pasukan di puncak
-  {
-    const w = face.max.x - face.min.x + 0.034
-    const dz = face.max.z - face.min.z + 0.034
-    const zc = (face.min.z + face.max.z) / 2
-    const y0 = face.min.y + (face.max.y - face.min.y) * 0.55
-    const y1 = face.max.y - 0.02
-    addPart(d, boxAt(-w / 2, y0, zc - dz / 2, w / 2, y1, zc + dz / 2), 6, uvOf(0), SLOT.helm)
-    addPart(d, frustum(w, dz, w * 0.45, dz * 0.45, 0.085).translate(0, y1, zc), 6, uvOf(0), SLOT.helm)
-    addPart(d, boxAt(-0.014, y1 + 0.06, zc - dz * 0.33, 0.014, y1 + 0.135, zc + dz * 0.25), 6, uvOf(0), SLOT.jambul)
-  }
-  // jubah di punggung: dari bahu sampai bawah pinggang, sedikit mengembang ke belakang
-  addPart(d, frustum(T.max.x * 1.7, 0.012, T.max.x * 1.95, 0.012, T.max.y - T.min.y + 0.07).rotateX(Math.PI).rotateX(-0.14).translate(0, T.max.y - 0.01, T.min.z - pad - 0.008), 3, uvOf(0, true), SLOT.jubah)
-  // tabung panah di punggung (miring) + ujung anak panah
-  {
-    const g = boxAt(-0.032, -0.13, -0.032, 0.032, 0.13, 0.032).rotateZ(-0.4).translate(T.max.x * 0.35, (T.min.y + T.max.y) / 2 + 0.02, T.min.z - pad - 0.045)
-    addPart(d, g, 3, uvOf(0), SLOT.tabung)
-    const f = boxAt(-0.026, 0, -0.022, 0.026, 0.05, 0.022).rotateZ(-0.4).translate(T.max.x * 0.35 + 0.06, (T.min.y + T.max.y) / 2 + 0.135, T.min.z - pad - 0.045)
-    addPart(d, f, 3, uvOf(PAIR('B4')), SLOT.bulu)
-  }
-  // sarung pedang di pinggul kiri (miring ke belakang) + gagang emas
-  {
-    const x = T.max.x + 0.022
-    const g = boxAt(-0.018, -0.24, -0.026, 0.018, 0, 0.026).rotateX(-0.5).translate(x, T.min.y + 0.03, T.max.z * 0.2)
-    addPart(d, g, 3, uvOf(0), SLOT.sarung)
-    addPart(d, boxAt(-0.014, 0, -0.014, 0.014, 0.07, 0.014).rotateX(-0.5).translate(x, T.min.y + 0.03, T.max.z * 0.2), 3, uvOf(PAIR('A2')), SLOT.gagang)
-  }
-  // celemek kulit (pandai besi, juru masak)
-  addPart(d, boxAt(T.min.x * 0.8, T.min.y - 0.07, T.max.z + 0.004, T.max.x * 0.8, T.max.y - 0.03, T.max.z + 0.012), 3, uvOf(0), SLOT.celemek)
-}
-
-// slot titik asli badan menurut aturannya
-function labelBody(d, rules) {
-  d.slot = new Array(d.bone.length).fill(0)
-  const parsed = rules.map(([g, p, s]) => [g, PAIR(p), SLOT[s]])
-  for (let i = 0; i < d.bone.length; i++) {
-    const pair = pairOf(d.uv[i * 2], d.uv[i * 2 + 1])
-    const group = GROUP[d.bone[i]]
-    const eye = d.bone[i] === 6 && d.pos[i * 3 + 2] > 0.15 && d.pos[i * 3 + 1] > 0.38 && d.pos[i * 3 + 1] < 0.535
-    for (const [g, p, s] of parsed) {
-      if (p !== pair || (g !== '*' && g !== group)) continue
-      if (eye && s === SLOT.rambut) break
-      d.slot[i] = s
-      break
-    }
-  }
-}
 
 // Model jauh: titik-titik yang berdekatan (kisi `cell`) pada tulang, slot & warna yang sama
 // digumpalkan menjadi satu titik; segitiga yang menyusut hilang. Hasilnya berindeks (titik gumpalan
@@ -605,23 +443,20 @@ export function createElfFolk({ villagerGltf, elfGltf, quality, caps }) {
     return m.set(r[o], r[o + 1], r[o + 2], r[o + 3], r[o + 4], r[o + 5], r[o + 6], r[o + 7], r[o + 8], r[o + 9], r[o + 10], r[o + 11], 0, 0, 0, 1)
   }
   const bones = boneTexture(rows, BONES)
-  const meshesByName = {}
-  villagerGltf.scene.traverse(o => {
-    if (o.isSkinnedMesh) meshesByName[o.name.replace('character-', '')] = o
-  })
-  const colormap = Object.values(meshesByName)[0].material.map
+  const colormap = paletteTexture()
 
+  // cat tiap slot: kotak pasangan warna (baris terang / gelap) yang warnanya diganti shader per orang;
+  // bulu anak panah & gagang pedang berwarna tetap
+  const P = {}
+  for (const [name, slot] of Object.entries(SLOT)) P[name] = { uv: uvOf(0, name === 'sabuk' || name === 'jubah'), slot }
+  P.bulu.uv = uvOf(12)
+  P.gagang.uv = uvOf(2)
   const { shadows } = quality
   const types = []
   for (const name of BODIES) {
-    const mesh = meshesByName[name]
-    if (!mesh) continue
-    const d = rigGeometry([mesh])
-    labelBody(d, BODY_RULES[name])
-    const bounds = boundsOf(d)
-    addAttachments(d, bounds)
+    const d = elfBadan(name, P)
     const far = simplify(d, FAR_CELL)
-    types.push({ name, near: d, far, hands: bounds.hands, bounds })
+    types.push({ name, near: d, far, hands: ELF_TANGAN })
   }
 
   // --- satu InstancedMesh per jenis badan untuk tiap tingkat detail
