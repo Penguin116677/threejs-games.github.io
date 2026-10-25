@@ -1,5 +1,42 @@
 # CHANGELOG — Pulau Tropis
 
+## [0.15.1] — 2026-10-25 — Garis tepi lebih tipis, ikon Pengaturan, kanan atas diringkas (permintaan pengguna)
+### Diubah
+- **Garis tepi dunia lebih tipis**: dari satu piksel seni penuh (±5 px layar di HP pada Sedang) menjadi
+  ±0,4 piksel seni — 2 px layar di HP, paling tipis 1 px. Besar piksel dunia tidak berubah.
+- **Tombol Kualitas → ikon Pengaturan** (roda gigi) di kanan atas. Pilihan **Kualitas grafis**
+  (Rendah / Sedang / Tinggi) ada di dalam panel Pengaturan; yang sedang dipakai berwarna hijau.
+- **Tombol Layar penuh dihapus**: di HP game masuk layar penuh otomatis begitu layar pertama kali
+  disentuh (bila browser mengizinkan; tidak dipaksa lagi bila pemain sendiri keluar).
+- **Tombol Lihat pulau dihapus** (Peta sudah menunjukkan seluruh dunia). Kanan atas kini satu baris:
+  **Peta, Tas, Pengaturan**; di layar mendatar kotak petunjuk kontrol tidak lagi menutupi tombol.
+- Saran "Terasa berat?" kini menunjuk ikon Pengaturan.
+### Teknis
+- Tahap akhir pixel art menggambar ke kanvas seukuran layar (piksel seni diperbesar sendiri dengan skala
+  bulat) dalam dua tahap: per piksel seni (warna akhir + sisi yang bergaris tepi), lalu per piksel layar
+  (satu baca tekstur, garis tepi selebar sebagian piksel). Kanvas tanpa buffer kedalaman.
+- Tahap akhir diringankan tanpa mengubah gambar (sama persis per piksel): piksel seni tanpa garis tepi
+  (±95% layar) langsung disalin, dan bila ukuran piksel & tebal garis mengizinkan, kanvas digambar
+  setengah ukuran layar lalu diperbesar browser 2× tanpa penghalusan — 4× lebih sedikit piksel (di Pixel 7:
+  Rendah & Tinggi; Sedang di HP ber-devicePixelRatio 2, 2,75, atau 3).
+- Mode kamera bebas (dulu Lihat pulau) tetap ada untuk pengujian: `__pulau.setMode('lihat')`.
+### Diperiksa
+- ESLint (konfigurasi repo) 0 error / 0 warning; `vite build` berhasil (JS 1,10 MB / 343 KB gzip).
+- Smoke test otomatis (versi build, 4 profil) — **LULUS**: 177 cek, 0 gagal (HP tegak 68, HP mendatar 28,
+  HP Rendah 28, komputer 53), termasuk dua cek baru: kanan atas tepat Peta, Tas, Pengaturan; Pengaturan →
+  Kualitas Rendah memuat ulang dengan Rendah. Pada build terakhir (tahap akhir diringankan) profil HP Rendah & HP mendatar
+  dijalankan ulang: lulus (28 + 28 cek, 0 gagal).
+- Di browser (Chromium, render software, layar Pixel 7 tiruan): garis tepi tipis dibandingkan
+  berdampingan dengan v0.15.0, kanan atas tegak & mendatar, panel Pengaturan, layar penuh otomatis
+  (sentuhan pertama → layar penuh, sekali saja; komputer tidak; tanpa galat). Tahap akhir yang
+  diringankan: 0 piksel berbeda dari sebelumnya di 16 kasus (3 kualitas tegak + Sedang mendatar × 4
+  tempat), dan kanvas setengah ukuran yang diperbesar browser = kanvas penuh (tangkapan layar).
+- Performa (render software, bukan ukuran HP; diukur bergantian dengan v0.15.0): Rendah setara v0.15.0
+  (−10…+7% per bingkai); Sedang di layar Pixel 7 +2…+28% karena kanvasnya tetap seukuran layar (5 px
+  layar per piksel seni tidak bisa dibagi). Di GPU HP tambahannya kira-kira satu salinan layar penuh per
+  bingkai — belum diukur di HP.
+- **Belum** dicoba di HP sungguhan (layar penuh otomatis, tebal garis tepi, FPS).
+
 ## [0.15.0] — 2026-10-24 — Grafik pixel art HD, kamera tidak berputar sendiri, gerakan karakter lebih halus (permintaan pengguna)
 ### Diubah
 - **Semua grafik menjadi pixel art HD.** Gameplay, dunia, tata letak tombol, dan isi game tidak

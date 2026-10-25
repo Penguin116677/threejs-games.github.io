@@ -28,10 +28,11 @@ Aeloria (istana) tetap terlarang. Lihat DECISIONS #49–#51.
 ## Gaya visual (sejak v0.15.0)
 **Pixel art HD** (permintaan pengguna): dunia tetap 3D (kamera bebas, ribuan karakter beranimasi),
 tetapi digambar seperti game pixel art — resolusi rendah dengan piksel besar yang tajam (±2 px layar per
-piksel di Sedang), garis tepi gelap 1 piksel di tepi benda, cahaya 4 tingkat dan bayangan bertepi tegas,
-warna 15-bit dengan dithering, tanah / laut / langit dalam beberapa nada bertepi tegas. UI ikut bergaya
-pixel art: huruf piksel (Pixelify Sans), bingkai & tombol bulat berpiksel, ikon piksel, peta dunia
-berpiksel. Sebelumnya (v0.1.0–v0.14.0) gaya low-poly berwarna halus. Lihat DECISIONS #62–#65.
+piksel di Sedang), garis tepi gelap tipis di tepi benda (sejak v0.15.1 ±0,4 piksel), cahaya 4 tingkat dan
+bayangan bertepi tegas, warna 15-bit dengan dithering, tanah / laut / langit dalam beberapa nada bertepi
+tegas. UI ikut bergaya pixel art: huruf piksel (Pixelify Sans), bingkai & tombol bulat berpiksel, ikon
+piksel, peta dunia berpiksel; kanan atas hanya Peta, Tas, dan Pengaturan (v0.15.1). Sebelumnya
+(v0.1.0–v0.14.0) gaya low-poly berwarna halus. Lihat DECISIONS #62–#67.
 
 ## Peta dunia (sejak v0.10.0)
 - **Pulau Tropis** (tengah): pantai, hutan, padang, gunung, perkemahan orc — titik mulai.

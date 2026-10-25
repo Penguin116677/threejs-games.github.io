@@ -1,10 +1,10 @@
 # PROJECT_STATUS — Pulau Tropis
 
-**Milestone aktif:** 3 — Pembangunan dunia (v0.15.0: seluruh grafik menjadi pixel art HD, kamera tidak lagi berputar sendiri, gerakan karakter lebih halus — menunggu umpan balik dari HP).
+**Milestone aktif:** 3 — Pembangunan dunia (v0.15.1: garis tepi pixel art lebih tipis, ikon Pengaturan berisi kualitas grafis, tombol Layar penuh & Lihat pulau dihapus; v0.15.0: seluruh grafik menjadi pixel art HD, kamera tidak lagi berputar sendiri, gerakan karakter lebih halus — menunggu umpan balik dari HP).
 Gameplay v0.15.0 sama dengan v0.14.0 (joystick, pulau tanpa jembatan, berenang, perahu, memancing, obrolan).
 Pengembangan karakter/jurus dihentikan sementara atas permintaan pengguna.
-**Versi:** 0.15.0
-**Terakhir diperbarui:** 2026-10-24
+**Versi:** 0.15.1
+**Terakhir diperbarui:** 2026-10-25
 
 ## Kondisi awal repository (sebelum Milestone 1)
 - Repository `threejs-games.github.io` berisi koleksi contoh Three.js lama (folder `examples/`,
@@ -23,11 +23,11 @@ Pengembangan karakter/jurus dihentikan sementara atas permintaan pengguna.
 | Pohon kelapa & hutan tropis (instancing, goyang angin) — permintaan tambahan | ✅ selesai |
 | Rumput ilalang di sekitar gunung (chunk + LOD, goyang angin) — permintaan tambahan | ✅ selesai |
 | Peningkatan kualitas: bayangan, tanah per-piksel, awan, kaustik, semak, bunga, batu — permintaan tambahan | ✅ selesai |
-| Menu Kualitas Rendah/Sedang/Tinggi + saran bila FPS rendah | ✅ selesai |
+| Menu Kualitas Rendah/Sedang/Tinggi + saran bila FPS rendah | ✅ selesai (sejak v0.15.1 di dalam ikon Pengaturan) |
 | Buah kelapa (tandan di setiap pohon kelapa) — permintaan tambahan | ✅ selesai |
 | Kualitas air: pantulan langit & awan, riak bertekstur, kilau matahari — permintaan tambahan | ✅ selesai |
 | Ombak pantai: pecah jadi buih, naik ke pasir lalu surut, pasir basah — permintaan tambahan | ✅ selesai |
-| UI dasar berbahasa Indonesia (judul, FPS, layar penuh, petunjuk) | ✅ selesai |
+| UI dasar berbahasa Indonesia (judul, FPS, layar penuh, petunjuk) | ✅ selesai (layar penuh: tombol sampai v0.15.0, otomatis di HP sejak v0.15.1) |
 | Pesan error tampil di layar (tanpa konsol) | ✅ selesai |
 | Dibuka di browser HP Android sungguhan | ⏳ belum diverifikasi — menunggu laporan pengguna |
 
@@ -88,8 +88,45 @@ Sebagian sudah dikerjakan lebih awal (bayangan, tanah per-piksel, awan, kaustik 
 | Gaya pixel art HD: dunia beresolusi rendah bersekala bulat, garis tepi, cahaya 4 tingkat, warna 15-bit + dithering | ✅ selesai (v0.15.0) |
 | Tanah, laut, langit bernada bertingkat & bertepi tegas | ✅ selesai (v0.15.0) |
 | UI pixel art: huruf piksel, bingkai & tombol bulat berpiksel, ikon piksel, peta dunia berpiksel | ✅ selesai (v0.15.0) |
+| Garis tepi tipis (±0,4 piksel seni, 2 px layar di HP) | ✅ selesai (v0.15.1) |
+| Kanan atas diringkas: Peta, Tas, ikon Pengaturan (berisi kualitas grafis); layar penuh otomatis di HP; tombol Lihat pulau dihapus | ✅ selesai (v0.15.1) |
 | Partikel lanjutan, suara, animasi vegetasi lanjutan, siang–malam | ⏳ belum |
 | Dicoba di HP Android sungguhan | ⏳ menunggu laporan pengguna |
+
+## Yang sudah diperiksa (v0.15.1 — garis tepi tipis, ikon Pengaturan, tanpa Layar penuh & Lihat pulau)
+- **Pemeriksaan kode**: ESLint (konfigurasi repo) 0 error / 0 warning. Tiga commit (garis tepi tipis →
+  Pengaturan & tombol dihapus → tahap akhir diringankan) masing-masing di-lint dan di-build.
+- **Build**: `vite build` berhasil (JS 1,10 MB / 343 KB gzip, CSS 19 KB); bundel rilis = bundel yang diuji (hash sama).
+- **Smoke test otomatis** (versi build, 4 profil) — **LULUS**: 177 cek, 0 gagal (HP tegak 68, HP
+  mendatar 28, HP Rendah 28, komputer 53). Cek tombol Lihat pulau diganti dua cek baru: kanan atas tepat
+  **Peta, Tas, Pengaturan** (tanpa Layar penuh & Lihat pulau), dan **Pengaturan → Kualitas Rendah**
+  memuat ulang game dengan Rendah. Putaran ini memakai build sebelum tahap akhir diringankan; pada build
+  terakhir profil HP Rendah (kanvas setengah ukuran) dan HP mendatar (kanvas seukuran layar) dijalankan
+  ulang: lulus, 28 + 28 cek, 0 gagal.
+- **Uji terpisah di browser** (Chromium, render software, layar Pixel 7 tiruan):
+  - **garis tepi tipis** dibandingkan berdampingan dengan v0.15.0 (titik mulai, Kotaraja, Tegal Wira,
+    berenang): garis 2 px layar (v0.15.0: satu piksel seni = 5 px), besar piksel seni sama (217 × 441
+    di Sedang);
+  - **kanan atas** tegak & mendatar: Peta, Tas, Pengaturan sebaris; di layar mendatar kotak petunjuk
+    kontrol tidak lagi menutupi tombol; **panel Pengaturan**: kualitas yang aktif hijau, Tutup / Escape /
+    membuka Peta menutupnya, tampil di atas spanduk wilayah;
+  - **layar penuh otomatis**: sentuhan pertama → layar penuh aktif (sekali saja, sentuhan berikutnya
+    tidak meminta lagi), komputer tidak meminta, tanpa galat;
+  - **tahap akhir yang diringankan menggambar sama persis**: bingkai yang sama digambar dengan shader
+    tahap 2 sebelumnya dan yang baru (dalam satu tugas JS) → **0 piksel berbeda** di 16 kasus (Rendah /
+    Sedang / Tinggi tegak dan Sedang mendatar, masing-masing di titik mulai, Pasar Kotaraja, depan
+    barisan Tegal Wira, Pasar Aeloria); 90–98% piksel mengambil jalan pintas (piksel bergaris tepi
+    1,3–4,7% layar). Kanvas setengah ukuran (Pixel 7 Rendah 543 × 1104 untuk layar 1086 × 2208, Tinggi
+    542 × 1102) sama dengan kanvas penuh setelah diperbesar 2×; dan yang diperbesar **browser** sendiri
+    (tangkapan layar sungguhan, layar uji ber-px perangkat bulat 1050 × 2205 & 1008 × 2205, Rendah,
+    Tinggi tegak & mendatar) juga sama dengan kanvas penuh: 0 piksel berbeda.
+- **Ditemukan saat uji**: di layar yang lebarnya dalam px perangkat pecahan (Pixel 7 tiruan = 1081,5 px)
+  atau kanvas yang lebarnya tidak tepat dalam px CSS, browser menggeser sebagian gambar 1 px perangkat
+  (satu kolom piksel seni sedikit lebih lebar). Sudah begitu sejak v0.15.0 (kanvas juga diperbesar
+  browser), tidak terkait perubahan ini; dicatat di Masalah yang diketahui.
+- **Performa** (render software, bukan ukuran HP; tabel di bagian Performa): Rendah setara v0.15.0
+  (kanvas setengah ukuran); Sedang di layar Pixel 7 +2…+28% per bingkai karena kanvasnya tetap seukuran
+  layar.
 
 ## Yang sudah diperiksa (v0.15.0 — grafik pixel art HD, kamera tidak berputar sendiri, gerakan halus)
 - **Pemeriksaan kode**: ESLint (konfigurasi repo) 0 error / 0 warning. Commit fitur (kamera & gerakan →
@@ -516,6 +553,15 @@ Sebagian sudah dikerjakan lebih awal (bayangan, tanah per-piksel, awan, kaustik 
   laut dalam → kembali ke pantai + pesan, mendaki lereng (+24 m dalam 120 frame).
 
 ## Yang BELUM diperiksa
+- **Layar penuh otomatis di HP sungguhan** (v0.15.1): di Chromium dengan layar HP tiruan, sentuhan
+  pertama → layar penuh aktif (sekali saja, sentuhan berikutnya tidak meminta lagi; komputer tidak
+  meminta), tanpa galat — tetapi layar tiruan tidak berubah ukuran, jadi hasilnya di layar HP sungguhan
+  belum terlihat.
+- **Garis tepi tipis di layar HP** (v0.15.1): apakah 2 px layar cukup terlihat / sudah cukup tipis.
+- **FPS v0.15.1 di HP**: tahap akhir kini menggambar ke kanvas seukuran layar (atau seperempatnya bila
+  ukuran piksel mengizinkan), bukan lagi kanvas sekecil gambar piksel seni. Di GPU HP kerjanya kira-kira
+  satu salinan layar penuh per bingkai — seharusnya kecil dibanding menggambar dunia, tetapi belum
+  diukur di HP (render software di sini jauh lebih lambat untuk kerja per piksel layar).
 - **Tampilan pixel art di HP sungguhan** (v0.15.0): ketajaman piksel (skala bulat bergantung
   devicePixelRatio HP), apakah besar piksel Sedang (±2 px) pas, garis tepi, warna & dithering di layar
   HP, terbacanya huruf piksel kecil (nama jurus 9 px, label peta), dan apakah piksel yang "merayap" saat
@@ -564,6 +610,25 @@ Sebagian sudah dikerjakan lebih awal (bayangan, tanah per-piksel, awan, kaustik 
 - Apakah URL hosting (githack / GitHub Pages) terbuka di HP — tidak bisa diakses dari lingkungan pengembangan.
 
 ## Performa (segitiga per frame termasuk bayangan, dari smoke test)
+v0.15.1 (garis tepi tipis), layar HP tegak (Pixel 7), versi build, render software; ketiga versi diukur
+bergantian di mesin yang sama (mesin sedang lebih lambat daripada saat tabel v0.15.0 di bawah diukur —
+bandingkan hanya di dalam tabel ini). Waktu per bingkai (ms):
+| Tempat | Sedang v0.15.0 | Sedang v0.15.1 awal | Sedang v0.15.1 | Rendah v0.15.0 | Rendah v0.15.1 awal | Rendah v0.15.1 |
+|---|---|---|---|---|---|---|
+| Titik mulai | 381 | 420 | 422 (+11%) | 232 | 267 | 221 (−5%) |
+| Pasar Kotaraja | 234 | 294 | 299 (+28%) | 135 | 180 | 144 (+7%) |
+| Depan barisan Tegal Wira | 1.049 | 1.151 | 1.073 (+2%) | 927 | 971 | 831 (−10%) |
+| Pasar Aeloria | 358 | 386 | 403 (+13%) | 212 | 267 | 215 (+1%) |
+- "v0.15.1 awal" = sebelum tahap akhir diringankan. Segitiga & draw call sama dengan v0.15.0 (+1 draw
+  call untuk tahap kedua).
+- **Rendah** (dan Tinggi) di Pixel 7: kanvas setengah ukuran layar (543 × 1104) → setara v0.15.0
+  (−10…+7%, dalam batas acak). **Sedang** di Pixel 7 (5 px layar per piksel seni, tidak bisa dibagi):
+  kanvas tetap seukuran layar (1085 × 2205 = 2,4 juta px; v0.15.0 menggambar 217 × 441 = 96 ribu lalu
+  diperbesar browser) → +2…+28% per bingkai di render software; jalan pintas tidak terukur di render
+  software. Di GPU HP tambahannya kira-kira satu salinan layar penuh per bingkai — belum diukur di HP.
+- Waktu siap: v0.15.0 6,3 detik (Sedang) / 5,2 detik (Rendah); v0.15.1 6,8–7,5 / 5,3–5,6 detik — dalam
+  batas acak mesin uji (±1 detik antar-putaran).
+
 v0.15.0 (pixel art HD), layar HP tegak (Pixel 7), Sedang, versi build, render software; v0.14.0 diukur
 bergantian di mesin yang sama (angka segitiga tanpa pass bayangan, seperti `renderer.info` three.js):
 | Tempat | Segitiga / draw call | Waktu per bingkai v0.14.0 | v0.15.0 |
@@ -668,10 +733,11 @@ yang lebih rapat (untuk ombak) dan buah kelapa. v0.2.0 (HP): ±230 ribu.
 - (v0.15.0) UI tetap HTML di atas gambar dunia: piksel UI selalu 2 px CSS, sedikit berbeda dari piksel
   dunia di Rendah / Tinggi. Bila huruf piksel belum termuat (koneksi lambat), tulisan sesaat memakai
   huruf sistem.
-- (v0.15.0) Layar mendatar: selama petunjuk kontrol tampil (≤ 12 detik atau sampai pemain bergerak)
-  kotaknya menutupi sebagian tombol Kualitas & Lihat pulau — sudah begitu di v0.14.0 pada layar uji
-  (lebar petunjuk 46% layar), tata letaknya tidak diubah.
 - (v0.15.0) Label tempat di Peta tetap kecil (±6 px CSS) seperti sebelumnya, kini berhuruf piksel.
+- (v0.15.0, tetap di v0.15.1) Bila lebar / tinggi layar HP dalam px perangkat pecahan (mis. Pixel 7 tiruan:
+  412 px CSS × 2,625 = 1081,5 px) atau kanvas tidak tepat dalam px CSS, browser menggeser sebagian gambar
+  1 px perangkat — satu kolom / baris piksel seni sedikit lebih lebar. Terlihat saat tangkapan layar
+  dibandingkan per piksel; hampir tidak terlihat mata.
 - (v0.14.0) Obrolan berbasis aturan: NPC hanya memahami topik yang dikenalnya (nama, kabar, kegiatan,
   pekerjaan, kerajaan, orc, tempat & arah, makanan, menyeberang, ikan, cerita, lelucon, saran, salam,
   terima kasih, pujian / hinaan); kalimat lain dijawab umum. Ingatan NPC hilang bila halaman dimuat
@@ -747,7 +813,7 @@ yang lebih rapat (untuk ombak) dan buah kelapa. v0.2.0 (HP): ±230 ribu.
 - Rumput dan semak belum bereaksi saat dilewati karakter.
 - Kecepatan animasi kaki disetel kira-kira (belum dicek per frame apakah kaki "meluncur").
 - Kamera selalu mengikuti prajurit (tidak bisa digeser bebas seperti peta); untuk melihat-lihat pakai
-  **Lihat pulau**.
+  **Peta** (tombol Lihat pulau dihapus di v0.15.1).
 - Jalur (ketuk kios, Ajak bicara) dihitung di grid 2 m: celah sangat sempit di antara batang/batu
   (< ±1 m) dianggap tertutup.
 - Batu besar tidak ikut tembus pandang.

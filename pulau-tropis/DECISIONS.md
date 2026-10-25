@@ -24,7 +24,8 @@ tandai sebagai "diganti" bila berubah.
 8. **Kamera orbit sementara** — Milestone 1 memakai OrbitControls untuk melihat pulau;
    akan diganti kamera third-person di Milestone 2.
    *(Diperbarui v0.5.0: kamera orang ketiga menjadi kamera utama; orbit tetap ada sebagai mode
-   "Lihat pulau". Diperbarui v0.6.0: kamera utama menjadi kamera strategi dari atas — lihat no. 26.)*
+   "Lihat pulau". Diperbarui v0.6.0: kamera utama menjadi kamera strategi dari atas — lihat no. 26.
+   v0.15.1: tombol Lihat pulau dihapus, modenya tinggal untuk pengujian — lihat no. 67.)*
 9. **Bahasa** — semua UI, pesan error, dan dokumentasi dalam bahasa Indonesia.
 10. **Pohon prosedural + instancing** — pohon dibuat dari geometri sederhana di kode (tanpa file
     model), digabung per jenis dan digambar dengan `InstancedMesh`. Goyangan angin di vertex shader.
@@ -528,9 +529,10 @@ tandai sebagai "diganti" bila berubah.
     - `core/pixel.js`: dunia digambar ke `WebGLRenderTarget` kecil (half-float bila didukung, tanpa
       antialias, filter nearest, tekstur kedalaman). Ukuran kanvas = layar ÷ k piksel, k = bulat(px CSS
       per piksel seni × devicePixelRatio), lalu diperbesar CSS `image-rendering: pixelated` — skala bulat
-      membuat semua piksel seni sama besar. Px CSS per piksel seni ada di `quality.pixelSize` (Rendah
+      membuat semua piksel seni sama besar. *(v0.15.1: kanvas seukuran layar, piksel seni diperbesar di
+      tahap akhir sendiri supaya garis tepi bisa lebih tipis — lihat no. 66.)* Px CSS per piksel seni ada di `quality.pixelSize` (Rendah
       2,4 / Sedang 2 / Tinggi 1,6), menggantikan pixel ratio maks.
-    - Pass pasca-proses (satu segitiga layar penuh): garis tepi 1 piksel berwarna tinta ungu-gelap di
+    - Pass pasca-proses (satu segitiga layar penuh): garis tepi 1 piksel (v0.15.1: ±0,4 piksel, no. 66) berwarna tinta ungu-gelap di
       piksel yang tetangganya jauh lebih jauh (ambang 0,3 m + 7% jarak; langit tidak; kanal alfa = boleh
       bergaris, sehingga helai rumput tidak bergaris), sorot 18% di sudut cembung (laplacian kedalaman),
       tone mapping ACES (dipindah dari renderer ke pass ini), saturasi ×1,15, sRGB, lalu warna 15-bit
@@ -593,3 +595,43 @@ tandai sebagai "diganti" bila berubah.
       per piksel lalu diperkecil halus) — warna tinggi bertingkat, masker & benda buatan dibulatkan ke
       piksel penuh, penanda berupa kotak / belah ketupat / panah piksel, tulisan huruf piksel bergaris
       luar 8 arah.
+66. **Garis tepi tipis: tahap akhir pixel art di resolusi layar** (v0.15.1, permintaan pengguna:
+    *"Pertipis garis tepi"*).
+    - v0.15.0 menggambar garis tepi sebagai satu piksel seni penuh (±5 px layar di HP pada Sedang), dan
+      tidak bisa lebih tipis selama kanvas = gambar piksel seni yang diperbesar browser. Membesarkan piksel
+      seni sendiri di tahap akhir (kanvas seukuran layar) membuat garis bisa selebar sebagian piksel
+      seni: ±0,4 piksel seni = 2 px layar di HP (Rendah / Sedang / Tinggi), paling tipis 1 px (komputer).
+      Besar piksel seni tidak berubah.
+    - Pasca-proses dibagi dua: tahap 1 per piksel seni (seperti v0.15.0: tone mapping, sorot, warna 15-bit
+      + dithering) menulis warna akhir + 4 bit "sisi yang berbatasan dengan sesuatu yang jauh lebih jauh"
+      (kiri, kanan, bawah, atas) ke target RGBA8 kecil; tahap 2 per piksel layar hanya membaca satu
+      texel itu, memperbesar k × k, dan menggelapkan pita selebar 0,4 piksel seni di sisi yang ditandai
+      (tinta dikalikan di sRGB dengan tinta^(1/2,2) ≈ perkalian di ruang linear, lalu dibulatkan lagi ke
+      15-bit). Versi satu tahap (semua perhitungan per piksel layar) diukur lebih berat; tahap 2 kini satu
+      baca tekstur + beberapa operasi per piksel layar — di GPU HP setara satu salinan layar penuh.
+    - Kanvas tidak lagi butuh buffer kedalaman (dunia punya targetnya sendiri) → `depth: false` (hemat
+      ±10 MB di layar 1080 × 2400).
+    - Tahap 2 diringankan tanpa mengubah gambar (diuji per piksel, lihat PROJECT_STATUS): piksel seni
+      tanpa sisi bergaris tepi (±95% layar) langsung disalin; dan kanvas boleh lebih kecil dari layar —
+      tiap piksel seni = k px layar = c px kanvas × m, browser membesarkan kanvas m × m tanpa penghalusan
+      (`image-rendering: pixelated`, seperti v0.15.0). m > 1 hanya bila m membagi k **dan** tebal garis,
+      supaya garis tetap tepat 2 px layar. Di Pixel 7: Rendah (k 6 = 3 × 2) & Tinggi (k 4 = 2 × 2) → 4×
+      lebih sedikit piksel kanvas; Sedang (k 5) tetap seukuran layar. Sedang di HP ber-devicePixelRatio 2,
+      2,75, atau 3 (k 4 / 6) ikut 4× lebih sedikit.
+    - Biaya (render software, lihat PROJECT_STATUS): Rendah di Pixel 7 setara v0.15.0 (kanvas setengah
+      ukuran); Sedang di Pixel 7 +2…+28% per bingkai (kanvas seukuran layar). Di GPU HP tambahannya
+      kira-kira satu salinan layar penuh per bingkai — belum diukur di HP.
+67. **Kanan atas = Peta, Tas, Pengaturan; layar penuh otomatis; Lihat pulau tanpa tombol** (v0.15.1,
+    permintaan pengguna: *"icon kualitas grafiknya buatkan saja icon pengaturan dan taru settingan itu di
+    dalamnya, icon layar penuh di hapus saja karena setiap memulai game itu sudah langsung layar penuh,
+    untuk icon lihat pulau itu di hapus saja gak perlu ada karena ada peta"*).
+    - Tombol Kualitas → ikon roda gigi **Pengaturan**; panelnya berisi bagian "Kualitas grafis" (Rendah /
+      Sedang / Tinggi, yang aktif hijau; mengganti tetap memuat ulang, no. 12). Escape / Tutup / membuka
+      Peta menutupnya. Panel di atas spanduk wilayah & petunjuk.
+    - Tombol Layar penuh dihapus. Supaya tetap layar penuh di semua HP, game meminta layar penuh pada
+      sentuhan pertama (browser hanya mengizinkannya dari sentuhan) bila didukung — sekali per pemuatan,
+      tidak dipaksa lagi bila pemain sendiri keluar. Di komputer tidak (F11 / tombol browser).
+    - Tombol Lihat pulau dihapus (Peta sudah menunjukkan seluruh dunia). Mode kamera bebas tetap ada di
+      kode karena dipakai pengujian untuk memotret dari atas: `__pulau.setMode('lihat' | 'main')`.
+    - Kanan atas kini satu baris (Peta, Tas, Pengaturan): di layar mendatar kotak petunjuk kontrol tidak
+      lagi menutupi tombol.

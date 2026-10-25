@@ -35,7 +35,8 @@ Penduduk kerajaan (`public/models/penduduk.glb`) dibuat ulang dari paket Kenney 
 dengan `python3 scripts/pack-penduduk.py "<folder GLB format>" public/models/penduduk.glb`.
 
 ## Kualitas grafis
-- Di game: tombol **Kualitas** (kanan atas) → Rendah / Sedang / Tinggi. Pilihan disimpan.
+- Di game: ikon **Pengaturan** (roda gigi, kanan atas) → Kualitas grafis → Rendah / Sedang / Tinggi.
+  Pilihan disimpan (sampai v0.15.0 lewat tombol Kualitas).
 - Lewat alamat: `?kualitas=rendah|sedang|tinggi` (atau `#kualitas=…`).
 - Default: HP → Sedang, komputer → Tinggi.
 
@@ -46,7 +47,8 @@ dengan `python3 scripts/pack-penduduk.py "<folder GLB format>" public/models/pen
 4. Cubit 2 jari → zoom masuk/keluar. Geser 2 jari → kamera bergeser.
 5. Kamera tidak bisa menembus tanah atau masuk ke bawah laut.
 6. Putar HP (portrait ↔ landscape) → tampilan menyesuaikan tanpa terpotong/meregang.
-7. Tombol "Layar penuh" → masuk/keluar layar penuh.
+7. Tombol "Layar penuh" → masuk/keluar layar penuh. *(Dihapus v0.15.1: di HP layar penuh otomatis saat
+   layar pertama kali disentuh.)*
 8. Catat angka FPS di pojok kiri atas (idealnya ≥ 30).
 9. Laut beranimasi (ombak bergerak, buih di pantai).
 10. Ada pohon kelapa di pantai dan hutan di pedalaman; zoom dekat → pohon bergoyang pelan.
@@ -58,7 +60,8 @@ dengan `python3 scripts/pack-penduduk.py "<folder GLB format>" public/models/pen
 2. Putar kamera di dekat rumput → rumput tetap mengikuti, tidak ada yang tiba-tiba muncul/hilang
    (rumput boleh "tumbuh" halus ±1 detik setelah zoom cepat).
 3. Pohon membayangi tanah (Sedang/Tinggi); ada awan bergerak; air dangkal punya kilau cahaya.
-4. Ketuk **Kualitas** → pilih Rendah, lalu Tinggi → game dimuat ulang dan label berubah.
+4. Ketuk **Kualitas** (sejak v0.15.1: **Pengaturan** → Kualitas grafis) → pilih Rendah, lalu Tinggi →
+   game dimuat ulang dan pilihan yang aktif berubah.
    Catat FPS di tiap tingkat.
 5. Bila muncul saran "Terasa berat?", coba Kualitas Rendah dan bandingkan FPS.
 
@@ -77,6 +80,7 @@ dengan `python3 scripts/pack-penduduk.py "<folder GLB format>" public/models/pen
 3. Jalan ke laut dalam (lewat keyboard di komputer) → layar meredup, kembali ke pantai dengan pesan.
 4. Daki lereng gunung → bisa naik; di bagian sangat curam prajurit tertahan/merosot.
 5. Tombol **Lihat pulau** → kamera bebas (geser/cubit seperti dulu); **Main lagi** → kembali.
+   *(Tombolnya dihapus v0.15.1 — ada Peta; untuk pengujian: `__pulau.setMode('lihat')` / `('main')`.)*
 
 ## Daftar uji manual — v0.6.0 (kamera strategi + ketuk untuk berjalan)
 > Diganti v0.14.0: kontrol kembali ke joystick + kamera di belakang karakter; ketuk tanah tidak lagi
@@ -338,10 +342,28 @@ yang gagal.
 7. Catat FPS di titik mulai, Kotaraja, Pasar Aeloria, dan Tegal Wira untuk tiap tingkat kualitas —
    pixel art seharusnya **lebih ringan** daripada v0.14.0 (jauh lebih sedikit piksel yang digambar).
 
-Konsol: `__pulau.pixel.size` (ukuran gambar dalam piksel seni dan skalanya),
+Konsol: `__pulau.pixel.size` (ukuran gambar dalam piksel seni, skalanya, dan sejak v0.15.1 `canvas` = px
+kanvas per piksel seni — lebih kecil dari px layar bila browser ikut membesarkan kanvas),
 `__pulau.pixel.uniforms` (mis. `uOutline.value = 0` mematikan garis tepi, `uLevels.value = 255`
 mematikan pembulatan warna, `uDither.value = 0` mematikan dithering) — untuk membandingkan.
 
 Laporkan: model HP, apakah gambar terasa "pixel art HD" yang diinginkan (piksel terlalu besar / kecil,
 garis tepi terlalu tebal / tipis, warna), apakah tulisan berhuruf piksel cukup terbaca, apakah kamera
 yang tidak berputar sendiri sudah nyaman, dan FPS dibanding versi sebelumnya.
+
+## Daftar uji manual — v0.15.1 (garis tepi tipis, ikon Pengaturan, tanpa Layar penuh & Lihat pulau)
+1. **Garis tepi**: tepi karakter, pohon, dan bangunan kini garis gelap tipis (±2 px layar di HP), bukan
+   satu piksel besar. Piksel dunia tetap sebesar sebelumnya.
+2. **Kanan atas** hanya tiga tombol sebaris: **Peta**, **Tas**, dan **Pengaturan** (roda gigi). Tidak ada
+   lagi Kualitas, Layar penuh, dan Lihat pulau.
+3. Ketuk **Pengaturan** → panel "Pengaturan" dengan bagian **Kualitas grafis**: kualitas yang dipakai
+   berwarna hijau; pilih yang lain → game dimuat ulang dengan kualitas itu. Tutup / Escape / membuka
+   Peta menutup panel.
+4. **Layar penuh**: buka game dari browser HP (bukan dari pintasan layar utama) → begitu layar disentuh,
+   game masuk layar penuh. Keluar sendiri (gestur kembali) → game tidak memaksa masuk lagi sampai dimuat
+   ulang. (Di dalam aplikasi / bingkai pratinjau yang tidak mengizinkan layar penuh, tidak terjadi apa-apa.)
+5. Saran "Terasa berat?" (bila FPS rendah) menyebut ikon Pengaturan.
+6. Bandingkan FPS dengan v0.15.0 di tempat yang sama (titik mulai, Pasar Aeloria, Tegal Wira).
+
+Laporkan: apakah garis tepinya sudah cukup tipis (atau ingin lebih tipis / lebih tebal), apakah layar
+penuh otomatis berjalan di HP-mu, dan FPS.
