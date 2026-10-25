@@ -1,6 +1,7 @@
 import * as THREE from 'three'
 import { clone as cloneSkinned } from 'three/addons/utils/SkeletonUtils.js'
-import { FPS, bakeRig, rigGeometry, bakedMatrix, attach, toBufferGeometry, boneTexture, animate, frameOf } from './rig.js'
+import { FPS, bakeRig, bakedMatrix, attach, toBufferGeometry, boneTexture, animate, frameOf } from './rig.js'
+import { buatRupa, paletteTexture, HAND, tombakGeo, pedangGeo, perisaiGeo, geoWarna } from '../../tokoh/rupa.js'
 import { buildRoutes } from './routes.js'
 import { TEGAL } from './layout.js'
 import { zoneAt } from './wilayah.js'
@@ -14,7 +15,8 @@ import { zoneAt } from './wilayah.js'
 // Modul ini = badan mereka: gerak, animasi, serangan, terkena pukulan, roboh, dan kembali bertugas.
 // Siapa yang dihadang & dilawan (pemain, orc) atau ditanyai (pendatang) diputuskan keamanan.js lewat
 // perintah (order).
-// Gambar: rangka dipanggang (rig.js) — satu InstancedMesh per jenis seragam.
+// Gambar: rupa prajurit berhelm berjambul (tokoh/rupa.js) di atas rangka Kenney "Mini Arena", rangka
+// dipanggang (rig.js) — satu InstancedMesh per jenis seragam.
 
 const SCALE = 2.3 // sama dengan prajurit pemain
 const RADIUS = 0.35
@@ -30,17 +32,13 @@ const PATROL = { rendah: 40, sedang: 64, tinggi: 96 } // peronda (berpasangan)
 // porsi pasangan peronda per wilayah tugas (paling sedikit satu pasangan per wilayah)
 const ZONE_SHARE = { kota: 0.28, wira: 0.22, kencana: 0.2, dermaga: 0.08, sawah: 0.08, nelayan: 0.07, pura: 0.07 }
 
-// jenis seragam: jaga (penjaga pos, jambul hitam — beda dari jambul merah pemain), tombak (peronda,
-// jambul biru), pedang (peronda, jambul hijau, pedang + perisai). reach = jangkauan serang (m)
+// jenis seragam: jaga (penjaga pos, jambul hitam & jubah nila), tombak (peronda, jambul biru muda),
+// pedang (peronda, jambul hijau, pedang + perisai). reach = jangkauan serang (m)
 export const TYPES = [
-  { id: 'jaga', weapon: 'tombak', dye: [1, 6], hp: 10, reach: 1.9, damage: 4 },
-  { id: 'tombak', weapon: 'tombak', dye: [5, 4], hp: 8, reach: 1.9, damage: 4 },
-  { id: 'pedang', weapon: 'pedang', dye: [1, 4], hp: 9, reach: 1.45, damage: 5 },
+  { id: 'jaga', weapon: 'tombak', rupa: 'jaga', hp: 10, reach: 1.9, damage: 4 },
+  { id: 'tombak', weapon: 'tombak', rupa: 'peronda', hp: 8, reach: 1.9, damage: 4 },
+  { id: 'pedang', weapon: 'pedang', rupa: 'perondaPedang', hp: 9, reach: 1.45, damage: 5 },
 ]
-
-// kotak warna palet Kenney Mini Arena (8 × 8)
-const cell = (i, j) => [(i + 0.5) / 8, (j + 0.5) / 8]
-const UV = { kayu: cell(6, 6), besi: cell(3, 6), emas: cell(2, 4) }
 
 // klip yang dipanggang per jenis senjata; hold = tulang yang dikunci pada pose klip lain
 // (tombak tetap tegak di tangan kanan, perisai tetap di depan badan saat berjalan / berlari)
@@ -63,56 +61,26 @@ const _m = new THREE.Matrix4()
 const _q = new THREE.Quaternion()
 const Y = new THREE.Vector3(0, 1, 0)
 
-// ganti kotak warna merah (jambul & sabuk) dengan warna lain
-function dye(data, [col, row]) {
-  for (let i = 0; i < data.uv.length; i += 2) {
-    const ci = Math.floor(data.uv[i] * 8)
-    const cj = Math.floor(data.uv[i + 1] * 8)
-    if (ci === 4 && (cj === 4 || cj === 5)) {
-      data.uv[i] = (col + 0.5) / 8
-      data.uv[i + 1] = (row + (cj - 4) + 0.5) / 8
-    }
-  }
-}
-
-function buildTypes(soldier, shieldRect, rows) {
+function buildTypes(soldier, rows) {
   const clone = cloneSkinned(soldier.model)
-  const skinned = []
-  clone.traverse(o => {
-    if (o.isSkinnedMesh) skinned.push(o)
-  })
-  const { map } = skinned[0].material
-  let swordMesh = null
-  soldier.model.userData.sword?.traverse(o => {
-    if (!swordMesh && o.isMesh) swordMesh = o
-  })
-  const handAt = (skeleton, row, j) => new THREE.Vector3(j === 5 ? -0.265 : 0.265, 0, 0.068)
+  const map = paletteTexture()
+  const handAt = (skeleton, row, j) => HAND[j].clone()
     .applyMatrix4(skeleton.boneInverses[j].clone().invert())
     .applyMatrix4(bakedMatrix(rows, row, j))
   return TYPES.map(T => {
     const rig = bakeRig(clone, soldier.clips, rows, specsFor(T.weapon))
     const { row } = rig.table.idle
-    const data = rigGeometry(skinned)
-    if (T.dye) dye(data, T.dye)
+    const data = buatRupa(T.rupa)
     const h = handAt(rig.skeleton, row, 5)
     if (T.weapon === 'tombak') {
       // tombak tegak di tangan kanan, pangkalnya hampir di tanah
-      const butt = Math.max(0.02, h.y - 0.42)
-      attach(data, new THREE.CylinderGeometry(0.017, 0.017, h.y + 1.05 - butt, 5).translate(h.x, (butt + h.y + 1.05) / 2, h.z), rows, row, 5, UV.kayu)
-      attach(data, new THREE.ConeGeometry(0.045, 0.18, 4).translate(h.x, h.y + 1.14, h.z), rows, row, 5, UV.besi)
-      attach(data, new THREE.CylinderGeometry(0.03, 0.03, 0.04, 5).translate(h.x, h.y + 1.04, h.z), rows, row, 5, UV.emas)
+      const butt = Math.max(0.02, h.y - 0.02)
+      attach(data, geoWarna(tombakGeo(butt + 1.05, butt)).translate(h.x, h.y, h.z), rows, row, 5, null)
     } else {
-      // pedang di tangan kanan (bilah ke atas, condong ke depan) + perisai di tangan kiri
-      if (swordMesh) {
-        const g = swordMesh.geometry.clone()
-        g.applyMatrix4(_m.makeRotationX(Math.PI - 0.25))
-        g.translate(h.x, h.y + 0.02, h.z)
-        attach(data, g, rows, row, 5, null)
-      }
+      // pedang di tangan kanan (bilah ke atas, condong ke depan) + perisai layang di tangan kiri
+      attach(data, geoWarna(pedangGeo()).applyMatrix4(_m.makeRotationX(0.25)).translate(h.x, h.y + 0.01, h.z), rows, row, 5, null)
       const l = handAt(rig.skeleton, row, 4)
-      const s = shieldRect ? shieldRect.clone().scale(1.3, 1.3, 1.3) : new THREE.BoxGeometry(0.3, 0.38, 0.04)
-      s.translate(l.x + 0.02, l.y - 0.18, l.z + 0.07)
-      attach(data, s, rows, row, 4, shieldRect ? null : UV.kayu)
+      attach(data, geoWarna(perisaiGeo('hijauTua', 0.95)).translate(l.x + 0.01, l.y - 0.04, l.z + 0.05), rows, row, 4, null)
     }
     return { ...T, data, table: rig.table, map }
   })
@@ -182,13 +150,13 @@ function patrolRoutes(plan, nav) {
 
 const turn = (h, want, k) => h + Math.atan2(Math.sin(want - h), Math.cos(want - h)) * k
 
-// soldier: aset prajurit pemain ({ model, clips }); shieldRect: geometri perisai (bala.glb) atau null;
+// soldier: aset prajurit pemain ({ model, clips }) — rangka & klipnya dipakai;
 // plan: rencana kerajaan; spots: titik orang tetap (dipakai yang role 'penjaga')
-export function createSoldiers({ ground, colliders, nav, plan, spots, quality, soldier, shieldRect }) {
+export function createSoldiers({ ground, colliders, nav, plan, spots, quality, soldier }) {
   const group = new THREE.Group()
   group.name = 'prajurit-bertugas'
   const rows = []
-  const types = buildTypes(soldier, shieldRect, rows)
+  const types = buildTypes(soldier, rows)
   const bones = boneTexture(rows, 7)
 
   // --- jaringan jalan & wilayah tugas tiap ruas

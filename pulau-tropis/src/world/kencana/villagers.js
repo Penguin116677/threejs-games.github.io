@@ -1,10 +1,12 @@
 import * as THREE from 'three'
 import { clone as cloneSkinned } from 'three/addons/utils/SkeletonUtils.js'
-import { bakeRig, rigGeometry, bakedMatrix, attach, toBufferGeometry, boneTexture, animate, frameOf as clipFrame } from './rig.js'
+import { bakeRig, bakedMatrix, attach, toBufferGeometry, boneTexture, animate, frameOf as clipFrame } from './rig.js'
+import { buatRupa, paletteTexture, HAND, tombakGeo, geoWarna } from '../../tokoh/rupa.js'
 
 // Penduduk Kerajaan Kencana: ratusan orang berjalan di jalan-jalan kota, berdagang di pasar,
-// bertani, menjaga gerbang. Model: Kenney "Mini Characters" (CC0, penduduk.glb) + prajurit
-// Kenney "Mini Arena" (penjaga, membawa tombak). Supaya ringan di HP:
+// bertani, menjaga gerbang. Rupa: tokoh/rupa.js (rakyat jelata, pedagang beransel, raja, pendeta,
+// penjaga bertombak) di atas rangka & animasi Kenney "Mini Characters" (CC0, penduduk.glb) dan
+// "Mini Arena" (penjaga). Supaya ringan di HP:
 // - animasi rangka (7 tulang) DIPANGGANG sekali ke tekstur (rig.js), jadi semua orang sejenis
 //   digambar dalam SATU draw call (InstancedMesh), tanpa SkinnedMesh.
 // - hanya orang di sekitar kamera yang ditulis ke buffer instance (yang jauh tidak digambar).
@@ -19,10 +21,10 @@ const WALK_ANIM_SPEED = 1.4 // m/s yang cocok dengan klip walk pada kecepatan 1�
 const FADE = 0.25 // detik peralihan antar animasi
 const NEAR = 2.6 // m: menoleh & melambai ke prajurit
 const BODY = 0.35
-const TYPES = ['male-a', 'male-b', 'male-e', 'male-f', 'female-a', 'female-b', 'female-c', 'female-f']
-
-// uv blok warna di colormap Kenney (tata letak sama di Mini Characters & Mini Arena)
-const UV = { emas: [0.3125, 0.5625], kayu: [0.8125, 0.8125], besi: [0.4375, 0.8125] }
+// rakyat jelata: varian genap = pria, ganjil = wanita (nama jenis 'male-…' / 'female-…' dipakai
+// obrolan.js untuk menebak suara/sapaan); sebagian pejalan kaki adalah pedagang beransel
+const RAKYAT = 8
+const PEDAGANG = 0.12 // bagian pejalan kaki yang pedagang
 
 const _m = new THREE.Matrix4()
 
@@ -34,51 +36,30 @@ export function createVillagers({ ground, routes, spots, quality, villagerGltf, 
   group.name = 'penduduk'
   const rows = []
 
-  // --- rangka & geometri penduduk
+  // --- rangka & rupa penduduk (semua memakai satu tekstur palet)
   const villagerRig = bakeRig(villagerGltf.scene, villagerGltf.animations, rows, SPECS)
-  const meshesByName = {}
-  villagerGltf.scene.traverse(o => {
-    if (o.isSkinnedMesh) meshesByName[o.name.replace('character-', '')] = o
-  })
-  const colormap = Object.values(meshesByName)[0].material.map
+  const map = paletteTexture()
+  const { table } = villagerRig
   const types = []
-  for (const name of TYPES) {
-    const mesh = meshesByName[name]
-    if (!mesh) continue
-    types.push({ name, data: rigGeometry([mesh]), table: villagerRig.table, map: colormap })
-  }
-  // raja: pria berjanggut + mahkota emas di ubun-ubun (tulang kepala = 6), pose duduk
-  const king = rigGeometry([meshesByName['male-b']])
-  let top = 0
-  for (let i = 0; i < king.bone.length; i++) if (king.bone[i] === 6) top = Math.max(top, king.pos[i * 3 + 1])
-  const sitRow = villagerRig.table.sit.row
-  const headSit = bakedMatrix(rows, sitRow, 6)
-  const crownAt = new THREE.Vector3(0, top - 0.015, 0.02).applyMatrix4(headSit)
-  attach(king, new THREE.CylinderGeometry(0.17, 0.15, 0.07, 10, 1, true).translate(crownAt.x, crownAt.y + 0.035, crownAt.z), rows, sitRow, 6, UV.emas)
-  for (let i = 0; i < 5; i++) {
-    const a = (i / 5) * Math.PI * 2
-    attach(king, new THREE.ConeGeometry(0.035, 0.09, 4).translate(crownAt.x + Math.cos(a) * 0.16, crownAt.y + 0.11, crownAt.z + Math.sin(a) * 0.16), rows, sitRow, 6, UV.emas)
-  }
-  types.push({ name: 'raja', data: king, table: villagerRig.table, map: colormap })
+  for (let k = 0; k < RAKYAT; k++) types.push({ name: `${k % 2 ? 'female' : 'male'}-${k}`, data: buatRupa('rakyat', k), table, map })
+  types.push({ name: 'male-pedagang', data: buatRupa('pedagang', 0), table, map })
+  types.push({ name: 'male-pedagang-2', data: buatRupa('pedagang', 1), table, map })
+  types.push({ name: 'male-pendeta', data: buatRupa('pendeta'), table, map })
+  // raja: mahkota, janggut, jubah merah berkerah bulu (pose duduk di pendopo)
+  types.push({ name: 'raja', data: buatRupa('raja'), table, map })
 
-  // --- penjaga: prajurit Mini Arena + tombak di tangan kanan (tulang 5)
+  // --- penjaga (bila modul prajurit tidak ada): prajurit berhelm + tombak di tangan kanan (tulang 5)
   if (soldier) {
     const clone = cloneSkinned(soldier.model)
     const soldierRig = bakeRig(clone, soldier.clips, rows, SPECS)
-    const parts = []
-    clone.traverse(o => {
-      if (o.isSkinnedMesh) parts.push(o)
-    })
-    const data = rigGeometry(parts)
-    // tombak tegak di genggaman tangan kanan saat berdiri diam (pose idle bingkai pertama):
-    // tangan = ±(−0,265, 0, 0,07) di ruang tulang lengan kanan (sama dengan pedang pemain)
+    const data = buatRupa('jaga')
+    // tombak tegak di genggaman tangan kanan saat berdiri diam (pose idle bingkai pertama)
     const idleRow = soldierRig.table.idle.row
-    const hand = new THREE.Vector3(-0.265, 0, 0.068)
+    const hand = HAND[5].clone()
       .applyMatrix4(soldierRig.skeleton.boneInverses[5].clone().invert())
       .applyMatrix4(bakedMatrix(rows, idleRow, 5))
-    attach(data, new THREE.CylinderGeometry(0.016, 0.016, 1.3, 5).translate(hand.x, hand.y + 0.25, hand.z), rows, idleRow, 5, UV.kayu)
-    attach(data, new THREE.ConeGeometry(0.04, 0.16, 4).translate(hand.x, hand.y + 0.98, hand.z), rows, idleRow, 5, UV.besi)
-    types.push({ name: 'prajurit', data, table: soldierRig.table, map: parts[0].material.map, tint: new THREE.Color(1, 0.86, 0.68) })
+    attach(data, geoWarna(tombakGeo(1.3, 0.42)).translate(hand.x, hand.y, hand.z), rows, idleRow, 5, null)
+    types.push({ name: 'prajurit', data, table: soldierRig.table, map })
   }
 
   // --- tekstur tulang
@@ -87,9 +68,10 @@ export function createVillagers({ ground, routes, spots, quality, villagerGltf, 
   // --- orang-orang
   const agents = []
   const typeIndex = name => types.findIndex(t => t.name === name)
-  const villagerTypes = TYPES.map(typeIndex).filter(i => i >= 0)
-  const randomType = () => villagerTypes[Math.floor(Math.random() * villagerTypes.length)]
-  const ROLE = { penjaga: 'prajurit', raja: 'raja', pendeta: 'male-e' }
+  const villagerTypes = types.map((t, i) => (/^(male|female)-\d$/.test(t.name) ? i : -1)).filter(i => i >= 0)
+  const traders = [typeIndex('male-pedagang'), typeIndex('male-pedagang-2')]
+  const randomType = (trader = 0) => (Math.random() < trader ? traders[Math.floor(Math.random() * 2)] : villagerTypes[Math.floor(Math.random() * villagerTypes.length)])
+  const ROLE = { penjaga: 'prajurit', raja: 'raja', pendeta: 'male-pendeta', penjual: 'male-pedagang' }
   for (const s of spots) {
     let type = ROLE[s.role] ? typeIndex(ROLE[s.role]) : randomType()
     if (type < 0) type = randomType()
@@ -117,7 +99,7 @@ export function createVillagers({ ground, routes, spots, quality, villagerGltf, 
     }
     const [a, b, len] = Math.random() < 0.5 ? e : [e[1], e[0], e[2]]
     agents.push({
-      type: randomType(), fixed: false, from: a, to: b, len, s: Math.random() * len, side: Math.random() < 0.5 ? -1 : 1,
+      type: randomType(PEDAGANG), fixed: false, from: a, to: b, len, s: Math.random() * len, side: Math.random() < 0.5 ? -1 : 1,
       lat: 0.6 + Math.random() * 1.4, speed: 0.95 + Math.random() * 0.55, pause: 0, x: a.x, z: a.z, y: null, heading: 0,
       clip: 'walk', anim: 'walk', t: Math.random(), prev: null, prevT: 0, fade: 0, init: true,
     })
@@ -125,7 +107,7 @@ export function createVillagers({ ground, routes, spots, quality, villagerGltf, 
 
   for (let i = 0; i < scripted; i++)
     agents.push({
-      type: randomType(), fixed: false, scripted: true, hidden: true, x: 0, z: 0, y: null, heading: 0, speed: 1.2,
+      type: randomType(0.3), fixed: false, scripted: true, hidden: true, x: 0, z: 0, y: null, heading: 0, speed: 1.2,
       clip: 'idle', anim: 'idle', t: 0, prev: null, prevT: 0, fade: 0,
     })
 

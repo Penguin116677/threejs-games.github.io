@@ -1,13 +1,16 @@
 import * as THREE from 'three'
 import { clone as cloneSkinned } from 'three/addons/utils/SkeletonUtils.js'
 import { DIVISIONS, HEADING } from './barisan.js'
-import { bakeRig, rigGeometry, bakedMatrix, attach, toBufferGeometry, boneTexture, animate, frameOf, packMatrix } from './rig.js'
+import { bakeRig, bakedMatrix, attach, toBufferGeometry, boneTexture, animate, frameOf, packMatrix } from './rig.js'
+import { buatRupa, paletteTexture, HAND, tombakGeo, pedangGeo, perisaiGeo, busurGeo, kudaGeo, pelanaGeo, geoWarna } from '../../tokoh/rupa.js'
+import { uvWarna } from '../../tokoh/palet.js'
 
 // Bala tentara Kerajaan Kencana: 25.000 prajurit siap tempur di Tegal Wira (letaknya: barisan.js).
 // 25.000 model 3D beranimasi terlalu berat untuk HP (±14 juta segitiga), jadi ada dua tingkat:
-// - DEKAT: N prajurit terdekat dari pemain (Rendah 70 / Sedang 160 / Tinggi 320) memakai model
-//   Kenney "Mini Arena" beranimasi (rangka dipanggang, rig.js) lengkap dengan senjatanya —
-//   perisai, tombak, pedang, busur + tabung panah, atau kuda + tombak panjang.
+// - DEKAT: N prajurit terdekat dari pemain (Rendah 70 / Sedang 160 / Tinggi 320) memakai rupa
+//   prajurit (tokoh/rupa.js, versi ringan) di atas rangka Kenney "Mini Arena" beranimasi (rangka
+//   dipanggang, rig.js) lengkap dengan senjatanya — perisai layang, tombak, pedang, busur + tabung
+//   panah, atau kuda + tombak panjang.
 // - JAUH: semua prajurit lainnya digambar sebagai "impostor": setiap jenis prajurit dipotret SEKALI
 //   saat dimuat dari 16 arah × 4 sudut pandang ke satu atlas tekstur (dengan cahaya matahari yang
 //   sama), lalu tiap prajurit = satu kotak menghadap kamera yang memakai potret dari arah yang paling
@@ -32,11 +35,8 @@ const LEVEL = {
   tinggi: { near: 320, reach: 22, view: 55, cell: 112 },
 }
 
-// kotak warna palet colormap Kenney Mini Arena (8 × 8 kotak)
-const cell = (i, j) => [(i + 0.5) / 8, (j + 0.5) / 8]
-const UV = { kayu: cell(6, 6), kayuTua: cell(6, 7), besi: cell(3, 6), besiTua: cell(3, 7), putih: cell(4, 6), hitam: cell(1, 7), emas: cell(2, 4), emasTua: cell(2, 5), ungu: cell(7, 4) }
-// warna pasukan: jambul helm & sabuk (merah, kolom 4 baris 4–5) diganti kotak lain [kolom, baris]
-const DYE = [[4, 4], [5, 4], [1, 4], [2, 4], [4, 6], [7, 4]]
+// warna bernama (tokoh/palet.js)
+const UV = { kayu: uvWarna('kayu'), baja: uvWarna('baja'), emas: uvWarna('emas'), emasTua: uvWarna('emasTua'), ungu: uvWarna('ungu'), merah: uvWarna('merah') }
 
 // jenis prajurit: pose (klip idle + tulang lengan yang dikunci pada pose "memegang"), ukuran
 // potret impostor (m) dan tinggi titik tengahnya, ukuran bayangan kontak (setengah lebar, panjang)
@@ -53,18 +53,6 @@ const _m = new THREE.Matrix4()
 const _q = new THREE.Quaternion()
 const _v = new THREE.Vector3()
 const Y = new THREE.Vector3(0, 1, 0)
-
-// ganti kotak warna merah (jambul & sabuk) dengan warna pasukan
-function dye(data, [col, row]) {
-  for (let i = 0; i < data.uv.length; i += 2) {
-    const ci = Math.floor(data.uv[i] * 8)
-    const cj = Math.floor(data.uv[i + 1] * 8)
-    if (ci === 4 && (cj === 4 || cj === 5)) {
-      data.uv[i] = (col + 0.5) / 8
-      data.uv[i + 1] = (row + (cj - 4) + 0.5) / 8
-    }
-  }
-}
 
 // kotak tipis dari a ke b (ruang model), tebal w × d
 function stick(a, b, w, d = w) {
@@ -85,23 +73,13 @@ function worldGeometry(mesh, root) {
 // ------------------------------------------------------------------- rangka & bentuk tiap jenis
 function buildTypes(soldier, bala, rows) {
   const clone = cloneSkinned(soldier.model)
-  const skinned = []
-  clone.traverse(o => {
-    if (o.isSkinnedMesh) skinned.push(o)
-  })
-  const { map } = skinned[0].material
-  const swordMesh = soldier.model.userData.sword ? (() => {
-    let m = null
-    soldier.model.userData.sword.traverse(o => {
-      if (!m && o.isMesh) m = o
-    })
-    return m
-  })() : null
+  const map = paletteTexture()
   const out = []
+  // badan versi ringan (kerumunan)
+  const body = id => buatRupa(id, 0, { ringan: true })
 
-  // posisi tengah tangan (ruang model) pada bingkai `row`: tangan = ±(0,265, 0, 0,07) di ruang
-  // tulang lengan (5 = kanan, 4 = kiri)
-  const handAt = (skeleton, row, j) => new THREE.Vector3(j === 5 ? -0.265 : 0.265, 0, 0.068)
+  // posisi tengah genggaman (ruang model) pada bingkai `row` (5 = tangan kanan, 4 = kiri)
+  const handAt = (skeleton, row, j) => HAND[j].clone()
     .applyMatrix4(skeleton.boneInverses[j].clone().invert())
     .applyMatrix4(bakedMatrix(rows, row, j))
 
@@ -111,52 +89,26 @@ function buildTypes(soldier, bala, rows) {
     const rig = bakeRig(clone, soldier.clips, rows, { idle: { clip: 'idle', hold: T.hold } })
     const clip = rig.table.idle
     const { row } = clip
-    const data = rigGeometry(skinned)
-    dye(data, DYE[t])
+    const data = body(T.id)
     if (T.id === 'perisai') {
-      // perisai besar di tangan kiri, menghadap ke depan
+      // perisai layang besar di tangan kiri, menghadap ke depan + pedang di tangan kanan
       const h = handAt(rig.skeleton, row, 4)
-      const g = bala.shieldRect.clone().scale(1.5, 1.5, 1.5)
-      g.translate(h.x + 0.02, h.y - 0.22, h.z + 0.07)
-      attach(data, g, rows, row, 4, null)
+      attach(data, geoWarna(perisaiGeo('biru', 1.3)).translate(h.x + 0.01, h.y - 0.06, h.z + 0.06), rows, row, 4, null)
+      const r = handAt(rig.skeleton, row, 5)
+      attach(data, geoWarna(pedangGeo()).applyMatrix4(_m.makeRotationX(2.2)).translate(r.x, r.y, r.z), rows, row, 5, null)
     } else if (T.id === 'tombak') {
       // tombak tegak di tangan kanan, pangkalnya hampir di tanah
       const h = handAt(rig.skeleton, row, 5)
-      const butt = Math.max(0.02, h.y - 0.42)
-      attach(data, new THREE.CylinderGeometry(0.017, 0.017, h.y + 1.05 - butt, 5).translate(h.x, (butt + h.y + 1.05) / 2, h.z), rows, row, 5, UV.kayu)
-      attach(data, new THREE.ConeGeometry(0.045, 0.18, 4).translate(h.x, h.y + 1.14, h.z), rows, row, 5, UV.besi)
-      attach(data, new THREE.CylinderGeometry(0.03, 0.03, 0.04, 5).translate(h.x, h.y + 1.04, h.z), rows, row, 5, UV.emas)
-    } else if (T.id === 'pedang' && swordMesh) {
+      const butt = Math.max(0.02, h.y - 0.02)
+      attach(data, geoWarna(tombakGeo(butt + 1.05, butt)).translate(h.x, h.y, h.z), rows, row, 5, null)
+    } else if (T.id === 'pedang') {
       // pedang tegak di depan badan (bilah ke atas, sedikit condong ke depan)
       const h = handAt(rig.skeleton, row, 5)
-      const g = swordMesh.geometry.clone()
-      g.applyMatrix4(_m.makeRotationX(Math.PI - 0.25))
-      g.translate(h.x, h.y + 0.02, h.z)
-      attach(data, g, rows, row, 5, null)
+      attach(data, geoWarna(pedangGeo()).applyMatrix4(_m.makeRotationX(0.25)).translate(h.x, h.y + 0.01, h.z), rows, row, 5, null)
     } else if (T.id === 'pemanah') {
-      // busur tegak di tangan kiri (ujung-ujungnya melengkung ke belakang) + tali
+      // busur tegak di tangan kiri (tabung panah sudah ada di punggung rupanya)
       const h = handAt(rig.skeleton, row, 4)
-      const n = 6
-      const pts = []
-      for (let i = 0; i <= n; i++) {
-        const y = -0.36 + (0.72 * i) / n
-        pts.push(new THREE.Vector3(h.x, h.y + y, h.z + 0.02 - 0.1 * (y / 0.36) ** 2))
-      }
-      for (let i = 0; i < n; i++) attach(data, stick(pts[i], pts[i + 1], 0.026, 0.034), rows, row, 4, UV.kayuTua)
-      attach(data, stick(pts[0], pts[n], 0.008), rows, row, 4, UV.putih)
-      // tabung panah di punggung (tulang badan = 3) dengan bulu anak panah
-      const torso = 3
-      const base = new THREE.Vector3(0.07, 0.2, -0.17)
-      const top = new THREE.Vector3(0.13, 0.42, -0.2)
-      // posisi di ruang bind (punggung badan) → ruang model pada pose ini
-      const tm = bakedMatrix(rows, row, torso)
-      const a = base.clone().applyMatrix4(tm)
-      const b = top.clone().applyMatrix4(tm)
-      attach(data, stick(a, b, 0.09, 0.07), rows, row, torso, UV.kayuTua)
-      for (let k = 0; k < 4; k++) {
-        const o = new THREE.Vector3((k % 2) * 0.03 - 0.015, 0, Math.floor(k / 2) * 0.025 - 0.012)
-        attach(data, stick(b.clone().add(o), b.clone().add(o).add(new THREE.Vector3(0.025, 0.09, -0.01)), 0.016, 0.03), rows, row, torso, k % 2 ? UV.putih : UV.emas)
-      }
+      attach(data, geoWarna(busurGeo()).translate(h.x, h.y, h.z), rows, row, 4, null)
     }
     out.push({ ...T, data, clip, map })
   }
@@ -165,36 +117,24 @@ function buildTypes(soldier, bala, rows) {
   const mounted = bakeMounted(clone, soldier.clips, bala, rows)
   for (let t = 4; t < 6; t++) {
     const T = TYPES[t]
-    const data = rigGeometry(skinned)
+    const data = body(T.id)
     // geometri penunggang di ruang bind; dipindah ke pelana lewat matriks tulangnya (bakeMounted)
-    dye(data, DYE[t])
     const { row } = mounted.clip
-    // kuda: bagian-bagian kaku = tulang 7..14 (warna: kavaleri cokelat, senapati putih); geometri
-    // bagian ada di ruang diam, jadi diberi pose bingkai pertama dulu (attach membaliknya lagi)
-    mounted.parts.forEach((p, k) => {
-      const g = p.geometry.clone()
-      if (T.id === 'senapati') {
-        const { uv } = g.attributes
-        for (let i = 0; i < uv.count; i++) {
-          const col = Math.floor(uv.getX(i) * 8)
-          const line = Math.floor(uv.getY(i) * 8)
-          if (col === 1 && line === 7) continue // ekor tetap gelap
-          uv.setXY(i, ...(col === 1 ? cell(4, 7) : cell(4, 6)))
-        }
-      }
-      attach(data, g.applyMatrix4(bakedMatrix(rows, row, 7 + k)), rows, row, 7 + k, null)
-    })
-    // pelana: kain merah (senapati: ungu) di punggung kuda
-    const saddle = new THREE.BoxGeometry(0.34, 0.03, 0.36).translate(0, mounted.backY + 0.012, 0)
-    attach(data, saddle.applyMatrix4(bakedMatrix(rows, row, 7)), rows, row, 7, T.id === 'senapati' ? UV.ungu : cell(4, 4))
+    // kuda bulat (tokoh/rupa.js): bagian-bagian kaku = tulang 7..14 (kavaleri cokelat bersurai hitam,
+    // senapati putih bersurai kelabu); geometri bagian ada di ruang diam, jadi diberi pose bingkai
+    // pertama dulu (attach membaliknya lagi)
+    const horse = T.id === 'senapati' ? kudaGeo('putihKain', 'kelabuKain', 'bajaGelap') : kudaGeo('samak', 'rambutHitam', 'hitam')
+    horse.forEach((g, k) => attach(data, g.applyMatrix4(bakedMatrix(rows, row, 7 + k)), rows, row, 7 + k, null))
+    // pelana + kain merah (senapati: ungu) di punggung kuda
+    attach(data, pelanaGeo(T.id === 'senapati' ? 'ungu' : 'merah').applyMatrix4(bakedMatrix(rows, row, 7)), rows, row, 7, null)
     const h = mounted.hand
     if (T.id === 'kavaleri') {
       // tombak panjang, sedikit condong ke depan
       const a = new THREE.Vector3(h.x, h.y - 0.4, h.z - 0.08)
       const b = new THREE.Vector3(h.x, h.y + 1.6, h.z + 0.28)
       attach(data, stick(a, b, 0.032), rows, row, 5, UV.kayu)
-      const tip = b.clone().add(_v.subVectors(b, a).normalize().multiplyScalar(0.12))
-      attach(data, stick(b, tip, 0.06, 0.02), rows, row, 5, UV.besi)
+      const tip = b.clone().add(_v.subVectors(b, a).normalize().multiplyScalar(0.14))
+      attach(data, stick(b, tip, 0.06, 0.02), rows, row, 5, UV.baja)
     } else {
       // senapati: panji (tiang tinggi + bendera ungu-emas)
       const a = new THREE.Vector3(h.x, h.y - 0.3, h.z)
@@ -208,8 +148,9 @@ function buildTypes(soldier, bala, rows) {
   return out
 }
 
-// Kuda Kenney (8 bagian kaku) + penunggang. Bingkai: penunggang memakai pose "drive" (duduk, tangan
-// ke depan) di atas pelana; kuda "bernapas": leher & kepala naik-turun pelan, ekor mengibas.
+// Kuda (8 bagian kaku; titik putar leher, kepala & ekor dari rangka kuda Kenney, bentuknya kudaGeo di
+// tokoh/rupa.js) + penunggang. Bingkai: penunggang memakai pose "drive" (duduk, tangan ke depan) di
+// atas pelana; kuda "bernapas": leher & kepala naik-turun pelan, ekor mengibas.
 function bakeMounted(clone, clips, bala, rows) {
   const riderRows = []
   const tmp = bakeRig(clone, clips, riderRows, { drive: { clip: 'drive' } })
@@ -253,11 +194,9 @@ function bakeMounted(clone, clips, bala, rows) {
     rows.push(frame)
   }
   for (const k of ['neck', 'head', 'tail']) nodes[k].quaternion.copy(rest[k])
-  // geometri bagian kuda dalam ruang model (pose diam) — attach() memakai bingkai pertama
-  const parts = partNames.map((name, k) => ({ geometry: nodes[name].geometry.clone().applyMatrix4(restWorld[k]) }))
   // tangan kanan penunggang pada bingkai pertama (ruang model)
-  const hand = new THREE.Vector3(-0.265, 0, 0.068).applyMatrix4(skeleton.boneInverses[5].clone().invert()).applyMatrix4(bakedMatrix(rows, row0, 5))
-  return { clip: { row: row0, n, loop: true }, parts, hand, backY }
+  const hand = HAND[5].clone().applyMatrix4(skeleton.boneInverses[5].clone().invert()).applyMatrix4(bakedMatrix(rows, row0, 5))
+  return { clip: { row: row0, n, loop: true }, hand, backY }
 }
 
 // ------------------------------------------------------------------- atlas impostor

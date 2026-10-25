@@ -74,7 +74,7 @@ export function createSecurity({ soldiers, enemies, player, bubbles, message, vi
   const free = a => a.state === 'ronda' || a.state === 'jaga' || a.state === 'kembali'
   const hunting = a => a.state === 'serang' && a.order?.target === PLAYER
   const onDuty = a => a.state === 'ronda' || a.state === 'jaga'
-  const say = (a, text, ms = 2600) => bubbles.say(() => (soldiers.alive(a) ? { x: a.x, y: a.y + 2.2, z: a.z } : null), text, ms, `p${a.id}`)
+  const say = (a, text, ms = 2600) => bubbles.say(() => (soldiers.alive(a) ? { x: a.x, y: a.y + 1.8, z: a.z } : null), text, ms, `p${a.id}`)
   const pp = player.position
 
   function targetPos(target) {
