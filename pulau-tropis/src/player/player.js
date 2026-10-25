@@ -51,7 +51,7 @@ const WEAPON_GRIP = { hand: HAND[5].toArray(), blade: droopDir(5, new THREE.Vect
 // Pasang pedang pada tulang lengan kanan: ikut setiap animasi (ayunan lengan saat jalan/lari).
 function attachSword(model, material) {
   const weapon = new THREE.Mesh(geoWarna(pedangGeo()), material)
-  weapon.name = 'pedang'
+  weapon.name = 'weapon-sword' // nama lama (pedang Kenney) — dicari smoke test
   const blade = new THREE.Vector3().fromArray(WEAPON_GRIP.blade).normalize()
   weapon.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), blade)
   weapon.position.fromArray(WEAPON_GRIP.hand)

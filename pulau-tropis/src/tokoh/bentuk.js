@@ -202,7 +202,8 @@ export function slab(points, thick, bevel = 0) {
     depth: thick, bevelEnabled: bevel > 0, bevelThickness: bevel, bevelSize: bevel, bevelSegments: 1, curveSegments: 4,
   })
   g.translate(0, 0, -thick / 2)
-  return g.toNonIndexed()
+  // ExtrudeGeometry sudah tanpa indeks (toNonIndexed hanya akan memperingatkan)
+  return g.index ? g.toNonIndexed() : g
 }
 
 // gabungkan beberapa geometri (posisi + normal + indeks)
