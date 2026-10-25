@@ -6,9 +6,10 @@ import * as THREE from 'three'
 //    punggung bukit), warna 15-bit (32 tingkat per kanal, seperti konsol 16-bit) dengan dithering Bayer
 //    4×4 supaya gradasi langit & air pecah menjadi pola piksel, dan tanda sisi mana yang berbatasan
 //    dengan sesuatu yang jauh lebih jauh (dari kedalaman: tepi benda yang di depan);
-// 2. per piksel layar, ke kanvas seukuran layar: tiap piksel seni diperbesar menjadi k × k piksel layar
-//    (k BULAT: semua piksel seni sama besar dan tajam), garis tepi gelap TIPIS (±0,4 piksel seni,
-//    paling tipis 1 px layar) di sisi yang ditandai.
+// 2. per piksel kanvas (kanvas seukuran layar, atau lebih kecil bila tebal garis tepi mengizinkan — lihat
+//    setSize): tiap piksel seni diperbesar menjadi k × k piksel layar (k BULAT: semua piksel seni sama
+//    besar dan tajam), garis tepi gelap TIPIS (±0,4 piksel seni, paling tipis 1 px layar) di sisi yang
+//    ditandai.
 // Kanal alfa target dunia = penanda garis tepi (1 = boleh bergaris tepi, 0 = tidak, mis. helai rumput).
 
 // tebal garis tepi (bagian dari satu piksel seni); v0.15.0 memakai satu piksel seni penuh
@@ -125,8 +126,9 @@ void main() {
 }
 `
 
-// Tahap 2, per piksel layar (ke kanvas): piksel seni diperbesar k × k (nearest), garis tepi = pita
-// tipis selebar uLine di sisi yang ditandai tahap 1. Hanya satu baca tekstur per piksel layar.
+// Tahap 2, per piksel kanvas: piksel seni diperbesar uScale × uScale (nearest), garis tepi = pita tipis
+// selebar uLine (bagian dari piksel seni) di sisi yang ditandai tahap 1. Hanya satu baca tekstur per
+// piksel; piksel seni tanpa sisi bergaris tepi (sebagian besar layar) langsung disalin.
 const screenShader = /* glsl */`
 uniform sampler2D tArt;
 uniform vec2 uTexel;
@@ -138,10 +140,15 @@ uniform float uLevels;
 uniform float uDither;
 ${BAYER}
 void main() {
-  // piksel seni tempat piksel layar ini berada (ap) dan letaknya di dalam piksel seni itu (f, 0..1)
-  vec2 ap = floor(gl_FragCoord.xy / uScale);
-  vec2 f = gl_FragCoord.xy / uScale - ap;
+  // piksel seni tempat piksel kanvas ini berada (ap) dan letaknya di dalam piksel seni itu (f, 0..1)
+  vec2 p = gl_FragCoord.xy / uScale;
+  vec2 ap = floor(p);
   vec4 t = texture2D(tArt, (ap + 0.5) * uTexel);
+  if (t.a < 0.5 / 15.0) {
+    gl_FragColor = vec4(t.rgb, 1.0);
+    return;
+  }
+  vec2 f = p - ap;
   vec4 jump = mod(floor(floor(t.a * 15.0 + 0.5) / vec4(1.0, 2.0, 4.0, 8.0)), 2.0);
   vec4 band = vec4(step(f.x, uLine), step(1.0 - uLine, f.x), step(f.y, uLine), step(1.0 - uLine, f.y));
   vec4 lines = jump * band;
@@ -206,30 +213,37 @@ export function createPixelRenderer(renderer, { pixelSize = 2 } = {}) {
   const screenScene = pass(screenShader)
   const postCamera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1)
 
-  const size = { w: 4, h: 4, scale: 1 }
+  const size = { w: 4, h: 4, scale: 1, canvas: 1 }
   return {
     uniforms,
     size,
+    passes: { art: artScene, screen: screenScene }, // pengujian: shader tiap tahap
     get target() {
       return target
     },
-    // ukuran layar (px CSS) → ukuran gambar (piksel seni); kanvas seukuran piksel layar, tahap 2
-    // membesarkan tiap piksel seni dengan skala bulat k
+    // ukuran layar (px CSS) → ukuran gambar (piksel seni). Tiap piksel seni = k × k px layar (k bulat):
+    // tahap 2 menggambarnya c × c px kanvas, lalu browser membesarkan kanvas m × m tanpa penghalusan
+    // (k = c · m). m > 1 hanya bila garis tepi tetap tepat setebal px layarnya (m membagi k dan tebal
+    // garis) — gambarnya sama, piksel kanvas m² kali lebih sedikit (mis. Rendah & Tinggi di Pixel 7)
     setSize(cssW, cssH) {
       const dpr = window.devicePixelRatio || 1
       const k = Math.max(1, Math.round(pixelSize * dpr)) // px layar per piksel seni
+      const line = Math.max(1, Math.round(k * LINE)) // tebal garis tepi (px layar)
+      let m = 1
+      for (let d = 2; d <= line; d++) if (k % d === 0 && line % d === 0) m = d
+      const c = k / m // px kanvas per piksel seni
       const w = Math.max(1, Math.ceil((cssW * dpr) / k))
       const h = Math.max(1, Math.ceil((cssH * dpr) / k))
       renderer.setPixelRatio(1)
-      renderer.setSize(w * k, h * k, false)
+      renderer.setSize(w * c, h * c, false)
       canvas.style.width = `${(w * k) / dpr}px`
       canvas.style.height = `${(h * k) / dpr}px`
       target.setSize(w, h)
       artTarget.setSize(w, h)
       uniforms.uTexel.value.set(1 / w, 1 / h)
-      uniforms.uScale.value = k
-      uniforms.uLine.value = Math.max(1, Math.round(k * LINE)) / k
-      Object.assign(size, { w, h, scale: k / dpr })
+      uniforms.uScale.value = c
+      uniforms.uLine.value = line / k
+      Object.assign(size, { w, h, scale: k / dpr, canvas: c })
       return size
     },
     render(scene, camera) {
