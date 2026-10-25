@@ -3,9 +3,11 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js'
 import { ISLAND } from '../world/island.js'
 import { insideWorld } from '../world/world.js'
 import { ATTACK_CLIPS, createCombat } from './combat.js'
+import { buatRupa, splitData, skinnedFrom, paletteTexture, HAND, droopDir, pedangGeo, geoWarna } from '../tokoh/rupa.js'
 
-// Karakter pemain: prajurit Kenney "Mini Arena" (CC0) membawa pedang, dengan animasi bawaan
-// idle / walk / sprint / jump / fall + animasi serang (tebasan, tinju, tendangan — lihat combat.js).
+// Karakter pemain: pendekar berzirah ringan bersyal merah (tokoh/rupa.js) di atas rangka & animasi
+// Kenney "Mini Arena" (CC0): idle / walk / sprint / jump / fall + animasi serang (tebasan, tinju,
+// tendangan — lihat combat.js).
 // Bergerak dengan joystick / keyboard (relatif kamera) atau mengikuti jalur ke kios yang diketuk,
 // dengan fisika sederhana: gravitasi, lompat, batas kemiringan lereng, tabrakan batang pohon, batu &
 // dinding bangunan, berpijak di tanah atau lantai bangunan (jembatan, dermaga, batur —
@@ -14,7 +16,7 @@ import { ATTACK_CLIPS, createCombat } from './combat.js'
 // Nyawa: berkurang bila terkena serangan (prajurit Kencana yang bermusuhan, orc penyerbu), pulih
 // perlahan setelah beberapa detik aman; habis = roboh (main.js memindahkan pemain ke tempat aman).
 
-const MODEL_SCALE = 2.3 // tinggi model asli ±0,67 (tanpa jambul helm) → ±1,55 m
+const MODEL_SCALE = 2.3 // satuan model Kenney → m (rupa baru ±0,55 tinggi → ±1,27 m)
 const RADIUS = 0.35 // jari-jari badan untuk tabrakan
 const WALK_SPEED = 2.0 // m/s
 const RUN_SPEED = 5.6
@@ -41,43 +43,60 @@ export const MAX_HP = 100
 const REGEN = { delay: 6, rate: 5 } // pulih 5 nyawa/detik setelah 6 detik tidak terkena
 
 // Pedang di tangan kanan, dalam ruang lokal tulang lengan kanan (satuan model asli).
-// hand = pusat balok tangan (dihitung dari data skin model); blade = arah bilah:
-// ke depan dan sedikit searah lengan, jadi saat lengan turun bilah menunjuk ke depan-bawah.
-const WEAPON_GRIP = { hand: [-0.265, 0, 0.068], blade: [-0.45, 0, 0.9], grip: 0.05 }
+// hand = tengah genggaman (rupa.js); blade = arah bilah: ke depan dan sedikit searah lengan (ikut
+// juntaian lengan), jadi saat lengan turun bilah menunjuk ke depan-bawah.
+const WEAPON_GRIP = { hand: HAND[5].toArray(), blade: droopDir(5, new THREE.Vector3(-0.45, 0, 0.9)).toArray() }
 
-// source / weaponSource: URL file .glb, atau isi file-nya (ArrayBuffer) — yang kedua dipakai
-// halaman pratinjau yang tidak bisa menyajikan file .glb. Senjata boleh tidak ada / gagal dimuat.
 // Pasang pedang pada tulang lengan kanan: ikut setiap animasi (ayunan lengan saat jalan/lari).
-async function attachWeapon(model, load, weaponSource) {
-  try {
-    const weapon = (await load(weaponSource)).scene
-    // bilah model pedang mengarah ke −y; gagang ±0,05 di atas pelindung tangan (titik asal)
-    const blade = new THREE.Vector3().fromArray(WEAPON_GRIP.blade).normalize()
-    weapon.quaternion.setFromUnitVectors(new THREE.Vector3(0, -1, 0), blade)
-    weapon.position.fromArray(WEAPON_GRIP.hand).addScaledVector(blade, WEAPON_GRIP.grip)
-    model.getObjectByName('arm-right')?.add(weapon)
-    // diputar saat jurus Hentak (pedang menghadap ke bawah). Tidak "enumerable": Object3D.clone
-    // menyalin userData lewat JSON, dan menyalin pedang (+ teksturnya) ke JSON itu lambat
-    Object.defineProperty(model.userData, 'sword', { value: weapon, enumerable: false })
-  } catch (err) {
-    console.warn('Senjata gagal dimuat:', err)
-  }
+function attachSword(model, material) {
+  const weapon = new THREE.Mesh(geoWarna(pedangGeo()), material)
+  weapon.name = 'pedang'
+  const blade = new THREE.Vector3().fromArray(WEAPON_GRIP.blade).normalize()
+  weapon.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), blade)
+  weapon.position.fromArray(WEAPON_GRIP.hand)
+  model.getObjectByName('arm-right')?.add(weapon)
+  // diputar saat jurus Hentak (pedang menghadap ke bawah). Tidak "enumerable": Object3D.clone
+  // menyalin userData lewat JSON, dan menyalin pedang ke JSON itu lambat
+  Object.defineProperty(model.userData, 'sword', { value: weapon, enumerable: false })
 }
 
-export async function loadPlayerModel(source, quality, weaponSource = null) {
+// Ganti badan kotak Kenney dengan badan rupa (dua mesh seperti aslinya: badan & kepala — kepala orc
+// bisa terlepas saat jurus Penggal), terikat pada rangka yang sama.
+function replaceBody(model, rupa, material) {
+  const old = []
+  model.traverse(o => {
+    if (o.isSkinnedMesh) old.push(o)
+  })
+  const { skeleton } = old[0]
+  const data = buatRupa(rupa)
+  const body = skinnedFrom(splitData(data, b => b !== 6), skeleton, material)
+  const head = skinnedFrom(splitData(data, b => b === 6), skeleton, material)
+  body.name = 'body-mesh'
+  head.name = 'head-mesh'
+  const { parent } = old[0]
+  for (const o of old) {
+    o.parent.remove(o)
+    o.geometry.dispose()
+    o.material.dispose()
+  }
+  parent.add(body, head)
+}
+
+// source: URL file .glb (rangka & animasi Kenney), atau isi file-nya (ArrayBuffer) — yang kedua dipakai
+// halaman pratinjau yang tidak bisa menyajikan file .glb. rupa = nama rupa badan (tokoh/rupa.js);
+// pedang = pasang pedang di tangan kanan.
+export async function loadPlayerModel(source, quality, { rupa = 'pemain', pedang = false } = {}) {
   const loader = new GLTFLoader()
-  const load = src => (typeof src === 'string' ? loader.loadAsync(src) : loader.parseAsync(src, ''))
-  const gltf = await load(source)
+  const gltf = await (typeof source === 'string' ? loader.loadAsync(source) : loader.parseAsync(source, ''))
   const model = gltf.scene
   model.scale.setScalar(MODEL_SCALE)
-  if (weaponSource) await attachWeapon(model, load, weaponSource)
+  // Lambert + palet karakter: sama dengan dunia (ringan, warnanya senada)
+  const material = new THREE.MeshLambertMaterial({ map: paletteTexture() })
+  replaceBody(model, rupa, material)
+  if (pedang) attachSword(model, material)
 
   model.traverse(o => {
     if (!o.isMesh) return
-    // Lambert: sama dengan dunia (lebih ringan dan warnanya senada)
-    const old = o.material
-    o.material = new THREE.MeshLambertMaterial({ map: old.map })
-    old.dispose()
     o.castShadow = quality.shadows
     o.receiveShadow = quality.shadows
     o.frustumCulled = false // batas skinned mesh tidak ikut animasi
@@ -578,7 +597,7 @@ export function createPlayer({ ground, colliders, quality, asset }) {
         root.updateMatrixWorld(true)
         return rodTip.getWorldPosition(out)
       }
-      return out.set(pos.x + Math.sin(heading) * 0.6, pos.y + 1.6, pos.z + Math.cos(heading) * 0.6)
+      return out.set(pos.x + Math.sin(heading) * 0.6, pos.y + 1.35, pos.z + Math.cos(heading) * 0.6)
     },
     // putar satu gerakan sekali (mis. melempar kail, mengangkat ikan)
     gesture(name, seconds = 0) {

@@ -1,7 +1,8 @@
 import * as THREE from 'three'
 import { clone as cloneSkinned } from 'three/addons/utils/SkeletonUtils.js'
 
-// Musuh: orc (Kenney "Mini Dungeon" 2.0, CC0) — rig & animasi sama persis dengan prajurit.
+// Musuh: orc berkulit hijau, bertaring, berbahu duri (tokoh/rupa.js) di atas rangka & animasi Kenney
+// "Mini Dungeon" 2.0 (CC0) — rig & animasi sama persis dengan prajurit; badannya 1,2 × lebih besar.
 // - Berkelompok 5 ekor di beberapa perkemahan (satu ±16 m di depan titik mulai). Berkeliaran pelan
 //   di sekitar perkemahan dan menoleh ke prajurit bila dekat. Belum menyerang (belum ada nyawa
 //   pemain).
@@ -27,7 +28,8 @@ const DEAD_TIME = 2.6 // detik terbaring sebelum tenggelam
 const SINK_TIME = 1.0
 const RESPAWN = 15 // detik setelah hilang
 const PER_CAMP = 5
-const HEAD_Y = 1.3 // m: tinggi pusat kepala (kepala besar: leher ±0,8 m, ubun-ubun ±1,8 m)
+const SIZE = 1.2 // orc lebih besar dari manusia
+const HEAD_Y = 1.04 * SIZE // m: tinggi pusat kepala (leher ±0,95 m, ubun-ubun ±1,55 m)
 const RAID = { size: 3, speed: 2.4, sight: 7, reach: 1.3, hit: 0.24, dur: 0.42, linger: 25, view: 150 }
 const RAID_GOAL = { x: -425, z: 40 } // tepat di dalam gerbang timur Kotaraja Kencana
 // perahu perang: lintasan di garis z (utara Dermaga Timur & Dermaga Barat), kecepatan (m/s), tempat
@@ -107,6 +109,7 @@ export function createEnemies({ ground, colliders, nav, asset, spawn, shipMesh =
     const root = new THREE.Group()
     root.name = 'orc'
     const model = cloneSkinned(asset.model)
+    model.scale.multiplyScalar(SIZE)
     const materials = []
     model.traverse(o => {
       if (!o.isMesh) return
@@ -717,7 +720,7 @@ export function createEnemies({ ground, colliders, nav, asset, spawn, shipMesh =
         e.barTime -= dt
         e.bar.visible = near && e.state === 'hidup' && e.barTime > 0
         if (e.bar.visible) {
-          e.bar.position.set(e.pos.x, e.pos.y + 2.05, e.pos.z)
+          e.bar.position.set(e.pos.x, e.pos.y + 1.7 * SIZE, e.pos.z)
           e.bar.quaternion.copy(camera.quaternion)
           const f = Math.max(0, e.hp / MAX_HP)
           e.fill.scale.set(f, 0.13, 1)

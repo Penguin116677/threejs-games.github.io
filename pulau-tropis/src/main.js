@@ -245,14 +245,14 @@ async function start() {
   const modelUrl = name => new URL(`models/${name}`, document.baseURI).href
   let asset = null
   try {
-    asset = await loadPlayerModel(modelUrl('prajurit.glb'), quality, modelUrl('pedang.glb'))
+    asset = await loadPlayerModel(modelUrl('prajurit.glb'), quality, { rupa: 'pemain', pedang: true })
   } catch (err) {
     console.warn('Model karakter gagal dimuat:', err)
   }
   // musuh orc (model terpisah; bila gagal dimuat, game tetap jalan tanpa musuh)
   let orcAsset = null
   try {
-    orcAsset = await loadPlayerModel(modelUrl('orc.glb'), quality)
+    orcAsset = await loadPlayerModel(modelUrl('orc.glb'), quality, { rupa: 'orc' })
   } catch (err) {
     console.warn('Model musuh gagal dimuat:', err)
   }
@@ -271,7 +271,7 @@ async function start() {
   let soldiers = null
   if (asset)
     try {
-      soldiers = createSoldiers({ ground, colliders, nav, plan, spots: kencana.spots, quality, soldier: asset, shieldRect: bala?.shieldRect ?? null })
+      soldiers = createSoldiers({ ground, colliders, nav, plan, spots: kencana.spots, quality, soldier: asset })
       scene.add(soldiers.object)
     } catch (err) {
       console.warn('Prajurit penjaga gagal dibuat:', err)

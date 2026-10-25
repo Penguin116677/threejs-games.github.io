@@ -15,7 +15,7 @@ const PITCH_DEFAULT = 0.36 // ±21° dari bidang datar
 const DIST_MIN = 2.8
 const DIST_MAX = 18
 const DIST_DEFAULT = 8.2
-const LOOK_HEIGHT = 1.5 // titik putar kamera: sekitar bahu karakter (tinggi badan ±1,55 m)
+const LOOK_HEIGHT = 1.3 // titik putar kamera: setinggi kepala karakter (tinggi badan ±1,3 m)
 const LIFT = 0.06 // titik yang dilihat sedikit di atas kepala (× jarak): karakter agak di bawah tengah layar
 const SHAKE_TIME = 0.3 // detik
 
