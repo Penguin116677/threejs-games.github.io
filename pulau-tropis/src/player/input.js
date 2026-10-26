@@ -4,7 +4,8 @@
 //   (kiri-kanan & naik-turun), cubit dua jari untuk zoom. Tombol Pukul (kombo), 4 tombol jurus,
 //   Lompat. Ketuk elf / kios untuk memilihnya.
 // - Komputer: WASD/panah untuk berjalan (Shift = pelan), seret mouse untuk memutar kamera, roda
-//   untuk zoom, klik untuk memilih, F untuk memukul, 1–4 (atau Q/E/R/T) untuk jurus, Spasi lompat.
+//   untuk zoom, klik untuk memilih, F untuk memukul, 1–4 (atau Q/E/R/T) untuk jurus, Spasi lompat
+//   (di depan tepi dek / batur yang bisa dipanjat: memanjat).
 // Ketukan dibedakan dari geseran: jari bergerak < TAP_MOVE px dan dilepas < TAP_TIME ms.
 // Dibaca sekali per frame lewat read().
 

@@ -3,7 +3,7 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js'
 import { ISLAND } from '../world/island.js'
 import { insideWorld } from '../world/world.js'
 import { ATTACK_CLIPS, createCombat } from './combat.js'
-import { buatRupa, splitData, skinnedFrom, paletteTexture, HAND, droopDir, pedangGeo, geoWarna } from '../tokoh/rupa.js'
+import { buatRupa, splitData, skinnedFrom, paletteTexture, HAND, droopDir, armDir, pedangGeo, geoWarna } from '../tokoh/rupa.js'
 import { skeletonOf } from '../world/kencana/rig.js'
 
 // Karakter pemain: pendekar berzirah ringan bersyal merah (tokoh/rupa.js) di atas rangka & animasi
@@ -21,13 +21,23 @@ const MODEL_SCALE = 2.3 // satuan model Kenney → m (rupa baru ±0,55 tinggi �
 const RADIUS = 0.35 // jari-jari badan untuk tabrakan
 const WALK_SPEED = 2.0 // m/s
 const RUN_SPEED = 5.6
+// percepatan: menuju kecepatan tujuan secepat-cepatnya ACCEL m/s², lalu melambat halus menjelang
+// kecepatan itu (EASE per detik) — tidak menyentak saat mulai, berhenti, atau berganti laju
 const ACCEL_GROUND = 26
 const ACCEL_AIR = 8
+const EASE = 9
 const GRAVITY = 21
 const JUMP_SPEED = 7.2 // lompatan ±1,2 m
 const COYOTE_TIME = 0.12 // masih boleh lompat sesaat setelah meninggalkan tanah
 const JUMP_BUFFER = 0.15 // tombol lompat yang ditekan sesaat sebelum mendarat tetap dihitung
 const MAX_SLOPE = 1.3 // kemiringan maksimum yang bisa didaki (±52°)
+// lantai bangunan (dek dermaga, batur, lantai jembatan): dilangkahi bila tepinya paling tinggi
+// STEP_UP m di atas kaki; lebih tinggi = penghalang, dan bila paling tinggi CLIMB_MAX m (dek dermaga
+// dari air: ±2,8 m) bisa DIPANJAT (tombol Panjat / Spasi)
+const STEP_UP = 0.45
+const CLIMB_MAX = 2.95
+const CLIMB_REACH = 0.55 // m dari badan ke tepi: tombol Panjat muncul
+const CLIMB_IN = 0.6 // m ke dalam lantai dari tepinya: tempat berdiri setelah memanjat
 const WADE_DEPTH = 0.35 // mulai melambat di air
 // berenang: mulai bila air lebih dalam dari SWIM_DEPTH (sedada), kembali berjalan di bawah SWIM_EXIT
 // (jeda supaya tidak bolak-balik di batasnya)
@@ -42,6 +52,12 @@ const SWIM_TILT = 1.25
 const WORLD_MARGIN = 30 // m dari tepi dunia (data laut & pantai berakhir di sana)
 export const MAX_HP = 100
 const REGEN = { delay: 6, rate: 5 } // pulih 5 nyawa/detik setelah 6 detik tidak terkena
+
+const smooth = (a, b, x) => {
+  const t = Math.min(1, Math.max(0, (x - a) / (b - a)))
+  return t * t * (3 - 2 * t)
+}
+const wrap = a => Math.atan2(Math.sin(a), Math.cos(a))
 
 // Pedang di tangan kanan, dalam ruang lokal tulang lengan kanan (satuan model asli).
 // hand = tengah genggaman (rupa.js); blade = arah bilah: ke depan dan sedikit searah lengan (ikut
@@ -115,7 +131,10 @@ export function createPlayer({ ground, colliders, quality, asset }) {
   const model = asset ? asset.model : fallbackModel(quality)
   root.add(model)
 
-  // --- animasi
+  // --- animasi. Klip-klip dicampur dengan bobot yang bergerak halus menuju sasarannya (lapisan yang
+  // bertukar), jadi tidak ada peralihan yang patah. Lapisan GERAK = campuran diam / jalan / lari
+  // menurut kecepatan, dan jalan & lari berbagi satu fase langkah: saat laju berubah, kaki tidak
+  // meloncat dari satu klip ke klip lain.
   const mixer = asset ? new THREE.AnimationMixer(model) : null
   const actions = {}
   // lompat & serangan diputar sekali lalu berhenti di pose akhir sampai berganti animasi
@@ -133,15 +152,74 @@ export function createPlayer({ ground, colliders, quality, asset }) {
       }
       actions[name] = a
     }
-  let current = null
+  const GERAK = 'gerak'
+  const LOCO = { idle: 1, walk: 0, sprint: 0 } // bobot di dalam lapisan gerak
+  const layers = [] // [{ key, w }]: yang terakhir = tujuan peralihan
+  let fadeRate = 1 / 0.15 // per detik
+  let mainKey = null
+  let current = null // aksi lapisan tujuan (null = lapisan gerak)
+  let gait = 0 // fase langkah bersama jalan & lari (0..1)
+  // berganti ke klip `name` (atau GERAK) dalam `fade` detik
   function play(name, fade = 0.15) {
-    const next = actions[name]
-    if (!next || current === next) return
-    next.reset().play()
-    if (current) next.crossFadeFrom(current, fade, false)
-    current = next
+    if (name === mainKey || (name !== GERAK && !actions[name])) return
+    mainKey = name
+    fadeRate = 1 / Math.max(0.02, fade)
+    let layer = layers.find(l => l.key === name)
+    if (layer) layers.splice(layers.indexOf(layer), 1)
+    else layer = { key: name, w: layers.length ? 0 : 1 }
+    layers.push(layer)
+    current = actions[name] || null
+    if (current) {
+      current.reset()
+      current.timeScale = 1
+    }
   }
-  play('idle')
+  const want = {}
+  // bobot lapisan → bobot tiap aksi; hs = kecepatan datar (m/s) untuk campuran gerak
+  function blend(dt, hs) {
+    if (!mixer || !layers.length) return
+    const top = layers[layers.length - 1]
+    top.w = Math.min(1, top.w + dt * fadeRate)
+    let rest = 0
+    for (let i = 0; i < layers.length - 1; i++) rest += layers[i].w
+    const k = rest > 1e-6 ? (1 - top.w) / rest : 0
+    for (let i = layers.length - 2; i >= 0; i--) {
+      layers[i].w *= k
+      if (layers[i].w < 0.002) layers.splice(i, 1)
+    }
+    // diam → jalan (0,12–0,85 m/s) → lari (2,7–4,3 m/s); satu putaran langkah (dua langkah) ±0,93 m
+    // saat berjalan, ±1,8 m saat berlari
+    const move = smooth(0.12, 0.85, hs)
+    const run = smooth(2.7, 4.3, hs)
+    LOCO.idle = 1 - move
+    LOCO.walk = move * (1 - run)
+    LOCO.sprint = move * run
+    gait = (gait + dt * THREE.MathUtils.clamp(hs / (0.93 + 0.87 * run), 0.9, 3.3)) % 1
+    for (const n in actions) want[n] = 0
+    let loco = 0
+    for (const l of layers)
+      if (l.key === GERAK) {
+        loco += l.w
+        for (const n in LOCO) if (n in want) want[n] += l.w * LOCO[n]
+      } else want[l.key] += l.w
+    for (const n in actions) {
+      const a = actions[n]
+      if (want[n] > 0.002) {
+        if (!a.isScheduled()) a.play()
+        a.setEffectiveWeight(want[n])
+      } else if (a.isScheduled()) a.stop()
+    }
+    // jalan & lari di lapisan gerak: waktu klip mengikuti fase langkah bersama (berenang memakai
+    // klip jalan / lari sendiri dengan lajunya sendiri)
+    if (loco > 0)
+      for (const n of ['walk', 'sprint']) {
+        const a = actions[n]
+        if (!a || mainKey === n) continue
+        a.timeScale = 0
+        a.time = gait * a.getClip().duration
+      }
+  }
+  play(GERAK, 0)
 
   // --- bayangan bulat sederhana di bawah kaki (tingkat Rendah tidak punya bayangan matahari)
   let blob = null
@@ -213,14 +291,62 @@ export function createPlayer({ ground, colliders, quality, asset }) {
     return { dx: dx / d, dz: dz / d, speed }
   }
 
-  // arah naik lereng (gradien tinggi tanah)
+  // arah naik lereng TANAH (lantai bangunan datar / landai; tepinya bukan lereng melainkan tepi
+  // yang dilangkahi atau dipanjat — lihat blockLedges)
   const grad = { x: 0, z: 0, len: 0 }
   function gradient(x, z) {
     const e = 0.5
-    grad.x = (ground.surfaceAt(x + e, z) - ground.surfaceAt(x - e, z)) / (2 * e)
-    grad.z = (ground.surfaceAt(x, z + e) - ground.surfaceAt(x, z - e)) / (2 * e)
+    grad.x = (ground.heightAt(x + e, z) - ground.heightAt(x - e, z)) / (2 * e)
+    grad.z = (ground.heightAt(x, z + e) - ground.heightAt(x, z - e)) / (2 * e)
     grad.len = Math.hypot(grad.x, grad.z)
     return grad
+  }
+  // pijakan di (x, z) untuk kaki setinggi y: tanah, atau lantai yang bisa dilangkahi
+  const support = (x, z, y) => ground.supportAt(x, z, y, STEP_UP)
+
+  // tepi lantai (dek dermaga, batur, lantai jembatan) yang terlalu tinggi untuk dilangkahi dari
+  // kaki setinggi footY = dinding: badan didorong keluar dari kotaknya (dulu langsung terangkat ke
+  // atas dek lalu tersangkut di tepinya)
+  const hit = { gap: 0, nx: 0, nz: 0, px: 0, pz: 0 }
+  function blockLedges(footY) {
+    ground.forEachSurfaceNear(pos.x, pos.z, RADIUS, s => {
+      colliders.probe(s, pos.x, pos.z, hit)
+      if (hit.gap >= RADIUS) return
+      // sudah di atas lantai ini dan lantai di bawah kaki masih selangkah (mis. di tengah tangga):
+      // tepinya bukan penghalang — tanpa ini puncak tangga, yang lebih tinggi dari selangkah dari
+      // kaki, "mendorong" pemain keluar menembus tangga
+      if (hit.gap < 0 && ground.surfaceHeight(s, pos.x, pos.z) <= footY + STEP_UP) return
+      const h = ground.surfaceHeight(s, hit.px - hit.nx * 0.02, hit.pz - hit.nz * 0.02)
+      if (h <= footY + STEP_UP) return
+      pos.x += hit.nx * (RADIUS - hit.gap)
+      pos.z += hit.nz * (RADIUS - hit.gap)
+      const vn = vel.x * hit.nx + vel.z * hit.nz
+      if (vn < 0) {
+        vel.x -= vn * hit.nx
+        vel.z -= vn * hit.nz
+      }
+    })
+  }
+  // tepi yang bisa DIPANJAT di depan (arah dx, dz): paling jauh CLIMB_REACH m dari badan, STEP_UP–
+  // CLIMB_MAX m di atas kaki, dan CLIMB_IN m di dalamnya ada tempat berdiri yang lapang
+  function findClimb(dx, dz) {
+    let best = null
+    ground.forEachSurfaceNear(pos.x, pos.z, RADIUS + CLIMB_REACH, s => {
+      colliders.probe(s, pos.x, pos.z, hit)
+      if (hit.gap < 0 || hit.gap > RADIUS + CLIMB_REACH) return
+      if (-hit.nx * dx - hit.nz * dz < 0.45) return // tidak menghadap tepinya
+      const ex = hit.px - hit.nx * 0.02
+      const ez = hit.pz - hit.nz * 0.02
+      const rise = ground.surfaceHeight(s, ex, ez) - pos.y
+      if (!(rise > STEP_UP && rise <= CLIMB_MAX)) return
+      const lx = hit.px - hit.nx * CLIMB_IN
+      const lz = hit.pz - hit.nz * CLIMB_IN
+      const top = ground.surfaceHeight(s, lx, lz)
+      if (!(Math.abs(top - pos.y - rise) < 0.35) || ground.surfaceAt(lx, lz) > top + 0.3 || !colliders.isFree(lx, lz, RADIUS)) return
+      if (!best || hit.gap < best.gap)
+        best = { gap: hit.gap, x: lx, y: top, z: lz, ex: hit.px, ez: hit.pz, nx: hit.nx, nz: hit.nz, heading: Math.atan2(-hit.nx, -hit.nz) }
+    })
+    return best
   }
 
   function placeAt(x, z, h) {
@@ -295,11 +421,107 @@ export function createPlayer({ ground, colliders, quality, asset }) {
     rod.quaternion.copy(qArm.invert().multiply(qRod))
   }
 
-  // berenang maju: model dimiringkan ke depan (mendatar) dan digeser ke belakang supaya badannya
-  // tetap di atas titik letak pemain; mengapung tegak = pose biasa
-  function setSwimPose(k) {
-    model.rotation.x = k * SWIM_TILT
-    model.position.z = -k * 0.55
+  // --- bentuk badan tiap frame (ditumpangkan di atas animasi):
+  // - berenang maju: dimiringkan mendatar dan digeser ke belakang supaya badan tetap di atas titik
+  //   letak pemain (mengapung tegak = pose biasa);
+  // - condong ke depan saat menambah laju / berlari kencang, miring ke dalam tikungan;
+  // - tarik-tekan (pegas teredam): memanjang saat menolak untuk melompat, memendek saat mendarat;
+  // - direndahkan (kuda-kuda jurus Hentak).
+  let leanF = 0
+  let leanS = 0
+  let prevFwd = 0
+  let prevHeading = 0
+  let sq = 0 // > 0 memanjang, < 0 memendek
+  let sqV = 0
+  let crouchY = 0
+  function shape(dt, hs, onFoot) {
+    const fwd = vel.x * Math.sin(heading) + vel.z * Math.cos(heading)
+    const acc = dt > 0 ? (fwd - prevFwd) / dt : 0
+    const yawRate = dt > 0 ? wrap(heading - prevHeading) / dt : 0
+    prevFwd = fwd
+    prevHeading = heading
+    const k = 1 - Math.exp(-8 * dt)
+    const wantF = onFoot ? THREE.MathUtils.clamp(acc * 0.009, -0.09, 0.09) + 0.05 * smooth(3, RUN_SPEED, hs) : 0
+    const wantS = onFoot ? THREE.MathUtils.clamp(-yawRate * hs * 0.02, -0.13, 0.13) : 0
+    leanF += (wantF - leanF) * k
+    leanS += (wantS - leanS) * k
+    for (let t = dt; t > 1e-6; t -= 1 / 60) {
+      const h = Math.min(t, 1 / 60)
+      sqV += (-170 * sq - 15 * sqV) * h
+      sq += sqV * h
+    }
+    const s = THREE.MathUtils.clamp(sq, -0.2, 0.14)
+    const swim = swimming ? swimPose : 0
+    model.scale.set(MODEL_SCALE * (1 - 0.45 * s), MODEL_SCALE * (1 + s), MODEL_SCALE * (1 - 0.45 * s))
+    model.rotation.x = swim * SWIM_TILT + leanF
+    model.rotation.z = leanS
+    model.position.z = -swim * 0.55
+    model.position.y = -crouchY
+  }
+  // bentuk badan biasa (duduk di perahu, roboh)
+  function neutralShape() {
+    leanF = leanS = sq = sqV = 0
+    model.scale.setScalar(MODEL_SCALE)
+    model.rotation.x = model.rotation.z = 0
+    model.position.z = 0
+    model.position.y = -crouchY
+  }
+
+  // tulang yang digerakkan sendiri saat memanjat. Sebelum mixer.update tulang-tulang ini dikembalikan
+  // ke pose bind, jadi klip yang tidak menggerakkannya (mis. kaki pada klip diam) tidak mewarisi
+  // pose panjat
+  const BONE_NAMES = ['torso', 'arm-left', 'arm-right', 'leg-left', 'leg-right']
+  const bones = Object.fromEntries(BONE_NAMES.map(n => [n, model.getObjectByName(n)]))
+  const X = new THREE.Vector3(1, 0, 0)
+  const toward = (j, x, y, z) => new THREE.Quaternion().setFromUnitVectors(armDir(j), new THREE.Vector3(x, y, z).normalize())
+  const CLIMB_Q = {
+    up: { 4: toward(4, 0.3, 0.85, 0.45), 5: toward(5, -0.3, 0.85, 0.45) }, // meraih tepi
+    push: { 4: toward(4, 0.32, -0.45, 0.85), 5: toward(5, -0.32, -0.45, 0.85) }, // menekan dek
+    lean: new THREE.Quaternion().setFromAxisAngle(X, 0.5),
+    knee: new THREE.Quaternion().setFromAxisAngle(X, -1.15),
+    back: new THREE.Quaternion().setFromAxisAngle(X, 0.35),
+  }
+  let overridden = false
+  function resetOverrides() {
+    if (!overridden) return
+    for (const n of BONE_NAMES) bones[n]?.quaternion.identity()
+    overridden = false
+  }
+  const qMix = new THREE.Quaternion()
+  function overrideBone(name, q, w) {
+    if (!bones[name] || w <= 0.001) return
+    bones[name].quaternion.slerp(q, Math.min(1, w))
+    overridden = true
+  }
+  // pose panjat pada saat u (0..1): lengan meraih ke atas → menekan dek, badan condong, satu lutut
+  // diangkat untuk melangkah naik
+  function climbPose(u) {
+    const arms = smooth(0, 0.18, u) * (1 - smooth(0.8, 1, u))
+    const push = smooth(0.4, 0.66, u)
+    for (const [j, name] of [[4, 'arm-left'], [5, 'arm-right']]) {
+      qMix.copy(CLIMB_Q.up[j]).slerp(CLIMB_Q.push[j], push)
+      overrideBone(name, qMix, arms)
+    }
+    overrideBone('torso', CLIMB_Q.lean, smooth(0.3, 0.55, u) * (1 - smooth(0.75, 1, u)))
+    overrideBone('leg-right', CLIMB_Q.knee, smooth(0.45, 0.7, u) * (1 - smooth(0.86, 1, u)))
+    overrideBone('leg-left', CLIMB_Q.back, smooth(0, 0.3, u) * (1 - smooth(0.6, 0.9, u)))
+  }
+  // di udara: lengan berayun naik ke depan saat menolak, terbuka menjaga keseimbangan saat turun
+  // (klip lompat Kenney hanya merentangkan lengan lurus ke samping)
+  // (lengan kanan berpedang berayun lebih sedikit: bilahnya tetap condong ke bawah)
+  const AIR_Q = {
+    rise: { 4: toward(4, 0.4, 0.62, 0.68), 5: toward(5, -0.78, 0.12, 0.6) },
+    fall: { 4: toward(4, 0.85, 0.4, 0.15), 5: toward(5, -0.9, 0.05, 0.3) },
+  }
+  let airW = 0
+  function airPose(dt, on) {
+    airW += ((on ? 0.8 : 0) - airW) * (1 - Math.exp(-(on ? 10 : 14) * dt))
+    if (airW < 0.01) return
+    const rise = smooth(-2.5, 3.5, vel.y)
+    for (const [j, name] of [[4, 'arm-left'], [5, 'arm-right']]) {
+      qMix.copy(AIR_Q.fall[j]).slerp(AIR_Q.rise[j], rise)
+      overrideBone(name, qMix, airW)
+    }
   }
   // pedang (dan perlengkapan lain di badan) disembunyikan saat berenang, di perahu, atau memegang
   // pancing
@@ -329,16 +551,16 @@ export function createPlayer({ ground, colliders, quality, asset }) {
     playClip(name, speed, from = 0) {
       const a = actions[name]
       if (!a) return
-      a.timeScale = speed
-      if (current === a) a.reset().play()
+      if (mainKey === name) a.reset()
       else play(name, 0.06)
+      a.timeScale = speed
       a.time = from
     },
     // tahan satu pose: animasi berhenti di detik `time` sampai release()
     pose(name, time) {
       const a = actions[name]
       if (!a) return
-      if (current !== a) play(name, 0.06)
+      if (mainKey !== name) play(name, 0.06)
       a.time = time
       a.paused = true
     },
@@ -363,6 +585,7 @@ export function createPlayer({ ground, colliders, quality, asset }) {
     },
     // badan direndahkan (kuda-kuda saat pedang tertancap)
     crouch(amount) {
+      crouchY = amount
       model.position.y = -amount
     },
     stopWalking() {
@@ -400,13 +623,11 @@ export function createPlayer({ ground, colliders, quality, asset }) {
       vel.x += (ddx / dl) * accel
       vel.z += (ddz / dl) * accel
     }
-    if (m > 0.05) {
-      const diff = Math.atan2(Math.sin(Math.atan2(dx, dz) - heading), Math.cos(Math.atan2(dx, dz) - heading))
-      heading += diff * Math.min(1, 6 * dt)
-    }
+    if (m > 0.05) heading += wrap(Math.atan2(dx, dz) - heading) * Math.min(1, 6 * dt)
     pos.x += vel.x * dt
     pos.z += vel.z * dt
     colliders.resolve(pos, RADIUS, vel)
+    blockLedges(pos.y) // sisi dek dermaga menahan perenang (naik lewat tombol Panjat)
     // mengapung: makin cepat berenang makin mendatar badannya; sedikit naik-turun mengikuti ombak
     const want = Math.min(1, Math.hypot(vel.x, vel.z) / 1.2)
     swimPose += (want - swimPose) * Math.min(1, dt * 4)
@@ -454,12 +675,14 @@ export function createPlayer({ ground, colliders, quality, asset }) {
         m = 1
       }
     }
-    const depth = ISLAND.seaLevel - ground.surfaceAt(pos.x, pos.z)
+    const y0 = pos.y // tinggi kaki sebelum langkah ini: lantai yang bisa dilangkahi diukur darinya
+    const depth = ISLAND.seaLevel - support(pos.x, pos.z, y0)
     if (!atk) speed *= speedBoost
     if (depth > WADE_DEPTH && !atk) speed *= 0.55
+    // berbalik tajam: melambat dulu sambil memutar badan (tidak berjalan mundur)
+    if (!atk && m > 0.05 && grounded) speed *= 0.25 + 0.75 * smooth(2.6, 1.2, Math.abs(wrap(Math.atan2(dx, dz) - heading)))
 
     // percepat menuju kecepatan yang diinginkan
-    const accel = (grounded ? ACCEL_GROUND : ACCEL_AIR) * dt
     const tvx = dx * speed
     const tvz = dz * speed
     const ddx = tvx - vel.x
@@ -467,20 +690,28 @@ export function createPlayer({ ground, colliders, quality, asset }) {
     const dl = Math.hypot(ddx, ddz)
     if (atk?.keep) {
       // melayang (Hentakan): kecepatan datar dipertahankan
-    } else if (dl <= accel || atk?.instant) {
-      vel.x = tvx
-      vel.z = tvz
-    } else {
-      vel.x += (ddx / dl) * accel
-      vel.z += (ddz / dl) * accel
+    } else if (atk) {
+      const accel = (grounded ? ACCEL_GROUND : ACCEL_AIR) * dt
+      if (dl <= accel || atk.instant) {
+        vel.x = tvx
+        vel.z = tvz
+      } else {
+        vel.x += (ddx / dl) * accel
+        vel.z += (ddz / dl) * accel
+      }
+    } else if (dl > 1e-6) {
+      // gerak biasa: secepat-cepatnya ACCEL, melambat halus menjelang kecepatan tujuannya
+      const accel = Math.min(grounded ? ACCEL_GROUND : ACCEL_AIR, dl * EASE) * dt
+      if (accel >= dl || dl < 0.02) {
+        vel.x = tvx
+        vel.z = tvz
+      } else {
+        vel.x += (ddx / dl) * accel
+        vel.z += (ddz / dl) * accel
+      }
     }
     // menghadap ke arah gerak (berbelok / berbalik halus, ±0,3 detik untuk setengah putaran)
-    if (m > 0.05) {
-      const want = Math.atan2(dx, dz)
-      let diff = want - heading
-      diff = Math.atan2(Math.sin(diff), Math.cos(diff))
-      heading += diff * Math.min(1, 9 * dt)
-    }
+    if (m > 0.05) heading += wrap(Math.atan2(dx, dz) - heading) * Math.min(1, 10 * dt)
 
     // lompat (dengan coyote time dan buffer tombol)
     coyote = grounded ? COYOTE_TIME : coyote - dt
@@ -491,7 +722,8 @@ export function createPlayer({ ground, colliders, quality, asset }) {
       coyote = 0
       jumpBuffer = 0
       airTime = 0
-      play('jump', 0.08)
+      sqV += 2.4 // badan memanjang saat menolak
+      play('jump', 0.06)
     }
     vel.y -= GRAVITY * dt
 
@@ -499,10 +731,14 @@ export function createPlayer({ ground, colliders, quality, asset }) {
     pos.z += vel.z * dt
     pos.y += vel.y * dt
     colliders.resolve(pos, RADIUS, vel)
+    blockLedges(y0)
 
-    // lereng terlalu curam: tidak bisa didaki, perlahan merosot
-    const g = gradient(pos.x, pos.z)
-    if (g.len > MAX_SLOPE) {
+    // pijakan: tanah, atau lantai yang bisa dilangkahi dari kaki sebelum langkah ini
+    const gy = support(pos.x, pos.z, y0)
+    const onFloor = gy > ground.heightAt(pos.x, pos.z) + 0.02
+    // lereng tanah terlalu curam: tidak bisa didaki, perlahan merosot (lantai bangunan tidak)
+    const g = onFloor ? null : gradient(pos.x, pos.z)
+    if (g && g.len > MAX_SLOPE) {
       const ux = g.x / g.len
       const uz = g.z / g.len
       const up = vel.x * ux + vel.z * uz
@@ -518,9 +754,8 @@ export function createPlayer({ ground, colliders, quality, asset }) {
       }
     }
 
-    // tanah
-    const gy = ground.surfaceAt(pos.x, pos.z)
     if (pos.y <= gy) {
+      if (!grounded && airTime > 0.06) land(-vel.y)
       pos.y = gy
       if (vel.y < 0) vel.y = 0
       grounded = true
@@ -531,6 +766,86 @@ export function createPlayer({ ground, colliders, quality, asset }) {
     } else grounded = false
     if (!grounded) airTime += dt
     else airTime = 0
+  }
+
+  // mendarat: badan memendek sebentar (makin keras jatuhnya makin dalam) lalu memantul kembali;
+  // jatuh dari tempat tinggi membuat langkah tersendat sejenak
+  function land(impact) {
+    sqV -= 2.6 * THREE.MathUtils.clamp(impact / JUMP_SPEED, 0.25, 1.7)
+    if (impact > 11) {
+      vel.x *= 0.6
+      vel.z *= 0.6
+    }
+  }
+
+  // --- memanjat (dek dermaga dari air, batur dari samping): ±1 detik — meraih tepi, menarik badan,
+  // melangkah naik. Kenney tidak punya klip memanjat: lengan, badan, dan kaki digerakkan di sini,
+  // ditumpangkan di atas klip diam
+  let climbable = null // tepi yang bisa dipanjat di depan (findClimb) atau null
+  let climb = null // panjatan yang sedang berjalan
+  function startClimb(c) {
+    climb = {
+      t: 0, dur: 0.55 + 0.2 * (c.y - pos.y), x0: pos.x, y0: pos.y, z0: pos.z,
+      // bergantung di tepi (badan tepat di luar kotak lantai) → badan di atas tepi → berdiri di dalam
+      hx: c.ex + c.nx * RADIUS * 0.8, hz: c.ez + c.nz * RADIUS * 0.8,
+      ex: c.ex - c.nx * 0.12, ez: c.ez - c.nz * 0.12,
+      x1: c.x, y1: c.y, z1: c.z, heading: c.heading,
+      cam: swimming ? ISLAND.seaLevel + 0.75 - pos.y : 1.5,
+    }
+    climbable = null
+    swimming = false
+    grounded = false
+    vel.set(0, 0, 0)
+    path.length = 0
+    combat.reset()
+    play(GERAK, 0.2)
+  }
+  const ease = t => t * t * (3 - 2 * t)
+  function stepClimb(dt) {
+    const c = climb
+    c.t += dt
+    const u = Math.min(1, c.t / c.dur)
+    const hang = Math.max(c.y0, c.y1 - 1.05) // tangan di tepi dek
+    if (u < 0.35) {
+      const k = ease(u / 0.35)
+      pos.set(c.x0 + (c.hx - c.x0) * k, c.y0 + (hang - c.y0) * k, c.z0 + (c.hz - c.z0) * k)
+    } else if (u < 0.72) {
+      const k = ease((u - 0.35) / 0.37)
+      pos.set(c.hx + (c.ex - c.hx) * k, hang + (c.y1 - 0.25 - hang) * k, c.hz + (c.ez - c.hz) * k)
+    } else {
+      const k = ease((u - 0.72) / 0.28)
+      pos.set(c.ex + (c.x1 - c.ex) * k, c.y1 - 0.25 + 0.25 * k, c.ez + (c.z1 - c.ez) * k)
+    }
+    heading += wrap(c.heading - heading) * Math.min(1, dt * 12)
+    if (u >= 1) {
+      climb = null
+      pos.set(c.x1, c.y1, c.z1)
+      grounded = true
+      airTime = 0
+      sqV -= 1.1 // menjejak dek
+    }
+    return u
+  }
+
+  // animasi + bentuk badan + barang di tangan + bayangan bulat; climbU = saat panjat (0..1) atau −1
+  function animate(dt, hs, climbU = -1) {
+    resetOverrides()
+    blend(dt, hs)
+    mixer?.update(dt)
+    if (climbU >= 0) climbPose(climbU)
+    airPose(dt, climbU < 0 && !grounded && !swimming && !combat.busy && !pose && (mainKey === 'jump' || mainKey === 'fall'))
+    shape(dt, hs, grounded && !swimming && climbU < 0 && !combat.busy)
+    orientSword()
+    orientRod()
+    showGear(!swimming && !pose && climbU < 0) // pedang disimpan saat berenang / memancing / memanjat
+    if (blob) {
+      const gy = support(pos.x, pos.z, pos.y + 0.05)
+      const h = pos.y - gy
+      blob.visible = !swimming && climbU < 0
+      blob.position.set(pos.x, gy + 0.05, pos.z)
+      blob.material.opacity = Math.max(0, 1 - h / 3)
+      blob.scale.setScalar(1 + h * 0.15)
+    }
   }
 
   return {
@@ -565,16 +880,31 @@ export function createPlayer({ ground, colliders, quality, asset }) {
     // badan terbenam (berenang) atau duduk di perahu
     get cameraHeight() {
       if (ride) return 1.3
+      if (climb) return climb.cam + (1.5 - climb.cam) * ease(Math.min(1, climb.t / climb.dur))
       if (swimming) return ISLAND.seaLevel + 0.75 - pos.y
       return 1.5
+    },
+    // ada tepi yang bisa dipanjat di depan (tombol Panjat) / sedang memanjat
+    get climbable() {
+      return !!climbable && !climb
+    },
+    get climbing() {
+      return !!climb
+    },
+    // panjat tepi di depan (dek dermaga dari air, batur dari samping)
+    climb() {
+      if (!climbable || climb || ride || defeated || frozen) return false
+      startClimb(climbable)
+      return true
     },
     // duduk di perahu: fn() → { x, y, z, heading, vx, vz, moving } tiap frame; null = turun
     setRide(fn) {
       ride = fn
       path.length = 0
       combat.reset()
+      climb = null
       if (!fn) {
-        play('idle', 0.1)
+        play(GERAK, 0.1)
         vel.set(0, 0, 0)
       }
     },
@@ -594,9 +924,8 @@ export function createPlayer({ ground, colliders, quality, asset }) {
     gesture(name, seconds = 0) {
       const a = actions[name]
       if (!a) return
-      a.reset()
-      play(name, 0.1)
-      a.play()
+      if (mainKey === name) a.reset()
+      else play(name, 0.1)
       gestureT = seconds || a.getClip().duration
     },
     get attacking() {
@@ -647,7 +976,7 @@ export function createPlayer({ ground, colliders, quality, asset }) {
       calmT = 0
       defeated = false
       frozen = false
-      play('idle', 0.05)
+      play(GERAK, 0.05)
     },
     onHurt(fn) {
       onHurt = fn
@@ -700,8 +1029,9 @@ export function createPlayer({ ground, colliders, quality, asset }) {
       placeAt(lastSafe.x, lastSafe.z, lastSafeHeading)
       path.length = 0
       combat.reset()
+      climb = null
       frozen = false
-      play('idle', 0.05)
+      play(GERAK, 0.05)
     },
     freeze() {
       frozen = true
@@ -710,6 +1040,11 @@ export function createPlayer({ ground, colliders, quality, asset }) {
     update(dt, input, camYaw) {
       if (defeated) {
         // roboh: terbaring sampai main.js memindahkan & membangunkan
+        climb = null
+        climbable = null
+        neutralShape()
+        resetOverrides()
+        blend(dt, 0)
         mixer?.update(dt)
         return
       }
@@ -722,16 +1057,31 @@ export function createPlayer({ ground, colliders, quality, asset }) {
         vel.set(r.vx, 0, r.vz);
         ({ heading } = r)
         root.rotation.y = heading
-        setSwimPose(0)
+        climbable = null
+        neutralShape()
         if ((gestureT -= dt) <= 0) play(pose || (r.moving ? 'drive' : 'sit'), 0.25)
+        resetOverrides()
+        blend(dt, 0)
         mixer?.update(dt)
         orientRod()
         showGear(false)
         if (blob) blob.visible = false
         return
       }
+      // Spasi di depan tepi yang bisa dipanjat (komputer) = memanjat, bukan melompat
+      let inp = input
+      if (inp.jump && climbable && !climb && !frozen && !combat.busy && !pose) {
+        startClimb(climbable)
+        inp = { ...inp, jump: false }
+      }
+      if (climb) {
+        const u = stepClimb(dt)
+        root.rotation.y = heading
+        animate(dt, 0, u)
+        return
+      }
       // masuk air yang dalam (berjalan / jatuh dari dermaga) → berenang; ke air dangkal → berjalan
-      const depth0 = ISLAND.seaLevel - ground.surfaceAt(pos.x, pos.z)
+      const depth0 = ISLAND.seaLevel - support(pos.x, pos.z, pos.y)
       if (!swimming && depth0 > SWIM_DEPTH && pos.y < ISLAND.seaLevel - 0.25) {
         swimming = true
         combat.reset()
@@ -740,7 +1090,7 @@ export function createPlayer({ ground, colliders, quality, asset }) {
       } else if (swimming && depth0 < SWIM_EXIT) swimming = false
       // pukulan (kombo) & jurus — sebelum fisika agar gerak langsung berhenti saat mulai menyerang
       // (tidak bisa menyerang sambil berenang)
-      if (!frozen && !swimming) combat.update(dt, input)
+      if (!frozen && !swimming) combat.update(dt, inp)
       if (!frozen) {
         // langkah kecil saat frame lambat atau bergerak cepat (Serbuan 22 m/s): maks. ±0,3 m per
         // langkah, kalau tidak prajurit bisa "menembus" batang pohon dalam satu langkah
@@ -748,9 +1098,11 @@ export function createPlayer({ ground, colliders, quality, asset }) {
         const want = atk && !atk.keep ? Math.hypot(atk.vx, atk.vz) : 0
         const fast = Math.max(Math.hypot(vel.x, vel.z), want)
         const n = Math.min(12, Math.max(dt > 1 / 45 ? 2 : 1, Math.ceil((fast * dt) / 0.3)))
-        for (let i = 0; i < n; i++) step(dt / n, i === 0 ? input : { ...input, jump: false }, camYaw)
+        for (let i = 0; i < n; i++) step(dt / n, i === 0 ? inp : { ...inp, jump: false }, camYaw)
       }
       root.rotation.y = heading
+      // tepi yang bisa dipanjat di depan (tombol Panjat): saat berdiri / berenang, tidak sedang menyerang
+      climbable = !frozen && !combat.busy && !pose && (grounded || swimming) ? findClimb(Math.sin(heading), Math.cos(heading)) : null
 
       // tersangkut (mis. lereng terlalu curam di jalur): lewati titik ini setelah 1,2 detik
       // (tidak dihitung selama menyerang — saat itu prajurit memang diam)
@@ -767,49 +1119,31 @@ export function createPlayer({ ground, colliders, quality, asset }) {
       }
 
       // terlalu jauh (tepi dunia) → kembali ke pantai
-      const gy = ground.surfaceAt(pos.x, pos.z)
       if (!frozen && !insideWorld(pos.x, pos.z, WORLD_MARGIN)) onRespawnNeeded('jauh')
 
-      // simpan posisi aman (di darat, tidak curam) secara berkala
+      // simpan posisi aman (di darat / lantai, tidak curam) secara berkala
+      const gy = support(pos.x, pos.z, pos.y + 0.05)
       safeTimer += dt
-      if (safeTimer > 0.4 && grounded && gy > 0.4 && gradient(pos.x, pos.z).len < 0.8) {
+      if (safeTimer > 0.4 && grounded && gy > 0.4 && (gy > ground.heightAt(pos.x, pos.z) + 0.02 || gradient(pos.x, pos.z).len < 0.8)) {
         safeTimer = 0
         lastSafe.copy(pos)
         lastSafeHeading = heading
       }
 
       // animasi menurut keadaan (animasi serangan dibiarkan selesai dulu). Berenang: klip lari
-      // dengan badan mendatar (gaya bebas) / klip jalan pelan dengan badan tegak (mengapung)
+      // dengan badan mendatar (gaya bebas) / klip jalan pelan dengan badan tegak (mengapung). Di
+      // darat: lapisan gerak (campuran diam / jalan / lari menurut kecepatan); di udara: lompat
+      // selama naik, jatuh saat turun
       const hs = Math.hypot(vel.x, vel.z)
       if (swimming) play(swimPose > 0.45 ? 'sprint' : 'walk', 0.3)
       else if ((gestureT -= dt) > 0) {
         // gerakan sekali sedang diputar
       } else if (pose && !combat.busy) play(pose, 0.2)
-      else if (!combat.busy) {
-        let anim = null
-        // ambang berjeda (histeresis): klip tidak berganti-ganti saat kecepatan di sekitar batas
-        if (grounded) {
-          const toWalk = current === actions.idle ? 0.45 : 0.25
-          const toRun = current === actions.sprint ? 3.3 : 3.9
-          anim = hs < toWalk ? 'idle' : hs < toRun ? 'walk' : 'sprint'
-        } else if (airTime > 0.12) anim = vel.y > 0 && current === actions.jump ? 'jump' : 'fall'
-        if (anim) play(anim, 0.25)
-      }
-      if (actions.walk) actions.walk.timeScale = swimming ? 0.55 : THREE.MathUtils.clamp(hs / 1.4, 0.6, 1.6)
-      if (actions.sprint) actions.sprint.timeScale = swimming ? 0.75 : THREE.MathUtils.clamp(hs / 3.6, 0.8, 1.6)
-      setSwimPose(swimming ? swimPose : 0)
-      mixer?.update(dt)
-      orientSword()
-      orientRod()
-      showGear(!swimming && !pose)
-
-      if (blob) {
-        const h = pos.y - gy
-        blob.visible = !swimming
-        blob.position.set(pos.x, gy + 0.05, pos.z)
-        blob.material.opacity = Math.max(0, 1 - h / 3)
-        blob.scale.setScalar(1 + h * 0.15)
-      }
+      else if (!combat.busy && grounded) play(GERAK, mainKey === 'jump' || mainKey === 'fall' ? 0.1 : 0.2)
+      else if (!combat.busy && airTime > 0.12) play(vel.y > 0 && mainKey === 'jump' ? 'jump' : 'fall', mainKey === 'jump' ? 0.25 : 0.15)
+      if (swimming && actions.walk) actions.walk.timeScale = 0.55
+      if (swimming && actions.sprint) actions.sprint.timeScale = 0.75
+      animate(dt, swimming ? 0 : hs)
     },
   }
 }

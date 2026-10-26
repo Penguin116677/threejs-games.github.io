@@ -105,7 +105,7 @@ function findSpawn(ground, colliders) {
 }
 
 const HINT_TOUCH = '<b>Joystick</b> (kiri bawah): berjalan, dorong penuh = lari · Geser layar: putar kamera · Cubit: zoom<br><b>Pukul</b> berulang = kombo · 4 <b>jurus</b> · orc kalah = <b>koin</b> · dekati orang: <b>Bicara</b><br>Pukul pohon = <b>kayu</b> → buat <b>pancing</b> &amp; <b>perahu</b> di <b>Tas</b> · pulau tidak berjembatan: berenang / berlayar<br><b>Peta</b>: Kencana (barat) memusuhimu · Aeloria (utara) damai bila kamu tidak rusuh · <b>ketuk kios / elf</b>'
-const HINT_KEYS = '<b>WASD / panah</b>: berjalan (Shift = pelan) · Seret: putar kamera · Roda: zoom<br>F: pukul (kombo) · 1–4: jurus · Spasi: lompat · orc kalah = koin · B: tas · G / Enter: bicara<br>Pukul pohon = kayu → buat pancing &amp; perahu di Tas · C: mancing / tarik · V: naik / turun perahu<br>M: peta — Kencana (barat) memusuhimu · Aeloria (utara) damai bila kamu tidak rusuh · klik kios / elf'
+const HINT_KEYS = '<b>WASD / panah</b>: berjalan (Shift = pelan) · Seret: putar kamera · Roda: zoom<br>F: pukul (kombo) · 1–4: jurus · Spasi: lompat / panjat · orc kalah = koin · B: tas · G / Enter: bicara<br>Pukul pohon = kayu → buat pancing &amp; perahu di Tas · C: mancing / tarik · V: naik / turun perahu<br>M: peta — Kencana (barat) memusuhimu · Aeloria (utara) damai bila kamu tidak rusuh · klik kios / elf'
 
 // FOV kamera (tegak, mendatar): layar tegak butuh FOV lebih lebar agar sisi kiri-kanan tetap
 // terlihat dari kamera di belakang karakter
@@ -573,6 +573,12 @@ async function start() {
     if (spot.water) showMessage('Tidak ada daratan di dekat perahu — kamu terjun ke air. Berenanglah, atau naik perahu lagi.', 3000)
   }
   const fishPress = () => (fishing.state ? fishing.pull() : fishing.start())
+  // panjat tepi di depan (dek dermaga dari air, batur dari samping)
+  function climbPress() {
+    if (boat.aboard || chat.open) return
+    fishing.cancel()
+    player.climb()
+  }
   const toggleBoat = () => (boat.aboard ? leaveBoat() : boardBoat())
   const btnNaik = createActionButton(aksiBox, { id: 'btn-naik', icon: IKON_AKSI.perahu }, boardBoat)
   const btnTurun = createActionButton(aksiBox, { id: 'btn-turun', icon: IKON_AKSI.turun }, leaveBoat)
@@ -580,16 +586,18 @@ async function start() {
   const btnTarik = createActionButton(aksiBox, { id: 'btn-tarik', icon: IKON_AKSI.tarik, cls: 'biru' }, fishPress)
   const btnBuatPerahu = createActionButton(aksiBox, { id: 'btn-buat-perahu', icon: IKON_AKSI.buat, cls: 'coklat' }, () => showMessage(craftBoat(), 3800))
   const btnBicara = createActionButton(aksiBox, { id: 'btn-bicara', icon: IKON_AKSI.bicara, cls: 'hijau' }, () => chat.talk())
+  const btnPanjat = createActionButton(aksiBox, { id: 'btn-panjat', icon: IKON_AKSI.panjat, cls: 'coklat' }, climbPress)
   let actionT = 0
   let buildSpot = null
   function updateActions(dt) {
     if ((actionT -= dt) > 0) return
     actionT = 0.1
     const p = player.position
-    const free = mode === 'main' && !player.defeated && !chat.open
+    const free = mode === 'main' && !player.defeated && !chat.open && !player.climbing
     btnBicara.set(free && !!chat.near && !boat.aboard && !fishing.state, 'Bicara', chat.near?.nama || '')
     btnNaik.set(free && !fishing.state && boat.reachable(p) !== null, 'Naik perahu', player.swimming ? 'naik dari air' : '')
     btnTurun.set(free && boat.aboard, 'Turun', boat.aground ? 'perahu kandas' : '')
+    btnPanjat.set(free && !boat.aboard && player.climbable, 'Panjat', player.swimming ? 'naik dari air' : '')
     // Mancing muncul saat berdiri diam di tepi air yang cukup dalam (di perahu: saat perahu diam)
     const still = player.speed < 0.5 || (boat.aboard && boat.speed < 0.6)
     const fishHere = free && !player.swimming && (!!fishing.state || (still && !!fishing.spot()))

@@ -12,6 +12,10 @@ const X0 = -500 - CELL * Math.ceil((-500 - WORLD.minX) / CELL)
 const Z0 = -500 - CELL * Math.ceil((-500 - WORLD.minZ) / CELL)
 const MAX_DEPTH = 1.0 // air lebih dalam dari ini tidak dilewati
 const MAX_SLOPE = 1.25 // sedikit di bawah batas pemain (1,3) agar jalur pasti bisa didaki
+// tepi lantai bangunan (dek dermaga dari air, batur dari samping) hanya bisa dilangkahi bila
+// tingginya sebatas ini (langkah pemain & prajurit 0,45 m) — lebih tinggi harus dipanjat (pemain:
+// tombol Panjat), jadi bukan jalur
+const MAX_STEP = 0.5
 const BODY = 0.45 // jari-jari pemain + ruang sedikit
 const MAX_EXPANSIONS = 120000
 const { SQRT2 } = Math
@@ -29,8 +33,8 @@ function segDist2(ax, az, bx, bz, px, pz) {
   return dx * dx + dz * dz
 }
 
-// antrean prioritas (binary heap) untuk A*
-class Heap {
+// antrean prioritas (binary heap) untuk A* (juga dipakai peta laut perahu patroli)
+export class Heap {
   constructor(capacity) {
     this.idx = new Int32Array(capacity)
     this.key = new Float64Array(capacity)
@@ -93,7 +97,8 @@ export function createNavGrid(ground, colliders) {
 
   // lantai bangunan yang bisa diinjak: sel yang pusatnya di atas lantai memakai tinggi lantai
   // (jembatan di atas laut dalam pun jadi bisa dilewati); kemiringan lantai sudah dirancang landai
-  for (const sf of ground.surfaces) {
+  const floorOf = new Uint16Array(N) // nomor lantai di sel (0 = tanah)
+  ground.surfaces.forEach((sf, n) => {
     const r = Math.hypot(sf.hx, sf.hz)
     const i0 = Math.max(0, Math.floor((sf.x - r - X0) / CELL))
     const i1 = Math.min(nx - 1, Math.floor((sf.x + r - X0) / CELL))
@@ -106,8 +111,9 @@ export function createNavGrid(ground, colliders) {
         if (y === -Infinity || y < H[k]) continue
         H[k] = y
         walk[k] = 1
+        floorOf[k] = n + 1
       }
-  }
+  })
 
   // penghalang: tutup sel yang terlalu dekat, dan tandai ruas antar sel yang menyerempetnya
   // (dua pusat sel bisa sama-sama lapang, tapi garis di antaranya menyentuh batang pohon)
@@ -149,6 +155,35 @@ export function createNavGrid(ground, colliders) {
     const cj = Math.floor((c.z - Z0) / CELL)
     if (ci >= 0 && cj >= 0 && ci < nx && cj < nz) walk[cj * nx + ci] = 0
   }
+  // tepi lantai: ruas antar sel yang melintasi batas lantai ditutup bila tinggi pijakan sepanjang ruas
+  // (dicuplik tiap 0,25 m) meloncat lebih dari MAX_STEP. Tangga, ujung jembatan, dan pangkal dermaga
+  // menyambung tanpa loncatan; dek dari air dan batur dari samping tidak. (Membandingkan tinggi pusat
+  // sel saja keliru di tangga: dua sel 2 m di tangga curam berbeda > 0,5 m walau tiap anak tangga rendah.)
+  const ledge = (ax, az, bx, bz) => {
+    const n = Math.ceil(Math.hypot(bx - ax, bz - az) / 0.25)
+    let prev = ground.surfaceAt(ax, az)
+    for (let s = 1; s <= n; s++) {
+      const h = ground.surfaceAt(ax + ((bx - ax) * s) / n, az + ((bz - az) * s) / n)
+      if (Math.abs(h - prev) > MAX_STEP) return true
+      prev = h
+    }
+    return false
+  }
+  for (const sf of ground.surfaces) {
+    const r = Math.hypot(sf.hx, sf.hz) + CELL
+    const i0 = Math.max(0, Math.floor((sf.x - r - X0) / CELL))
+    const i1 = Math.min(nx - 2, Math.floor((sf.x + r - X0) / CELL))
+    const j0 = Math.max(0, Math.floor((sf.z - r - Z0) / CELL))
+    const j1 = Math.min(nz - 2, Math.floor((sf.z + r - Z0) / CELL))
+    for (let j = j0; j <= j1; j++)
+      for (let i = Math.max(1, i0); i <= i1; i++) {
+        const k = j * nx + i
+        for (const [di, dj, bit] of EDGES) {
+          if (edge[k] & bit || floorOf[k] === floorOf[(j + dj) * nx + i + di]) continue
+          if (ledge(at(i), atZ(j), at(i + di), atZ(j + dj))) edge[k] |= bit
+        }
+      }
+  }
   // ruas dari sel (i, j) ke tetangga (i + di, j + dj) menyerempet penghalang?
   function edgeBlocked(i, j, di, dj) {
     if (dj === 0) return edge[j * nx + Math.min(i, i + di)] & 1
@@ -176,18 +211,23 @@ export function createNavGrid(ground, colliders) {
   // bisa diinjak: sel lapang dan badan pemain tidak menyentuh penghalang
   const standable = (x, z) => walkableAt(x, z) && colliders.isFree(x, z, BODY)
 
-  // garis lurus a→b bisa dilewati? (cek tiap ±0,5 m, termasuk kemiringan antar titik)
+  // garis lurus a→b bisa dilewati? (cek tiap ±0,5 m, termasuk kemiringan antar titik dan tepi lantai
+  // yang lebih tinggi dari selangkah)
   function lineClear(ax, az, bx, bz) {
     const len = Math.hypot(bx - ax, bz - az)
     const steps = Math.max(1, Math.ceil(len / 0.5))
     let prevH = ground.surfaceAt(ax, az)
+    let prevFloor = prevH > ground.heightAt(ax, az) + 0.01
     for (let s = 1; s <= steps; s++) {
       const x = ax + (bx - ax) * s / steps
       const z = az + (bz - az) * s / steps
       if (!standable(x, z)) return false
       const h = ground.surfaceAt(x, z)
+      const floor = h > ground.heightAt(x, z) + 0.01
       if (Math.abs(h - prevH) / (len / steps) > MAX_SLOPE) return false
+      if (floor !== prevFloor && Math.abs(h - prevH) > MAX_STEP) return false
       prevH = h
+      prevFloor = floor
     }
     return true
   }

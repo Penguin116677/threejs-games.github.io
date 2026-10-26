@@ -81,6 +81,38 @@ export function createGround(segments, { heightFn = worldHeight, rect = WORLD } 
     return top
   }
 
+  // Pijakan untuk kaki setinggi footY: tanah, atau lantai yang paling tinggi `step` m di atas kaki.
+  // Lantai yang lebih tinggi dari itu (dek dermaga dilihat dari air, batur dari samping) bukan
+  // pijakan, melainkan tepi yang harus dipanjat (forEachSurfaceNear untuk tabrakannya).
+  function supportAt(x, z, footY, step) {
+    const h = groundHeight(x, z)
+    if (!surfaces.length) return h
+    const list = surfCells.get(surfKey(Math.floor(x / SURF_CELL), Math.floor(z / SURF_CELL)))
+    if (!list) return h
+    let top = h
+    for (const s of list) {
+      const y = surfaceHeight(s, x, z)
+      if (y > top && y <= footY + step) top = y
+    }
+    return top
+  }
+  // fn(lantai) sekali untuk tiap lantai yang kotak batasnya mungkin menyentuh lingkaran (x, z, r)
+  let surfStamp = 0
+  function forEachSurfaceNear(x, z, r, fn) {
+    if (!surfaces.length) return
+    surfStamp++
+    for (let i = Math.floor((x - r) / SURF_CELL); i <= Math.floor((x + r) / SURF_CELL); i++)
+      for (let j = Math.floor((z - r) / SURF_CELL); j <= Math.floor((z + r) / SURF_CELL); j++) {
+        const list = surfCells.get(surfKey(i, j))
+        if (!list) continue
+        for (const s of list) {
+          if (s.seen === surfStamp) continue
+          s.seen = surfStamp
+          fn(s)
+        }
+      }
+  }
+
   // list: [{ x, z, hx, hz, rot, y0, y1, arch?, a0?, a1? }] — persegi panjang (setengah lebar hx/hz,
   // diputar rot radian seperti rotation.y), tinggi naik linear y0 → y1 sepanjang sumbu lokal z,
   // ditambah lengkung sin setinggi `arch` di antara t = a0..a1 (lantai jembatan)
@@ -100,7 +132,7 @@ export function createGround(segments, { heightFn = worldHeight, rect = WORLD } 
 
   return {
     step, nx, nz, cols, x0, z0, heights,
-    heightAt: groundHeight, slopeAt, surfaceAt, setSurfaces,
+    heightAt: groundHeight, slopeAt, surfaceAt, supportAt, forEachSurfaceNear, setSurfaces,
     get surfaces() {
       return surfaces
     },
