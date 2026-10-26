@@ -171,10 +171,6 @@ const vec3 DRY = vec3(0.60, 0.58, 0.26);
 const vec3 ROCK = vec3(0.42, 0.39, 0.35);
 const vec3 ROCK_DARK = vec3(0.26, 0.24, 0.22);
 
-// pixel art: corak warna dibulatkan ke beberapa tingkat (petak warna tegas, bukan gradasi)
-float q3(float v) { return floor(clamp(v, 0.0, 0.999) * 3.0) * 0.5; }
-float q4(float v) { return floor(clamp(v, 0.0, 0.999) * 4.0) / 3.0; }
-
 #if defined(REGION_MASK) || defined(REGION_MASK2)
 // Masker wilayah (Kepulauan Kencana, Aeloria): r = jalan tanah, g = sawah / ladang, b = lantai batu,
 // a = rumput halus. uRegionRect = x0, z0, 1/lebar, 1/panjang
@@ -199,13 +195,12 @@ const vec3 WHEAT_RIPE = vec3(0.86, 0.70, 0.30);
 const vec3 SOIL = vec3(0.45, 0.33, 0.20);
 const vec3 GREENS = vec3(0.22, 0.48, 0.14);
 
-// 1 di garis kisi (tiap cell m, tebal w m), bertepi tegas (pixel art); memudar halus saat garis lebih
-// rapat dari piksel
+// 1 di garis kisi (tiap cell m, tebal w m), memudar halus saat garis lebih rapat dari piksel
 float gridLine(vec2 p, vec2 cell, float w) {
   vec2 q = p / cell;
   vec2 d = abs(fract(q + 0.5) - 0.5) * cell; // jarak ke garis terdekat (m)
   vec2 aa = fwidth(p) + 1e-4;
-  vec2 l = step(d, vec2(w));
+  vec2 l = 1.0 - smoothstep(vec2(w) - aa, vec2(w) + aa, d);
   float fade = 1.0 - smoothstep(0.2, 0.6, max(aa.x, aa.y) / w);
   return max(l.x, l.y) * fade;
 }
@@ -215,9 +210,6 @@ vec3 regionColor(vec3 col, vec2 p, float nF, float nM, float nD, sampler2D regio
   vec2 ruv = (p - rect.xy) * rect.zw;
   if (ruv.x <= 0.0 || ruv.x >= 1.0 || ruv.y <= 0.0 || ruv.y >= 1.0) return col;
   vec4 m = texture2D(region, ruv);
-  // tepi rumput, ladang, jalan, dan lantai tegas (pixel art); di kejauhan (satu piksel layar > 1,5 m)
-  // kembali dibaurkan supaya jalan sempit tidak hilang-muncul
-  m = mix(m, step(0.5, m), 1.0 - smoothstep(1.5, 4.0, max(fwidth(p.x), fwidth(p.y))));
   // rumput halus (alun-alun, halaman): hijau rata dengan jalur bekas pangkasan
   float stripe = 0.94 + 0.06 * step(0.5, fract(p.x * 0.125));
   col = mix(col, LAWN * stripe * (0.9 + 0.2 * nF), m.a);
@@ -225,7 +217,7 @@ vec3 regionColor(vec3 col, vec2 p, float nF, float nM, float nD, sampler2D regio
   if (style == 1 && m.g > 0.01) {
     vec2 plot = floor(p / vec2(14.0, 10.0));
     float kind = texture2D(uNoise, (plot + 0.5) * 0.173).g;
-    float rows = step(0.0, sin(p.x * 9.0 + p.y * 0.2)); // alur tanam bergaris tegas
+    float rows = 0.5 + 0.5 * sin(p.x * 9.0 + p.y * 0.2);
     rows = mix(0.5, rows, 1.0 - smoothstep(0.03, 0.09, fwidth(p.x)));
     vec3 wheat = mix(WHEAT, WHEAT_RIPE, smoothstep(0.35, 0.6, kind)) * (0.85 + 0.25 * rows) * (0.9 + 0.2 * nF);
     vec3 veg = mix(SOIL * (0.85 + 0.2 * nD), GREENS * (0.9 + 0.25 * nF), smoothstep(0.35, 0.65, rows));
@@ -237,7 +229,7 @@ vec3 regionColor(vec3 col, vec2 p, float nF, float nM, float nD, sampler2D regio
   if (style == 0 && m.g > 0.01) {
     vec2 plot = floor(p / vec2(12.0, 8.0));
     float age = texture2D(uNoise, (plot + 0.5) * 0.173).g;
-    float rows = step(0.0, sin(p.y * 20.9 + p.x * 0.3));
+    float rows = 0.5 + 0.5 * sin(p.y * 20.9 + p.x * 0.3);
     rows = mix(0.5, rows, 1.0 - smoothstep(0.02, 0.06, fwidth(p.y)));
     vec3 rice = mix(RICE, RICE_RIPE, smoothstep(0.62, 0.78, age));
     float water = (1.0 - smoothstep(0.2, 0.5, age)) * (0.55 + 0.45 * rows);
@@ -263,14 +255,14 @@ vec3 terrainColor() {
   vec2 p = vWorldPos.xz;
   float h = vWorldPos.y;
   float slope = 1.0 - clamp(normalize(vWorldNrm).y, 0.0, 1.0);
-  float nF = q3(texture2D(uNoise, p * 0.055).r); // butiran ±0.5 m (3 tingkat)
+  float nF = texture2D(uNoise, p * 0.055).r;     // butiran ±0.5 m
   float nM = texture2D(uNoise, p * 0.0173).g;    // variasi ±10 m
   float nL = texture2D(uNoise, p * 0.0037).b;    // bercak besar ±60 m
-  float nD = q3(texture2D(uNoise, p * 0.37).r);  // detail halus ±8 cm (3 tingkat: bintik piksel)
+  float nD = texture2D(uNoise, p * 0.37).r;      // detail halus ±8 cm (tajam dari kamera atas)
 
   // pasir: basah di tepi air, kering di atasnya, lebih gelap di dasar laut
-  vec3 sand = mix(WET_SAND, SAND, q3(smoothstep(-0.2, 1.0, h + (nM - 0.5) * 0.8)));
-  sand = mix(DEEP_SAND, sand, q4(smoothstep(-6.0, -0.3, h)));
+  vec3 sand = mix(WET_SAND, SAND, smoothstep(-0.2, 1.0, h + (nM - 0.5) * 0.8));
+  sand = mix(DEEP_SAND, sand, smoothstep(-6.0, -0.3, h));
   sand *= (0.9 + 0.2 * nF) * (0.92 + 0.16 * nD);
 #ifdef WAVE_WET_SAND
   // pasir yang baru dijilat ombak tetap gelap (basah) sebentar setelah air surut
@@ -278,28 +270,27 @@ vec3 terrainColor() {
     vec2 loc = waveLocal(uNoise, p, uWaveTime);
     float top = max(swashLevel(loc, uWaveTime),
       max(swashLevel(loc, uWaveTime - 1.3) * 0.9, swashLevel(loc, uWaveTime - 2.8) * 0.75));
-    sand *= mix(1.0, 0.66, 1.0 - step(top + 0.01, h));
+    sand *= mix(1.0, 0.66, 1.0 - smoothstep(top - 0.03, top + 0.05, h));
   }
 #endif
 
   // rumput/hutan: bercak terang-gelap, lebih kekuningan di padang sekitar gunung
-  vec3 grass = mix(GRASS, GRASS_DARK, q3(smoothstep(0.3, 0.75, nL + (nM - 0.5) * 0.4)));
-  grass = mix(grass, MEADOW, q3(vSurface.y) * 0.7);
-  grass = mix(grass, DRY, q3(vSurface.y * smoothstep(0.55, 0.85, nM)) * 0.45);
+  vec3 grass = mix(GRASS, GRASS_DARK, smoothstep(0.3, 0.75, nL + (nM - 0.5) * 0.4));
+  grass = mix(grass, MEADOW, vSurface.y * 0.7);
+  grass = mix(grass, DRY, vSurface.y * smoothstep(0.55, 0.85, nM) * 0.45);
   grass *= (0.86 + 0.28 * nF) * (0.88 + 0.24 * nD);
 
   // batu: lereng curam dan dekat puncak
-  vec3 rock = mix(ROCK, ROCK_DARK, q3(smoothstep(0.3, 0.8, nM)));
+  vec3 rock = mix(ROCK, ROCK_DARK, smoothstep(0.3, 0.8, nM));
   rock *= (0.8 + 0.4 * nF) * (0.9 + 0.2 * nD);
 
   float edge = uBeachTop + (nM - 0.5) * 1.6;
-  // batas pasir / rumput / batu tegas (tepinya bergerigi oleh noise), seperti ubin pixel art
-  vec3 col = mix(sand, grass, step(edge, h));
+  vec3 col = mix(sand, grass, smoothstep(edge - 0.3, edge + 0.3, h));
   float rocky = max(
-    step(0.37, slope + (nM - 0.5) * 0.12),
-    step(75.0, h + (nL - 0.5) * 14.0)
+    smoothstep(0.32, 0.42, slope + (nM - 0.5) * 0.12),
+    smoothstep(70.0, 80.0, h + (nL - 0.5) * 14.0)
   );
-  rocky *= step(uBeachTop + 0.75, h);
+  rocky *= smoothstep(uBeachTop, uBeachTop + 1.5, h);
   col = mix(col, rock, rocky);
 #ifdef REGION_MASK
   col = regionColor(col, p, nF, nM, nD, uRegion, uRegionRect, REGION_STYLE);
@@ -308,8 +299,7 @@ vec3 terrainColor() {
   col = regionColor(col, p, nF, nM, nD, uRegion2, uRegionRect2, REGION2_STYLE);
 #endif
 
-  // oklusi di bawah pohon: bertingkat (kontur gelap di sekitar pohon)
-  return col * (floor(vSurface.x * 6.0 + 0.5) / 6.0);
+  return col * vSurface.x;
 }
 `
 

@@ -6,10 +6,11 @@ const KEY = 'pulau-tropis:kualitas'
 
 const PRESETS = {
   rendah: {
-    pixelSize: 2.4, // px CSS per piksel seni (gambar pixel art, core/pixel.js)
+    maxPixelRatio: 1.25,
     terrainSegments: 200,
     shadows: false,
     shadowMapSize: 0,
+    softShadows: false,
     treeDensity: 0.75,
     canopyDetail: 0,
     grass: { radius: 70, near: 9, density: 1.6, blades: 4, max: 4000, shadows: false },
@@ -17,10 +18,11 @@ const PRESETS = {
     water: { segments: 128, detailLayers: 1, cloudReflection: false, wetSand: false, shoreRes: 256 },
   },
   sedang: {
-    pixelSize: 2,
+    maxPixelRatio: 1.5,
     terrainSegments: 256,
     shadows: true,
     shadowMapSize: 1024,
+    softShadows: true,
     treeDensity: 1,
     canopyDetail: 0,
     grass: { radius: 120, near: 13, density: 2.4, blades: 6, max: 9000, shadows: false },
@@ -28,10 +30,11 @@ const PRESETS = {
     water: { segments: 192, detailLayers: 2, cloudReflection: true, wetSand: true, shoreRes: 512 },
   },
   tinggi: {
-    pixelSize: 1.6,
+    maxPixelRatio: 2,
     terrainSegments: 384,
     shadows: true,
     shadowMapSize: 2048,
+    softShadows: true,
     treeDensity: 1.5,
     canopyDetail: 1,
     grass: { radius: 170, near: 18, density: 3.2, blades: 8, max: 26000, shadows: true },

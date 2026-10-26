@@ -6,8 +6,7 @@ import { REGIONS as ELF_REGIONS, LANDS as ELF_LANDS, landDistance } from '../wor
 
 // Peta dunia (tombol "Peta") dan spanduk nama wilayah saat prajurit memasuki pulau/kota baru.
 
-const M_PER_PX = 2 // 1 piksel gambar dasar untuk pengujian (sample) = 2 m
-const PIX = 1.5 // px CSS per piksel peta: peta digambar sebagai pixel art
+const M_PER_PX = 2 // 1 piksel gambar dasar = 2 m
 
 const LABELS = [
   { text: 'Pulau Tropis', x: 10, z: -175, size: 15 },
@@ -67,15 +66,13 @@ export function regionAt(x, z, ground, spans) {
   return { id: best.id, name: best.id === 'pura' ? 'Pura Segara' : best.name, sub: SUB[best.id] }
 }
 
-// warna peta untuk tinggi tanah h (+ cat jalan/sawah/lantai dari masker wilayah), dibulatkan ke beberapa
-// tingkat seperti peta pixel art: laut 4 pita kedalaman, rumput & batu 3 pita ketinggian
-const band = (t, n) => Math.min(n - 1, Math.floor(t * n)) / (n - 1)
+// warna peta untuk tinggi tanah h (+ cat jalan/sawah/lantai dari masker wilayah)
 function colorAt(h, mask, out) {
   let r
   let g
   let b
   if (h < 0) {
-    const d = band(clamp01(-h / 14), 4)
+    const d = clamp01(-h / 14)
     r = lerp(86, 22, d)
     g = lerp(205, 78, d)
     b = lerp(200, 140, d)
@@ -84,28 +81,26 @@ function colorAt(h, mask, out) {
     g = 208
     b = 156
   } else if (h < 40) {
-    const t = band(clamp01((h - 2.2) / 38), 3)
+    const t = clamp01((h - 2.2) / 38)
     r = lerp(104, 64, t)
     g = lerp(168, 118, t)
     b = lerp(72, 52, t)
   } else {
-    const t = band(clamp01((h - 40) / 40), 3)
+    const t = clamp01((h - 40) / 40)
     r = lerp(120, 196, t)
     g = lerp(118, 190, t)
     b = lerp(100, 182, t)
   }
   if (mask) {
-    // cat wilayah bertepi tegas: setengah tertutup = penuh
-    const paint = (k, cr, cg, cb) => {
-      if (k < 0.5) return
-      r = cr
-      g = cg
-      b = cb
+    const mix = (k, cr, cg, cb) => {
+      r = lerp(r, cr, k)
+      g = lerp(g, cg, k)
+      b = lerp(b, cb, k)
     }
-    paint(mask.rumput, 120, 196, 84)
-    paint(mask.sawah, 168, 210, 80)
-    paint(mask.jalan, 214, 184, 132)
-    paint(mask.batu, 214, 208, 196)
+    mix(mask.rumput, 120, 196, 84)
+    mix(mask.sawah, 168, 210, 80)
+    mix(mask.jalan, 214, 184, 132)
+    mix(mask.batu, 214, 208, 196)
   }
   out[0] = r
   out[1] = g
@@ -119,186 +114,146 @@ export function createWorldMap({ ground, plans, regions, camps = [], shops = [] 
   const ctx = canvas.getContext('2d')
   const W = Math.round(WORLD.width / M_PER_PX)
   const H = Math.round(WORLD.depth / M_PER_PX)
-  const bases = new Map() // "kolom×baris" → kanvas gambar dasar
-  let last = null // isi peta terakhir (digambar ulang setelah huruf piksel termuat)
+  let base = null
+  const px = x => (x - WORLD.minX) / M_PER_PX
+  const pz = z => (z - WORLD.minZ) / M_PER_PX
 
-  // gambar dasar pixel art cols × rows piksel: warna tanah tiap piksel dari tinggi & masker wilayah,
-  // lalu bangunan, barisan pasukan, jembatan, dan dermaga digambar ke lapisan terpisah dan dibulatkan
-  // (piksel terisi penuh atau kosong — tanpa tepi halus)
-  function drawBase(cols, rows) {
-    const key = `${cols}×${rows}`
-    if (bases.has(key)) return bases.get(key)
-    const mx = WORLD.width / cols
-    const mz = WORLD.depth / rows
+  // gambar dasar dibuat sekali, saat peta pertama kali dibuka
+  function drawBase() {
     const c = document.createElement('canvas')
-    c.width = cols
-    c.height = rows
+    c.width = W
+    c.height = H
     const g = c.getContext('2d')
-    const img = g.createImageData(cols, rows)
+    const img = g.createImageData(W, H)
     const col = [0, 0, 0]
-    for (let j = 0; j < rows; j++)
-      for (let i = 0; i < cols; i++) {
-        const x = WORLD.minX + (i + 0.5) * mx
-        const z = WORLD.minZ + (j + 0.5) * mz
+    for (let j = 0; j < H; j++)
+      for (let i = 0; i < W; i++) {
+        const x = WORLD.minX + (i + 0.5) * M_PER_PX
+        const z = WORLD.minZ + (j + 0.5) * M_PER_PX
         let m = null
         for (const r of regions) if (!m) m = r.at(x, z)
         colorAt(ground.heightAt(x, z), m, col)
-        const k = (j * cols + i) * 4
+        const k = (j * W + i) * 4
         img.data[k] = col[0]
         img.data[k + 1] = col[1]
         img.data[k + 2] = col[2]
         img.data[k + 3] = 255
       }
-    // lapisan benda buatan, dalam satuan meter dunia
-    const o = document.createElement('canvas')
-    o.width = cols
-    o.height = rows
-    const og = o.getContext('2d', { willReadFrequently: true })
-    og.scale(1 / mx, 1 / mz)
-    og.translate(-WORLD.minX, -WORLD.minZ)
+    g.putImageData(img, 0, 0)
     // bangunan: jejak gelap kemerahan
-    og.fillStyle = '#783424'
+    g.fillStyle = 'rgba(120, 52, 36, 0.85)'
     for (const b of plans.flatMap(p => p.blocked)) {
-      og.save()
-      og.translate(b.x, b.z)
-      og.rotate(-(b.rot || 0))
-      og.fillRect(-b.hx, -b.hz, 2 * b.hx, 2 * b.hz)
-      og.restore()
+      g.save()
+      g.translate(px(b.x), pz(b.z))
+      g.rotate(-(b.rot || 0))
+      g.fillRect(-b.hx / M_PER_PX, -b.hz / M_PER_PX, (2 * b.hx) / M_PER_PX, (2 * b.hz) / M_PER_PX)
+      g.restore()
     }
     // barisan bala tentara: kotak berwarna pasukannya
     for (const b of plans.flatMap(p => p.army?.blocks ?? [])) {
-      og.fillStyle = DIVISIONS[b.type].map
-      og.fillRect(b.x0, b.z0, b.x1 - b.x0, b.z1 - b.z0)
+      g.fillStyle = DIVISIONS[b.type].map
+      g.fillRect(px(b.x0), pz(b.z0), (b.x1 - b.x0) / M_PER_PX, (b.z1 - b.z0) / M_PER_PX)
     }
-    // jembatan & dermaga: paling tipis 1,5 piksel peta supaya tetap bersambung
-    const thin = 1.5 * Math.max(mx, mz)
-    const line = (axis, at, s0, s1) => {
-      og.beginPath()
-      if (axis === 'x') {
-        og.moveTo(s0, at)
-        og.lineTo(s1, at)
-      } else {
-        og.moveTo(at, s0)
-        og.lineTo(at, s1)
-      }
-      og.stroke()
-    }
-    og.lineCap = 'butt'
-    og.strokeStyle = '#f4efe2'
+    // jembatan
+    g.strokeStyle = '#f4efe2'
+    g.lineCap = 'butt'
     for (const s of plans.flatMap(p => p.spans)) {
-      og.lineWidth = Math.max(thin, s.width)
-      line(s.axis, s.at, s.a, s.b)
-    }
-    for (const d of plans.flatMap(p => p.docks ?? [])) {
-      og.strokeStyle = d.elf ? '#f4efe2' : '#b98a55'
-      og.lineWidth = Math.max(thin, d.width)
-      line(d.axis, d.at, d.s0, d.s1)
-    }
-    const ov = og.getImageData(0, 0, cols, rows).data
-    for (let k = 0; k < cols * rows * 4; k += 4)
-      if (ov[k + 3] >= 96) {
-        img.data[k] = ov[k]
-        img.data[k + 1] = ov[k + 1]
-        img.data[k + 2] = ov[k + 2]
+      g.lineWidth = Math.max(2, s.width / M_PER_PX)
+      g.beginPath()
+      if (s.axis === 'x') {
+        g.moveTo(px(s.a), pz(s.at))
+        g.lineTo(px(s.b), pz(s.at))
+      } else {
+        g.moveTo(px(s.at), pz(s.a))
+        g.lineTo(px(s.at), pz(s.b))
       }
-    g.putImageData(img, 0, 0)
-    if (bases.size > 3) bases.delete(bases.keys().next().value)
-    bases.set(key, c)
-    return c
+      g.stroke()
+    }
+    // dermaga (kayu / batu putih)
+    for (const d of plans.flatMap(p => p.docks ?? [])) {
+      g.strokeStyle = d.elf ? '#f4efe2' : '#b98a55'
+      g.lineWidth = Math.max(2, d.width / M_PER_PX)
+      g.beginPath()
+      if (d.axis === 'x') {
+        g.moveTo(px(d.s0), pz(d.at))
+        g.lineTo(px(d.s1), pz(d.at))
+      } else {
+        g.moveTo(px(d.at), pz(d.s0))
+        g.lineTo(px(d.at), pz(d.s1))
+      }
+      g.stroke()
+    }
+    base = c
   }
 
-  // tulisan berhuruf piksel bergaris luar piksel (8 arah)
   function label(text, x, y, size, scale) {
-    ctx.font = `600 ${Math.round(size * scale)}px 'Pixelify Sans', system-ui, sans-serif`
+    ctx.font = `600 ${Math.round(size * scale)}px system-ui, sans-serif`
     ctx.textAlign = 'center'
     ctx.textBaseline = 'middle'
-    const o = Math.max(1, Math.round(scale * 1.2))
-    ctx.fillStyle = 'rgb(0, 30, 45)'
-    for (const [dx, dy] of [[-o, 0], [o, 0], [0, -o], [0, o], [-o, -o], [o, -o], [-o, o], [o, o]]) ctx.fillText(text, x + dx, y + dy)
+    ctx.lineWidth = 3 * scale
+    ctx.strokeStyle = 'rgba(0, 30, 45, 0.85)'
+    ctx.strokeText(text, x, y)
     ctx.fillStyle = '#fff'
     ctx.fillText(text, x, y)
   }
 
   // marks: penanda tambahan [{ x, z, label? }] (mis. perahu pemain): titik toska, berlabel bila ada label
   function draw(player, heading, marks) {
-    last = { player, heading, marks }
+    if (!base) drawBase()
     const rect = canvas.getBoundingClientRect()
-    const dpr = Math.min(3, window.devicePixelRatio || 1)
+    const dpr = Math.min(2, window.devicePixelRatio || 1)
     canvas.width = Math.round(rect.width * dpr)
     canvas.height = Math.round(rect.height * dpr)
-    // k = piksel layar per piksel peta (bulat: semua piksel peta sama besar)
-    const k = Math.max(1, Math.round(PIX * dpr))
-    const cols = Math.ceil(canvas.width / k)
-    const rows = Math.ceil(canvas.height / k)
-    const base = drawBase(cols, rows)
-    ctx.imageSmoothingEnabled = false
-    ctx.drawImage(base, 0, 0, cols * k, rows * k)
-    // posisi dunia → piksel peta (pecahan) dan → piksel kanvas
-    const mi = x => ((x - WORLD.minX) / WORLD.width) * cols
-    const mj = z => ((z - WORLD.minZ) / WORLD.depth) * rows
+    const s = canvas.width / W
+    ctx.imageSmoothingEnabled = true
+    ctx.drawImage(base, 0, 0, canvas.width, canvas.height)
     const scale = Math.max(0.8, canvas.width / 900)
-    // kotak piksel n × n bergaris luar 1 piksel, berpusat di piksel peta tempat (x, z) berada
-    const dot = (x, z, n, fill, edge) => {
-      const i = Math.floor(mi(x)) - Math.floor(n / 2)
-      const j = Math.floor(mj(z)) - Math.floor(n / 2)
-      ctx.fillStyle = edge
-      ctx.fillRect((i - 1) * k, (j - 1) * k, (n + 2) * k, (n + 2) * k)
-      ctx.fillStyle = fill
-      ctx.fillRect(i * k, j * k, n * k, n * k)
+    // perkemahan orc
+    for (const c of camps) {
+      ctx.fillStyle = '#e8483a'
+      ctx.beginPath()
+      ctx.arc(px(c.x) * s, pz(c.z) * s, 4 * scale, 0, Math.PI * 2)
+      ctx.fill()
     }
-    // perkemahan orc: kotak merah
-    for (const c of camps) dot(c.x, c.z, 2, '#e8483a', '#3a0d08')
-    // toko (pasar & pandai besi Aeloria): belah ketupat emas
+    // toko (pasar & pandai besi Aeloria): lingkaran emas
     for (const t of shops) {
-      const i = Math.floor(mi(t.x))
-      const j = Math.floor(mj(t.z))
-      for (const [r, color] of [[3, '#3a2a06'], [2, '#ffd34d']])
-        for (let d = -r; d <= r; d++) {
-          const w = r - Math.abs(d)
-          ctx.fillStyle = color
-          ctx.fillRect((i - w) * k, (j + d) * k, (2 * w + 1) * k, k)
-        }
+      ctx.fillStyle = '#ffd34d'
+      ctx.strokeStyle = '#3a2a06'
+      ctx.lineWidth = 1.5 * scale
+      ctx.beginPath()
+      ctx.arc(px(t.x) * s, pz(t.z) * s, 3.5 * scale, 0, Math.PI * 2)
+      ctx.fill()
+      ctx.stroke()
     }
-    for (const l of LABELS) label(l.text, (mi(l.x) + 0.5) * k, (mj(l.z) + 0.5) * k, l.size, scale)
+    for (const l of LABELS) label(l.text, px(l.x) * s, pz(l.z) * s, l.size, scale)
     for (const m of marks) {
-      dot(m.x, m.z, 3, '#3fd0d4', '#06292b')
-      if (m.label) label(m.label, (mi(m.x) + 0.5) * k, (mj(m.z) - 3) * k, 10, scale)
+      ctx.fillStyle = '#3fd0d4'
+      ctx.strokeStyle = '#06292b'
+      ctx.lineWidth = 1.5 * scale
+      ctx.beginPath()
+      ctx.arc(px(m.x) * s, pz(m.z) * s, 4.5 * scale, 0, Math.PI * 2)
+      ctx.fill()
+      ctx.stroke()
+      if (m.label) label(m.label, px(m.x) * s, pz(m.z) * s - 12 * scale, 10, scale)
     }
-    // prajurit: panah piksel ke arah hadap (bentuk mata panah, diisi per piksel peta + garis luar)
-    const cx = mi(player.x)
-    const cy = mj(player.z)
+    // prajurit: panah ke arah hadap
+    const x = px(player.x) * s
+    const y = pz(player.z) * s
     const dx = Math.sin(heading)
     const dy = Math.cos(heading)
-    const r = 3.2
-    const poly = [
-      [cx + dx * r * 1.4, cy + dy * r * 1.4],
-      [cx - dy * r * 0.8 - dx * r * 0.7, cy + dx * r * 0.8 - dy * r * 0.7],
-      [cx - dx * r * 0.25, cy - dy * r * 0.25],
-      [cx + dy * r * 0.8 - dx * r * 0.7, cy - dx * r * 0.8 - dy * r * 0.7],
-    ]
-    const inside = (px, py) => {
-      let c = false
-      for (let a = 0, b = poly.length - 1; a < poly.length; b = a++) {
-        const [xa, ya] = poly[a]
-        const [xb, yb] = poly[b]
-        if (ya > py !== yb > py && px < ((xb - xa) * (py - ya)) / (yb - ya) + xa) c = !c
-      }
-      return c
-    }
-    const R = 7
-    const i0 = Math.floor(cx) - R
-    const j0 = Math.floor(cy) - R
-    const cells = []
-    for (let j = 0; j <= 2 * R; j++) for (let i = 0; i <= 2 * R; i++) cells.push(inside(i0 + i + 0.5, j0 + j + 0.5))
-    const at = (i, j) => i >= 0 && j >= 0 && i <= 2 * R && j <= 2 * R && cells[j * (2 * R + 1) + i]
-    for (let j = 0; j <= 2 * R; j++)
-      for (let i = 0; i <= 2 * R; i++) {
-        if (at(i, j)) ctx.fillStyle = '#ffe14a'
-        else if (at(i - 1, j) || at(i + 1, j) || at(i, j - 1) || at(i, j + 1)) ctx.fillStyle = '#1a1206'
-        else continue
-        ctx.fillRect((i0 + i) * k, (j0 + j) * k, k, k)
-      }
-    label('Kamu', (cx + 0.5) * k, (cy + 6.5) * k, 11, scale)
+    const r = 9 * scale
+    ctx.fillStyle = '#ffe14a'
+    ctx.strokeStyle = '#1a1206'
+    ctx.lineWidth = 2 * scale
+    ctx.beginPath()
+    ctx.moveTo(x + dx * r * 1.4, y + dy * r * 1.4)
+    ctx.lineTo(x - dy * r * 0.8 - dx * r * 0.7, y + dx * r * 0.8 - dy * r * 0.7)
+    ctx.lineTo(x - dx * r * 0.25, y - dy * r * 0.25)
+    ctx.lineTo(x + dy * r * 0.8 - dx * r * 0.7, y - dx * r * 0.8 - dy * r * 0.7)
+    ctx.closePath()
+    ctx.fill()
+    ctx.stroke()
+    label('Kamu', x, y + 17 * scale, 11, scale)
   }
 
   return {
@@ -308,19 +263,14 @@ export function createWorldMap({ ground, plans, regions, camps = [], shops = [] 
     show(player, heading, marks = []) {
       panel.hidden = false
       draw(player, heading, marks)
-      // huruf piksel belum termuat: gambar ulang begitu siap
-      const font = '600 12px "Pixelify Sans"'
-      if (document.fonts && !document.fonts.check(font))
-        document.fonts.load(font).then(() => {
-          if (!panel.hidden && last) draw(last.player, last.heading, last.marks)
-        })
     },
     hide() {
       panel.hidden = true
     },
-    // untuk pengujian: warna dasar peta di titik dunia (x, z) (gambar dasar 2 m per piksel)
+    // untuk pengujian: warna dasar peta di titik dunia (x, z)
     sample(x, z) {
-      const d = drawBase(W, H).getContext('2d').getImageData(Math.floor((x - WORLD.minX) / M_PER_PX), Math.floor((z - WORLD.minZ) / M_PER_PX), 1, 1).data
+      if (!base) drawBase()
+      const d = base.getContext('2d').getImageData(Math.floor(px(x)), Math.floor(pz(z)), 1, 1).data
       return [d[0], d[1], d[2]]
     },
     size: { width: W, height: H },

@@ -2,7 +2,6 @@ import * as THREE from 'three'
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js'
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js'
 import { quality, setQualityLevel } from './core/quality.js'
-import { createPixelRenderer, installPixelShading } from './core/pixel.js'
 import { createNoiseTexture, createWaterNormalTexture } from './core/noiseTexture.js'
 import { PlacementGrid } from './core/spatial.js'
 import { ISLAND, heightAt as islandHeight } from './world/island.js'
@@ -37,7 +36,6 @@ import { createShop } from './ui/toko.js'
 import { createElfCard } from './ui/kartu-elf.js'
 import { createActionButton, IKON_AKSI } from './ui/aksi.js'
 import { createChat } from './ui/obrolan.js'
-import { installPixelUI } from './ui/piksel-ui.js'
 import { CITY, KERATON, ALUN, CANDI, PASAR, HARBOR, ISLANDS, TEGAL } from './world/kencana/layout.js'
 import { TOWN, MARKET, SMITHY, TAVERN, MESS, TRAINING, FEAST, CAMPS as ELF_CAMPS, CITADEL, LANDS } from './world/aeloria/layout.js'
 import { createInput } from './player/input.js'
@@ -147,27 +145,19 @@ async function start() {
     return
   }
 
-  // UI bergaya pixel art: lingkaran piksel untuk tombol bulat, ikon SVG dipikselkan
-  installPixelUI($('hud'))
-
   const canvas = $('game')
-  // pixel art: tanpa antialias (tepi piksel tajam); ukuran kanvas diatur createPixelRenderer. Kanvas
-  // hanya menerima tahap akhir pixel art (dunia digambar ke target sendiri), jadi tanpa buffer kedalaman
-  const renderer = new THREE.WebGLRenderer({ canvas, antialias: false, depth: false, powerPreference: 'high-performance' })
+  const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' })
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, quality.maxPixelRatio))
   renderer.outputColorSpace = THREE.SRGBColorSpace
   renderer.toneMapping = THREE.ACESFilmicToneMapping
   renderer.toneMappingExposure = 1.0
-  // bayangan bertepi tajam (pixel art): PCF biasa tanpa penghalusan lebar
   if (quality.shadows) {
     renderer.shadowMap.enabled = true
-    renderer.shadowMap.type = THREE.PCFShadowMap
+    renderer.shadowMap.type = quality.softShadows ? THREE.PCFSoftShadowMap : THREE.PCFShadowMap
   }
-  installPixelShading()
 
   const scene = new THREE.Scene()
   const camera = new THREE.PerspectiveCamera(55, 1, 0.5, 5000)
-  // dunia digambar sebagai pixel art HD (resolusi rendah + garis tepi + warna 15-bit, lihat core/pixel.js)
-  const pixel = createPixelRenderer(renderer, { pixelSize: quality.pixelSize })
 
   setStatus('Menyiapkan tekstur…')
   await nextFrame()
@@ -798,8 +788,8 @@ async function start() {
   function resize() {
     const w = window.innerWidth
     const h = window.innerHeight
-    const px = pixel.setSize(w, h)
-    camera.aspect = px.w / px.h
+    renderer.setSize(w, h, false)
+    camera.aspect = w / h
     camera.fov = FOV[mode][w < h ? 0 : 1]
     camera.far = mode === 'main' ? VIEW[quality.level] ?? VIEW.sedang : 5000
     scene.fog.near = mode === 'main' ? camera.far * 0.3 : 380
@@ -957,7 +947,7 @@ async function start() {
     cam.update(0.016, camTarget, NO_INPUT)
     env.update(0, camera, player.position)
     soldiers.warmUp(player.position)
-    pixel.render(scene, camera)
+    renderer.render(scene, camera)
     soldiers.warmUp(null)
   }
 
@@ -1066,7 +1056,7 @@ async function start() {
     trees.userData.update(t)
     kencana.update(t)
     grass.userData.update(camera, t)
-    pixel.render(scene, camera)
+    renderer.render(scene, camera)
 
     frames++
     fpsTime += dt
@@ -1096,7 +1086,7 @@ async function start() {
 
   // akses untuk debugging / pengujian otomatis
   window.__pulau = {
-    renderer, pixel, scene, camera, controls, ground, shore, quality, trees, rocks, grass, water, env, kencana, region, plan, villagers, army, worldMap, banner, aeloria, elfPlan, elfMask, life,
+    renderer, scene, camera, controls, ground, shore, quality, trees, rocks, grass, water, env, kencana, region, plan, villagers, army, worldMap, banner, aeloria, elfPlan, elfMask, life,
     player, cam, input, colliders, nav, markers, effects, enemies, soldiers, security, patrol, bubbles, pickGround, setMode, getMode: () => mode, bag, gear, shop, elfSec, elfCard,
     boat, fishing, ripples, recipes, craftBoat, boardBoat, leaveBoat, chat, placesFor,
     frames: () => frameCount, debug,
