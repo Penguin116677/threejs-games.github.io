@@ -109,8 +109,9 @@ function hull(P, len, beam, depth, color, stripe) {
 function jukungGeometry() {
   const P = new B.Parts()
   hull(P, 6.2, 0.85, 0.45, '#f2efe6', '#2f62a8')
-  // cadik: dua pelampung bambu + dua palang
-  for (const s of [-1, 1]) P.cyl(0.09, 0.09, 4.6, 5, B.COL.bambu, B.K.KAYU, { x: s * 2.3, y: -0.05, rx: Math.PI / 2, z: 2.3 })
+  // cadik: dua pelampung bambu (sepanjang z −2,3…2,3, di bawah ujung palang) + dua palang.
+  // cyl() berpangkal di y = 0, jadi setelah diputar ke sumbu z pangkalnya digeser ke −2,3
+  for (const s of [-1, 1]) P.cyl(0.09, 0.09, 4.6, 5, B.COL.bambu, B.K.KAYU, { x: s * 2.3, y: -0.05, rx: Math.PI / 2, z: -2.3 })
   for (const z of [-1.2, 1.2]) P.box(4.8, 0.08, 0.1, B.COL.kayuTua, B.K.KAYU, { y: 0.35, z })
   // tiang & layar segitiga
   P.cyl(0.05, 0.06, 3.4, 5, B.COL.kayuTua, B.K.KAYU, { y: 0.2, z: 0.6 })
