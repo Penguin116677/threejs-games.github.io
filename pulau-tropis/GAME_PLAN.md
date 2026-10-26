@@ -17,7 +17,8 @@ dengan **perahu** buatan sendiri (kayu dari pohon), bisa **memancing** (ikan dim
 bisa **mengobrol** dengan elf Aeloria dan warga Kencana (tombol Bicara).
 
 **Tokoh utama bukan rakyat kerajaan mana pun, jadi ia musuh setiap kerajaan** (v0.12.1, ketentuan
-pengguna). Prajurit Kencana langsung menghadang dan menyerangnya di wilayah mereka, tanpa ditanyai.
+pengguna). Prajurit Kencana langsung menghadang dan menyerangnya di wilayah mereka, tanpa ditanyai, dan
+mengejarnya sampai ke laut — berenang, atau dengan perahu patroli yang melempar tombak (v0.17.0).
 Orang lain (pendatang) tetap ditanyai di gerbang.
 
 **Kerajaan Elf Aeloria** (v0.13.0) membuka kotanya sebagai pasar bebas, jadi pemain bisa berbelanja.
@@ -119,3 +120,8 @@ bagian Milestone 4 (NPC & dialog, membuat barang dari bahan) yang dimajukan lagi
 Di v0.15.0 (permintaan pengguna) seluruh grafik diganti menjadi pixel art HD (bagian Milestone 5 —
 peningkatan visual — dengan arah gaya yang baru) tanpa mengubah gameplay; kamera tidak lagi berputar
 sendiri mengikuti arah karakter, dan gerakan karakter diperhalus.
+Di v0.16.0 (permintaan pengguna dengan gambar contoh) semua karakter berganti rupa pixel art chibi.
+Di v0.17.0 (laporan & permintaan pengguna) dek dermaga tidak lagi menarik pemain naik — tepi yang tinggi
+dipanjat dengan tombol Panjat —, jalan & lompat pemain diperhalus lagi, dan prajurit Kencana mengejar ke
+laut: berenang, dan dengan perahu patroli yang melempar tombak (Milestone 2 — kontrol & fisika — dan NPC
+yang lebih hidup).

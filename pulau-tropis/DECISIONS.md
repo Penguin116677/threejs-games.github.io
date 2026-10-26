@@ -457,7 +457,8 @@ tandai sebagai "diganti" bila berubah.
     - Kalah oleh prajurit Kencana → pantai barat Pulau Tropis (14 m dari pangkal Dermaga Barat); oleh
       kesatria Aeloria → pantai utara Pulau Tropis (dekat Dermaga Utara). Keduanya di luar wilayah
       kerajaan, dan pengejar tidak berenang ke sana.
-58. **Berenang tanpa stamina** (v0.14.0, permintaan pengguna; mengganti #24).
+58. **Berenang tanpa stamina** (v0.14.0, permintaan pengguna; mengganti #24). *(Bagian "pengejar tidak
+    masuk air" diganti #73–#74 di v0.17.0 untuk prajurit Kencana; kesatria Aeloria & orc tetap.)*
     - Air ≥ 0,35 m memperlambat; lebih dalam dari 1,15 m (sedada) = berenang; kembali berjalan di bawah
       0,95 m (jarak antara dua batas mencegah berganti-ganti di batas air). Kecepatan berenang 2,4 m/s
       (berjalan 2, berlari 5,6), badan dimiringkan mendatar dan sedikit tenggelam, riak di sekelilingnya.
@@ -677,3 +678,63 @@ tandai sebagai "diganti" bila berubah.
     memintanya, dulu tetap diam); titik putar kuda (dari rangka kuda Kenney "Prototype Kit") ditulis di
     `pasukan.js`. Unduhan model 892 KB → 108 KB; `penduduk.glb`, `bala.glb`, `pedang.glb` dan skrip
     pembuatnya dihapus.
+71. **Lantai bangunan setinggi langkah; yang lebih tinggi dipanjat** (v0.17.0, laporan pengguna: *"ketika
+    saya menabrak dermaga kayunya karakter saya langsung naik dan tertahan, harusnya ada tombol panjat"*).
+    - Penyebabnya dua: `surfaceAt` menjadikan lantai (dek, batur, lantai jembatan) pijakan setinggi apa pun
+      — pemain di air "terangkat" ke dek 1,75 m begitu menyentuh tepinya — dan batas lereng (1,3) menghitung
+      tepi dek sebagai lereng terjal, jadi pemain tertahan.
+    - Kini pijakan = tanah atau lantai yang paling tinggi 0,45 m di atas kaki (`supportAt`); lantai yang lebih
+      tinggi adalah tepi yang menahan (didorong keluar seperti kotak penghalang). Tepi sampai 2,95 m bisa
+      dipanjat dengan **tombol Panjat** (Spasi di komputer) — sengaja tombol, bukan otomatis, sesuai
+      permintaan, supaya tidak naik tanpa sengaja. Batas lereng hanya dihitung dari tanah.
+    - Prajurit memakai aturan yang sama (memanjat sendiri bila sasarannya di atas), dan jalur A* tidak lagi
+      lewat tepi lantai yang lebih tinggi dari 0,5 m — kalau tidak, jalur mengantar ke tepi yang tidak bisa
+      dilangkahi. Tingginya dicuplik tiap 0,25 m sepanjang ruas antar sel di batas lantai, bukan dari tinggi
+      pusat sel: dua pusat sel 2 m di tangga pendopo berbeda 0,61 m walau tiap anak tangganya rendah (cara
+      pertama itu sempat menutup jalan ke pendopo — tertangkap smoke test).
+    - Tepi lantai hanya menahan dari luar: pemain / prajurit yang sudah berdiri di lantai itu (mis. di
+      tengah tangga) dan lantai di bawah kakinya masih selangkah tidak didorong oleh tepinya. Tanpa
+      syarat ini puncak tangga (lebih tinggi dari selangkah dari kaki di tengah tangga) "mendorong" pemain
+      2 m menembus tangga ke kaki batur — juga tertangkap smoke test (naik tangga pendopo).
+72. **Gerak pemain mulus: laju bertahap, animasi berbaur menurut kecepatan, pegas lompat** (v0.17.0,
+    permintaan pengguna: *"perbaiki juga cara berjalan dan melompat karakter, harus lebih mulus dan bagus
+    jangan kaku"*).
+    - Laju mendekati tujuan dengan batas percepatan yang naik-turun halus (mulai, berhenti, berbelok tidak
+      menyentak); berbalik tajam memperlambat dulu. Diukur: diam → lari penuh ±0,5 detik (dulu ±0,3 detik
+      lalu menyentak penuh), berhenti melambat bertahap (dulu 1,1 m/s → diam dalam satu langkah).
+    - Animasi bukan lagi satu klip yang diganti saat ambang kecepatan, melainkan lapisan diam/jalan/lari
+      yang bobotnya mengikuti kecepatan; jalan & lari berbagi satu fase langkah yang maju sesuai jarak
+      tempuh (bukan waktu), jadi kaki tidak meluncur di kecepatan berapa pun.
+    - Lompat & mendarat diberi pegas squash/stretch dan pose lengan, badan condong saat mempercepat dan miring
+      saat berbelok — gerakan buatan di atas klip Kenney, karena paket itu tidak punya klip mendarat /
+      condong.
+    - Lompatan berketinggian berubah (tombol dilepas cepat = rendah) dicoba lalu dibatalkan: lompatan pendek
+      tidak lagi melewati penghalang yang diuji smoke test (≥ 0,8 m) dan di layar sentuh ketukan tombol
+      cenderung singkat.
+73. **Prajurit Kencana berenang mengejar** (v0.17.0, laporan pengguna: *"prajuritnya tertahan di ujung jalan
+    ketika mengejar saya yang lompat ke air, buatkan mereka bisa berenang"*; mengganti sebagian #58).
+    - Pengejar ikut terjun / mengarungi pantai, berenang 2,1 m/s (pemain 2,4 m/s), memanjat dek dari air,
+      dan kembali ke darat lurus sebelum memakai jalur darat. Sedikit lebih lambat dari pemain supaya berenang
+      menjauh tetap jalan keluar dari pengeroyokan — tapi tidak lagi aman sepenuhnya (#74).
+    - Prajurit yang hanya berpatroli tetap di darat; hanya yang mengejar yang masuk air.
+    - Kesatria Aeloria tidak diubah: Aeloria zona damai dan kesatria memang tidak memburu ke luar kerajaan
+      (#49, #58). Orc juga tetap di darat.
+74. **Perahu patroli Kencana dengan lemparan tombak** (v0.17.0, permintaan pengguna: *"bahkan mengejar
+    dengan kapal"*).
+    - Memakai jukung yang sudah bersandar di dermaga Kencana (yang tambatannya cukup dalam), bukan perahu
+      baru: perahunya memang ada di dunia, dan setelah pengejaran ia kembali ke tambatannya.
+    - Berangkat hanya bila pemain di laut dalam tanpa pengejar di dekatnya (perenang tidak bisa menyusul);
+      awak dua prajurit terdekat (penombak didahulukan) yang berlari ke dek & melompat naik — terlihat, jadi
+      pemain sempat menjauh.
+    - Jalur laut: peta sel 4 m (sel diperiksa saat pertama dibutuhkan, tidak di awal permainan) + A*,
+      kedalaman lambung sama dengan perahu pemain; dek & jembatan tidak bisa dilalui.
+    - Serangan dari perahu: tusukan bila terjangkau dan **lemparan tombak** dari jauh. Tanpa lemparan, perahu
+      tidak berbahaya bagi pemain yang berperahu — dua jukung bercadik tidak bisa merapat sedekat jangkauan
+      tombak. Lemparan diarahkan ke perkiraan letak pemain dengan meleset ±(0,7 + 0,1·jarak) m, jeda
+      3,4–4,8 detik, kerusakan 5. Diukur: pemain yang diam di air kalah ±45 detik setelah perahu tiba (15
+      lemparan, 3 kena — sisanya tusukan awak haluan); yang terus berenang sambil berbelok hampir tidak terluka (dikejar 2 menit: 48 lemparan, 6 kena, nyawa
+      pulih di sela-selanya). Perahu pemain (7,5 m/s) lebih cepat
+      dari perahu patroli (6,4 m/s).
+    - Pengejaran berakhir sendiri: perahu menyerah bila tertinggal jauh (130 m; di luar wilayah 70 m) selama
+      12 detik atau sudah 320 m dari dermaganya, lalu pulang & awaknya kembali bertugas. Selama perahu
+      masih mengejar, keamanan tidak menganggap pemain lolos.

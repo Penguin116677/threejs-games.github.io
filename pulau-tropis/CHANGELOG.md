@@ -1,5 +1,112 @@
 # CHANGELOG — Pulau Tropis
 
+## [0.17.0] — 2026-10-26 — Prajurit berenang & berperahu, tombol Panjat, gerak lebih mulus (permintaan pengguna)
+### Ditambah
+- **Prajurit Kencana berenang mengejar**: dulu pengejar berhenti di ujung jalan / dermaga saat pemain
+  terjun ke laut. Kini mereka ikut terjun dari dek (cipratan) atau mengarungi pantai lalu berenang —
+  badan terbenam sampai dada, kepala di atas air, naik-turun pelan. Laju berenang 2,1 m/s, sedikit lebih
+  lambat dari pemain (2,4 m/s), jadi masih bisa dihindari. Dari air mereka memanjat dek bila pemain naik ke
+  sana; saat kembali bertugas mereka berenang ke darat / dek terdekat lalu berjalan lagi.
+- **Perahu patroli**: pemain yang kabur lewat laut (berenang atau berperahu, tanpa pengejar sedekat 9 m
+  selama ±2,5 detik) dikejar dengan jukung dari dermaga Kencana terdekat (4 jukung yang tambatannya cukup
+  dalam: dua di Dermaga Timur, satu di pelabuhan, satu di Kampung Nelayan):
+  - dua prajurit (penombak didahulukan) berlari ke dek dan melompat naik — satu di haluan, satu juru
+    mudi di buritan; seruan "Ke perahu! Kejar dia!" dan pesan di layar;
+  - perahu bergeser menjauhi dek, berputar, lalu mengejar lewat jalur laut (memutari pulau, tidak lewat
+    air dangkal, bawah dermaga, atau bawah jembatan), memotong arah lari pemain; laju 6,4 m/s — perahu
+    pemain (7,5 m/s) yang dikayuh penuh masih bisa lolos;
+  - dekat pemain perahu melambat dan menghadapnya: awak menusuk bila terjangkau dan **melempar tombak**
+    dari jauh (3,6–17 m), diarahkan ke perkiraan letak pemain — bisa dihindari dengan berbelok; tombak
+    yang meleset tercebur (riak) atau menancap di pasir;
+  - pemain naik ke darat / air dangkal di wilayah kerajaan → penombak haluan terjun dan mengejar, juru
+    mudi tetap di perahu;
+  - perahu menyerah bila tertinggal jauh (130 m; di luar wilayah kerajaan 70 m) selama 12 detik atau
+    sudah 320 m dari dermaganya, lalu pulang, bersandar, dan awaknya melompat ke dek dan kembali bertugas.
+    Perahu yang sedang pulang bisa berbalik mengejar lagi. Paling banyak dua perahu sekaligus;
+  - lambung perahu patroli tidak bisa ditembus perenang.
+- **Tombol Panjat** (cokelat, ikon anak tangga; di komputer Spasi): muncul saat pemain menghadap tepi dek
+  dermaga / batur yang terlalu tinggi untuk dilangkahi — dari air sampai 2,95 m (dek dermaga ±2,8 m).
+  Pemain meraih tepi, mengangkat badan, lalu berdiri di atasnya; kamera ikut naik halus.
+### Diperbaiki
+- **Menabrak dermaga dari air langsung naik lalu tertahan**: dulu lantai dek setinggi apa pun langsung
+  menjadi pijakan (pemain terangkat ke dek begitu menyentuhnya) dan tepi dek dihitung sebagai lereng terjal
+  (pemain tertahan). Kini lantai hanya diinjak bila tepinya setinggi langkah (≤ 0,45 m di atas kaki); yang
+  lebih tinggi menahan seperti dinding dan dipanjat dengan tombol Panjat. Batas lereng hanya berlaku untuk
+  tanah, bukan lantai bangunan.
+- **Prajurit tertahan di ujung jalan** saat mengejar pemain yang terjun ke air (lihat Ditambah).
+- Jalur jalan kaki (A*, juga untuk prajurit) tidak lagi melewati tepi dek / batur dari samping (loncatan
+  > 0,5 m): dulu jalur ke dermaga bisa lewat air dangkal di sampingnya lalu "naik" ke dek; kini lewat
+  pangkal dermaga atau tangga.
+- Prajurit berlari di dek dermaga dengan laju penuh (dulu melambat seperti mengarungi air, karena laut di
+  bawah dek).
+- **Cadik jukung** (perahu nelayan Kencana dan perahu buatan pemain): kedua pelampung bambunya dulu
+  terlepas di depan haluan; kini terpasang di bawah ujung palang, sejajar lambung.
+### Diubah
+- **Jalan & lompat pemain lebih mulus**:
+  - percepatan dan perlambatan bertahap: dari diam ke lari 0 → 1,3 → 3,2 → 4,4 → 5,0 → 5,6 m/s tiap
+    ±0,1 detik (dulu 0 → 1,6 → 3,6 → 5,5, lalu langsung penuh), berhenti 5,6 → 3,6 → 1,9 → 0,9 → 0,4
+    (dulu 5,0 → 3,0 → 1,1 → 0 — berhenti mendadak); berbalik tajam memperlambat dulu, arah hadap menyusul
+    halus;
+  - animasi diam / jalan / lari berbaur menurut kecepatan dengan satu fase langkah bersama (panjang langkah
+    0,93 → 1,8 m per siklus): kaki tidak meluncur, peralihan jalan ↔ lari tanpa sentakan;
+  - badan condong ke depan saat menambah laju dan miring ke dalam saat berbelok;
+  - lompat: badan meregang saat menolak dan memendek saat mendarat (pegas), lengan terangkat saat naik dan
+    terbuka saat turun; mendarat dari tempat tinggi menahan laju sebentar; lompat → jatuh → mendarat → jalan
+    berbaur halus.
+- Petunjuk kontrol komputer: "Spasi: lompat / panjat".
+### Teknis
+- `terrain.js`: `supportAt(x, z, kakiY, langkah)` — pijakan = tanah atau lantai yang paling tinggi `langkah`
+  m di atas kaki — dan `forEachSurfaceNear` (tabrakan tepi lantai). Pemain & prajurit memakainya;
+  `surfaceAt` tetap untuk yang lain (laut, perahu, rumput).
+- `player.js`: lapisan animasi berbobot (diam/jalan/lari menurut kecepatan, cross-fade linear), fase
+  langkah bersama, pegas squash/stretch, pose tulang tambahan setelah mixer (memanjat, lengan di udara),
+  `findClimb` / `startClimb` / `stepClimb`.
+- `prajurit.js`: berenang (`settle`), tepi lantai (`ledges`: menahan, atau memanjat dengan klip `panjat`
+  buatan), naik / turun perahu (`board`, `unboard`, klip `lompat` buatan), serangan awak (`attack`;
+  lemparan dilepas di tengah ayunan).
+- `kencana/perahu-patroli.js` (baru): peta laut sel 4 m yang diperiksa saat pertama dibutuhkan + A*
+  (`Heap` dari `navgrid.js`), armada dari perahu bersandar `kingdom.js` (`boats`, kini boleh dipindah),
+  keadaan siap → lepas → kejar → pulang → sandar → turun, tombak lempar (satu InstancedMesh, 10 buah).
+- `keamanan.js`: `enlist(a)` (awak ikut memburu), awak perahu tidak "bebas" untuk perintah lain, awak baru
+  menyerah bila tertinggal 240 m, dan pemain belum lolos selama awak masih berlari ke perahu atau perahunya
+  sedekat 130 m (perahu sendiri yang memutuskan berhenti).
+- `navgrid.js`: ruas antar sel di batas lantai ditutup bila tinggi pijakan sepanjang ruas (dicuplik tiap
+  0,25 m) meloncat lebih dari 0,5 m; `lineClear` ikut memeriksa loncatan di tepi lantai.
+### Diperiksa
+- ESLint (konfigurasi repo) 0 error / 0 warning pada setiap commit; `vite build` berhasil (JS 1,16 MB /
+  367 KB gzip, +11 KB gzip dari v0.16.0).
+- Smoke test otomatis (versi build, 4 profil) — **LULUS**: 185 cek, 0 gagal (HP tegak 72, HP mendatar 28,
+  HP Rendah 28, komputer 57). Cek baru (HP tegak & komputer): menabrak sisi Dermaga Timur dari air →
+  tertahan (z 37,15, tetap berenang), tombol Panjat / Spasi → berdiri di dek (y 1,75); prajurit ikut
+  terjun & berenang mengejar (9–11 m dari pemain, kaki −1,0 m); kabur lewat laut → perahu patroli
+  berangkat dengan 2 awak dan melempar tombak; lolos ke darat di luar wilayah → perahu pulang &
+  bersandar, awaknya turun ke dek. Semua cek lama tetap lulus — naik tangga pendopo, Jembatan Wira,
+  menyeberang dengan perahu, dihadang di Dermaga Timur, kalah → dibuang, kabur → berhenti dikejar, serbuan
+  orc, lompat, berenang, dll. Putaran sebelumnya menangkap dua bug buatan rilis ini (aturan tepi lantai
+  versi pertama menutup jalan ke pendopo; dorongan tepi lantai menembus puncak tangga) — keduanya
+  diperbaiki sebelum putaran yang lulus.
+- Uji terpisah di browser (Chromium, render software, layar Pixel 7 tiruan):
+  - dermaga: tertahan di z 37,15, tombol Panjat muncul, memanjat ke y 1,75, lalu berjalan di dek;
+    tangga pendopo dinaiki 5,50 → 6,50 m dan jalur ke lantai batur ditemukan dari halaman;
+  - gerak (diukur per 0,1 detik): diam → lari 0 → 1,3 → 3,2 → 4,4 → 5,0 → 5,6 m/s (dulu 0 → 1,6 → 3,6 →
+    5,5), berhenti 5,6 → 3,6 → 1,9 → 0,9 → 0,4 (dulu 5,0 → 3,0 → 1,1 → 0); badan 1,07× saat menolak dan
+    0,93× saat mendarat; rangkaian foto gerak dari samping dibandingkan dengan v0.16.0;
+  - perahu patroli: (1) kabur menyusuri selat timur → dua perahu berangkat, 15 lemparan / 5 kena, lalu
+    pemain ke pantai Pulau Tropis → keduanya menyerah, pulang, bersandar; (2) pemain naik ke pantai
+    Kencana → penombak haluan terjun & menyerang di darat, juru mudi tetap melempar; perahu yang sedang
+    pulang berbalik mengejar lagi saat pengejaran berlanjut; (3) pemain berperahu → perahu patroli
+    berhenti ±5 m dan melempar tombak, perahu kedua berangkat saat yang pertama jauh; awak berlari di dek
+    (y 1,75) dan melompat naik ±1,5 detik setelah tiba;
+  - keseimbangan: pemain yang diam di air kalah ±45 detik setelah perahu tiba (15 lemparan, 3 kena +
+    tusukan awak haluan); yang terus berenang sambil berbelok dikejar 2 menit: 48 lemparan, 6 kena, nyawa
+    tetap 90–100;
+  - foto dekat: awak melompat naik, dua penombak di perahu, tombak melayang, pelampung cadik menempel di
+    ujung palang (sebelumnya melayang di depan haluan).
+- Performa (render software, bukan ukuran HP; v0.16.0 diukur bergantian, rata-rata 2 putaran): segitiga &
+  draw call sama, waktu per bingkai setara (Sedang −6…+7%, Rendah −11…+1% — dalam batas acak
+  antar-putaran), termasuk saat dikejar perahu patroli di selat timur (Sedang 369 ms vs 402 ms tanpa
+  perahu di v0.16.0). Waktu siap Sedang 5,7 → 6,4 detik, Rendah 5,1 → 4,8 detik.
+
 ## [0.16.0] — 2026-10-25 — Karakter baru bergaya pixel art (permintaan pengguna)
 ### Diubah
 - **Semua karakter berganti rupa**: badan kotak-kotak (mirip Roblox, dari Kenney) diganti tokoh

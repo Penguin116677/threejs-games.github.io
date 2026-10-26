@@ -1,10 +1,9 @@
 # PROJECT_STATUS — Pulau Tropis
 
-**Milestone aktif:** 3 — Pembangunan dunia (v0.16.0: semua karakter — NPC dan pemain — berganti rupa menjadi pixel art chibi sesuai gambar contoh pengguna, file model dirampingkan; v0.15.1: garis tepi pixel art lebih tipis, ikon Pengaturan berisi kualitas grafis; v0.15.0: seluruh grafik menjadi pixel art HD — menunggu umpan balik dari HP).
-Gameplay v0.16.0 sama dengan v0.14.0 (joystick, pulau tanpa jembatan, berenang, perahu, memancing, obrolan); yang berubah hanya rupa karakter.
+**Milestone aktif:** 3 — Pembangunan dunia (v0.17.0: prajurit Kencana berenang & mengejar dengan perahu patroli yang melempar tombak, dek dermaga tidak lagi menarik pemain naik — ada tombol Panjat, jalan & lompat pemain lebih mulus, cadik jukung diperbaiki; v0.16.0: semua karakter berganti rupa pixel art chibi; v0.15.x: grafik pixel art HD — menunggu umpan balik dari HP).
 Pengembangan jurus dihentikan sementara atas permintaan pengguna.
-**Versi:** 0.16.0
-**Terakhir diperbarui:** 2026-10-25
+**Versi:** 0.17.0
+**Terakhir diperbarui:** 2026-10-26
 
 ## Kondisi awal repository (sebelum Milestone 1)
 - Repository `threejs-games.github.io` berisi koleksi contoh Three.js lama (folder `examples/`,
@@ -41,6 +40,8 @@ Pengembangan jurus dihentikan sementara atas permintaan pengguna.
 | Kamera tidak berputar sendiri saat karakter berbelok / berbalik (arah kamera hanya diputar pemain) | ✅ selesai (v0.15.0) |
 | Gerakan karakter diperhalus (belok & animasi pemain, arah hadap elf) | ✅ selesai (v0.15.0) |
 | Berenang (tanpa stamina; tidak bisa menyerang sambil berenang) | ✅ selesai (v0.14.0) |
+| Lantai bangunan setinggi langkah; tepi lebih tinggi (dek dari air, batur) dipanjat dengan tombol Panjat / Spasi | ✅ selesai (v0.17.0, laporan pengguna) |
+| Jalan & lompat lebih mulus: laju bertahap, animasi diam/jalan/lari berbaur, badan condong, pegas lompat & mendarat | ✅ selesai (v0.17.0) |
 | Penanda tujuan, tajuk pohon tembus pandang di depan kamera (lingkaran hijau dihapus v0.7.0) | ✅ selesai |
 | Tombol Pukul: ayunan pedang + efek sabetan/serpihan (belum ada musuh/kerusakan) | ✅ selesai (v0.7.0) |
 | Variasi serangan: kombo tebas → tinju → tendang + jurus ber-jeda pakai | ✅ selesai (v0.8.0) |
@@ -73,6 +74,7 @@ Pengembangan jurus dihentikan sementara atas permintaan pengguna.
 | Pandai besi, pedagang, petani: stok kios mengalir (dibuat, diantar, dibeli warga) | ✅ selesai (v0.13.0) |
 | Koin, Tas, toko (makanan, ramuan, perlengkapan yang tampak di badan) — bagian Milestone 4 | ✅ selesai (v0.13.0) |
 | Kerusuhan → musuh kerajaan (pedagang netral), Benteng terlarang, keributan warga dilerai kesatria | ✅ selesai (v0.13.0) |
+| Prajurit Kencana berenang mengejar & memanjat dek; perahu patroli (awak naik, mengejar, melempar tombak, pulang) | ✅ selesai (v0.17.0, permintaan pengguna) |
 | Ketuk elf → kartu isi pikirannya | ✅ selesai (v0.13.0) |
 | Tanpa jembatan antar-negeri: 4 dermaga (Barat ↔ Timur, Utara ↔ Perak), selat harus direnangi / dilayari | ✅ selesai (v0.14.0) |
 | Kayu dari pohon, membuat pancing & perahu di Tas, perahu yang bisa dikemudikan — bagian Milestone 4 | ✅ selesai (v0.14.0) |
@@ -94,6 +96,26 @@ Sebagian sudah dikerjakan lebih awal (bayangan, tanah per-piksel, awan, kaustik 
 | File model hanya rangka + animasi (unduhan model 892 KB → 108 KB) | ✅ selesai (v0.16.0) |
 | Partikel lanjutan, suara, animasi vegetasi lanjutan, siang–malam | ⏳ belum |
 | Dicoba di HP Android sungguhan | ⏳ menunggu laporan pengguna |
+
+## Yang sudah diperiksa (v0.17.0 — prajurit berenang & berperahu, tombol Panjat, gerak lebih mulus)
+- **Pemeriksaan kode**: ESLint (konfigurasi repo) 0 error / 0 warning pada setiap commit (pemain & lantai
+  → prajurit & perahu patroli → cadik jukung → smoke test → dokumen).
+- **Build**: `vite build` berhasil (JS 1,16 MB / 367 KB gzip, +11 KB gzip dari v0.16.0).
+- **Smoke test otomatis** (versi build, 4 profil) — **LULUS**: 185 cek, 0 gagal (HP tegak 72, HP
+  mendatar 28, HP Rendah 28, komputer 57; v0.16.0: 177). Cek baru di HP tegak & komputer: sisi dek dari
+  air menahan, Panjat / Spasi naik ke dek; prajurit terjun & berenang mengejar; perahu patroli berangkat,
+  mengejar, melempar tombak; lolos ke darat di luar wilayah → perahu pulang & bersandar. Putaran
+  sebelumnya gagal di "naik tangga pendopo" (4 profil) karena dua bug buatan rilis ini — aturan tepi lantai
+  versi pertama di peta jalan (membandingkan tinggi pusat sel) dan dorongan tepi lantai yang menembus
+  puncak tangga; keduanya diperbaiki dan diuji ulang (lihat DECISIONS #71).
+- **Uji terpisah di browser** (Chromium, render software, layar Pixel 7 tiruan, versi pengembangan):
+  dermaga & Panjat, tangga pendopo, ukuran gerak per 0,1 detik (lama vs baru), tiga skenario pengejaran
+  laut (selat timur → pantai Pulau Tropis; pantai Kencana → penombak terjun; pemain berperahu → perahu
+  kedua), jejak awak berlari di dek & melompat naik, dua ukuran keseimbangan (pemain diam vs bergerak),
+  foto dekat perahu, awak, tombak, dan cadik. Rinciannya di CHANGELOG 0.17.0.
+- **Performa** (render software, bukan ukuran HP; tabel di bagian Performa): segitiga & draw call sama,
+  waktu per bingkai setara v0.16.0 (−11…+7%, dalam batas acak), juga saat dikejar perahu patroli; waktu
+  siap Sedang +0,7 detik / Rendah −0,3 detik.
 
 ## Yang sudah diperiksa (v0.16.0 — karakter baru bergaya pixel art)
 - **Pemeriksaan kode**: ESLint (konfigurasi repo) 0 error / 0 warning pada setiap commit (sistem rupa →
@@ -588,6 +610,13 @@ Sebagian sudah dikerjakan lebih awal (bayangan, tanah per-piksel, awan, kaustik 
   laut dalam → kembali ke pantai + pesan, mendaki lereng (+24 m dalam 120 frame).
 
 ## Yang BELUM diperiksa
+- **Rasa gerak baru di HP sungguhan** (v0.17.0): apakah jalan / lari / berhenti / lompat sudah terasa
+  mulus dengan joystick (bukan kaku), atau justru terasa terlalu "licin" saat berhenti.
+- **Tombol Panjat di HP** (v0.17.0): letaknya di deretan tombol aksi, kapan muncul (menghadap tepi dek
+  sedekat ±0,5 m), dan apakah memanjat dari air terasa wajar.
+- **Rasa pengejaran di laut** (v0.17.0): apakah perahu patroli terlalu kuat / lemah (pemain diam di air
+  kalah ±45 detik setelah perahu tiba; yang terus berenang sambil berbelok hampir tidak terluka), dan FPS
+  saat dua perahu mengejar. Diukur hanya di Chromium dengan render software.
 - **Karakter baru di HP sungguhan** (v0.16.0): apakah wajah & mata terbaca pada besar piksel Sedang,
   apakah rupanya sudah sesuai gambar contoh pengguna, dan FPS di HP dengan segitiga karakter yang lebih
   banyak (terutama di depan barisan Tegal Wira dan Pasar Aeloria). Semua dilihat di Chromium dengan render
@@ -649,6 +678,21 @@ Sebagian sudah dikerjakan lebih awal (bayangan, tanah per-piksel, awan, kaustik 
 - Apakah URL hosting (githack / GitHub Pages) terbuka di HP — tidak bisa diakses dari lingkungan pengembangan.
 
 ## Performa (segitiga per frame termasuk bayangan, dari smoke test)
+v0.17.0 (prajurit berenang & berperahu, gerak baru), layar HP tegak (Pixel 7), versi build, render software;
+v0.16.0 diukur bergantian di mesin yang sama, rata-rata 2 putaran. Segitiga (ribu) dan waktu per bingkai (ms):
+| Tempat | Sedang v0.16.0 | Sedang v0.17.0 | Rendah v0.16.0 | Rendah v0.17.0 |
+|---|---|---|---|---|
+| Titik mulai | 429 rb · 374 ms | 429 rb · 400 ms (+7%) | 349 rb · 206 ms | 349 rb · 190 ms (−8%) |
+| Pasar Kotaraja | 322 rb · 275 ms | 319 rb · 271 ms (−1%) | 245 rb · 131 ms | 246 rb · 117 ms (−11%) |
+| Depan barisan Tegal Wira | 441 rb · 979 ms | 441 rb · 937 ms (−4%) | 309 rb · 738 ms | 309 rb · 748 ms (+1%) |
+| Pasar Aeloria | 553 rb · 394 ms | 551 rb · 372 ms (−6%) | 472 rb · 206 ms | 472 rb · 198 ms (−4%) |
+| Selat timur, kabur berenang (v0.17.0: dikejar perahu patroli) | 475 rb · 402 ms | 477 rb · 369 ms (−8%) | 382 rb · 192 ms | 384 rb · 194 ms (+1%) |
+- Segitiga & draw call sama; saat dikejar perahu patroli +0…3 draw call (tombak lempar, perahu) dan ±3 rb
+  segitiga. Waktu per bingkai setara (−11…+7%, dalam batas acak antar-putaran) — perahu patroli dan gerak
+  baru tidak terukur memperlambat. Waktu siap: Sedang 5,7 → 6,4 detik (kedua putaran +0,6–0,7 detik),
+  Rendah 5,1 → 4,8 detik; penyebab nyata belum terlihat (sel peta laut perahu patroli baru diperiksa saat
+  pertama dibutuhkan, bukan saat memuat).
+
 v0.16.0 (karakter baru), layar HP tegak (Pixel 7), versi build, render software; v0.15.1 diukur bergantian
 di mesin yang sama, rata-rata 2 putaran. Segitiga (ribu) dan waktu per bingkai (ms):
 | Tempat | Sedang v0.15.1 | Sedang v0.16.0 | Rendah v0.15.1 | Rendah v0.16.0 |
@@ -804,12 +848,22 @@ yang lebih rapat (untuk ombak) dan buah kelapa. v0.2.0 (HP): ±230 ribu.
   terima kasih, pujian / hinaan); kalimat lain dijawab umum. Ingatan NPC hilang bila halaman dimuat
   ulang. Warga Kencana mendapat bentuk badan acak tiap halaman dimuat, jadi nama / jenis kelaminnya bisa
   berbeda di kunjungan berikutnya. Prajurit dan bala tentara tidak bisa diajak bicara.
-- (v0.14.0) Berenang tanpa stamina: pemain bisa berenang ke mana saja di dalam batas dunia. Pengejar
-  berhenti di tepi air, jadi berenang menjauh selalu meloloskan diri (sengaja, DECISIONS #58).
+- (v0.17.0) Awak perahu patroli berdiri tanpa gerak mendayung; perahu melaju tanpa dayung / angin.
+  Tombak lempar hanya bisa mengenai di titik bidikannya (tidak di tengah lintasan). Perahu patroli
+  menghindari perahu pemain dengan mendorong dirinya sendiri, perahu pemain tidak terdorong.
+- (v0.17.0) Hanya prajurit Kencana yang berenang & berperahu; kesatria Aeloria dan orc tetap berhenti di
+  tepi air (DECISIONS #73). Penombak yang terjun dari perahu berenang sendiri kembali ke darat setelah
+  pengejaran berakhir (tidak dijemput perahu).
+- (v0.17.0) Hanya 4 dari jukung Kencana yang bisa berlayar (yang tambatannya cukup dalam); sisanya,
+  kapal jong, dan perahu di luar wilayah tetap hiasan.
+- (v0.14.0) Berenang tanpa stamina: pemain bisa berenang ke mana saja di dalam batas dunia. Sejak v0.17.0
+  prajurit Kencana ikut berenang (sedikit lebih lambat) dan mengejar dengan perahu patroli, jadi di
+  perairan Kencana berenang menjauh tidak lagi selalu meloloskan diri; kesatria Aeloria & orc tetap
+  berhenti di tepi air.
 - (v0.14.0) Hanya satu perahu pemain; membuat lagi meninggalkan yang lama. Perahu terapung dengan
   goyangan sederhana (tidak mengikuti ombak), tidak bertabrakan dengan perahu hiasan / kapal, dan tidak
-  bisa membawa NPC. Perahu & kapal di dermaga hanya hiasan (tidak berlayar); perahu perang orc
-  satu-satunya perahu NPC yang berlayar.
+  bisa membawa NPC. Perahu NPC yang berlayar: perahu perang orc dan (sejak v0.17.0) perahu patroli
+  Kencana.
 - (v0.14.0) Pohon tidak tumbang atau berubah saat kayunya diambil (3 kayu per pohon, tumbuh lagi ±3
   menit). Ikan tidak terlihat di air: jenisnya hanya ditentukan kedalaman di pelampung.
 - (v0.14.0) Kamera belakang karakter tidak menghindari batu, bangunan, atau tajuk pohon (hanya bukit

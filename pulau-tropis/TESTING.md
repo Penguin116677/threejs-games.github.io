@@ -398,3 +398,31 @@ penuh otomatis berjalan di HP-mu, dan FPS.
 
 Laporkan: apakah rupa karakter sudah sesuai gambar contoh (mana yang kurang mirip / ingin diubah),
 apakah pemain mau tetap berupa pendekar baru atau kembali seperti dulu, dan FPS.
+
+## Daftar uji manual — v0.17.0 (prajurit berenang & berperahu, tombol Panjat, gerak lebih mulus)
+1. **Dermaga dari air**: berenang ke sisi Dermaga Timur (atau Dermaga Barat) dan menabrak deknya → pemain
+   **tidak** naik sendiri dan tidak tersangkut; tertahan di air. Saat menghadap tepi dek muncul tombol
+   **Panjat** (cokelat, ikon anak tangga) → ketuk → pemain meraih tepi, naik, lalu berdiri di dek. Di
+   komputer: Spasi.
+2. Di darat: tangga pendopo keraton dan Siti Hinggil tetap bisa dinaiki biasa (juga dengan ketuk kios /
+   Ajak bicara yang berjalan sendiri); dari samping batur (tanpa tangga) tertahan, tombol Panjat muncul.
+3. **Gerak**: jalan, lari, berhenti, berbalik, berbelok tajam — mulai & berhenti bertahap (tidak
+   menyentak), kaki tidak meluncur, badan condong saat mempercepat dan miring saat berbelok. **Lompat**:
+   badan meregang saat menolak, lengan bergerak di udara, badan memendek saat mendarat. Bandingkan dengan
+   v0.16.0: apakah sudah tidak kaku?
+4. **Prajurit berenang**: biarkan prajurit Dermaga Timur mengejar, lalu terjun ke laut → mereka ikut terjun
+   / mengarungi dan berenang (sedikit lebih lambat dari pemain). Naik ke dek lagi → mereka memanjat dek
+   dari air.
+5. **Perahu patroli**: berenang menjauh dari para pengejar ke tengah selat → ±3 detik kemudian pesan
+   "Prajurit Kencana mengejarmu dengan perahu!"; dua prajurit berlari ke jukung di dermaga, melompat naik,
+   perahu bergeser dari dek lalu mengejar. Di dekatmu awak menusuk / **melempar tombak** (bisa dihindari
+   dengan terus bergerak & berbelok). Naik ke pantai Kencana → penombak haluan terjun mengejar. Lolos (ke
+   pantai Pulau Tropis lalu menjauh dari pantai) → perahu menyerah, pulang, bersandar, awaknya naik ke dek.
+6. **Berperahu**: buat perahu, berlayar keluar dari perairan Kencana sambil dikejar → perahumu (dikayuh
+   penuh) sedikit lebih cepat; berhenti → perahu patroli mendekat ±5–7 m dan melempar tombak.
+7. **Cadik jukung**: pelampung bambu jukung (di dermaga dan perahumu) menempel di ujung palang, tidak lagi
+   melayang di depan perahu.
+8. Catat FPS saat dikejar perahu patroli dibanding biasa.
+
+Laporkan: apakah gerak sudah terasa mulus, apakah tombol Panjat mudah dipakai, dan apakah pengejaran di
+laut terlalu sulit / terlalu mudah.
