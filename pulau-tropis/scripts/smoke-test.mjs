@@ -29,6 +29,9 @@ import { mkdirSync } from 'node:fs'
 //   dibuang ke pantai Pulau Tropis, kabur keluar wilayah → berhenti dikejar, serbuan orc dengan
 //   perahu perang dihadang prajurit, pendatang ditanyai penjaga di gapura dermaga. Di luar uji penjagaan prajurit dibuat tidak
 //   menghiraukan pemain (gencatan senjata), supaya uji kota & bala tentara tidak terganggu.
+// - (HP tegak & komputer) air & dermaga: menabrak sisi dek dari air = tertahan, tombol Panjat / Spasi
+//   memanjat ke dek; prajurit terjun & berenang mengejar; kabur lewat laut → perahu patroli (awak
+//   naik, mengejar, melempar tombak), lolos ke darat di luar wilayah → perahu pulang & bersandar
 // - Kerajaan Elf Aeloria (utara): 10.000 kesatria + penduduk, elf terlihat di pasar, tombol Belanja
 //   di depan kios, membeli makanan & perlengkapan (koin berkurang, tombak dipakai), ketuk elf →
 //   kartu isi pikiran, keributan warga dilerai kesatria; (HP tegak & komputer) memukul kesatria →
@@ -617,6 +620,80 @@ for (const [name, opts, query] of cases) {
     await page.evaluate(() => {
       window.__pulau.debug.timeScale = 1
       window.__pulau.security.ceasefire(true)
+    })
+  }
+
+  // ===== Air & dermaga: menabrak sisi dek dari air = tertahan (tidak naik sendiri), tombol Panjat /
+  // Spasi memanjat; prajurit terjun & berenang mengejar; yang kabur lewat laut dikejar perahu patroli
+  if (name === 'hp-portrait' || name === 'desktop') {
+    await page.evaluate(() => {
+      const { player, cam } = window.__pulau
+      player.revive()
+      player.placeAt(-297, 35, 0)
+      player.stop()
+      cam.lookFrom(Math.PI)
+    })
+    await waitFrames(page, 8)
+    await page.keyboard.down('KeyW')
+    await waitFrames(page, 40)
+    await page.keyboard.up('KeyW')
+    await waitFrames(page, 6)
+    const edge = await page.evaluate(() => {
+      const { player } = window.__pulau
+      return { z: player.position.z, y: player.position.y, swim: player.swimming, can: player.climbable, btn: !document.getElementById('btn-panjat').hidden }
+    })
+    if (name === 'desktop') await page.keyboard.press('Space')
+    else if (edge.btn) await page.tap('#btn-panjat')
+    const deck = await waitUntil(page, () => {
+      const { player } = window.__pulau
+      return !player.climbing && player.position.y > 1.6 && { y: player.position.y, z: player.position.z }
+    }, 200, 4)
+    if (edge.z > 37.4 || edge.y > 0 || !edge.swim || !edge.can || (name !== 'desktop' && !edge.btn) || !deck)
+      fail(`sisi Dermaga Timur dari air: ${JSON.stringify(edge)}, setelah memanjat ${JSON.stringify(deck)}`)
+    else ok(`menabrak sisi dek dari air → tertahan (z ${edge.z.toFixed(2)}, tetap berenang), ${name === 'desktop' ? 'Spasi' : 'tombol Panjat'} → memanjat ke dek (y ${deck.y.toFixed(2)})`)
+    // prajurit melihat pemain di dek, pemain terjun ke laut → mereka ikut terjun & berenang
+    await page.evaluate(() => {
+      const { security } = window.__pulau
+      window.__pulau.debug.timeScale = 2
+      window.__pesanLog.length = 0
+      security.ceasefire(false)
+      security.reset()
+    })
+    await teleport(page, -332, 40, [-352, 40])
+    const seen = await waitUntil(page, () => window.__pulau.security.engaged, 300)
+    await page.evaluate(() => window.__pulau.player.placeAt(-291, 50, Math.PI / 2))
+    const swimmer = await waitUntil(page, () => {
+      const { soldiers, player } = window.__pulau
+      const a = soldiers.list.find(s => s.swim && !s.ride && s.state === 'serang')
+      return a && { d: Math.hypot(a.x - player.position.x, a.z - player.position.z), y: a.y }
+    }, 900)
+    if (!seen || !swimmer) fail(`prajurit berenang mengejar: dimusuhi ${seen}, perenang ${JSON.stringify(swimmer)}`)
+    else ok(`pemain terjun ke laut → prajurit ikut terjun & berenang mengejar (${swimmer.d.toFixed(1)} m darinya, kaki ${swimmer.y.toFixed(2)} m)`)
+    // berenang menjauh ke tengah selat → perahu patroli: awak naik, mengejar, melempar tombak
+    await page.evaluate(() => window.__pulau.player.placeAt(-274, 64, Math.PI / 2))
+    const chase = await waitUntil(page, () => {
+      const { patrol, player } = window.__pulau
+      const b = patrol.list().find(o => o.state === 'kejar')
+      return b && { awak: b.crew.length, d: Math.hypot(b.x - player.position.x, b.z - player.position.z), msg: window.__pesanLog.join(' | ') }
+    }, 1500)
+    const spear = await waitUntil(page, () => window.__pulau.patrol.stats().tombak.dilempar > 0 && window.__pulau.patrol.stats().tombak, 1500)
+    await page.screenshot({ path: `${out}/${name}-perahu-patroli.png` })
+    if (!chase || !chase.msg.includes('perahu') || !spear) fail(`perahu patroli: ${JSON.stringify(chase)}, tombak ${JSON.stringify(spear)}`)
+    else ok(`kabur lewat laut → perahu patroli berangkat (${chase.awak} awak, ${chase.d.toFixed(0)} m dari pemain), melempar ${spear.dilempar} tombak (${spear.kena} kena)`)
+    // naik ke darat di luar wilayah → perahu menyerah, pulang, bersandar; pengejaran berhenti
+    await teleport(page, -122, 122, [-170, 170])
+    const docked = await waitUntil(page, () => {
+      const { patrol, security } = window.__pulau
+      return patrol.stats().aktif === 0 && !security.engaged && patrol.list().every(b => Math.hypot(b.x - b.home.x, b.z - b.home.z) < 0.1)
+    }, 3000, 10)
+    const crewBack = await page.evaluate(() => window.__pulau.soldiers.list.filter(a => a.ride).length)
+    if (!docked || crewBack) fail(`perahu patroli tidak pulang: ${JSON.stringify(await page.evaluate(() => window.__pulau.patrol.list().filter(b => b.state !== 'tambat')))}, awak masih di perahu ${crewBack}`)
+    else ok('pemain lolos ke darat di luar wilayah → perahu patroli pulang & bersandar, awaknya turun ke dek')
+    await page.evaluate(() => {
+      const { security, player } = window.__pulau
+      window.__pulau.debug.timeScale = 1
+      security.ceasefire(true)
+      player.revive()
     })
   }
 
