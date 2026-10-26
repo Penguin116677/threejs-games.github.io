@@ -1,7 +1,8 @@
 import * as THREE from 'three'
 import { clone as cloneSkinned } from 'three/addons/utils/SkeletonUtils.js'
 import { FPS, bakeRig, bakedMatrix, attach, toBufferGeometry, boneTexture, animate, frameOf } from './rig.js'
-import { buatRupa, paletteTexture, HAND, tombakGeo, pedangGeo, perisaiGeo, geoWarna } from '../../tokoh/rupa.js'
+import { buatRupa, paletteTexture, HAND, armDir, tombakGeo, pedangGeo, perisaiGeo, geoWarna } from '../../tokoh/rupa.js'
+import { ISLAND } from '../island.js'
 import { buildRoutes } from './routes.js'
 import { TEGAL } from './layout.js'
 import { zoneAt } from './wilayah.js'
@@ -13,6 +14,9 @@ import { zoneAt } from './wilayah.js'
 //   wilayah tugas sendiri, jadi semua wilayah selalu dironda.
 // - PENJAGA POS: berdiri di gerbang kota, gerbang keraton, pendopo, kepala jembatan, Siti Hinggil.
 // Modul ini = badan mereka: gerak, animasi, serangan, terkena pukulan, roboh, dan kembali bertugas.
+// Yang mengejar BERENANG bila sasarannya di air (terjun dari dek / mengarungi pantai, badan terbenam
+// sampai dada, lebih lambat dari pemain), memanjat dek dari air bila sasarannya di atas, dan bisa
+// naik perahu patroli (perahu-patroli.js mengatur perahunya).
 // Siapa yang dihadang & dilawan (pemain, orc) atau ditanyai (pendatang) diputuskan keamanan.js lewat
 // perintah (order).
 // Gambar: rupa prajurit berhelm berjambul (tokoh/rupa.js) di atas rangka Kenney "Mini Arena", rangka
@@ -28,6 +32,40 @@ const DOWN_TIME = 9 // detik terbaring setelah roboh
 const SINK_TIME = 1
 const RESPAWN = 30 // detik menghilang sebelum kembali bertugas
 const ATTACK = { hit: 0.24, dur: 0.42 } // detik: saat kena & lama klip serang
+// berenang: mulai di air lebih dalam dari `depth` m, kembali berjalan di bawah `exit` m; laju (m/s);
+// kaki `sink` m di bawah permukaan (kepala & bahu di atas air)
+const SWIM = { depth: 1.15, exit: 0.95, speed: 2.1, sink: 1.0 }
+const STEP = 0.45 // lantai (dek, batur) setinggi ini di atas kaki dilangkahi; lebih tinggi = tepi
+const CLIMB = { max: 2.95, time: 0.95 } // tepi dek yang bisa dipanjat dari air & lamanya (detik)
+export const HOP = 0.55 // detik: lompatan naik / turun perahu patroli (perahu-patroli.js)
+export const RIDE_REACH = 0.9 // m: dari perahu tombak / pedang dijulurkan lebih jauh (badan mencondong)
+const _ax = new THREE.Vector3(1, 0, 0)
+const _dir = new THREE.Vector3()
+const sm = THREE.MathUtils.smoothstep
+// memanjat dek dari air (gerak buatan, klip Kenney tidak punya): lengan meraih tepi → menekan dek,
+// badan condong, lutut kanan naik. b = tulang rangka (urutan Kenney)
+function climbMod(b, t) {
+  const u = Math.min(1, t / CLIMB.time)
+  const push = sm(u, 0.4, 0.66)
+  for (const j of [4, 5]) {
+    _dir.set((j === 4 ? 1 : -1) * 0.31, 0.85 - 1.3 * push, 0.45 + 0.4 * push).normalize()
+    b[j].quaternion.setFromUnitVectors(armDir(j), _dir)
+  }
+  b[3].quaternion.setFromAxisAngle(_ax, 0.5 * sm(u, 0.3, 0.55) * (1 - sm(u, 0.75, 1)))
+  b[2].quaternion.setFromAxisAngle(_ax, -1.15 * sm(u, 0.45, 0.7) * (1 - sm(u, 0.86, 1)))
+  b[1].quaternion.setFromAxisAngle(_ax, 0.35 * sm(u, 0, 0.3) * (1 - sm(u, 0.6, 0.9)))
+}
+// melompat (naik / turun perahu): lutut ditekuk di udara, lengan terbuka menjaga keseimbangan
+function hopMod(b, t) {
+  const k = Math.sin(Math.PI * Math.min(1, t / HOP))
+  for (const j of [4, 5]) {
+    _dir.set((j === 4 ? 1 : -1) * 0.8, -0.25 + 0.55 * k, 0.3).normalize()
+    b[j].quaternion.setFromUnitVectors(armDir(j), _dir)
+  }
+  b[1].quaternion.setFromAxisAngle(_ax, -0.75 * k)
+  b[2].quaternion.setFromAxisAngle(_ax, -0.35 * k)
+  b[3].quaternion.setFromAxisAngle(_ax, 0.18 * k)
+}
 const PATROL = { rendah: 40, sedang: 64, tinggi: 96 } // peronda (berpasangan)
 // porsi pasangan peronda per wilayah tugas (paling sedikit satu pasangan per wilayah)
 const ZONE_SHARE = { kota: 0.28, wira: 0.22, kencana: 0.2, dermaga: 0.08, sawah: 0.08, nelayan: 0.07, pura: 0.07 }
@@ -54,6 +92,8 @@ function specsFor(weapon) {
     die: { clip: 'die', loop: false },
     yes: { clip: 'emote-yes', hold: arm, loop: false },
     stop: { clip: 'interact-left', hold: weapon === 'tombak' ? spear : { 5: 'holding-right' }, loop: false },
+    panjat: { clip: 'idle', loop: false, frames: Math.round(CLIMB.time * FPS), mod: climbMod },
+    lompat: { clip: 'idle', loop: false, frames: Math.round(HOP * FPS), mod: hopMod },
   }
 }
 
@@ -183,6 +223,7 @@ export function createSoldiers({ ground, colliders, nav, plan, spots, quality, s
       atkCd: Math.random(), atk: null,
       clip: 'idle', t: Math.random() * 2, prev: null, prevT: 0, fade: 0, animSpeed: 1,
       path: null, navT: 0, goalX: 0, goalZ: 0, moved: 0, downT: 0, waitT: 0, tpx: null, tpz: null, tvx: 0, tvz: 0,
+      swim: false, vy: 0, climb: null, wantUp: false, wet: false, rippleT: 0, ride: null, atBoat: false,
       ...extra,
     }
     agents.push(a)
@@ -295,8 +336,13 @@ export function createSoldiers({ ground, colliders, nav, plan, spots, quality, s
 
   // --- gerak bebas (menghadang, mengejar, kembali): garis lurus bila lapang, jalur navgrid bila
   // terhalang. Pencarian jalur dibatasi beberapa per frame (A* di dunia besar bisa mahal).
+  // wet = boleh masuk air dalam (mengejar sasaran yang berenang, pulang dari air): jalur darat
+  // dipakai sampai tepi air, lalu lurus — terjun dari dek / mengarungi pantai lalu berenang.
+  // up = sasaran di atas (dek, darat): tepi dek yang menghalangi perenang dipanjat
   let pathBudget = 0
-  function moveToward(a, tx, tz, speed, near, dt) {
+  function moveToward(a, tx, tz, speed, near, dt, wet = false, up = false) {
+    a.wet = wet
+    a.wantUp = up
     const dx = tx - a.x
     const dz = tz - a.z
     const d = Math.hypot(dx, dz)
@@ -305,7 +351,8 @@ export function createSoldiers({ ground, colliders, nav, plan, spots, quality, s
       return true
     }
     a.navT -= dt
-    if (a.navT <= 0) {
+    if (a.swim) a.path = null // di air: lurus (jalur darat tidak berlaku)
+    else if (a.navT <= 0) {
       a.navT = 0.6 + Math.random() * 0.4
       const goalMoved = Math.hypot(a.goalX - tx, a.goalZ - tz) > 3
       if (d < 5 || nav.lineClear(a.x, a.z, tx, tz)) a.path = null
@@ -325,21 +372,123 @@ export function createSoldiers({ ground, colliders, nav, plan, spots, quality, s
         wx = a.path[0].x
         wz = a.path[0].z
       }
+      // ujung jalur darat (tepi air) sudah tercapai: lurus ke sasaran di air
+      if (wet && a.path.length === 1 && Math.hypot(wx - a.x, wz - a.z) < 1.2) {
+        a.path = null
+        a.navT = 1.5
+        wx = tx
+        wz = tz
+      }
     }
+    // berenang lebih lambat; mengarungi air dangkal juga (kaki di bawah permukaan air — di atas dek
+    // tidak, walau lautnya dalam)
+    const depth = ISLAND.seaLevel - a.y
+    const v = a.swim ? Math.min(speed, SWIM.speed) : depth > 0.35 ? speed * 0.6 : speed
     const ux = wx - a.x
     const uz = wz - a.z
     const ul = Math.hypot(ux, uz) || 1
-    const step = Math.min(speed * dt, Math.max(0, d - near) + 0.01)
+    const step = Math.min(v * dt, Math.max(0, d - near) + 0.01)
     const nx = a.x + (ux / ul) * step
     const nz = a.z + (uz / ul) * step
-    // jangan masuk laut
-    if (ground.surfaceAt(nx, nz) > -0.6) {
+    // jangan masuk laut (kecuali boleh berenang)
+    if (wet || ground.surfaceAt(nx, nz) > -0.6) {
       a.x = nx
       a.z = nz
     }
-    a.heading = turn(a.heading, Math.atan2(ux, uz), Math.min(1, dt * 9))
-    a.moved = speed
+    a.heading = turn(a.heading, Math.atan2(ux, uz), Math.min(1, dt * (a.swim ? 5 : 9)))
+    a.moved = v
     return false
+  }
+
+  // tinggi kaki prajurit yang bergerak bebas: menapak tanah / lantai yang bisa dilangkahi, jatuh
+  // dari dek, berenang di air dalam (kepala di atas air, naik-turun pelan)
+  let onWater = () => {} // fn(x, z, besar, kuat): riak / cipratan di permukaan air
+  let clock = 0
+  function settle(a, dt) {
+    const gy = ground.supportAt(a.x, a.z, a.y, STEP)
+    const depth = ISLAND.seaLevel - gy
+    if (a.swim && depth < SWIM.exit) a.swim = false
+    if (!a.swim && depth > SWIM.depth && a.y < ISLAND.seaLevel - 0.3) {
+      a.swim = true
+      a.path = null
+      onWater(a.x, a.z, 1.6, a.vy < -4 ? 0.9 : 0.5) // byur
+    }
+    if (a.swim) {
+      const wy = ISLAND.seaLevel - SWIM.sink + Math.sin(clock * 2.3 + a.id) * 0.035
+      a.y += (wy - a.y) * Math.min(1, dt * 5)
+      a.vy = 0
+      if (a.moved > 0.3 && (a.rippleT -= dt) <= 0) {
+        a.rippleT = 0.45
+        onWater(a.x, a.z, 1.1, 0.35)
+      }
+    } else if (a.y > gy + 0.02) {
+      // jatuh (melangkah keluar dari dek / batur)
+      a.vy -= 21 * dt
+      a.y = Math.max(gy, a.y + a.vy * dt)
+      if (a.y <= gy) a.vy = 0
+    } else {
+      a.y = gy
+      a.vy = 0
+    }
+  }
+
+  // tepi lantai yang terlalu tinggi untuk dilangkahi (dek dari air) = dinding; bila sasaran di atas
+  // (a.wantUp) dan tepinya terjangkau, prajurit memanjatnya
+  const hitL = { gap: 0, nx: 0, nz: 0, px: 0, pz: 0 }
+  function ledges(a) {
+    ground.forEachSurfaceNear(a.x, a.z, RADIUS, sf => {
+      if (a.climb) return
+      colliders.probe(sf, a.x, a.z, hitL)
+      if (hitL.gap >= RADIUS) return
+      // sudah di atas lantai ini (mis. di tengah tangga) dan lantai di bawah kaki masih selangkah:
+      // tepinya bukan penghalang
+      if (hitL.gap < 0 && ground.surfaceHeight(sf, a.x, a.z) <= a.y + STEP) return
+      const h = ground.surfaceHeight(sf, hitL.px - hitL.nx * 0.02, hitL.pz - hitL.nz * 0.02)
+      if (h <= a.y + STEP) return
+      const lx = hitL.px - hitL.nx * 0.6
+      const lz = hitL.pz - hitL.nz * 0.6
+      if (a.wantUp && h - a.y <= CLIMB.max && hitL.gap > -0.2 && Math.abs(ground.surfaceHeight(sf, lx, lz) - h) < 0.35 && colliders.isFree(lx, lz, RADIUS)) {
+        a.climb = { t: 0, x0: a.x, y0: a.y, z0: a.z, hx: hitL.px + hitL.nx * 0.28, hz: hitL.pz + hitL.nz * 0.28, ex: hitL.px - hitL.nx * 0.12, ez: hitL.pz - hitL.nz * 0.12, x1: lx, y1: h, z1: lz, heading: Math.atan2(-hitL.nx, -hitL.nz) }
+        a.swim = false
+        a.path = null
+        setClip(a, 'panjat', true)
+        return
+      }
+      a.x += hitL.nx * (RADIUS - hitL.gap)
+      a.z += hitL.nz * (RADIUS - hitL.gap)
+    })
+  }
+  // memanjat: bergantung di tepi → menarik badan → melangkah ke dek (seperti pemain)
+  const ease = t => t * t * (3 - 2 * t)
+  function stepClimb(a, dt) {
+    const c = a.climb
+    c.t += dt
+    const u = Math.min(1, c.t / CLIMB.time)
+    const hang = Math.max(c.y0, c.y1 - 1.05)
+    if (u < 0.35) {
+      const k = ease(u / 0.35)
+      a.x = c.x0 + (c.hx - c.x0) * k
+      a.z = c.z0 + (c.hz - c.z0) * k
+      a.y = c.y0 + (hang - c.y0) * k
+    } else if (u < 0.72) {
+      const k = ease((u - 0.35) / 0.37)
+      a.x = c.hx + (c.ex - c.hx) * k
+      a.z = c.hz + (c.ez - c.hz) * k
+      a.y = hang + (c.y1 - 0.25 - hang) * k
+    } else {
+      const k = ease((u - 0.72) / 0.28)
+      a.x = c.ex + (c.x1 - c.ex) * k
+      a.z = c.ez + (c.z1 - c.ez) * k
+      a.y = c.y1 - 0.25 + 0.25 * k
+    }
+    a.heading = turn(a.heading, c.heading, Math.min(1, dt * 12))
+    if (u >= 1) {
+      a.climb = null
+      a.x = c.x1
+      a.z = c.z1
+      a.y = c.y1
+      a.vy = 0
+    }
   }
   const face = (a, x, z, dt, k = 7) => {
     a.heading = turn(a.heading, Math.atan2(x - a.x, z - a.z), Math.min(1, dt * k))
@@ -440,6 +589,8 @@ export function createSoldiers({ ground, colliders, nav, plan, spots, quality, s
     a.atk = null
     a.downT = 0
     a.path = null
+    a.climb = null
+    a.ride = null // dari perahu patroli: tercebur
     if (from) {
       const dx = a.x - from.x
       const dz = a.z - from.z
@@ -459,6 +610,7 @@ export function createSoldiers({ ground, colliders, nav, plan, spots, quality, s
     a.barT = 5
     a.stagger = 0.3
     a.atk = null
+    a.climb = null // terlepas dari tepi dek
     if (from) {
       const dx = a.x - from.x
       const dz = a.z - from.z
@@ -489,6 +641,11 @@ export function createSoldiers({ ground, colliders, nav, plan, spots, quality, s
     if (Math.hypot(p.x - player.x, p.z - player.z) < 45) return false
     a.x = p.x
     a.z = p.z
+    a.y = ground.surfaceAt(p.x, p.z)
+    a.swim = false
+    a.climb = null
+    a.ride = null
+    a.vy = 0
     a.hp = a.maxHp
     a.kx = a.kz = 0
     a.flash = a.barT = 0
@@ -522,17 +679,22 @@ export function createSoldiers({ ground, colliders, nav, plan, spots, quality, s
       }
       return
     }
-    // terpental / terhuyung sesaat setelah terkena
-    if (Math.abs(a.kx) + Math.abs(a.kz) > 0.05) {
+    // terpental / terhuyung sesaat setelah terkena (di perahu: tetap di tempatnya)
+    if (a.ride) a.kx = a.kz = 0
+    else if (Math.abs(a.kx) + Math.abs(a.kz) > 0.05) {
       const nx = a.x + a.kx * dt
       const nz = a.z + a.kz * dt
-      if (ground.surfaceAt(nx, nz) > -0.6) {
+      if (a.swim || a.wet || ground.surfaceAt(nx, nz) > -0.6) {
         a.x = nx
         a.z = nz
       }
       const f = Math.exp(-7 * dt)
       a.kx *= f
       a.kz *= f
+    }
+    if (a.climb) {
+      stepClimb(a, dt)
+      return
     }
     if (a.stagger > 0) {
       a.stagger -= dt
@@ -547,9 +709,22 @@ export function createSoldiers({ ground, colliders, nav, plan, spots, quality, s
       return
     }
     if (st === 'ronda') return // digerakkan pasangannya (stepSquad)
+    if (a.ride) {
+      // di perahu patroli: letaknya, arah perahu, dan kapan menyerang (attack) diatur
+      // perahu-patroli.js; di sini ayunannya dijalankan dan sasarannya diawasi
+      const tp = a.state === 'serang' && a.order ? ctx.targetPos(a.order.target) : null
+      const d = tp ? Math.hypot(tp.x - a.x, tp.z - a.z) : Infinity
+      if (a.ride.hop) a.heading = a.ride.heading
+      else if (a.atk) swing(a, tp, d, dt, RIDE_REACH)
+      else if (d < 20) face(a, tp.x, tp.z, dt, 6)
+      else a.heading = turn(a.heading, a.ride.heading, Math.min(1, dt * 4))
+      return
+    }
     if (st === 'kembali') {
       const p = a.kind === 'pos' ? a.home : squadPoint(a.squad, a.slot)
-      if (moveToward(a, p.x, p.z, SPEED.kembali, 0.4, dt))
+      // dari air: berenang lurus ke darat / dek (memanjat), lalu jalur darat
+      const wet = a.swim || ISLAND.seaLevel - ground.heightAt(a.x, a.z) > 0.6
+      if (moveToward(a, p.x, p.z, SPEED.kembali, 0.4, dt, wet, true))
         if (a.kind === 'pos') a.state = 'jaga'
         else {
           a.state = 'ronda'
@@ -559,6 +734,12 @@ export function createSoldiers({ ground, colliders, nav, plan, spots, quality, s
       return
     }
     const o = a.order
+    if (st === 'naik') {
+      // ke tepi dek di samping perahu patroli (perahu-patroli.js menaikkannya); yang sedang di air
+      // berenang ke sana lalu memanjat dek
+      if (Math.hypot(o.target.x - a.x, o.target.z - a.z) < 1.2 || moveToward(a, o.target.x, o.target.z, SPEED.kejar, 0.5, dt, true, true)) a.atBoat = true
+      return
+    }
     const tp = o ? ctx.targetPos(o.target) : null
     if (!tp) {
       release(a)
@@ -581,17 +762,7 @@ export function createSoldiers({ ground, colliders, nav, plan, spots, quality, s
       const d = Math.hypot(dx, dz)
       track(a, tp, dt)
       if (a.atk) {
-        // ayunan sedang berjalan: kena di tengah ayunan bila sasaran masih dalam jangkauan.
-        // onStrike bisa langsung mengubah keadaan prajurit ini (mis. pemain roboh → semua
-        // penyerang ditarik mundur), jadi ayunannya dipegang di variabel sendiri
-        const { atk } = a
-        face(a, tp.x, tp.z, dt, 10)
-        atk.t += dt
-        if (!atk.hit && atk.t >= ATTACK.hit) {
-          atk.hit = true
-          if (d <= T.reach + 0.5) onStrike(a, o.target, T.damage)
-        }
-        if (atk.t >= ATTACK.dur && a.atk === atk) a.atk = null
+        swing(a, tp, d, dt)
         return
       }
       const want = T.reach * 0.8
@@ -601,7 +772,8 @@ export function createSoldiers({ ground, colliders, nav, plan, spots, quality, s
         // dikejar penuh sampai terjangkau; yang diam didekati sambil berlari kecil
         const ahead = d > 6 ? Math.min(2.5, d / SPEED.kejar) : 0
         const fast = d > 6 || Math.hypot(a.tvx, a.tvz) > 2
-        moveToward(a, tp.x + a.tvx * ahead, tp.z + a.tvz * ahead, fast ? SPEED.kejar : SPEED.dekati, want, dt)
+        // sasaran di air: ikut terjun & berenang; sasaran di atas dek: dek dipanjat
+        moveToward(a, tp.x + a.tvx * ahead, tp.z + a.tvz * ahead, fast ? SPEED.kejar : SPEED.dekati, want, dt, true, (tp.y ?? a.y) > a.y + STEP)
       } else {
         face(a, tp.x, tp.z, dt, 10)
         // terlalu dekat: mundur sedikit
@@ -618,6 +790,22 @@ export function createSoldiers({ ground, colliders, nav, plan, spots, quality, s
     }
   }
 
+  // ayunan serangan yang sedang berjalan: kena di tengah ayunan bila sasaran masih dalam jangkauan.
+  // onStrike bisa langsung mengubah keadaan prajurit ini (mis. pemain roboh → semua penyerang
+  // ditarik mundur), jadi ayunannya dipegang di variabel sendiri
+  // atk.release (lemparan dari perahu patroli) dipanggil di tengah ayunan, menggantikan tusukan
+  function swing(a, tp, d, dt, extra = 0.5) {
+    const { atk } = a
+    if (tp) face(a, tp.x, tp.z, dt, 10)
+    atk.t += dt
+    if (!atk.hit && atk.t >= ATTACK.hit) {
+      atk.hit = true
+      if (atk.release) atk.release(a)
+      else if (tp && d <= types[a.type].reach + extra) onStrike(a, a.order.target, types[a.type].damage)
+    }
+    if (atk.t >= ATTACK.dur && a.atk === atk) a.atk = null
+  }
+
   // --- tulis instance prajurit yang terlihat
   const frustum = new THREE.Frustum()
   const projView = new THREE.Matrix4()
@@ -630,11 +818,23 @@ export function createSoldiers({ ground, colliders, nav, plan, spots, quality, s
   function update(dt, ctx) {
     // ctx: { camera, focus, range, player: { x, z }, playerVisible, targetPos(sasaran) → { x, z } | null }
     pathBudget = 2
+    clock += dt
     for (const sq of squads) stepSquad(sq, dt, ctx.player)
     for (const a of agents) updateAgent(a, dt, ctx)
-    // tabrakan: prajurit yang bergerak bebas tidak menembus bangunan, sesamanya, dan pemain
+    // tabrakan: prajurit yang bergerak bebas tidak menembus bangunan, sesamanya, pemain, dan sisi dek;
+    // lalu tinggi kakinya (menapak / jatuh / berenang). Peronda & penjaga pos selalu di jalan / posnya
     for (const a of agents) {
-      if (a.state === 'hilang' || a.state === 'roboh' || a.state === 'ronda' || a.state === 'jaga') continue
+      if (a.state === 'hilang') continue
+      if (a.state === 'ronda' || a.state === 'jaga') {
+        a.y = ground.surfaceAt(a.x, a.z)
+        a.swim = false
+        continue
+      }
+      if (a.ride) continue // di perahu patroli: letaknya diatur perahunya
+      if (a.state === 'roboh' || a.climb) {
+        if (!a.climb) settle(a, dt)
+        continue
+      }
       for (const b of agents) {
         if (b === a || b.state === 'hilang' || b.state === 'roboh') continue
         const dx = a.x - b.x
@@ -654,17 +854,21 @@ export function createSoldiers({ ground, colliders, nav, plan, spots, quality, s
       }
       tmpVel.x = tmpVel.z = 0
       colliders.resolve(a, RADIUS, tmpVel)
+      ledges(a)
+      if (!a.climb) settle(a, dt)
     }
 
     // animasi menurut keadaan
     for (const a of agents) {
       if (a.state === 'hilang') continue
-      if (a.state !== 'roboh' && !a.atk && a.clip !== 'stop' && a.clip !== 'yes')
-        if (a.moved > 2.4) setClip(a, 'sprint')
+      if (a.state !== 'roboh' && !a.atk && !a.climb && !a.ride?.hop && a.clip !== 'stop' && a.clip !== 'yes')
+        if (a.swim) setClip(a, 'walk') // menendang air, senjata tetap di tangan
+        else if (a.moved > 2.4) setClip(a, 'sprint')
         else if (a.moved > 0.05) setClip(a, 'walk')
         else setClip(a, 'idle')
       else if ((a.clip === 'stop' || a.clip === 'yes') && clipDone(a)) setClip(a, 'idle')
-      a.animSpeed = a.clip === 'walk' ? a.moved / WALK_ANIM : a.clip === 'sprint' ? a.moved / RUN_ANIM : 1
+      a.animSpeed = a.swim && a.clip === 'walk' ? 0.55 + 0.2 * Math.min(1, a.moved / SWIM.speed)
+        : a.clip === 'walk' ? a.moved / WALK_ANIM : a.clip === 'sprint' ? a.moved / RUN_ANIM : 1
       a.t += dt * a.animSpeed
       if (a.fade > 0) {
         a.fade = Math.max(0, a.fade - dt)
@@ -686,7 +890,6 @@ export function createSoldiers({ ground, colliders, nav, plan, spots, quality, s
       const dx = a.x - focus.x
       const dz = a.z - focus.z
       if (dx * dx + dz * dz > r2) continue
-      a.y = ground.surfaceAt(a.x, a.z)
       let { y } = a
       if (a.state === 'roboh' && a.downT > DOWN_TIME) y -= ((a.downT - DOWN_TIME) / SINK_TIME) * 0.9
       sphere.center.set(a.x, y + 0.8, a.z)
@@ -753,6 +956,10 @@ export function createSoldiers({ ground, colliders, nav, plan, spots, quality, s
     onDown(fn) {
       onDown = fn
     },
+    // fn(x, z, besar, kuat): prajurit terjun / berenang (riak air)
+    onWater(fn) {
+      onWater = fn
+    },
     // perintah: { do: 'tanya' | 'serang', target, near? }
     command(a, order) {
       if (!alive(a)) return
@@ -765,6 +972,33 @@ export function createSoldiers({ ground, colliders, nav, plan, spots, quality, s
       if (order.do !== 'serang') a.atk = null
     },
     release,
+    // naik perahu patroli: ride = { boat, seat } — letaknya lalu diatur perahu (ride diisi
+    // perahu-patroli.js tiap frame); turun = unboard ke (x, y, z): ke dek, atau terjun ke air
+    board(a, ride) {
+      a.ride = ride
+      a.atBoat = false
+      a.path = null
+      a.swim = false
+      a.climb = null
+      a.vy = 0
+    },
+    unboard(a, x, y, z) {
+      a.ride = null
+      a.x = x
+      a.z = z
+      a.y = y
+      a.vy = 0
+      a.kx = a.kz = 0
+    },
+    // awak perahu patroli menyerang: tusukan (release = null, kena bila sasaran terjangkau) atau
+    // lemparan (release(prajurit) dipanggil di tengah ayunan); cooldown = detik sampai serangan berikutnya
+    attack(a, release = null, cooldown = 2) {
+      if (!alive(a) || a.atk) return false
+      a.atk = { t: 0, hit: false, release }
+      a.atkCd = cooldown
+      setClip(a, 'attack', true)
+      return true
+    },
     gesture(a, clip) {
       if (alive(a) && !a.atk) setClip(a, clip, true)
     },
@@ -842,6 +1076,10 @@ export function createSoldiers({ ground, colliders, nav, plan, spots, quality, s
           a.z = q.z
           a.state = 'ronda'
         }
+        a.y = ground.surfaceAt(a.x, a.z)
+        a.swim = false
+        a.climb = null
+        a.vy = 0
         setClip(a, 'idle', true)
         a.fade = 0
       }

@@ -25,6 +25,7 @@ import { createVillagers } from './world/kencana/villagers.js'
 import { createArmy } from './world/kencana/pasukan.js'
 import { createSoldiers } from './world/kencana/prajurit.js'
 import { createSecurity } from './world/kencana/keamanan.js'
+import { createPatrolBoats } from './world/kencana/perahu-patroli.js'
 import { planAeloria } from './world/aeloria/plan.js'
 import { createAeloria } from './world/aeloria/kingdom.js'
 import { createElfFolk } from './world/aeloria/elf.js'
@@ -327,6 +328,8 @@ async function start() {
   // air: riak, perahu buatan sendiri (jukung), memancing; kayu dari menebang pohon untuk membuatnya
   const ripples = createRipples()
   scene.add(ripples.object)
+  // prajurit yang terjun / berenang mengejar pemain ikut membuat riak
+  soldiers?.onWater((x, z, size, strength) => ripples.spawn(x, z, size, strength))
   // perahu (pemain & perahu perang orc) memakai bahan bangunan tanpa tembus pandang
   const boatMaterial = buildingMaterial(noiseTexture, false)
   const boatDepth = buildingDepthMaterial()
@@ -785,8 +788,13 @@ async function start() {
     gate: { x: plan.gate.x + dockTimur.dir * 3.2, z: dockTimur.at + 0.8 },
     market: [{ x: -421, z: dockTimur.at + 1.2 }, { x: -461, z: dockTimur.at + 2.5 }, { x: -466, z: 51 }],
   }
-  if (soldiers)
+  // perahu patroli: pemain yang lolos lewat laut dikejar dengan jukung dari dermaga Kencana
+  let patrol = null
+  if (soldiers) {
     security = createSecurity({ soldiers, enemies, player, bubbles, villagers, visit, ground, message: showMessage })
+    patrol = createPatrolBoats({ boats: kencana.boats, soldiers, security, player, boat, ground, bubbles, message: showMessage, ripples })
+    scene.add(patrol.object)
+  }
   function resize() {
     const w = window.innerWidth
     const h = window.innerHeight
@@ -1007,6 +1015,7 @@ async function start() {
       fishing.update(dt, Math.abs(inp.moveX) + Math.abs(inp.moveY) > 0.1 || player.hasPath || (boat.aboard && boat.speed > 0.6))
       villagers?.pushOut(player.position)
       soldiers?.pushOut(player.position)
+      patrol?.pushOut(player.position)
       life?.pushOut(player.position)
       if (!player.hasPath) markers.hideTarget()
       cam.update(dt, camTarget, inp)
@@ -1036,6 +1045,7 @@ async function start() {
     life?.update(dt, camera, mode === 'main' ? player.position : controls.target, mode === 'main' ? 110 : 260)
     elfSec?.update(dt)
     security?.update(dt)
+    patrol?.update(dt, t)
     soldiers?.update(dt, {
       camera,
       focus: mode === 'main' ? player.position : controls.target,
@@ -1087,7 +1097,7 @@ async function start() {
   // akses untuk debugging / pengujian otomatis
   window.__pulau = {
     renderer, pixel, scene, camera, controls, ground, shore, quality, trees, rocks, grass, water, env, kencana, region, plan, villagers, army, worldMap, banner, aeloria, elfPlan, elfMask, life,
-    player, cam, input, colliders, nav, markers, effects, enemies, soldiers, security, bubbles, pickGround, setMode, getMode: () => mode, bag, gear, shop, elfSec, elfCard,
+    player, cam, input, colliders, nav, markers, effects, enemies, soldiers, security, patrol, bubbles, pickGround, setMode, getMode: () => mode, bag, gear, shop, elfSec, elfCard,
     boat, fishing, ripples, recipes, craftBoat, boardBoat, leaveBoat, chat, placesFor,
     frames: () => frameCount, debug,
   }

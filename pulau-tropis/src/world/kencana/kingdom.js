@@ -372,6 +372,9 @@ export function createKencana({ ground, plan, mask, grid, quality, noiseTexture 
     object: group,
     colliders: [...plan.colliders, ...trunks],
     surfaces: plan.surfaces,
+    // perahu bersandar { type, x, z, rot, mesh, i, phase, land }: x, z, rot boleh diubah (perahu
+    // patroli) — digambar ulang tiap frame oleh update(t)
+    boats,
     occlusion,
     routes,
     spots: plan.spots,

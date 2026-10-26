@@ -25,6 +25,10 @@ const RAID_JOIN = 80 // m: … ikut menghadang orc
 // lolos: di luar wilayah tanpa penyerang sedekat `range` m selama `time` detik → berhenti dikejar
 // (berenang / berperahu di dekat pantai Kencana sambil diburu bukan lolos)
 const LOST = { range: 20, time: 6 }
+// awak perahu patroli (perahu-patroli.js): baru menyerah bila tertinggal sejauh `leash` m; selama
+// perahunya masih sedekat `lost` m — atau awaknya masih berlari ke perahu — pemain belum lolos
+// (perahu sendiri yang memutuskan kapan berhenti mengejar)
+const RIDE = { leash: 240, lost: 130 }
 // detik prajurit di luar wilayah belum menyerang lagi: setelah berhenti mengejar / setelah pemain
 // dibawa keluar (supaya tidak langsung dikeroyok penjaga begitu bangun)
 const GRACE = { calm: 10, thrown: 30 }
@@ -71,7 +75,8 @@ export function createSecurity({ soldiers, enemies, player, bubbles, message, vi
   let raidsOn = true // serbuan berkala (pengujian bisa mematikannya; raid() tetap bisa memicu)
   let peace = false // gencatan senjata (pengujian): prajurit tidak menghiraukan pemain
 
-  const free = a => a.state === 'ronda' || a.state === 'jaga' || a.state === 'kembali'
+  // awak perahu patroli (a.ride) tidak bebas: perahunya yang mengatur mereka sampai turun di dermaga
+  const free = a => !a.ride && (a.state === 'ronda' || a.state === 'jaga' || a.state === 'kembali')
   const hunting = a => a.state === 'serang' && a.order?.target === PLAYER
   const onDuty = a => a.state === 'ronda' || a.state === 'jaga'
   const say = (a, text, ms = 2600) => bubbles.say(() => (soldiers.alive(a) ? { x: a.x, y: a.y + 1.8, z: a.z } : null), text, ms, `p${a.id}`)
@@ -128,8 +133,8 @@ export function createSecurity({ soldiers, enemies, player, bubbles, message, vi
     for (const a of soldiers.list) {
       if (!soldiers.alive(a) || !hunting(a)) continue
       const from = chaseFrom.get(a)
-      const strayed = !S.inside && from && Math.hypot(a.x - from.x, a.z - from.z) > PURSUE_OUT
-      if (strayed || Math.hypot(a.x - pp.x, a.z - pp.z) > LEASH) soldiers.release(a)
+      const strayed = !a.ride && !S.inside && from && Math.hypot(a.x - from.x, a.z - from.z) > PURSUE_OUT
+      if (strayed || Math.hypot(a.x - pp.x, a.z - pp.z) > (a.ride ? RIDE.leash : LEASH)) soldiers.release(a)
       else n++
     }
     if (n >= MAX_ATTACKERS) return
@@ -298,7 +303,9 @@ export function createSecurity({ soldiers, enemies, player, bubbles, message, vi
       if (S.grace > 0) S.grace -= dt
       if (!peace && !S.engaged) watch(dt)
       else if (!peace) {
-        S.lostT = S.inside || soldiers.nearest(pp.x, pp.z, LOST.range, hunting) ? 0 : S.lostT + dt
+        const hunted = soldiers.nearest(pp.x, pp.z, LOST.range, hunting) || soldiers.nearest(pp.x, pp.z, RIDE.lost, a => a.ride && hunting(a))
+          || soldiers.list.some(a => a.state === 'naik' && soldiers.alive(a))
+        S.lostT = S.inside || hunted ? 0 : S.lostT + dt
         if (S.lostT > LOST.time) calmDown('Prajurit Kencana berhenti mengejarmu.', GRACE.calm)
         else manageAttack(dt)
       }
@@ -312,6 +319,13 @@ export function createSecurity({ soldiers, enemies, player, bubbles, message, vi
     visitNow() {
       const v = visitors.find(o => o.phase === 'tunggu')
       if (v) v.t = 0
+    },
+    // ikut memburu pemain (awak perahu patroli setelah naik perahu / terjun dari perahu): pengejaran
+    // di luar wilayah dihitung dari titik ini
+    enlist(a) {
+      if (!soldiers.alive(a) || player.defeated || !S.engaged) return
+      chaseFrom.set(a, { x: a.x, z: a.z })
+      soldiers.command(a, { do: 'serang', target: PLAYER })
     },
     // prajurit diserang orc: membalas, dibantu pasangannya (di mana pun, juga di luar wilayah)
     defend(a, orcId) {
