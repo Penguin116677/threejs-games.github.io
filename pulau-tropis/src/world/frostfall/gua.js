@@ -152,8 +152,12 @@ export function createCave({ ground, terrainMaterial, noiseTexture, shadows }) {
     }
 
   // ------------------------------------------------------------------ kegelapan: jarak ke bukaan
-  // BFS dari titik rongga yang tak beratap (mulut, lubang tangga) melewati titik beratap
-  const dist = new Float32Array(w * d).fill(Infinity)
+  // BFS dari titik rongga yang tak beratap (mulut, lubang tangga) melewati titik beratap. Jarak dihitung
+  // dalam langkah grid (bilangan bulat): langkah 2,604 m (Tinggi) tidak tepat di Float32, jadi jarak
+  // dalam meter yang disimpan membulat ke atas, setiap kunjungan ulang tampak "lebih dekat", dan
+  // antreannya tumbuh tanpa henti
+  const FAR = 0x7fffffff
+  const dist = new Int32Array(w * d).fill(FAR)
   const queue = []
   for (let k = 0; k < w * d; k++) if (foot[k] === 1) {
     dist[k] = 0
@@ -168,8 +172,8 @@ export function createCave({ ground, terrainMaterial, noiseTexture, shadows }) {
       const jj = j + dj
       if (ii < 0 || jj < 0 || ii >= w || jj >= d) continue
       const n = jj * w + ii
-      if (!foot[n] || dist[n] <= dist[k] + step) continue
-      dist[n] = dist[k] + step
+      if (!foot[n] || dist[n] <= dist[k] + 1) continue
+      dist[n] = dist[k] + 1
       queue.push(n)
     }
   }
@@ -209,8 +213,8 @@ export function createCave({ ground, terrainMaterial, noiseTexture, shadows }) {
     // 0 = dekat bukaan, 1 = jauh di dalam gua (gelap)
     darkness(x, z) {
       const k = nearest(x, z)
-      if (k < 0 || !foot[k] || dist[k] === Infinity) return 0
-      return Math.min(1, Math.max(0, (dist[k] - 4) / 22))
+      if (k < 0 || !foot[k] || dist[k] === FAR) return 0
+      return Math.min(1, Math.max(0, (dist[k] * step - 4) / 22))
     },
     stats: { atap: index.length / 3, pagar: fences.length, sel: foot.reduce((n, f) => n + (f ? 1 : 0), 0) },
   }
