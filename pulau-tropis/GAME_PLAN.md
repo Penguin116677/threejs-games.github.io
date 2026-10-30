@@ -68,8 +68,16 @@ menjadi anak buah yang menang (pemain yang kalah menyerahkan upeti). Lihat DECIS
   Elf Aeloria — Kota Aeloria (pasar 51 kios, Tempa Aeloria, kedai), kawasan kesatria (Balai Makan,
   Lapangan Latihan, Padang Pesta, perkemahan), ladang & kebun, dan Benteng Aeloria. 10.000 kesatria
   elf + 259 penduduk + 28 anak, masing-masing dengan nama, sifat, kebutuhan, dan pilihan sendiri.
-- Wilayah berikutnya bisa ditambahkan di sisi lain (timur): batas dunia, terrain, laut, dan peta jalan
-  sudah dibuat umum (lihat DECISIONS #33, #40).
+- **Kerajaan Frostfall** (sejak v0.19.0, timur Pulau Tropis, di seberang selat timur: Dermaga Fajar ↔
+  Dermaga Frostfall, berenang atau berperahu): negeri pegunungan salju — Puncak Taring Es dan dua
+  rangkaian gunung lain, Lembah Beku dengan Sungai Beku, Air Terjun Beku, dan tiga jembatan kayu, **Desa
+  Emberwick** (rumah kayu, pasar, kedai, menara jaga), **Kastel Frostfall** di bahu gunung (tembok,
+  menara, gerbang, halaman, Ruang Singgasana yang ditinggalkan dengan pintu rahasia ke bawah tanah),
+  **Hutan Pinus Salju** dengan kemah pemburu yang ditinggalkan, **Lembah Atas** & **Celah Tersembunyi**,
+  dan **Gua Es Kristal** (kristal bercahaya, danau bawah tanah, Ruang Harta). Belum berpenghuni: tanpa
+  penduduk / prajurit (lihat PROJECT_STATUS, "Masalah yang diketahui").
+- Keempat sisi Pulau Tropis kini terpakai (barat, utara, timur; selatan = laut lepas). Batas dunia,
+  terrain, laut, dan peta jalan tetap umum (DECISIONS #33, #40, #78) bila wilayah lain ditambahkan.
 
 ## Target perangkat
 - Utama: browser Chrome di HP Android (layar sentuh, portrait dan landscape).
@@ -137,3 +145,6 @@ yang lebih hidup).
 Di v0.18.0 (permintaan pengguna) grafik kembali HD tanpa pixel art, pemain & prajurit Kencana berjalan,
 berlari, dan berenang dengan gerak mirip manusia (rangka bersendi), dan prajurit Kencana bisa diajak menjadi
 anak buah atau ditantang duel (NPC yang lebih hidup — bagian Milestone 4).
+Di v0.19.0 (permintaan pengguna) dunia mendapat wilayah keempat, Kerajaan Frostfall di timur — bagian
+besar Milestone 3 yang belum ada sebelumnya: **sungai, air terjun, gua, dan reruntuhan** (kastel yang
+ditinggalkan), plus jalur eksplorasi & landmark pegunungan; juga cuaca (salju turun) dari Milestone 5.

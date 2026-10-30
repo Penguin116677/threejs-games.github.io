@@ -27,9 +27,10 @@ npm run test:smoke # (dengan preview berjalan) tes otomatis + screenshot ke scre
 Smoke test butuh Chromium untuk Playwright. FPS yang dilaporkan smoke test berasal dari render
 software dan **tidak** mencerminkan performa HP. Untuk menjalankan sebagian kasus saja:
 `SMOKE_CASES=hp-portrait,desktop npm run test:smoke` (kasus: hp-portrait, hp-landscape, hp-rendah,
-desktop). Sejak v0.18.0 (grafik HD) satu putaran penuh **hampir 4 jam** di render software (HP tegak
-±60 menit, mendatar ±26, Rendah ±13, komputer ±2¼ jam; v0.15.0 pixel art: ±1,5 jam) — bila lingkungan
-uji membatasi lama perintah (mis. 2 jam), jalankan per kasus — profil komputer sendiri pun melewati 2 jam.
+desktop). Sejak v0.19.0 (Frostfall) satu putaran penuh **±5¼ jam** di render software (HP tegak ±85
+menit, mendatar ±44, Rendah ±18, komputer ±2¾ jam; v0.18.0: hampir 4 jam; v0.15.0 pixel art: ±1,5 jam) —
+bila lingkungan uji membatasi lama perintah (mis. 2 jam), jalankan per kasus — profil komputer sendiri pun
+melewati 2 jam.
 Batas waktu tiap langkah 90 detik.
 
 Sejak v0.16.0 file `public/models/*.glb` hanya berisi rangka + animasi Kenney (badan semua karakter
@@ -462,3 +463,31 @@ laut terlalu sulit / terlalu mudah.
 Laporkan: apakah gerak jalan & renang sudah terlihat seperti manusia (bagian mana yang masih kaku), apakah
 peluang prajurit mau diajak & sulitnya duel sudah pas, dan apakah arti "pemain kalah = menyerahkan upeti"
 sesuai yang diinginkan.
+
+## Daftar uji manual — v0.19.0 (Kerajaan Frostfall, pegunungan salju di timur)
+1. **Menuju Frostfall**: buka **Peta** → cari **Dermaga Fajar** di pantai timur Pulau Tropis. Jalan ke
+   ujung dermaga, terjun ke laut, berenang lurus ke timur ±160 m (atau berlayar dengan perahu) sampai
+   **Dermaga Frostfall**, panjat deknya (tombol Panjat). Selama menyeberang: air laut makin gelap & dingin,
+   langit & kabut kelabu, lalu salju mulai turun — tanpa layar loading.
+2. **Desa Emberwick** (ikuti jalan dari dermaga ke timur): spanduk nama desa, rumah kayu beratap salju
+   dengan jendela menyala & asap cerobong, alun-alun dengan sumur, pasar (kios & gerobak), api unggun.
+   Masuk **kedai panjang** lewat pintunya → kamera tetap di dalam ruangan, cahaya hangat redup. Naik
+   **menara jaga** lewat tangganya sampai lantai pandang. Seberangi **Jembatan Desa** di atas sungai beku.
+3. **Sungai & air terjun**: ikuti sungai ke hulu (timur laut) → **Jembatan Lembah**, lalu **Air Terjun
+   Beku** di bawah tebing. Jalan setapak berpapas di lereng naik ke **Lembah Atas** (Jembatan Lembah Atas).
+4. **Kastel Frostfall** (jalan berkelok dari desa ke utara-timur laut): gerbang → halaman → **Ruang
+   Singgasana** (kamera di bawah langit-langit). Di samping singgasana: tombol **Geser lempeng** → lempeng
+   lantai bergeser, tangga turun ke **lorong rahasia** → ikuti sampai Gua Es Kristal.
+5. **Gua Es Kristal** (juga dari mulut gua di Lembah Atas): makin dalam makin gelap, kristal biru bercahaya,
+   danau beku, salju berhenti di dalam gua, kamera tidak menembus langit-langit. Cari **Ruang Harta** di
+   ujung celah sempit → tombol **Buka peti** → +150 koin (sekali saja, juga setelah halaman dimuat ulang).
+6. **Hutan Pinus Salju** (selatan desa): pinus lebat, gelondong tumbang, 3 kemah pemburu yang ditinggalkan.
+   **Celah Tersembunyi**: ngarai sempit menembus punggung gunung di selatan Lembah Atas.
+7. **Tabrakan & tanah**: coba jalan ke dinding rumah, tembok kastel, menara, batu, dan pinus (tertahan);
+   naiki lereng gunung (tebing terjal tidak bisa didaki); cari benda melayang / lubang di tanah.
+8. **Di atas gua**: daki gunung di atas Gua Es Kristal → tidak bisa jatuh menembus ke dalam gua.
+9. **Kembali**: berenang ke barat dari Dermaga Frostfall ke Dermaga Fajar → iklim tropis kembali.
+10. Catat FPS (Rendah / Sedang / Tinggi) di desa, di halaman kastel, di hutan pinus, dan di dalam gua.
+
+Laporkan: bagian yang terlalu gelap / terang, salju yang mengganggu pandangan, tempat yang sulit dicapai
+atau membuat karakter tersangkut, dan FPS di tiap tempat.

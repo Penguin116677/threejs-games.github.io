@@ -816,3 +816,68 @@ tandai sebagai "diganti" bila berubah.
     - Anak buah paling banyak 10 (pencarian jalur dibatasi beberapa per bingkai; 10 sudah sepasukan kecil).
       Tidak disimpan saat halaman dimuat ulang — prajurit dibuat ulang setiap kali game dimuat (tas & koin
       tetap tersimpan).
+78. **Kerajaan Frostfall = daratan baru di TIMUR, satu dunia tanpa layar loading** (v0.19.0, permintaan
+    pengguna: *"ADD A NEW SEAMLESS SNOWY MOUNTAIN MAP … If the existing game uses a seamless open-world
+    architecture, maintain that architecture"*).
+    - Game ini sudah satu dunia terbuka (Pulau Tropis + Kencana di barat + Aeloria di utara, dipisah selat,
+      tanpa sistem peta/perjalanan). Frostfall ditambahkan dengan cara yang sama: batas dunia diperluas ke
+      timur (`WORLD.maxX` 625 → 1.500, tetap kelipatan 125 m dari −500 supaya grid terrain pulau tengah tidak
+      bergeser), daratan baru ±950 × 950 m di timur Pulau Tropis. Utara (Aeloria) dan barat (Kencana) sudah
+      terpakai; timur juga paling dekat ke pantai Pulau Tropis yang masih kosong.
+    - Penghubung: selat ±160 m (antar-ujung dermaga) antara **Dermaga Fajar** (pantai timur Pulau Tropis) dan **Dermaga Frostfall**,
+      direnangi atau dilayari seperti selat lain (DECISIONS #58: tanpa jembatan antar-negeri). Selat dibuat
+      cukup dalam (> 1,4 m di titik terdangkal) supaya tidak bisa diseberangi berjalan kaki.
+    - Iklim berganti mulus di selat (x 300–380): warna salju di shader tanah, air laut dingin, kabut, langit,
+      cahaya, dan salju turun berbaur menurut posisi pemain — tanpa batas yang terasa.
+79. **Gua di dunia heightfield: rongga yang dikeruk + atap dari permukaan gunung asli** (v0.19.0).
+    - Terrain game ini satu grid tinggi (tidak bisa menjorok). Gua Es Kristal dibuat dengan mengeruk lantai
+      gua langsung di fungsi tinggi (`caveFloor`), lalu menutupnya dengan ATAP: permukaan gunung aslinya,
+      digambar dari grid yang sama — sisi atas memakai bahan terrain (dari luar gunung tampak utuh), sisi
+      bawah langit-langit gua. Fisika, tabrakan dinding (lereng curam), dan peta jalan tetap bekerja tanpa
+      kode khusus; lantainya tanah biasa.
+    - Bentuk gua didefinisikan sebagai rongga bulat & lorong dengan tinggi lantai (layout.js). "Batu
+      penutup" di fungsi tinggi menjamin atap ≥ 24 m di atas lantai, dan titik yang rongganya < 5 m dibiarkan
+      terbuka (mulut gua, lubang tangga rahasia).
+    - Yang berjalan di atas gunung tidak boleh melangkah ke atap (akan jatuh menembusnya): pagar tak terlihat
+      di titik luar yang bersebelahan dengan atap, berupa penghalang BERBATAS TINGGI (`y0` = tanah − 1 m) —
+      menahan yang berdiri di permukaan gunung, tidak menahan yang berjalan di lantai gua di bawahnya.
+    - Kamera: di dalam gua atap = langit-langit (kamera tidak menembusnya), di luar gua atap = tanah (kamera
+      tidak masuk ke dalam gunung). Kegelapan gua dihitung dari jarak ke bukaan (BFS di grid).
+80. **Penghalang berbatas tinggi, lantai sebagai langit-langit, ruang dalam** (v0.19.0) — perlengkapan umum
+    untuk bangunan yang bisa dimasuki dan jalan bertingkat:
+    - `colliders`: penghalang boleh punya `y0` / `y1` (menahan hanya badan yang kakinya di rentang itu) dan
+      `off` (dimatikan). Dipakai dinding timur aula singgasana (lorong rahasia lewat di bawahnya), pagar
+      jembatan, pagar lantai pandang menara jaga, langkan lubang tangga, pagar di atas gua, dan penghalang
+      ujung atas tangga rahasia (dimatikan saat pintu dibuka). Tanpa `y0` perilakunya sama seperti dulu.
+    - `ground.ceilingAt(x, z, y)`: lantai terendah di atas ketinggian y. Kamera hanya memakainya bila ada
+      lantai tepat di atas pemain (mis. di tangga di bawah lempeng pintu rahasia) — di tempat lain aturan
+      kamera sama seperti dulu (tidak mengubah Kencana / Aeloria).
+    - Ruang dalam (`interiors`: aula singgasana & kedai): selama pemain di dalam, kamera dijepit di dalam
+      dinding dan di bawah langit-langit; cahaya matahari diredupkan (tanpa bayangan di Rendah, sinar
+      matahari akan menembus atap).
+81. **Suasana musim dingin murah untuk HP** (v0.19.0):
+    - Salju turun = satu `Points` (shader) di kotak 48 × 30 × 48 m yang selalu mengelilingi kamera (butiran
+      "dibungkus" dengan mod, tidak pernah habis): 500 / 1.300 / 2.600 butir menurut kualitas, satu draw call,
+      mati di dalam gua & ruangan.
+    - Satu lampu titik saja, selalu ada sejak awal (menambah / menghapus lampu = semua shader dibuat ulang),
+      berpindah ke sumber cahaya terdekat (api unggun, perapian, anglo, kristal besar, peti harta) dan
+      berkedip; Rendah tanpa lampu titik.
+    - Pinus dua tingkat detail per petak 160 m (dekat: 5 tingkat kerucut bersalju ±150 segitiga, jauh: 1
+      kerucut ±24 segitiga), batu & gelondong instanced; bangunan & kristal digabung per petak (buildTiles).
+    - Iklim (kabut, langit, cahaya) berbaur dari nilai tropis menurut jarak ke Frostfall; di Pulau Tropis
+      semuanya persis seperti sebelumnya.
+82. **Pintu rahasia & harta karun** (v0.19.0): "Secret underground entrance" = lempeng lantai di samping
+    singgasana yang menutup tangga ke lorong menuju gua. Tertutup: lempeng adalah lantai (bisa diinjak),
+    tangga di bawahnya terhalang dari bawah. Tombol **Geser lempeng** (dari aula) / **Dorong lempeng** (dari
+    tangga) membukanya untuk seterusnya (sampai halaman dimuat ulang). "Hidden treasure chamber" = Ruang
+    Harta di ujung celah sempit gua dengan peti: **Buka peti** = 150 koin, sekali saja (tersimpan di browser,
+    supaya tidak bisa diulang-ulang dengan memuat ulang).
+83. **Lebar lorong gua mengikuti langkah grid terrain** (v0.19.0, ditemukan saat pengujian). Tanah satu
+    grid (5 / 3,9 / 2,6 m untuk Rendah / Sedang / Tinggi); segitiga yang menyeberangi dinding gua menjadi
+    lereng curam yang tidak bisa dilalui. Lorong selebar 7–8 m (celah ke Ruang Harta, lorong rahasia)
+    ternyata **tertutup di Rendah dan Sedang** (diperiksa dengan pencarian jalan di mesh terrain yang
+    sebenarnya + berjalan di browser). Pilihan: lorong dilebarkan untuk semua kualitas (celah "sempit"
+    jadi 15 m di Tinggi), grid lebih rapat di gua (mahal / rumit), atau **lebar minimum = 3 langkah grid**
+    (`setCavePassage`, diatur sekali sebelum tanah dibentuk). Dipilih yang terakhir: Tinggi tetap seperti
+    rancangan (7,8 m), Sedang 11,7 m, Rendah 15 m — gua sedikit berbeda antar-kualitas, tetapi selalu bisa
+    dilalui (3 langkah lulus di ketiga kualitas, juga dengan syarat jalur ≥ 1 m lebih lebar dari badan).

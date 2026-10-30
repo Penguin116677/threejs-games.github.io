@@ -1,8 +1,8 @@
 # PROJECT_STATUS — Pulau Tropis
 
-**Milestone aktif:** 3 — Pembangunan dunia (v0.18.0: grafik kembali HD tanpa pixel art, pemain & prajurit Kencana berjalan / berlari / berenang dengan gerak mirip manusia — rangka bersendi —, prajurit Kencana bisa diajak menjadi anak buah atau ditantang duel; v0.17.0: prajurit berenang & perahu patroli, tombol Panjat; v0.16.0: karakter chibi — menunggu umpan balik dari HP).
+**Milestone aktif:** 3 — Pembangunan dunia (v0.19.0: wilayah baru **Kerajaan Frostfall** di timur — pegunungan salju, Desa Emberwick, Kastel Frostfall dengan pintu rahasia, hutan pinus, sungai & air terjun beku, Gua Es Kristal dengan Ruang Harta —, satu dunia tanpa layar loading; v0.18.0: grafik HD, gerak mirip manusia, mengajak prajurit & duel — menunggu umpan balik dari HP).
 Pengembangan jurus dihentikan sementara atas permintaan pengguna.
-**Versi:** 0.18.0
+**Versi:** 0.19.0
 **Terakhir diperbarui:** 2026-10-30
 
 ## Kondisi awal repository (sebelum Milestone 1)
@@ -100,6 +100,49 @@ Sebagian sudah dikerjakan lebih awal (bayangan, tanah per-piksel, awan, kaustik 
 | File model hanya rangka + animasi (unduhan model 892 KB → 108 KB) | ✅ selesai (v0.16.0) |
 | Partikel lanjutan, suara, animasi vegetasi lanjutan, siang–malam | ⏳ belum |
 | Dicoba di HP Android sungguhan | ⏳ menunggu laporan pengguna |
+
+## Yang sudah diperiksa (v0.19.0 — Kerajaan Frostfall)
+- **Pemeriksaan kode**: ESLint (konfigurasi repo) 0 error / 0 warning pada setiap commit.
+- **Build**: `vite build` berhasil (JS 1,25 MB / 399 KB gzip, +31 KB gzip dari v0.18.0 untuk
+  `src/world/frostfall/`; CSS 16,5 KB).
+- **Pemeriksaan bentuk tanah di Node** (fungsi tinggi & mesh terrain yang sebenarnya, `createGround`):
+  kemiringan jalan kastel ≤ 0,25; selat ≥ 1,6 m di titik terdangkal; keempat sudut kastel tepat di y 72;
+  **pencarian jalan di dalam gua** (kisi 0,5 m, aturan kemiringan pemain ≤ 1,3, jalur ≥ 1 m lebih lebar dari
+  badan) dari mulut gua ke Balairung Es, Galeri, Ruang Harta, dan kaki tangga rahasia — tersambung di
+  Rendah, Sedang, dan Tinggi (sebelum perbaikan: Ruang Harta & lorong rahasia tertutup di Rendah, lorong
+  rahasia tertutup di Sedang).
+- **Smoke test otomatis** (versi build, per profil berurutan):
+  - HP Rendah **LULUS** 41 cek (v0.18.0: 30) · HP mendatar **LULUS** 41 cek (v0.18.0: 30) · HP tegak
+    **LULUS** 100 cek (v0.18.0: 81) — 0 gagal; semua cek lama tetap lulus.
+  - Komputer (Tinggi): putaran pertama **gagal dimuat** ("RangeError: Invalid array length") → diperbaiki
+    (kegelapan gua, lihat CHANGELOG) → putaran ulang pada build yang diperbaiki: **LULUS** 85 cek
+    (v0.18.0: 66), 0 gagal.
+  - Total **267 cek lulus, 0 gagal** (v0.18.0: 207). Lama uji: HP Rendah ±18 menit, HP mendatar ±44 menit,
+    HP tegak ±85 menit, komputer ±2¾ jam — tiap profil dijalankan terpisah, tanpa batas waktu 2 jam.
+  - Ketiga profil HP dijalankan pada build sebelum perbaikan Tinggi itu; perbaikannya tidak mengubah apa pun
+    di Rendah / Sedang (langkah grid 5 m dan 3,90625 m tepat di Float32, nilai kegelapan sama persis).
+  - Cek baru Frostfall (semua profil): isi wilayah (19 rumah + kedai, 5 kios, menara jaga, 6 api unggun, 3
+    jembatan, kastel 6 tembok + 4 menara + gerbang + aula, air terjun, 3 kemah, pinus, kristal, atap & pagar
+    gua); 86 bangunan & perabot tidak melayang / terbenam (≤ 0,6 m dari tanah / lantai); tanah tanpa lubang
+    (1.036 titik daratan); selat 161 m, terdangkal 1,6 m, berenang menyeberang; salju & iklim dingin di desa;
+    di dalam gua gelap, tanpa salju, kamera di bawah atap; **gua bisa dilalui** (lorong rahasia & celah ke
+    Ruang Harta, berjalan sungguhan); peti harta +150 koin sekali; kembali ke Pulau Tropis iklim tropis lagi.
+  - HP tegak & komputer juga berjalan sungguhan: menyeberang Jembatan Desa, naik tangga menara jaga sampai
+    lantai pandang (y 17,5), masuk kedai lewat pintu (kamera tetap di dalam), gerbang → halaman → Ruang
+    Singgasana, berjalan di atas lempeng tertutup, **Geser lempeng → turun tangga → lorong di dalam gunung**,
+    mulut gua dari Lembah Atas, pagar di atas gua menahan yang berjalan di gunung.
+- **Uji terpisah di browser** (Chromium, render software, layar Pixel 7 tiruan): tangkapan layar desa,
+  jembatan, kedai, aula, gua, galeri, mulut gua, air terjun, dermaga & pelabuhan, jalan kastel, gerbang;
+  jalan penuh aula → tangga → bawah tembok → lorong rahasia → Balairung Es di Rendah dan Sedang; Tinggi
+  dimuat tanpa galat setelah perbaikan.
+- **Performa & memori** (render software, bukan ukuran HP; tabel di bagian Performa): di tempat lama tanpa
+  Frostfall di layar waktu per bingkai −1…+12% (satu putaran per versi; selisih antar-putaran biasanya
+  ±10%); titik mulai Sedang +14% (pegunungan Frostfall terlihat di cakrawala: +28 rb segitiga, +8 draw call);
+  Dermaga Fajar +48…62% (Frostfall di depan mata). Tempat-tempat di Frostfall lebih ringan daripada titik
+  mulai (Sedang 647–782 ms, Rendah 328–411 ms per bingkai). Waktu siap +0,8–0,9 detik; heap JS saat
+  dimuat +20–24 MB (Sedang 182 → 206 MB, Rendah 162 → 182 MB); geometri saat dimuat hampir sama (87 → 84–95).
+  Komputer (Tinggi) di titik mulai: 2,06 jt segitiga / 321 draw call (v0.17.0: 1,77 jt / 240) karena jarak
+  pandang Tinggi 950 m mencapai Frostfall.
 
 ## Yang sudah diperiksa (v0.18.0 — grafik HD, gerak mirip manusia, mengajak prajurit & duel)
 - **Pemeriksaan kode**: ESLint (konfigurasi repo) 0 error / 0 warning pada setiap commit (grafik HD →
@@ -648,6 +691,15 @@ Sebagian sudah dikerjakan lebih awal (bayangan, tanah per-piksel, awan, kaustik 
   laut dalam → kembali ke pantai + pesan, mendaki lereng (+24 m dalam 120 frame).
 
 ## Yang BELUM diperiksa
+- **FPS Frostfall di HP sungguhan** (v0.19.0): diukur hanya di render software (lihat Performa) — terutama
+  hutan pinus, desa (asap, api, lampu titik), dan pandangan dari dermaga ke seluruh pegunungan. Memori GPU
+  tambahan (pinus, bangunan, atap gua) belum diukur di HP.
+- **Rasa menjelajah Frostfall di HP** (v0.19.0): apakah jalan setapak & jalan kastel mudah diikuti dengan
+  joystick, apakah lereng / tebing yang tidak bisa didaki terasa wajar, apakah salju turun mengganggu
+  pandangan, apakah gua terlalu gelap, dan apakah pintu rahasia di samping singgasana cukup mudah ditemukan
+  (tombol hanya muncul di dekat lempengnya).
+- **Berenang 160 m ke Frostfall** (v0.19.0): apakah selat terasa terlalu lebar untuk berenang di HP (±70 detik
+  pada laju renang penuh 2,4 m/s); perahu tetap bisa dipakai.
 - **FPS grafik HD di HP sungguhan** (v0.18.0): HD mewarnai ±8× lebih banyak piksel daripada pixel art
   (Sedang di Pixel 7: 618 × 1.259 vs 217 × 441 piksel seni), kembali seperti v0.14.0. Diukur hanya di
   render software (lihat Performa). Bila tersendat di HP: pilih Rendah.
@@ -720,6 +772,26 @@ Sebagian sudah dikerjakan lebih awal (bayangan, tanah per-piksel, awan, kaustik 
 - Apakah URL hosting (githack / GitHub Pages) terbuka di HP — tidak bisa diakses dari lingkungan pengembangan.
 
 ## Performa (segitiga per frame termasuk bayangan, dari smoke test)
+v0.19.0 (Frostfall), layar HP tegak (Pixel 7), versi build, render software; v0.18.0 diukur bergantian di
+mesin yang sama, satu putaran per versi. Segitiga (ribu) / draw call dan waktu per bingkai (ms):
+| Tempat | Sedang v0.18.0 | Sedang v0.19.0 | Rendah v0.18.0 | Rendah v0.19.0 |
+|---|---|---|---|---|
+| Titik mulai | 429 rb / 63 · 1.102 ms | 457 rb / 71 · 1.253 ms (+14%) | 349 rb / 66 · 549 ms | 342 rb / 63 · 573 ms (+4%) |
+| Pasar Kotaraja | 326 rb / 52 · 698 ms | 334 rb / 50 · 746 ms (+7%) | 245 rb / 42 · 319 ms | 250 rb / 42 · 358 ms (+12%) |
+| Depan barisan Tegal Wira | 441 rb / 30 · 1.569 ms | 449 rb / 30 · 1.638 ms (+4%) | 309 rb / 35 · 1.010 ms | 318 rb / 37 · 999 ms (−1%) |
+| Pasar Aeloria | 553 rb / 96 · 870 ms | 558 rb / 96 · 935 ms (+7%) | 470 rb / 96 · 508 ms | 478 rb / 96 · 520 ms (+2%) |
+| Dermaga Fajar, memandang ke Frostfall | 125 rb / 25 · 490 ms | 291 rb / 69 · 794 ms (+62%) | 102 rb / 28 · 269 ms | 207 rb / 54 · 397 ms (+48%) |
+| Frostfall: Desa Emberwick | — | 231 rb / 57 · 669 ms | — | 203 rb / 54 · 370 ms |
+| Frostfall: halaman kastel | — | 154 rb / 41 · 782 ms | — | 114 rb / 35 · 411 ms |
+| Frostfall: hutan pinus | — | 248 rb / 51 · 748 ms | — | 170 rb / 42 · 328 ms |
+| Frostfall: Lembah Atas | — | 188 rb / 49 · 650 ms | — | 120 rb / 34 · 336 ms |
+| Frostfall: dalam gua | — | 163 rb / 42 · 647 ms | — | 104 rb / 29 · 351 ms |
+- Memori (heap JS / geometri three.js): saat dimuat Sedang 182 MB / 87 → 206 MB / 95, Rendah 162 MB / 87 →
+  182 MB / 84; setelah mengunjungi semua tempat di atas Sedang 209 MB / 230 geometri, Rendah 181 MB / 181
+  (v0.18.0 tanpa tempat Frostfall: 158 MB / 163, 140 MB / 139). Tekstur 63 → 64 (masker Frostfall).
+- Waktu siap: Sedang 4,9 → 5,8 detik, Rendah 4,1 → 4,8 detik (bentuk tanah, pinus, bangunan & gua Frostfall).
+- Render software bukan ukuran HP; FPS Frostfall di HP belum diukur.
+
 v0.18.0 (grafik HD, gerak bersendi, anak buah), layar HP tegak (Pixel 7), versi build, render software;
 v0.17.0 (pixel art) diukur bergantian di mesin yang sama, rata-rata 2 putaran. Segitiga (ribu) dan waktu per
 bingkai (ms):
@@ -892,6 +964,18 @@ v0.3.0: Rendah ±300 rb, Sedang ±400 rb, Tinggi ±850 rb. Tambahan v0.4.0 beras
 yang lebih rapat (untuk ombak) dan buah kelapa. v0.2.0 (HP): ±230 ribu.
 
 ## Masalah yang diketahui
+- (v0.19.0) **Frostfall belum berpenghuni**: tidak ada penduduk, pedagang, atau penjaga (desa, pasar, dan
+  kastel kosong — kastelnya memang "ditinggalkan"); kios tidak bisa dibeli. Hanya **kedai panjang** dan
+  **Ruang Singgasana** yang bisa dimasuki; rumah lain tertutup.
+- (v0.19.0) Lebar lorong gua berbeda menurut kualitas (Tinggi 7,8 m, Sedang 11,7 m, Rendah 15 m) supaya
+  selalu bisa dilalui di grid tanah yang kasar (DECISIONS #83).
+- (v0.19.0) Bagian gua yang jauh dari bukaan sangat gelap (mis. Galeri Kristal): tokoh tampak sebagai
+  siluet, cahaya hanya dari kristal. Disengaja, tetapi mungkin terlalu gelap di layar HP — menunggu
+  umpan balik.
+- (v0.19.0) Hanya satu lampu titik sekaligus (berpindah ke api / kristal terdekat); sumber cahaya lain
+  hanya bercahaya sendiri, tidak menerangi sekitarnya. Rendah tanpa lampu titik.
+- (v0.19.0) Salju turun tidak menumpuk dan tidak ada jejak kaki; berjalan di es sungai sama seperti di
+  tanah (tidak licin). Lantai jembatan rendah di atas es sungai menahan yang berjalan di bawahnya.
 - (v0.18.0) Saat berlari kencang langkah dipanjangkan sampai 1,35 × langkah alami klip (kaki tokoh pendek;
   tanpa itu kaki berputar terlalu cepat), jadi telapak tumpuan sedikit meluncur — makin cepat makin
   terasa, paling banyak ±¼ laju pada lari penuh. Berlaku juga untuk prajurit Kencana.
@@ -901,8 +985,8 @@ yang lebih rapat (untuk ombak) dan buah kelapa. v0.2.0 (HP): ±230 ribu.
 - (v0.18.0) Anak buah tidak disimpan (hilang bila halaman dimuat ulang), belum bisa dilepas atau
   diperintah, dan tidak ikut naik perahu pemain (muncul lagi di belakang pemain begitu pemain di darat).
   Hanya prajurit Kencana yang bisa diajak / ditantang duel (DECISIONS #77).
-- (v0.18.0) Saat pemain mengajak, prajurit dalam 22 m yang sedang melawan orc (bukan memburu pemain) ikut
-  berhenti mendengarkan — kasus pinggir, belum diperbaiki.
+- ~~(v0.18.0) Saat pemain mengajak, prajurit dalam 22 m yang sedang melawan orc (bukan memburu pemain) ikut
+  berhenti mendengarkan~~ — diperbaiki di v0.19.0.
 - (v0.18.0) Grafik HD lebih berat daripada pixel art (piksel yang diwarnai ±8× lebih banyak di Sedang).
   Bila tersendat di HP: pilih Rendah.
 - (v0.16.0) Karakter 3D meniru gaya sprite gambar contoh, bukan sprite 2D-nya: gerak khusus per jenis di

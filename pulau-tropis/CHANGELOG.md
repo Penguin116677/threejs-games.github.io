@@ -1,5 +1,82 @@
 # CHANGELOG — Pulau Tropis
 
+## [0.19.0] — 2026-10-30 — Kerajaan Frostfall: wilayah pegunungan salju baru di timur (permintaan pengguna)
+### Ditambah
+- **Kerajaan Frostfall** (permintaan: *"ADD A NEW SEAMLESS SNOWY MOUNTAIN MAP TO MY EXISTING GAME …
+  FROSTFALL KINGDOM – SNOWY MOUNTAIN REGION"*): daratan baru ±950 × 950 m di **timur** Pulau Tropis, dalam
+  dunia yang sama — tanpa layar loading, tanpa ganti peta. Dicapai dengan berenang / berperahu ±160 m dari
+  **Dermaga Fajar** (pantai timur Pulau Tropis, baru) ke **Dermaga Frostfall**. Iklim berganti perlahan di
+  selat: air laut makin dingin, kabut & langit kelabu, cahaya kebiruan, lalu salju mulai turun.
+  - **Pegunungan**: tiga rangkaian bergerigi dengan **Puncak Taring Es** (±350 m), Puncak Utara, Puncak
+    Selatan; lereng terjal bertebing batu granit berlapis salju, lembah di antaranya; jalan berkelok naik
+    ke kastel, jalan setapak berpapas di lereng ke **Lembah Atas** (lembah gletser), dan **Celah
+    Tersembunyi** — ngarai sempit berdinding curam yang menembus punggung gunung.
+  - **Lembah Beku**: **Sungai Beku** (es berretak & bongkah es terapung) dari Lembah Atas, jatuh sebagai
+    **Air Terjun Beku** ±32 m dari tebing, melewati desa ke laut; tiga **jembatan kayu** (Jembatan Desa,
+    Jembatan Lembah, Jembatan Lembah Atas) yang benar-benar bisa diseberangi; batu bersalju & pinus.
+  - **Desa Emberwick**: 19 rumah kayu beratap salju dengan jendela menyala hangat & asap cerobong, alun-alun
+    berlantai batu dengan sumur, **pasar** (5 kios + gerobak), **kedai panjang** yang bisa dimasuki
+    (perapian, meja, bangku), **menara jaga** dengan tangga sampai lantai pandang, api unggun, tumpukan kayu
+    bakar, lentera di jalan.
+  - **Kastel Frostfall** di bahu gunung (y 72 m): tembok bergerigi, 4 menara sudut, **gerbang**, halaman
+    dengan anglo, dan **Ruang Singgasana** yang ditinggalkan (bisa dimasuki: tiang, permadani, singgasana
+    es, jendela tinggi). Di sampingnya **pintu rahasia**: lempeng lantai yang bisa digeser (tombol
+    **Geser lempeng**) membuka **tangga bawah tanah** → lorong panjang → Gua Es Kristal.
+  - **Hutan Pinus Salju**: ±2.600 pinus bersalju (lebat di selatan), batu, gelondong tumbang, jalan
+    setapak tersembunyi, dan **3 kemah pemburu yang ditinggalkan** (tenda, rak jemur, kereta luncur, api
+    unggun padam).
+  - **Gua Es Kristal**: mulut gua di Lembah Atas → ruang-ruang gua dengan **kristal biru bercahaya**,
+    **danau bawah tanah** beku, beberapa lorong (galeri, lorong rahasia dari kastel), dan **Ruang Harta**
+    tersembunyi di ujung celah sempit dengan **peti harta** (tombol **Buka peti** = **150 koin**, sekali).
+    Gua makin gelap makin jauh dari bukaannya; langit-langitnya berbintik kristal.
+- **Suasana musim dingin**: salju turun mengelilingi kamera (mati di dalam gua & ruangan), kabut dingin,
+  air laut dingin, satu lampu titik berkedip yang berpindah ke api / perapian / kristal terdekat (Sedang &
+  Tinggi), cahaya hangat & redup di dalam ruangan, gelap kebiruan di dalam gua.
+- **Peta dunia**: Frostfall tergambar (salju, batu, es, jalan, desa, kastel, gua) dengan namanya;
+  **spanduk wilayah** saat masuk Desa Emberwick, Kastel Frostfall, Ruang Singgasana, Lembah Atas, Celah
+  Tersembunyi, Hutan Pinus Salju, Gua Es Kristal, Pegunungan Frostfall.
+### Teknis
+- `src/world/frostfall/` (baru): `layout.js` (tata letak & data), `height.js` (bentuk tanah: profil
+  pantai, pegunungan "ridged multifractal", perataan desa / kastel / lembah, jalan berpapas, sungai,
+  ngarai, lantai gua), `plan.js` (bangunan, penghalang, lantai jalan, lampu, ruang dalam), `buildings.js`
+  (bangunan dari sistem Parts Kencana), `mask.js` (masker jalan / es / lantai batu / gua untuk shader
+  tanah & peta), `gua.js` (atap & langit-langit gua, pagar di atas gua, kegelapan), `kingdom.js` (pinus
+  dua tingkat detail, batu, gelondong, bongkah es, kristal, pintu rahasia & peti), `cuaca.js` (iklim,
+  salju, lampu titik, asap).
+- Dunia diperluas ke timur (`WORLD.maxX` 625 → 1.500); `worldHeight` = maks(pulau tengah, barat, utara,
+  Frostfall). Shader tanah: blok `FROST_REGION` (salju, granit berlapis, kerikil pantai, lantai gua, jalan,
+  lantai batu, es, kilau salju).
+- Penghalang boleh berbatas tinggi (`y0`/`y1`) & bisa dimatikan (`off`); `ground.ceilingAt()`; kamera
+  tahu atap gua, langit-langit, dan dinding ruang dalam (`cam.setVolumes`). Tanpa data baru, perilaku
+  semua wilayah lama tidak berubah.
+- Bahan bangunan: jenis pola baru salju / es / kristal (bercahaya).
+- Uji asap: blok Frostfall untuk semua profil (isi wilayah, benda melayang, lubang tanah, selat & renang,
+  salju & iklim, gua) + jalan sungguhan di HP tegak & komputer (jembatan, menara jaga, kedai, gerbang →
+  ruang singgasana, pintu rahasia → tangga → lorong → gua, mulut gua, pagar di atas gua, peti harta,
+  kembali ke Pulau Tropis).
+### Diperbaiki (ditemukan saat menguji Frostfall)
+- **Game gagal dimuat di kualitas Tinggi** ("RangeError: Invalid array length"): perhitungan kegelapan gua
+  menyimpan jarak dalam meter dengan pembulatan Float32; langkah grid Tinggi (2,604 m) tidak tepat, jadi
+  antreannya tumbuh tanpa henti. Kini jarak dihitung dalam langkah grid (bilangan bulat).
+- Menara sudut barat daya kastel melayang 7,6 m: belokan terakhir jalan kastel melewati sudut kastel
+  dan memapas tanah di bawah menara. Jalan dipindah ke barat menara (tetap landai, ≤ 0,25).
+- Ujung Dermaga Frostfall berdiri di pasir (pantai barat Frostfall sangat landai): kini ada cekungan
+  pelabuhan sedalam 2,4 m di sekeliling dermaga, dermaga 38 m.
+- Tangga rahasia tetap terhalang setelah lempeng dibuka: penghalang kotak disalin saat dimuat, jadi
+  "dimatikan" tidak sampai ke salinannya. Salinan kini menunjuk data aslinya.
+- Lorong rahasia tertahan di bawah tepi lantai aula (tepi lantai di atas kepala dianggap dinding): lantai
+  ruangan yang ≥ 2,2 m di atas kaki kini bisa dilewati di bawahnya.
+- **Gua tidak bisa dilalui di kualitas Rendah & Sedang** (celah ke Ruang Harta, lorong rahasia): lorong
+  terlalu sempit untuk grid tanah yang kasar. Lebar lorong minimum kini 3 langkah grid (DECISIONS #83).
+- Lantai Ruang Singgasana (dulu tanah berlantai batu) ikut terkeruk ujung lorong rahasia di sekitar
+  singgasana di Sedang / Rendah: ruang singgasana kini berlantai ubin batu sendiri.
+- Tombol **Geser lempeng** kini juga muncul saat berdiri di atas lempengnya.
+
+### Diperbaiki
+- **Mengajak prajurit menghentikan prajurit lain yang sedang melawan serbuan orc** (v0.18): semua
+  prajurit yang sedang menyerang di dekatmu ikut berhenti mendengarkan, termasuk yang bertarung dengan orc.
+  Kini hanya yang memburumu atau sedang menyerang anak buahmu yang berhenti.
+
 ## [0.18.0] — 2026-10-30 — Grafik HD kembali, gerak mirip manusia, mengajak prajurit & duel (permintaan pengguna)
 ### Diubah
 - **Grafik kembali HD, tanpa pixel art** (permintaan: *"Kembalikan ke grafik hd, tidak lagi menggunakan
