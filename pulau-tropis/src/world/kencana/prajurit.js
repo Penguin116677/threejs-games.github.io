@@ -657,7 +657,9 @@ export function createSoldiers({ ground, colliders, nav, plan, spots, quality, s
   }
 
   function updateAgent(a, dt, ctx) {
-    a.moved = 0
+    // laju peronda diatur pasangannya (stepSquad, sebelum ini) — dulu ikut di-nol-kan di sini, jadi
+    // peronda meluncur di jalan dalam pose diam
+    if (a.state !== 'ronda') a.moved = 0
     if (a.flash > 0) a.flash = Math.max(0, a.flash - dt)
     if (a.barT > 0) a.barT -= dt
     if (a.atkCd > 0) a.atkCd -= dt
