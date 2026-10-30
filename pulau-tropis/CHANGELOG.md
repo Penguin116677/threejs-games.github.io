@@ -1,5 +1,87 @@
 # CHANGELOG — Pulau Tropis
 
+## [0.18.0] — 2026-10-30 — Grafik HD kembali, gerak mirip manusia, mengajak prajurit & duel (permintaan pengguna)
+### Diubah
+- **Grafik kembali HD, tanpa pixel art** (permintaan: *"Kembalikan ke grafik hd, tidak lagi menggunakan
+  grafik pixel art"*). Dunia digambar langsung di layar dengan resolusi penuh (pixel ratio maks. 1,25 /
+  1,5 / 2 menurut kualitas), antialias, bayangan lembut, dan cahaya halus — tidak lagi beresolusi rendah
+  bergaris tepi, tanpa warna 15-bit & dithering. Tanah, laut, dan langit bergradasi halus lagi; prajurit
+  jauh Tegal Wira bertepi halus. UI memakai huruf sistem, bingkai & tombol biasa, ikon dan peta dunia
+  halus. Yang ditambahkan sesudah v0.15 tetap: ikon Pengaturan, rupa karakter v0.16, berenang & perahu
+  patroli v0.17.
+- **Gaya jalan, lari, dan renang mirip manusia** (permintaan: *"perbaiki gaya berjalan dan berenangnya
+  usahakan gaya terlihat real seperti manusia"*). Rangka karakter diberi **lutut, pergelangan kaki,
+  pinggang, dan siku** (dulu kaki & lengan berupa satu batang kaku), lalu digerakkan menurut gaya jalan
+  manusia:
+  - **berjalan**: tumit menjejak → telapak rata → tumit terangkat → ujung kaki menolak, lutut menekuk saat
+    kaki terayun, panggul naik-turun & berputar, dada berputar berlawanan, lengan berayun berlawanan dengan
+    kaki dengan siku menekuk, kepala tetap menghadap depan;
+  - **berlari**: badan condong, lutut terangkat tinggi, tumit terayun ke belakang, ada saat melayang, lengan
+    memompa dengan siku ±90°;
+  - **diam**: bernapas, berat badan berpindah perlahan, menoleh sedikit;
+  - **berenang**: **gaya bebas** saat maju — lengan bergantian masuk air, menarik di bawah dada, keluar di
+    samping paha lalu terayun di atas air dengan siku tinggi, badan berguling ke sisi lengan yang menarik,
+    kaki mengepak, kepala menoleh mengambil napas — dan **mengapung tegak** saat diam (kaki mengayuh
+    bergantian, tangan mengibas di depan dada, kepala di atas air); berbaur menurut laju;
+  - mendarat & kuda-kuda jurus Hentak kini **menekuk lutut** (dulu badan memendek / terbenam), lompatan
+    menarik lutut, memanjat dek memakai siku & lutut; pedang, joran, dan perlengkapan ikut tekukan siku.
+  - **Prajurit Kencana** memakai rangka & gerak yang sama untuk berjalan, berlari, dan mengapung (tangan
+    pemegang senjata tetap memegangnya); tokoh lain belum (lihat DECISIONS #76).
+### Ditambah
+- **Mengajak prajurit menjadi anak buah, duel bagi yang menolak** (permintaan: *"tambahkan fitur
+  mengajak karakter setiap prajurit untuk menjadi bawahan dan jika ada yang menolak maka tantang duel dan
+  yang kalah yang menjadi anak buah"*):
+  - Dekati prajurit Kencana (peronda atau penjaga pos) → tombol **Ajak** (ungu; komputer: **J**). Ia —
+    dan pemburu di dekatmu — berhenti mendengarkan. Mau / tidaknya tergantung kesetiaannya (penjaga pos
+    lebih setia dari peronda), luka-lukanya, dan banyaknya anak buahmu.
+  - Mau → menjadi **anak buah**: berjalan berdua-dua di belakangmu, ikut berenang & memanjat dek, melawan
+    prajurit yang memburumu dan orc di dekatmu. Roboh hanya pingsan sebentar lalu menyusul; yang tertinggal
+    jauh (kamu berperahu / dibuang keluar wilayah) muncul lagi di belakangmu begitu kamu di darat. Paling
+    banyak 10 orang; jumlahnya tampil di bawah koin. Pukulan & jurusmu tidak mengenai anak buahmu.
+  - Menolak → ia menggeleng dan menantang: tombol **Duel** (merah; komputer: **U**). Duel satu lawan satu:
+    prajurit lain & anak buahmu menonton di tepi gelanggang, penjagaan kerajaan berhenti selama duel. Lawan
+    lebih tangguh (nyawa 2,5 ×, pukulan 1,5 × lebih keras, tidak mudah terhuyung).
+    - **Kamu menang** (nyawanya habis) → ia menyerah dan menjadi anak buahmu.
+    - **Kamu kalah** (nyawamu tinggal 12) → kamu jatuh terduduk dan menjadi anak buahnya: **upeti** 30%
+      koinmu diserahkan, prajurit berhenti memburumu sejenak, dan ia tidak mau ditantang lagi ±1,5 menit.
+    - Menjauh dari gelanggang, berenang, atau naik perahu = lari dari duel (batal).
+  - Mengajak lagi prajurit yang baru menolak langsung ditolak tanpa berhenti (tidak bisa dipakai untuk
+    mengulur pengejaran).
+### Diperbaiki
+- **Peronda Kencana meluncur di jalan dalam pose diam** (sejak v0.12): laju langkah mereka di-nol-kan
+  setiap bingkai, jadi klip jalan tidak pernah diputar. Kini mereka benar-benar melangkah.
+### Teknis
+- `src/tokoh/gerak.js` (baru): `artikulasi()` menambah 7 tulang (betis, telapak, pinggang, lengan bawah)
+  pada rangka Kenney; kurva sudut sendi berkala (Catmull-Rom) → klip `diam`, `jalan`, `lari`, `renang`,
+  `apung` yang direkam sekali saat dimuat; tinggi pinggul dihitung dari titik telapak terendah (kaki
+  tumpuan tepat di tanah), lari dengan fase melayang; tiap klip langkah mencatat panjang langkah alaminya
+  (jalan 0,58 m, lari 1,35 m per siklus). `rupa.js`: `buatRupa(…, { sendi })` membuat paha/betis &
+  lengan atas/bawah sebagai kapsul terpisah yang bertemu di bola sendi.
+- `player.js`: lapisan berenang (mengapung ↔ gaya bebas), irama langkah dari panjang langkah klip, pose
+  tulang dipulihkan ke hasil mixer sebelum `mixer.update` (mixer three.js hanya menulis nilai yang
+  berubah — mengembalikan ke pose bind membuat pose tertahan jatuh ke pose dasar). `loadPlayerModel(…,
+  { sendi })` mengembalikan `rig` (rangka Kenney asli) untuk prajurit, bala tentara, dan penduduk.
+- `prajurit.js`: rangka bersendi dipanggang (14 tulang), keadaan `ikut` / `hadap` / `tonton`, duel
+  (menyerah alih-alih roboh), API anak buah; `rekrut.js` (baru) mengatur ajakan, duel, upeti, dan lawan
+  anak buah; `keamanan.js`: `pause()`, `standDown()`, sasaran sesama prajurit.
+- Lepas pixel art: `core/pixel.js`, `ui/piksel-ui.js`, dan huruf Pixelify Sans dihapus.
+### Diperiksa
+- ESLint 0 error / 0 warning pada setiap commit; `vite build` berhasil (JS 1,18 MB / 368 KB gzip, +4 KB gzip;
+  huruf piksel 12 KB tidak diunduh lagi).
+- Smoke test (versi build, 4 profil) LULUS: 207 cek, 0 gagal (HP tegak 81, mendatar 30, Rendah 30, komputer
+  66; v0.17.0: 185), termasuk cek baru rangka bersendi, peronda melangkah, klip lari, gaya renang, Ajak, duel
+  menang & kalah (upeti), dan anak buah kebal pukulan pemain. Putaran penuh kini hampir 4 jam (render
+  software HD), jadi dijalankan per profil; 6 cek terakhir profil komputer dijalankan terpisah setelah batas
+  waktu 2 jam lingkungan uji (lihat PROJECT_STATUS).
+- Uji terpisah di browser (Chromium, render software): halaman uji gerak (klip per bingkai, jejak telapak);
+  pemain jalan → lari → berhenti, lompat & mendarat, Hentak, jurus, mengapung, gaya bebas, memanjat dek;
+  prajurit Kencana jalan / lari / mengapung; Ajak (mau → mengikuti), duel menang (anak buah ke-2) & kalah
+  (nyawa 12, koin 100 → 70, jatuh terduduk), anak buah kebal pukulan pemain & melawan pemburu; foto HD di
+  titik mulai, dermaga, Pasar Kotaraja, Pasar Aeloria.
+- Performa (render software, bergantian dengan v0.17.0, rata-rata 2 putaran): segitiga sama; per bingkai
+  2,8–3,5× (Sedang) / 3,3–4,0× (Rendah) lebih lambat daripada pixel art (Tegal Wira 2,0× / 1,6×) karena
+  piksel yang diwarnai ±8× lebih banyak; 10 anak buah +9% / +13%; waktu siap sama. FPS di HP belum diukur.
+
 ## [0.17.0] — 2026-10-26 — Prajurit berenang & berperahu, tombol Panjat, gerak lebih mulus (permintaan pengguna)
 ### Ditambah
 - **Prajurit Kencana berenang mengejar**: dulu pengejar berhenti di ujung jalan / dermaga saat pemain

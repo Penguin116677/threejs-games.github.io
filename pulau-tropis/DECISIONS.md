@@ -521,6 +521,7 @@ tandai sebagai "diganti" bila berubah.
 62. **Grafik pixel art HD = dunia 3D yang digambar beresolusi rendah + satu pass pasca-proses, bukan
     sprite 2D yang digambar ulang** (v0.15.0, permintaan pengguna: *"ganti semua grafiknya menjadi HD
     pixel art sprite dan tingkatkan kualitasnya, jangan mengubah apapun selain grafiknya"*).
+    - *Diganti #75 (v0.18.0, grafik kembali HD): tahap pixel art dihapus.*
     - Sprite 2D sungguhan (lembar gambar per arah × animasi) ditolak: 10.000 elf + 25.000 prajurit +
       orc + penduduk, perlengkapan yang tampak di badan, penggal, berenang, perahu, dan kamera yang bebas
       diputar berarti ribuan lembar gambar per model × 8 arah × tiap animasi × tiap perlengkapan —
@@ -576,6 +577,7 @@ tandai sebagai "diganti" bila berubah.
     - Prajurit, penduduk Kencana, dan orc sudah berbelok halus (5–9 per detik) dan animasi panggangnya
       sudah diinterpolasi 30 FPS dengan peralihan antarklip, jadi tidak diubah.
 65. **UI pixel art tanpa gambar tambahan** (v0.15.0).
+    - *Diganti #75 (v0.18.0, grafik kembali HD): UI kembali memakai huruf sistem & bingkai biasa, Pixelify Sans dihapus.*
     - Huruf **Pixelify Sans** (SIL OFL 1.1, 12 KB, subset Latin) ikut di build (`src/assets/fonts`) —
       tidak memakai Google Fonts supaya jalan tanpa internet dan tidak mengirim permintaan ke luar. Ligatur
       dimatikan. Huruf ini ±9% lebih lebar dari huruf sistem; dua tulisan diperkecil 1 px supaya tata
@@ -598,6 +600,7 @@ tandai sebagai "diganti" bila berubah.
       luar 8 arah.
 66. **Garis tepi tipis: tahap akhir pixel art di resolusi layar** (v0.15.1, permintaan pengguna:
     *"Pertipis garis tepi"*).
+    - *Diganti #75 (v0.18.0, grafik kembali HD): tahap pixel art (termasuk garis tepi) dihapus.*
     - v0.15.0 menggambar garis tepi sebagai satu piksel seni penuh (±5 px layar di HP pada Sedang), dan
       tidak bisa lebih tipis selama kanvas = gambar piksel seni yang diperbesar browser. Membesarkan piksel
       seni sendiri di tahap akhir (kanvas seukuran layar) membuat garis bisa selebar sebagian piksel
@@ -738,3 +741,78 @@ tandai sebagai "diganti" bila berubah.
     - Pengejaran berakhir sendiri: perahu menyerah bila tertinggal jauh (130 m; di luar wilayah 70 m) selama
       12 detik atau sudah 320 m dari dermaganya, lalu pulang & awaknya kembali bertugas. Selama perahu
       masih mengejar, keamanan tidak menganggap pemain lolos.
+75. **Kembali ke grafik HD; pixel art dilepas** (v0.18.0, permintaan pengguna: *"Kembalikan ke grafik hd,
+    tidak lagi menggunakan grafik pixel art"*; mengganti #62, #65, #66).
+    - Lima commit pixel art v0.15.0–v0.15.1 dibalik (bukan ditulis ulang): dunia kembali digambar langsung ke
+      kanvas pada devicePixelRatio (maks. 1,25 / 1,5 / 2 menurut kualitas, seperti v0.14.0) dengan MSAA,
+      bayangan PCF lembut, cahaya Lambert halus; shader tanah / laut / langit tanpa nada bertingkat; potret
+      prajurit jauh memakai alpha-to-coverage lagi; UI dengan huruf sistem, bingkai & tombol biasa, peta
+      dunia halus. `core/pixel.js`, `ui/piksel-ui.js`, dan huruf Pixelify Sans dihapus.
+    - Yang ditambahkan sesudahnya tetap: ikon Pengaturan & tata letak kanan atas (#67 — bukan bagian dari
+      gaya pixel art), kamera yang tidak berputar sendiri (#63), rupa karakter v0.16.0 (#68–#70), berenang
+      & perahu patroli v0.17.0.
+    - **Rupa karakter chibi tetap**: permintaan v0.16.0 adalah mengganti badan kotak-kotak mirip Roblox dengan
+      tokoh seperti gambar contoh; tokohnya 3D membulat, jadi tanpa tahap pixel art ia tampil halus (bukan
+      pixel art). Bila pengguna ingin proporsi lain (mis. lebih tinggi, kepala lebih kecil), itu perubahan
+      tersendiri pada `tokoh/rupa.js`.
+76. **Gerak mirip manusia = rangka bersendi + klip prosedural dari kurva gaya jalan** (v0.18.0, permintaan
+    pengguna: *"perbaiki gaya berjalan dan berenangnya usahakan gaya terlihat real seperti manusia"*;
+    melanjutkan #64 & #72).
+    - Rangka Kenney 7 tulang membuat kaki & lengan satu batang kaku — penyebab utama gerak "seperti
+      mainan". Ditambah 7 tulang (betis, telapak, pinggang, lengan bawah) di kode (`tokoh/gerak.js`), dan
+      badan pemain dibuat dengan paha/betis & lengan atas/bawah sebagai kapsul terpisah yang bertemu di bola
+      sendi — lutut & siku menekuk tanpa celah, tetap satu tulang per titik (cocok untuk rangka yang
+      dipanggang ke tekstur).
+    - Tidak memakai rekaman gerak (mocap): tidak ada rekaman berlisensi bebas yang cocok dengan rangka &
+      proporsi tokoh, dan file animasi akan membesarkan unduhan. Kurva sudut sendi gaya berjalan & berlari
+      manusia (pinggul, lutut, sudut telapak; dari data biomekanika, sedikit dibesarkan) direkam menjadi
+      AnimationClip sekali saat dimuat (±10 md), jadi tetap diputar mixer / dipanggang seperti klip Kenney.
+      Tinggi pinggul dihitung dari titik telapak terendah — kaki tumpuan tepat di tanah.
+    - **Kaki tokoh chibi pendek** (pinggul ±0,4 m) sedangkan laju game tinggi (jalan 2 m/s, lari 5,6 m/s).
+      Langkah alami klip: jalan 0,58 m, lari 1,35 m per siklus; bila irama langkah mengikuti itu sepenuhnya,
+      kaki berputar sangat cepat (lari 4 siklus/detik). Kompromi: langkah diperpanjang sampai 1,35 × pada laju
+      tinggi (telapak sedikit meluncur, hampir tak terlihat dari kamera di belakang) — irama ±2,3 siklus/detik
+      saat berjalan 2 m/s dan ±3 saat berlari. Laju game sengaja tidak diubah.
+    - Berenang: dua gaya yang berbaur menurut laju — gaya bebas (badan mendatar berporos di dada, kayuhan
+      siku tinggi, badan berguling ±40°, kepakan kaki 6 kali per siklus, menoleh mengambil napas) dan
+      mengapung tegak (kaki mengayuh, tangan mengibas). Gaya dada tidak dibuat.
+    - Klip Kenney lainnya (lompat, jatuh, serangan, duduk, roboh) tetap; sendi tambahannya lurus. Di atasnya
+      ditambah tekukan yang paling terlihat: lutut menekuk saat mendarat (menggantikan badan yang memendek)
+      dan saat kuda-kuda Hentak (dulu badan terbenam ke tanah), lutut ditarik saat melompat, siku & lutut saat
+      memanjat. Pedang ikut tulang siku; tekukan siku saat berlari sebagian dikembalikan supaya bilah tetap
+      condong ke depan-bawah.
+    - **Prajurit Kencana** ikut (mereka berenang mengejar pemain dan kini bisa menjadi anak buah yang berjalan
+      di sampingnya — perbedaan gerak akan mencolok). Rangka 14 tulang dipanggang dengan klip yang sama;
+      lengan pemegang senjata dikunci lurus. Penduduk, elf, orc, dan bala tentara Tegal Wira belum: mereka
+      tidak berenang, dan memberinya sendi = membuat ulang badan & rangka yang dipanggang masing-masing (bisa
+      menyusul bila diminta).
+    - Pelajaran: mixer three.js hanya menulis nilai tulang yang berubah sejak bingkai sebelumnya. Ubahan sesudah
+      mixer (memanjat, di udara, lutut meredam) harus dihapus dengan memulihkan hasil mixer bingkai itu, bukan
+      mengembalikan tulang ke pose bind — kalau tidak, pose yang tertahan (akhir lompatan, kuda-kuda, game
+      dijeda) jatuh ke pose dasar.
+77. **Mengajak prajurit menjadi anak buah; yang menolak ditantang duel, yang kalah menjadi anak buah**
+    (v0.18.0, permintaan pengguna: *"tambahkan fitur mengajak karakter setiap prajurit untuk menjadi bawahan
+    dan jika ada yang menolak maka tantang duel dan yang kalah yang menjadi anak buah"*).
+    - "Setiap prajurit" = setiap prajurit Kencana yang ditemui pemain (peronda & penjaga pos, ±70 orang menurut
+      kualitas) — merekalah yang berinteraksi dengan pemain (menghadang, mengejar, berenang). Bala tentara
+      25.000 di Tegal Wira (barisan diam) dan kesatria Aeloria (simulasi kehidupan elf) belum bisa diajak:
+      keduanya tidak punya kemampuan mengikuti & bertarung di samping pemain. Bisa ditambahkan bila diminta.
+    - Pemain musuh setiap kerajaan (#48), jadi prajurit biasanya sedang memburunya. Mengajak = berunding:
+      prajurit itu dan pemburu di dekatnya berhenti mendengarkan; penjagaan kerajaan dijeda sesaat. Peluang
+      mau: peronda 32%, penjaga pos 18%, + 6% per anak buah (maks. +30%), + sampai 35% bila terluka, − 10%
+      bila sedang memburu (5–85%). Yang baru menolak langsung menolak lagi tanpa berhenti selama 1 menit —
+      supaya ajakan tidak bisa dipakai untuk menghentikan pengejaran berulang-ulang.
+    - **"Yang kalah menjadi anak buah" berlaku dua arah.** Prajurit kalah → anak buah pemain. Pemain kalah →
+      pemain menjadi anak buah si pemenang; karena pemain tidak bisa dikendalikan prajurit, wujudnya:
+      **menyerahkan upeti** 30% koin kepada "atasannya" (adat kerajaan Nusantara), jatuh terduduk 2,4 detik
+      (tidak roboh / dibuang keluar wilayah), urusan dianggap selesai (prajurit berhenti memburu 25 detik),
+      dan si pemenang menolak ditantang lagi 90 detik. Bila pengguna menginginkan arti lain (mis. anak buah
+      pemain berpindah ke si pemenang), mudah diganti.
+    - Duel: lawan dibuat lebih tangguh (nyawa 2,5 ×, pukulan 1,5 ×, menyerang lebih kerap, tidak terhuyung
+      oleh setiap pukulan) supaya tidak bisa dimenangkan hanya dengan menekan Pukul. Diukur di render
+      software: pemain yang terus menebas tanpa menghindar menang dengan sisa nyawa ±64 dari 100; dulu
+      (tanpa kekokohan) lawan hampir tidak sempat memukul. Penggal terhadap lawan duel hanya melukai 40%,
+      tidak langsung merobohkan. Nyawa pemain < 27 tidak bisa memulai duel.
+    - Anak buah paling banyak 10 (pencarian jalur dibatasi beberapa per bingkai; 10 sudah sepasukan kecil).
+      Tidak disimpan saat halaman dimuat ulang — prajurit dibuat ulang setiap kali game dimuat (tas & koin
+      tetap tersimpan).

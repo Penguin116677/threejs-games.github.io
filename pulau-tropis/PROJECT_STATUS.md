@@ -1,9 +1,9 @@
 # PROJECT_STATUS — Pulau Tropis
 
-**Milestone aktif:** 3 — Pembangunan dunia (v0.17.0: prajurit Kencana berenang & mengejar dengan perahu patroli yang melempar tombak, dek dermaga tidak lagi menarik pemain naik — ada tombol Panjat, jalan & lompat pemain lebih mulus, cadik jukung diperbaiki; v0.16.0: semua karakter berganti rupa pixel art chibi; v0.15.x: grafik pixel art HD — menunggu umpan balik dari HP).
+**Milestone aktif:** 3 — Pembangunan dunia (v0.18.0: grafik kembali HD tanpa pixel art, pemain & prajurit Kencana berjalan / berlari / berenang dengan gerak mirip manusia — rangka bersendi —, prajurit Kencana bisa diajak menjadi anak buah atau ditantang duel; v0.17.0: prajurit berenang & perahu patroli, tombol Panjat; v0.16.0: karakter chibi — menunggu umpan balik dari HP).
 Pengembangan jurus dihentikan sementara atas permintaan pengguna.
-**Versi:** 0.17.0
-**Terakhir diperbarui:** 2026-10-26
+**Versi:** 0.18.0
+**Terakhir diperbarui:** 2026-10-30
 
 ## Kondisi awal repository (sebelum Milestone 1)
 - Repository `threejs-games.github.io` berisi koleksi contoh Three.js lama (folder `examples/`,
@@ -33,7 +33,8 @@ Pengembangan jurus dihentikan sementara atas permintaan pengguna.
 ## Milestone 2 — status
 | Item | Status |
 |---|---|
-| Karakter pemain: prajurit berpedang (Kenney CC0), animasi diam/jalan/lari/lompat/jatuh | ✅ selesai (diganti prajurit v0.5.1; sejak v0.16.0 rupa pendekar pixel art, animasi Kenney yang sama) |
+| Karakter pemain: prajurit berpedang (Kenney CC0), animasi diam/jalan/lari/lompat/jatuh | ✅ selesai (diganti prajurit v0.5.1; sejak v0.16.0 rupa pendekar chibi; sejak v0.18.0 gerak bersendi) |
+| Gerak mirip manusia: lutut, pergelangan kaki, pinggang, siku; jalan / lari / diam / gaya bebas / mengapung dari kurva gaya jalan manusia; lutut menekuk saat mendarat, melompat, kuda-kuda, memanjat | ✅ selesai (v0.18.0, permintaan pengguna) |
 | Kamera strategi dari atas (putar, zoom 10–60 m, tidak menembus bukit) — menggantikan kamera orang ketiga | ✅ v0.6.0 — diganti v0.14.0 |
 | Ketuk tanah untuk berjalan (jalur memutari pohon/batu/tebing/laut dalam) — menggantikan joystick | ✅ v0.6.0 — diganti v0.14.0 (jalur masih dipakai untuk ketuk kios / Ajak bicara) |
 | Joystick mengambang + kamera di belakang karakter (tidak menembus bukit / air) | ✅ selesai (v0.14.0) |
@@ -75,6 +76,8 @@ Pengembangan jurus dihentikan sementara atas permintaan pengguna.
 | Koin, Tas, toko (makanan, ramuan, perlengkapan yang tampak di badan) — bagian Milestone 4 | ✅ selesai (v0.13.0) |
 | Kerusuhan → musuh kerajaan (pedagang netral), Benteng terlarang, keributan warga dilerai kesatria | ✅ selesai (v0.13.0) |
 | Prajurit Kencana berenang mengejar & memanjat dek; perahu patroli (awak naik, mengejar, melempar tombak, pulang) | ✅ selesai (v0.17.0, permintaan pengguna) |
+| Prajurit Kencana bergerak bersendi (jalan, lari, mengapung); peronda benar-benar melangkah (dulu meluncur) | ✅ selesai (v0.18.0) |
+| Mengajak prajurit Kencana menjadi anak buah (maks. 10: mengikuti, berenang, bertempur untuk pemain); yang menolak ditantang duel — yang kalah jadi anak buah (pemain kalah = upeti) | ✅ selesai (v0.18.0, permintaan pengguna) |
 | Ketuk elf → kartu isi pikirannya | ✅ selesai (v0.13.0) |
 | Tanpa jembatan antar-negeri: 4 dermaga (Barat ↔ Timur, Utara ↔ Perak), selat harus direnangi / dilayari | ✅ selesai (v0.14.0) |
 | Kayu dari pohon, membuat pancing & perahu di Tas, perahu yang bisa dikemudikan — bagian Milestone 4 | ✅ selesai (v0.14.0) |
@@ -87,15 +90,50 @@ Pengembangan jurus dihentikan sementara atas permintaan pengguna.
 Sebagian sudah dikerjakan lebih awal (bayangan, tanah per-piksel, awan, kaustik — v0.3.0; ombak — v0.4.0).
 | Item | Status |
 |---|---|
-| Gaya pixel art HD: dunia beresolusi rendah bersekala bulat, garis tepi, cahaya 4 tingkat, warna 15-bit + dithering | ✅ selesai (v0.15.0) |
-| Tanah, laut, langit bernada bertingkat & bertepi tegas | ✅ selesai (v0.15.0) |
-| UI pixel art: huruf piksel, bingkai & tombol bulat berpiksel, ikon piksel, peta dunia berpiksel | ✅ selesai (v0.15.0) |
-| Garis tepi tipis (±0,4 piksel seni, 2 px layar di HP) | ✅ selesai (v0.15.1) |
+| Gaya pixel art HD: dunia beresolusi rendah bersekala bulat, garis tepi, cahaya 4 tingkat, warna 15-bit + dithering | ✅ v0.15.0 — dilepas v0.18.0 (grafik kembali HD, permintaan pengguna) |
+| Tanah, laut, langit bernada bertingkat & bertepi tegas | ✅ v0.15.0 — kembali halus v0.18.0 |
+| UI pixel art: huruf piksel, bingkai & tombol bulat berpiksel, ikon piksel, peta dunia berpiksel | ✅ v0.15.0 — kembali biasa v0.18.0 |
+| Garis tepi tipis (±0,4 piksel seni, 2 px layar di HP) | ✅ v0.15.1 — dilepas v0.18.0 |
+| Grafik HD lagi: resolusi layar penuh, antialias, bayangan lembut, cahaya & gradasi halus, UI huruf sistem | ✅ selesai (v0.18.0, permintaan pengguna) |
 | Kanan atas diringkas: Peta, Tas, ikon Pengaturan (berisi kualitas grafis); layar penuh otomatis di HP; tombol Lihat pulau dihapus | ✅ selesai (v0.15.1) |
 | Karakter pixel art chibi (kepala bulat bermata, badan membulat) menggantikan badan kotak Kenney: penduduk, raja, pedagang, penjaga, bala tentara + kuda, orc, elf, pemain | ✅ selesai (v0.16.0) |
 | File model hanya rangka + animasi (unduhan model 892 KB → 108 KB) | ✅ selesai (v0.16.0) |
 | Partikel lanjutan, suara, animasi vegetasi lanjutan, siang–malam | ⏳ belum |
 | Dicoba di HP Android sungguhan | ⏳ menunggu laporan pengguna |
+
+## Yang sudah diperiksa (v0.18.0 — grafik HD, gerak mirip manusia, mengajak prajurit & duel)
+- **Pemeriksaan kode**: ESLint (konfigurasi repo) 0 error / 0 warning pada setiap commit (grafik HD →
+  langkah peronda → gerak bersendi → anak buah & duel → smoke test → dokumen).
+- **Build**: `vite build` berhasil (JS 1,18 MB / 368 KB gzip, +4 KB gzip dari v0.17.0: kode pixel art
+  keluar, `gerak.js` & `rekrut.js` masuk; CSS 19 → 16 KB; huruf Pixelify Sans 12 KB tidak diunduh lagi).
+- **Smoke test otomatis** (versi build, 4 profil) — **LULUS**: 207 cek, 0 gagal (HP tegak 81, HP mendatar
+  30, HP Rendah 30, komputer 66; v0.17.0: 185). Cek baru: rangka bersendi (lutut, pergelangan kaki,
+  pinggang, siku; pedang di genggaman lengan bawah; klip diam bernapas) dan peronda melangkah dengan klip
+  jalan (semua profil); berlari memakai klip lari bersendi (HP tegak); gaya renang = gaya bebas + mengapung
+  (komputer); Ajak / J → mau → anak buah yang mengikuti, menolak → Duel / U → menang = lawan menjadi anak
+  buah, kalah = pemain jatuh terduduk & upeti 30 dari 100 koin, pukulan pemain tidak melukai anak buah (HP
+  tegak & komputer).
+  **Lama uji**: grafik HD jauh lebih lambat di render software, jadi putaran penuh kini hampir 4 jam.
+  Putaran 4 profil berhenti oleh batas waktu 2 jam lingkungan uji di profil komputer (21 cek lulus, 0
+  gagal); profil komputer diulang sendirian dan berhenti lagi oleh batas itu setelah 60 cek lulus, tepat
+  sebelum 6 cek terakhir (berenang → mendaki). Keenamnya dijalankan terpisah di halaman yang baru dimuat,
+  dengan langkah yang disalin persis dari skrip smoke test → lulus, tanpa error konsol. Tidak ada cek yang
+  gagal.
+- **Uji terpisah di browser** (Chromium, render software, layar Pixel 7 tiruan, versi pengembangan):
+  - Halaman uji gerak (tidak di-commit): klip diam, jalan, lari, gaya bebas, dan mengapung diperiksa per
+    bingkai; jejak telapak diukur (kaki tumpuan menapak tanah, lari punya saat melayang).
+  - Pemain: perpindahan jalan → lari → berhenti (klip berbaur, tanpa error), lompat & mendarat (lutut
+    menekuk), Hentak (kuda-kuda), pukulan & jurus, mengapung, gaya bebas, memanjat dek.
+  - Prajurit Kencana: jalan (peronda), lari (pemburu), mengapung (pengejar di air).
+  - Ajak & duel: mau → mengikuti; menolak → duel → menang (anak buah ke-2) / kalah (nyawa 12, koin
+    100 → 70, jatuh terduduk); anak buah kebal pukulan pemain; anak buah melawan prajurit yang memburu.
+    Keseimbangan duel: pemain yang terus menebas menang dengan sisa nyawa ±64.
+  - Foto grafik HD di titik mulai, dermaga, Pasar Kotaraja, dan Pasar Aeloria (tanpa garis tepi /
+    piksel, bayangan lembut, UI huruf sistem).
+- **Performa** (render software, bukan ukuran HP; tabel di bagian Performa): segitiga sama, draw call 2–3
+  lebih sedikit; waktu per bingkai 2,8–3,5× (Sedang) / 3,3–4,0× (Rendah) lebih lambat daripada pixel art
+  v0.17.0 karena piksel yang diwarnai ±8× lebih banyak (Tegal Wira 2,0× / 1,6×). 10 anak buah: +9% / +13%.
+  Waktu siap sama.
 
 ## Yang sudah diperiksa (v0.17.0 — prajurit berenang & berperahu, tombol Panjat, gerak lebih mulus)
 - **Pemeriksaan kode**: ESLint (konfigurasi repo) 0 error / 0 warning pada setiap commit (pemain & lantai
@@ -610,6 +648,19 @@ Sebagian sudah dikerjakan lebih awal (bayangan, tanah per-piksel, awan, kaustik 
   laut dalam → kembali ke pantai + pesan, mendaki lereng (+24 m dalam 120 frame).
 
 ## Yang BELUM diperiksa
+- **FPS grafik HD di HP sungguhan** (v0.18.0): HD mewarnai ±8× lebih banyak piksel daripada pixel art
+  (Sedang di Pixel 7: 618 × 1.259 vs 217 × 441 piksel seni), kembali seperti v0.14.0. Diukur hanya di
+  render software (lihat Performa). Bila tersendat di HP: pilih Rendah.
+- **Gaya jalan, lari & renang baru di HP** (v0.18.0): apakah sudah terlihat seperti manusia dari kamera
+  belakang, apakah telapak terlihat meluncur saat berlari kencang (langkah dipanjangkan sampai 1,35 ×,
+  lihat Masalah), irama langkah, serta gaya bebas & mengapung di air.
+- **Ajak & duel di HP** (v0.18.0): letak tombol Ajak (ungu) / Duel (merah) di deretan tombol aksi,
+  peluang prajurit mau (penjaga pos ±18%, peronda ±32%, naik bila ia terluka atau anak buahmu banyak),
+  dan apakah duel terlalu mudah / sulit (di render software pemain yang terus menebas menang dengan sisa
+  nyawa ±64).
+- **FPS dengan 10 anak buah di HP** (v0.18.0): diukur hanya di render software (lihat Performa).
+- **Arti "yang kalah menjadi anak buah" bagi pemain** (v0.18.0): ditafsirkan sebagai jatuh terduduk,
+  upeti 30% koin, dan tidak diburu sejenak (DECISIONS #77) — menunggu konfirmasi pengguna.
 - **Rasa gerak baru di HP sungguhan** (v0.17.0): apakah jalan / lari / berhenti / lompat sudah terasa
   mulus dengan joystick (bukan kaku), atau justru terasa terlalu "licin" saat berhenti.
 - **Tombol Panjat di HP** (v0.17.0): letaknya di deretan tombol aksi, kapan muncul (menghadap tepi dek
@@ -617,25 +668,16 @@ Sebagian sudah dikerjakan lebih awal (bayangan, tanah per-piksel, awan, kaustik 
 - **Rasa pengejaran di laut** (v0.17.0): apakah perahu patroli terlalu kuat / lemah (pemain diam di air
   kalah ±45 detik setelah perahu tiba; yang terus berenang sambil berbelok hampir tidak terluka), dan FPS
   saat dua perahu mengejar. Diukur hanya di Chromium dengan render software.
-- **Karakter baru di HP sungguhan** (v0.16.0): apakah wajah & mata terbaca pada besar piksel Sedang,
-  apakah rupanya sudah sesuai gambar contoh pengguna, dan FPS di HP dengan segitiga karakter yang lebih
-  banyak (terutama di depan barisan Tegal Wira dan Pasar Aeloria). Semua dilihat di Chromium dengan render
-  software (layar Pixel 7 tiruan).
+- **Karakter baru di HP sungguhan** (v0.16.0): apakah wajah & mata terbaca (sejak v0.18.0 dalam grafik
+  HD, bukan piksel), apakah rupanya sudah sesuai gambar contoh pengguna, dan FPS di HP dengan segitiga
+  karakter yang lebih banyak (terutama di depan barisan Tegal Wira dan Pasar Aeloria). Semua dilihat di
+  Chromium dengan render software (layar Pixel 7 tiruan).
 - **Layar penuh otomatis di HP sungguhan** (v0.15.1): di Chromium dengan layar HP tiruan, sentuhan
   pertama → layar penuh aktif (sekali saja, sentuhan berikutnya tidak meminta lagi; komputer tidak
   meminta), tanpa galat — tetapi layar tiruan tidak berubah ukuran, jadi hasilnya di layar HP sungguhan
   belum terlihat.
-- **Garis tepi tipis di layar HP** (v0.15.1): apakah 2 px layar cukup terlihat / sudah cukup tipis.
-- **FPS v0.15.1 di HP**: tahap akhir kini menggambar ke kanvas seukuran layar (atau seperempatnya bila
-  ukuran piksel mengizinkan), bukan lagi kanvas sekecil gambar piksel seni. Di GPU HP kerjanya kira-kira
-  satu salinan layar penuh per bingkai — seharusnya kecil dibanding menggambar dunia, tetapi belum
-  diukur di HP (render software di sini jauh lebih lambat untuk kerja per piksel layar).
-- **Tampilan pixel art di HP sungguhan** (v0.15.0): ketajaman piksel (skala bulat bergantung
-  devicePixelRatio HP), apakah besar piksel Sedang (±2 px) pas, garis tepi, warna & dithering di layar
-  HP, terbacanya huruf piksel kecil (nama jurus 9 px, label peta), dan apakah piksel yang "merayap" saat
-  kamera bergerak mengganggu. Semua dilihat di Chromium dengan render software (layar Pixel 7 tiruan).
-- **FPS v0.15.0 di HP**: seharusnya lebih ringan dari v0.14.0 (piksel yang diwarnai ±8× lebih sedikit
-  di Sedang); belum diukur di HP.
+- (v0.15.0 – v0.15.1) Tampilan pixel art, garis tepi tipis, dan FPS pixel art di HP — **tidak berlaku
+  lagi sejak v0.18.0** (grafik kembali HD).
 - **Kamera tanpa ikut-belakang di HP** (v0.15.0): apakah memutar kamera sendiri terasa nyaman saat lama
   berlari menyamping / berbalik.
 - **Rasa joystick & kamera belakang di HP sungguhan** (v0.14.0): besar joystick, zona jempol kiri,
@@ -678,6 +720,30 @@ Sebagian sudah dikerjakan lebih awal (bayangan, tanah per-piksel, awan, kaustik 
 - Apakah URL hosting (githack / GitHub Pages) terbuka di HP — tidak bisa diakses dari lingkungan pengembangan.
 
 ## Performa (segitiga per frame termasuk bayangan, dari smoke test)
+v0.18.0 (grafik HD, gerak bersendi, anak buah), layar HP tegak (Pixel 7), versi build, render software;
+v0.17.0 (pixel art) diukur bergantian di mesin yang sama, rata-rata 2 putaran. Segitiga (ribu) dan waktu per
+bingkai (ms):
+| Tempat | Sedang v0.17.0 | Sedang v0.18.0 | Rendah v0.17.0 | Rendah v0.18.0 |
+|---|---|---|---|---|
+| Titik mulai | 429 rb · 354 ms | 429 rb · 1.231 ms (3,5×) | 349 rb · 156 ms | 349 rb · 616 ms (4,0×) |
+| Pasar Kotaraja | 318 rb · 230 ms | 320 rb · 714 ms (3,1×) | 245 rb · 101 ms | 245 rb · 357 ms (3,5×) |
+| Pasar Kotaraja + 10 anak buah (baru) | — | 344 rb · 777 ms (+9% dari tanpa anak buah) | — | 263 rb · 405 ms (+13%) |
+| Depan barisan Tegal Wira | 441 rb · 854 ms | 441 rb · 1.693 ms (2,0×) | 309 rb · 680 ms | 309 rb · 1.079 ms (1,6×) |
+| Pasar Aeloria | 550 rb · 332 ms | 550 rb · 932 ms (2,8×) | 472 rb · 164 ms | 470 rb · 548 ms (3,3×) |
+| Selat timur, kabur berenang (dikejar perahu patroli) | 480 rb · 328 ms | 461 rb · 1.142 ms (3,5×) | 384 rb · 161 ms | 385 rb · 606 ms (3,8×) |
+- Segitiga sama (selat timur Sedang −4%: letak pengejar berbeda antar-putaran); draw call 2–3 lebih sedikit
+  (tahap pasca-proses pixel art keluar). Yang bertambah = piksel yang diwarnai: Sedang di Pixel 7 kini
+  618 × 1.259 = 778 rb piksel (pixel ratio 1,5), pixel art 217 × 441 = 96 rb piksel seni — ±8× lebih banyak,
+  ditambah antialias & bayangan lembut. Hasilnya kebalikan v0.15.0 (pixel art 2,1–4,3× lebih cepat dari
+  v0.14.0): per bingkai 2,8–3,5× (Sedang) / 3,3–4,0× (Rendah) lebih lambat di render software. Tegal Wira
+  paling sedikit melambat (2,0× / 1,6×) karena bagian terberatnya 25.000 potret impostor (kerja vertex),
+  bukan piksel.
+- 10 anak buah di Pasar Kotaraja (berdiri dua-dua di belakang pemain): +23 rb segitiga (Sedang) / +18 rb
+  (Rendah), draw call +2 / +1 (prajurit digambar berkelompok), waktu per bingkai +9% / +13%.
+- Waktu siap sama: Sedang 5,2–5,7 detik (v0.17.0: 5,4–5,5), Rendah 4,0–4,5 detik (v0.17.0: 4,3–4,5).
+- Render software bukan ukuran HP; FPS grafik HD di HP belum diukur (pembanding terdekat: v0.14.0, HD dengan
+  ukuran gambar yang sama).
+
 v0.17.0 (prajurit berenang & berperahu, gerak baru), layar HP tegak (Pixel 7), versi build, render software;
 v0.16.0 diukur bergantian di mesin yang sama, rata-rata 2 putaran. Segitiga (ribu) dan waktu per bingkai (ms):
 | Tempat | Sedang v0.16.0 | Sedang v0.17.0 | Rendah v0.16.0 | Rendah v0.17.0 |
@@ -826,23 +892,28 @@ v0.3.0: Rendah ±300 rb, Sedang ±400 rb, Tinggi ±850 rb. Tambahan v0.4.0 beras
 yang lebih rapat (untuk ombak) dan buah kelapa. v0.2.0 (HP): ±230 ribu.
 
 ## Masalah yang diketahui
-- (v0.16.0) Karakter 3D meniru gaya sprite gambar contoh, bukan sprite 2D-nya: gerakannya tetap animasi
-  Kenney (diam, jalan, lari, lompat, serang, roboh, duduk, …); gerak khusus per jenis di gambar contoh
-  (mis. DEFEND / SKILL pemegang perisai, tombak, pedang) belum ada.
-- (v0.16.0) Badan ditempel kaku ke 7 tulang seperti badan Kenney sebelumnya: siku & lutut tidak menekuk.
+- (v0.18.0) Saat berlari kencang langkah dipanjangkan sampai 1,35 × langkah alami klip (kaki tokoh pendek;
+  tanpa itu kaki berputar terlalu cepat), jadi telapak tumpuan sedikit meluncur — makin cepat makin
+  terasa, paling banyak ±¼ laju pada lari penuh. Berlaku juga untuk prajurit Kencana.
+- (v0.18.0) Hanya diam, jalan, lari, gaya bebas, dan mengapung yang dibuat dari kurva gaya jalan manusia;
+  lompat, jatuh, serang, jurus, duduk, dan roboh tetap animasi Kenney (pada rangka bersendi; lutut ditekuk
+  di kode saat mendarat, Hentak, dan memanjat).
+- (v0.18.0) Anak buah tidak disimpan (hilang bila halaman dimuat ulang), belum bisa dilepas atau
+  diperintah, dan tidak ikut naik perahu pemain (muncul lagi di belakang pemain begitu pemain di darat).
+  Hanya prajurit Kencana yang bisa diajak / ditantang duel (DECISIONS #77).
+- (v0.18.0) Saat pemain mengajak, prajurit dalam 22 m yang sedang melawan orc (bukan memburu pemain) ikut
+  berhenti mendengarkan — kasus pinggir, belum diperbaiki.
+- (v0.18.0) Grafik HD lebih berat daripada pixel art (piksel yang diwarnai ±8× lebih banyak di Sedang).
+  Bila tersendat di HP: pilih Rendah.
+- (v0.16.0) Karakter 3D meniru gaya sprite gambar contoh, bukan sprite 2D-nya: gerak khusus per jenis di
+  gambar contoh (mis. DEFEND / SKILL pemegang perisai, tombak, pedang) belum ada.
+- (v0.16.0, sebagian diperbaiki v0.18.0) Penduduk, elf, orc, dan bala tentara Tegal Wira masih ditempel
+  kaku ke 7 tulang (siku & lutut tidak menekuk); pemain & prajurit Kencana bersendi sejak v0.18.0.
 - (v0.16.0) Segitiga karakter lebih banyak (pemain 513 → 1.694, penduduk ±700–880 → 1.192–2.460, orc
   374 → 1.828); total di layar naik (lihat Performa). Bila terasa berat di HP: pilih Rendah.
-- (v0.15.0) Tanpa antialias (gaya pixel art), tepi benda "merayap" saat kamera bergerak, dan benda yang
-  lebih tipis dari satu piksel (tiang, tali layar, helai rumput jauh) bisa putus-putus atau berkedip di
-  kejauhan. Tinggi (piksel 1,6 px) paling sedikit, Rendah (2,4 px) paling terasa.
-- (v0.15.0) UI tetap HTML di atas gambar dunia: piksel UI selalu 2 px CSS, sedikit berbeda dari piksel
-  dunia di Rendah / Tinggi. Bila huruf piksel belum termuat (koneksi lambat), tulisan sesaat memakai
-  huruf sistem.
-- (v0.15.0) Label tempat di Peta tetap kecil (±6 px CSS) seperti sebelumnya, kini berhuruf piksel.
-- (v0.15.0, tetap di v0.15.1) Bila lebar / tinggi layar HP dalam px perangkat pecahan (mis. Pixel 7 tiruan:
-  412 px CSS × 2,625 = 1081,5 px) atau kanvas tidak tepat dalam px CSS, browser menggeser sebagian gambar
-  1 px perangkat — satu kolom / baris piksel seni sedikit lebih lebar. Terlihat saat tangkapan layar
-  dibandingkan per piksel; hampir tidak terlihat mata.
+- (v0.15.0 – v0.15.1) Masalah gaya pixel art (tepi "merayap" tanpa antialias, piksel UI vs piksel dunia,
+  huruf piksel, kolom piksel seni yang sedikit lebih lebar) — **tidak berlaku lagi sejak v0.18.0** (grafik
+  kembali HD). Label tempat di Peta tetap kecil seperti sebelum v0.15.0.
 - (v0.14.0) Obrolan berbasis aturan: NPC hanya memahami topik yang dikenalnya (nama, kabar, kegiatan,
   pekerjaan, kerajaan, orc, tempat & arah, makanan, menyeberang, ikan, cerita, lelucon, saran, salam,
   terima kasih, pujian / hinaan); kalimat lain dijawab umum. Ingatan NPC hilang bila halaman dimuat
@@ -926,7 +997,8 @@ yang lebih rapat (untuk ombak) dan buah kelapa. v0.2.0 (HP): ±230 ribu.
   sudut.
 - Buah kelapa sama di semua pohon (satu bentuk tandan); belum ada kelapa jatuh di pasir.
 - Rumput dan semak belum bereaksi saat dilewati karakter.
-- Kecepatan animasi kaki disetel kira-kira (belum dicek per frame apakah kaki "meluncur").
+- Kecepatan animasi kaki penduduk, elf, orc, dan bala tentara disetel kira-kira (belum dicek per frame
+  apakah kaki "meluncur"); pemain & prajurit Kencana sejak v0.18.0 mengikuti panjang langkah klip.
 - Kamera selalu mengikuti prajurit (tidak bisa digeser bebas seperti peta); untuk melihat-lihat pakai
   **Peta** (tombol Lihat pulau dihapus di v0.15.1).
 - Jalur (ketuk kios, Ajak bicara) dihitung di grid 2 m: celah sangat sempit di antara batang/batu

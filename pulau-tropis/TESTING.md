@@ -27,9 +27,10 @@ npm run test:smoke # (dengan preview berjalan) tes otomatis + screenshot ke scre
 Smoke test butuh Chromium untuk Playwright. FPS yang dilaporkan smoke test berasal dari render
 software dan **tidak** mencerminkan performa HP. Untuk menjalankan sebagian kasus saja:
 `SMOKE_CASES=hp-portrait,desktop npm run test:smoke` (kasus: hp-portrait, hp-landscape, hp-rendah,
-desktop). Satu putaran penuh ±1,5 jam di render software (v0.15.0: HP tegak ±35 menit, mendatar ±9,
-Rendah ±5, komputer ±35; v0.14.0 sebelum pixel art: 2–2,5 jam — beri batas waktu luar yang cukup), batas
-waktu tiap langkah 90 detik.
+desktop). Sejak v0.18.0 (grafik HD) satu putaran penuh **hampir 4 jam** di render software (HP tegak
+±60 menit, mendatar ±26, Rendah ±13, komputer ±2¼ jam; v0.15.0 pixel art: ±1,5 jam) — bila lingkungan
+uji membatasi lama perintah (mis. 2 jam), jalankan per kasus — profil komputer sendiri pun melewati 2 jam.
+Batas waktu tiap langkah 90 detik.
 
 Sejak v0.16.0 file `public/models/*.glb` hanya berisi rangka + animasi Kenney (badan semua karakter
 dibuat di kode, `src/tokoh/`). Membuatnya ulang dari paket Kenney:
@@ -326,6 +327,7 @@ berlayar / memancing terasa pas (kecepatan, waktu Tarik!), apakah jawaban NPC ma
 yang gagal.
 
 ## Daftar uji manual — v0.15.0 (grafik pixel art HD, kamera, gerakan halus)
+Sejak v0.18.0 grafik kembali HD: butir tentang piksel, garis tepi, dan huruf piksel tidak berlaku lagi.
 1. **Tampilan pixel art**: dunia tampak berpiksel besar yang tajam (bukan kabur), setiap benda
    bergaris tepi gelap tipis, cahaya & bayangan bertepi tegas, langit & laut berpola piksel (dithering).
    Bandingkan Rendah / Sedang / Tinggi: Tinggi = piksel paling halus, Rendah = paling besar.
@@ -357,6 +359,7 @@ garis tepi terlalu tebal / tipis, warna), apakah tulisan berhuruf piksel cukup t
 yang tidak berputar sendiri sudah nyaman, dan FPS dibanding versi sebelumnya.
 
 ## Daftar uji manual — v0.15.1 (garis tepi tipis, ikon Pengaturan, tanpa Layar penuh & Lihat pulau)
+Sejak v0.18.0 butir 1 (garis tepi) tidak berlaku lagi; Pengaturan & layar penuh otomatis tetap.
 1. **Garis tepi**: tepi karakter, pohon, dan bangunan kini garis gelap tipis (±2 px layar di HP), bukan
    satu piksel besar. Piksel dunia tetap sebesar sebelumnya.
 2. **Kanan atas** hanya tiga tombol sebaris: **Peta**, **Tas**, dan **Pengaturan** (roda gigi). Tidak ada
@@ -426,3 +429,36 @@ apakah pemain mau tetap berupa pendekar baru atau kembali seperti dulu, dan FPS.
 
 Laporkan: apakah gerak sudah terasa mulus, apakah tombol Panjat mudah dipakai, dan apakah pengejaran di
 laut terlalu sulit / terlalu mudah.
+
+## Daftar uji manual — v0.18.0 (grafik HD, gerak mirip manusia, ajak prajurit & duel)
+1. **Grafik HD**: tepi benda halus (tidak berpiksel besar, tanpa garis tepi gelap), tanah / laut / langit
+   bergradasi halus, tulisan UI memakai huruf biasa. Coba ketiga kualitas (Pengaturan → Kualitas grafis) dan
+   catat FPS masing-masing.
+2. **Berjalan & berlari**: dari belakang dan dari samping (putar kamera) — lutut menekuk saat kaki terayun,
+   tumit menjejak lalu ujung kaki menolak, pinggul naik-turun, lengan berayun berlawanan dengan kaki dengan
+   siku menekuk, kepala tetap ke depan. Berlari: badan condong, lutut tinggi, lengan memompa. Dorong joystick
+   pelan → berjalan; penuh → berlari; peralihannya halus. Pedang tetap condong ke depan-bawah.
+3. **Diam**: badan bernapas pelan dan sesekali berpindah tumpuan.
+4. **Melompat & mendarat**: lutut ditarik di udara, saat mendarat lutut menekuk meredam (badan tidak lagi
+   "memendek"). Jurus Hentak: kuda-kuda dengan lutut menekuk dalam (kaki tidak terbenam jauh ke tanah).
+5. **Berenang**: terjun ke laut lalu diam → **mengapung tegak** (kepala di atas air, kaki mengayuh). Maju
+   dengan joystick → **gaya bebas** (badan mendatar, lengan bergantian terayun di atas air, badan berguling,
+   kaki mengepak, sesekali menoleh mengambil napas). Panjat dek dari air: siku & lutut ikut menekuk.
+6. **Prajurit Kencana**: peronda kini melangkah sungguhan (dulu meluncur dalam pose diam), berlari mengejar
+   dengan lutut menekuk, dan mengapung saat mengejarmu ke laut.
+7. **Ajak**: dekati prajurit Kencana (dari dekat, ±3 m) → tombol ungu **Ajak** (komputer: J). Prajurit itu
+   (dan yang memburumu di dekatnya) berhenti; ia menjawab. Mau → "kini anak buahmu (1/10)", jumlah anak buah
+   tampil di bawah koin, ia berjalan di belakangmu, ikut terjun & berenang, memanjat dek.
+8. **Menolak → Duel**: ia menggeleng; tombol merah **Duel** (komputer: U) → ia berseru menerima tantangan,
+   prajurit lain & anak buahmu menonton melingkar, bar nyawanya tampil. Kalahkan dia → ia menyerah dan
+   menjadi anak buahmu. Biarkan dia menang (nyawamu turun sampai 12) → kamu jatuh terduduk, 30% koin
+   diserahkan sebagai upeti, prajurit berhenti memburumu sebentar. Lari dari gelanggang → duel batal.
+9. **Anak buah bertempur**: masuk wilayah Kencana bersama anak buah → mereka melawan prajurit yang
+   memburumu; tebasan & jurusmu (juga Putar / Hentak / Penggal) tidak melukai anak buahmu. Anak buah yang
+   roboh bangun lagi sesudah ±9 detik. Naik perahu jauh, lalu turun di darat → anak buah menyusul muncul di
+   belakangmu.
+10. Catat FPS dengan 5–10 anak buah dibanding tanpa anak buah.
+
+Laporkan: apakah gerak jalan & renang sudah terlihat seperti manusia (bagian mana yang masih kaku), apakah
+peluang prajurit mau diajak & sulitnya duel sudah pas, dan apakah arti "pemain kalah = menyerahkan upeti"
+sesuai yang diinginkan.

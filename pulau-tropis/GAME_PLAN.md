@@ -26,20 +26,29 @@ Ketentuan pengguna untuk Aeloria: *tokoh utama yang membuat rusuh menjadi musuh 
 kerajaan bukan berarti musuh pedagang* — pedagang tetap netral dan tetap berdagang dengannya. Benteng
 Aeloria (istana) tetap terlarang. Lihat DECISIONS #49–#51.
 
-## Gaya visual (sejak v0.15.0)
-**Pixel art HD** (permintaan pengguna): dunia tetap 3D (kamera bebas, ribuan karakter beranimasi),
-tetapi digambar seperti game pixel art — resolusi rendah dengan piksel besar yang tajam (±2 px layar per
-piksel di Sedang), garis tepi gelap tipis di tepi benda (sejak v0.15.1 ±0,4 piksel), cahaya 4 tingkat dan
-bayangan bertepi tegas, warna 15-bit dengan dithering, tanah / laut / langit dalam beberapa nada bertepi
-tegas. UI ikut bergaya pixel art: huruf piksel (Pixelify Sans), bingkai & tombol bulat berpiksel, ikon
-piksel, peta dunia berpiksel; kanan atas hanya Peta, Tas, dan Pengaturan (v0.15.1). Sebelumnya
-(v0.1.0–v0.14.0) gaya low-poly berwarna halus. Lihat DECISIONS #62–#67.
+## Gaya visual
+**HD** (sejak v0.18.0, permintaan pengguna: *"Kembalikan ke grafik hd, tidak lagi menggunakan grafik pixel
+art"*): dunia 3D digambar pada resolusi layar penuh dengan antialias, bayangan lembut, dan cahaya halus;
+tanah, laut, dan langit bergradasi halus; UI dengan huruf sistem. v0.15.0–v0.17.0 sempat bergaya pixel art
+HD (resolusi rendah, garis tepi, warna 15-bit, UI berpiksel) — dilepas di v0.18.0; sebelumnya (v0.1.0–v0.14.0)
+low-poly berwarna halus. Lihat DECISIONS #62–#67, #75.
 
 **Karakter** (sejak v0.16.0, permintaan pengguna dengan gambar contoh lembar sprite): semua tokoh —
-pemain, penduduk, raja, pedagang, prajurit & bala tentara, orc, elf, kuda — bergaya **pixel art chibi**:
+pemain, penduduk, raja, pedagang, prajurit & bala tentara, orc, elf, kuda — bergaya **chibi** (dibuat untuk
+tampilan pixel art; sejak v0.18.0 tampil halus):
 kepala bulat besar (±⅓ tinggi badan) bermata, rambut / helm berjambul / tudung / mahkota, badan dan
 anggota tubuh membulat, pakaian berlapis (tabar, zirah, jubah, ransel). Menggantikan badan kotak-kotak
-Kenney (mirip Roblox). Gerakannya tetap animasi Kenney yang sama. Lihat DECISIONS #68–#70.
+Kenney (mirip Roblox). Lihat DECISIONS #68–#70.
+
+**Gerak** (sejak v0.18.0, permintaan pengguna: gaya berjalan & berenang yang terlihat seperti manusia):
+pemain dan prajurit Kencana punya lutut, pergelangan kaki, pinggang, dan siku; berjalan & berlari menurut
+kurva gaya jalan manusia (tumit menjejak, lutut menekuk saat kaki terayun, panggul & dada berputar
+berlawanan, lengan berayun dengan siku menekuk), berenang gaya bebas atau mengapung tegak. Tokoh lain masih
+memakai animasi Kenney. Lihat DECISIONS #76.
+
+**Anak buah & duel** (sejak v0.18.0, permintaan pengguna): prajurit Kencana bisa **diajak** menjadi anak buah
+(maks. 10) yang mengikuti dan bertarung untuk pemain; yang menolak bisa ditantang **duel** — yang kalah
+menjadi anak buah yang menang (pemain yang kalah menyerahkan upeti). Lihat DECISIONS #77.
 
 ## Peta dunia (sejak v0.10.0)
 - **Pulau Tropis** (tengah): pantai, hutan, padang, gunung, perkemahan orc — titik mulai.
@@ -125,3 +134,6 @@ Di v0.17.0 (laporan & permintaan pengguna) dek dermaga tidak lagi menarik pemain
 dipanjat dengan tombol Panjat —, jalan & lompat pemain diperhalus lagi, dan prajurit Kencana mengejar ke
 laut: berenang, dan dengan perahu patroli yang melempar tombak (Milestone 2 — kontrol & fisika — dan NPC
 yang lebih hidup).
+Di v0.18.0 (permintaan pengguna) grafik kembali HD tanpa pixel art, pemain & prajurit Kencana berjalan,
+berlari, dan berenang dengan gerak mirip manusia (rangka bersendi), dan prajurit Kencana bisa diajak menjadi
+anak buah atau ditantang duel (NPC yang lebih hidup — bagian Milestone 4).
