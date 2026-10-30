@@ -76,7 +76,9 @@ export function createRecruits({ soldiers, security, player, enemies = null, bag
   function holdHunters(except, all = false) {
     const out = []
     for (const a of soldiers.list) {
-      if (a === except || !soldiers.alive(a) || a.follower || a.ride || !(security.isHunting(a) || a.state === 'serang')) continue
+      // yang memburu pemain atau menyerang anak buahnya (yang sedang melawan orc dibiarkan)
+      const vsFollower = a.state === 'serang' && a.order?.target?.kind === 'prajurit'
+      if (a === except || !soldiers.alive(a) || a.follower || a.ride || !(security.isHunting(a) || vsFollower)) continue
       if (dist(a) < LISTEN) {
         out.push({ a, hunted: security.isHunting(a) })
         soldiers.listen(a)
