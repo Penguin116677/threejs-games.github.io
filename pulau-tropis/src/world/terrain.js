@@ -96,6 +96,19 @@ export function createGround(segments, { heightFn = worldHeight, rect = WORLD } 
     }
     return top
   }
+  // lantai terendah yang lebih tinggi dari y di (x, z) — "langit-langit" (mis. lempeng pintu
+  // rahasia di atas tangga, lantai aula di atas lorong); Infinity bila tidak ada
+  function ceilingAt(x, z, y) {
+    if (!surfaces.length) return Infinity
+    const list = surfCells.get(surfKey(Math.floor(x / SURF_CELL), Math.floor(z / SURF_CELL)))
+    if (!list) return Infinity
+    let low = Infinity
+    for (const s of list) {
+      const h = surfaceHeight(s, x, z)
+      if (h > y && h < low) low = h
+    }
+    return low
+  }
   // fn(lantai) sekali untuk tiap lantai yang kotak batasnya mungkin menyentuh lingkaran (x, z, r)
   let surfStamp = 0
   function forEachSurfaceNear(x, z, r, fn) {
@@ -132,7 +145,7 @@ export function createGround(segments, { heightFn = worldHeight, rect = WORLD } 
 
   return {
     step, nx, nz, cols, x0, z0, heights,
-    heightAt: groundHeight, slopeAt, surfaceAt, supportAt, forEachSurfaceNear, setSurfaces,
+    heightAt: groundHeight, slopeAt, surfaceAt, supportAt, ceilingAt, forEachSurfaceNear, setSurfaces,
     get surfaces() {
       return surfaces
     },
@@ -251,6 +264,93 @@ vec3 regionColor(vec3 col, vec2 p, float nF, float nM, float nD, sampler2D regio
 }
 #endif
 
+
+#ifdef FROST_REGION
+// Kerajaan Frostfall (timur): seluruh daratannya bersalju. Masker uFrost: r = jalan / jejak di
+// salju, g = es (sungai & danau beku), b = lantai batu (halaman kastel, alun-alun desa), a = gua.
+// uFrostRect = x0, z0, 1/lebar, 1/panjang; uCold = x mulai dingin, x penuh dingin
+uniform sampler2D uFrost;
+uniform vec4 uFrostRect;
+uniform vec2 uCold;
+const vec3 SNOW = vec3(0.90, 0.93, 0.98);
+const vec3 SNOW_SHADE = vec3(0.70, 0.78, 0.92);
+const vec3 GRANITE = vec3(0.42, 0.40, 0.39);
+const vec3 GRANITE_DARK = vec3(0.21, 0.20, 0.21);
+const vec3 GRAVEL = vec3(0.42, 0.41, 0.40);
+const vec3 TRODDEN = vec3(0.66, 0.67, 0.70);
+const vec3 MUD = vec3(0.40, 0.35, 0.30);
+const vec3 ICE = vec3(0.62, 0.80, 0.90);
+const vec3 ICE_DEEP = vec3(0.16, 0.36, 0.55);
+const vec3 COBBLE = vec3(0.50, 0.51, 0.55);
+const vec3 CAVE_ROCK = vec3(0.22, 0.27, 0.36);
+const vec3 CAVE_FROST = vec3(0.58, 0.71, 0.85);
+float gFrostGlow = 0.0;
+
+vec3 frostColor(vec3 col, vec2 p, float h, float slope, float nF, float nM, float nL, float nD) {
+  float cold = smoothstep(uCold.x, uCold.y, p.x);
+  if (cold <= 0.0) return col;
+  float aa = fwidth(p.x);
+  // salju: bercak putih / kebiruan, riak tiupan angin, kilau butiran salju dari dekat
+  float rip = sin(dot(p, vec2(0.83, 0.56)) * 2.4 + nM * 9.0) * (1.0 - smoothstep(0.08, 0.3, aa * 2.4));
+  vec3 snow = mix(SNOW_SHADE, SNOW, smoothstep(0.15, 0.75, nL + (nM - 0.5) * 0.6));
+  snow *= (0.95 + 0.06 * nF) * (0.975 + 0.035 * rip) * (0.97 + 0.05 * nD);
+  // kilau: butir-butir kecil (bukan kanal .a yang berpola urat seperti kaustik)
+  float spark = smoothstep(0.93, 0.985, texture2D(uNoise, p * 1.7).r) * (1.0 - smoothstep(0.02, 0.08, aa));
+  // batu granit: lereng curam (tebing), salju menempel di lekuknya
+  // batu granit berlapis (pita mendatar), sedikit salju menempel di tonjolannya
+  vec3 rock = mix(GRANITE, GRANITE_DARK, smoothstep(0.25, 0.8, nM)) * (0.8 + 0.35 * nF) * (0.9 + 0.2 * nD);
+  rock *= 0.88 + 0.12 * sin(h * 1.3 + nM * 7.0);
+  rock = mix(rock, snow * 0.9, smoothstep(0.78, 0.92, nF) * 0.4);
+  float rocky = smoothstep(0.4, 0.52, slope + (nM - 0.5) * 0.16);
+  // pantai: kerikil gelap, di bawah air lebih gelap
+  float beach = 1.0 - smoothstep(1.2, 2.6, h + (nM - 0.5) * 1.2);
+  vec3 gravel = GRAVEL * (0.75 + 0.35 * nF) * (0.85 + 0.25 * nD) * mix(0.55, 1.0, smoothstep(-6.0, 0.0, h));
+  vec3 c = mix(snow, gravel, beach);
+  c = mix(c, rock, rocky);
+  float glow = spark * 0.22 * (1.0 - rocky) * (1.0 - beach);
+  vec2 ruv = (p - uFrostRect.xy) * uFrostRect.zw;
+  if (ruv.x > 0.0 && ruv.x < 1.0 && ruv.y > 0.0 && ruv.y < 1.0) {
+    vec4 m = texture2D(uFrost, ruv);
+    // gua: batu kebiruan, embun beku di bidang datar
+    vec3 cave = mix(CAVE_ROCK * (0.75 + 0.4 * nF), CAVE_FROST * (0.85 + 0.2 * nD), (1.0 - smoothstep(0.15, 0.4, slope)) * smoothstep(0.35, 0.7, nM));
+    c = mix(c, cave, m.a);
+    glow *= 1.0 - m.a;
+    // jalan: salju terinjak, di tengahnya tanah becek & kerikil
+    float rut = smoothstep(0.55, 0.85, m.r) * smoothstep(0.35, 0.65, nF + (nD - 0.5) * 0.4);
+    vec3 path = mix(TRODDEN * (0.86 + 0.2 * nF), MUD * (0.85 + 0.3 * nD), rut * 0.6);
+    c = mix(c, path, smoothstep(0.1, 0.6, m.r) * (1.0 - rocky * 0.7));
+    glow *= 1.0 - m.r;
+    // lantai batu: ubin bulat 1,1 m, salju di nat
+    if (m.b > 0.01) {
+      vec2 tile = floor(p / 1.1);
+      float tv = texture2D(uNoise, (tile + 0.5) * 0.37).r;
+      vec3 pave = COBBLE * (0.8 + 0.32 * tv) * (0.93 + 0.12 * nD);
+      vec2 q = abs(fract(p / 1.1) - 0.5);
+      float joint = smoothstep(0.38, 0.46, max(q.x, q.y)) * (1.0 - smoothstep(0.1, 0.3, aa / 1.1));
+      pave = mix(pave, SNOW * 0.9, joint * 0.4);
+      c = mix(c, pave, smoothstep(0.1, 0.6, m.b));
+      glow *= 1.0 - m.b;
+    }
+    // es: biru jernih bergradasi, retakan putih, salju tipis di tepi; danau di gua bercahaya
+    if (m.g > 0.01) {
+      float crack = texture2D(uNoise, p * 0.11).g;
+      float lines = 1.0 - smoothstep(0.0, 0.035, abs(crack - 0.5)) ;
+      lines = max(lines, 1.0 - smoothstep(0.0, 0.03, abs(texture2D(uNoise, p * 0.29 + 0.4).b - 0.5)));
+      lines *= 1.0 - smoothstep(0.05, 0.2, aa);
+      vec3 ice = mix(ICE_DEEP, ICE, smoothstep(0.2, 0.85, nM + nF * 0.3));
+      ice = mix(ice, vec3(0.92, 0.97, 1.0), lines * 0.55);
+      float drift = smoothstep(0.62, 0.85, nL + (1.0 - m.g) * 0.6) * (1.0 - m.a);
+      ice = mix(ice, snow, drift);
+      float gi = smoothstep(0.25, 0.65, m.g);
+      c = mix(c, ice, gi);
+      glow = mix(glow, (0.25 + 0.45 * lines) * m.a, gi);
+    }
+  }
+  gFrostGlow = glow * cold;
+  return mix(col, c, cold);
+}
+#endif
+
 vec3 terrainColor() {
   vec2 p = vWorldPos.xz;
   float h = vWorldPos.y;
@@ -297,6 +397,9 @@ vec3 terrainColor() {
 #endif
 #ifdef REGION_MASK2
   col = regionColor(col, p, nF, nM, nD, uRegion2, uRegionRect2, REGION2_STYLE);
+#endif
+#ifdef FROST_REGION
+  col = frostColor(col, p, h, slope, nF, nM, nL, nD);
 #endif
 
   return col * vSurface.x;
@@ -348,7 +451,9 @@ function gridNormals(ground) {
 
 // regions (opsional, maks. 2): masker jalan/sawah/lantai batu/rumput halus Kepulauan Kencana &
 // Aeloria { texture, x0, z0, width, depth, style } — lihat kencana/mask.js
-export function createTerrain(ground, { noiseTexture, quality, regions = [] }) {
+// frost (opsional): masker Kerajaan Frostfall { texture, x0, z0, width, depth, cold: [x0, x1] } — lihat
+// frostfall/mask.js
+export function createTerrain(ground, { noiseTexture, quality, regions = [], frost = null }) {
   const { nx, nz, cols, heights, x0, z0, step } = ground
   const normals = gridNormals(ground)
 
@@ -373,6 +478,7 @@ export function createTerrain(ground, { noiseTexture, quality, regions = [] }) {
     mat.defines.REGION_MASK2 = ''
     mat.defines.REGION2_STYLE = region2.style ?? 0
   }
+  if (frost) mat.defines.FROST_REGION = ''
   mat.onBeforeCompile = shader => {
     shader.uniforms.uNoise = { value: noiseTexture }
     shader.uniforms.uBeachTop = { value: ISLAND.beachTop }
@@ -385,6 +491,11 @@ export function createTerrain(ground, { noiseTexture, quality, regions = [] }) {
       shader.uniforms.uRegion2 = { value: region2.texture }
       shader.uniforms.uRegionRect2 = { value: new THREE.Vector4(region2.x0, region2.z0, 1 / region2.width, 1 / region2.depth) }
     }
+    if (frost) {
+      shader.uniforms.uFrost = { value: frost.texture }
+      shader.uniforms.uFrostRect = { value: new THREE.Vector4(frost.x0, frost.z0, 1 / frost.width, 1 / frost.depth) }
+      shader.uniforms.uCold = { value: new THREE.Vector2(frost.cold[0], frost.cold[1]) }
+    }
     shader.vertexShader = vertexPars + shader.vertexShader.replace(
       '#include <worldpos_vertex>',
       `#include <worldpos_vertex>
@@ -396,6 +507,13 @@ export function createTerrain(ground, { noiseTexture, quality, regions = [] }) {
       '#include <color_fragment>',
       `#include <color_fragment>
       diffuseColor.rgb *= terrainColor();`
+    ).replace(
+      '#include <emissivemap_fragment>',
+      `#include <emissivemap_fragment>
+      #ifdef FROST_REGION
+      // kilau butiran salju & danau es di gua yang bercahaya biru
+      totalEmissiveRadiance += vec3(0.55, 0.82, 1.0) * gFrostGlow;
+      #endif`
     )
   }
 
@@ -490,5 +608,6 @@ export function createTerrain(ground, { noiseTexture, quality, regions = [] }) {
     refresh()
   }
   group.userData.chunks = group.children.length - 1
+  group.userData.material = mat
   return group
 }

@@ -31,6 +31,11 @@ import { createAeloria } from './world/aeloria/kingdom.js'
 import { createElfFolk } from './world/aeloria/elf.js'
 import { createLife, ELF_CAPS } from './world/aeloria/kehidupan.js'
 import { createElfSecurity } from './world/aeloria/keamanan.js'
+import { planFrostfall } from './world/frostfall/plan.js'
+import { createFrostMask } from './world/frostfall/mask.js'
+import { createFrostfall } from './world/frostfall/kingdom.js'
+import { createWeather } from './world/frostfall/cuaca.js'
+import { setCavePassage } from './world/frostfall/height.js'
 import { createWorldMap, createRegionBanner } from './ui/peta.js'
 import { createBubbles, createHealthBar } from './ui/tanya.js'
 import { createShop } from './ui/toko.js'
@@ -104,8 +109,8 @@ function findSpawn(ground, colliders) {
   return { x: -128, z: 128, heading: Math.atan2(128, -128) }
 }
 
-const HINT_TOUCH = '<b>Joystick</b> (kiri bawah): berjalan, dorong penuh = lari · Geser layar: putar kamera · Cubit: zoom<br><b>Pukul</b> berulang = kombo · 4 <b>jurus</b> · orc kalah = <b>koin</b> · dekati orang: <b>Bicara</b> · dekati prajurit Kencana: <b>Ajak</b> jadi anak buah (menolak → <b>Duel</b>)<br>Pukul pohon = <b>kayu</b> → buat <b>pancing</b> &amp; <b>perahu</b> di <b>Tas</b> · pulau tidak berjembatan: berenang / berlayar<br><b>Peta</b>: Kencana (barat) memusuhimu · Aeloria (utara) damai bila kamu tidak rusuh · <b>ketuk kios / elf</b>'
-const HINT_KEYS = '<b>WASD / panah</b>: berjalan (Shift = pelan) · Seret: putar kamera · Roda: zoom<br>F: pukul (kombo) · 1–4: jurus · Spasi: lompat / panjat · orc kalah = koin · B: tas · G / Enter: bicara · J: ajak prajurit jadi anak buah · U: duel<br>Pukul pohon = kayu → buat pancing &amp; perahu di Tas · C: mancing / tarik · V: naik / turun perahu<br>M: peta — Kencana (barat) memusuhimu · Aeloria (utara) damai bila kamu tidak rusuh · klik kios / elf'
+const HINT_TOUCH = '<b>Joystick</b> (kiri bawah): berjalan, dorong penuh = lari · Geser layar: putar kamera · Cubit: zoom<br><b>Pukul</b> berulang = kombo · 4 <b>jurus</b> · orc kalah = <b>koin</b> · dekati orang: <b>Bicara</b> · dekati prajurit Kencana: <b>Ajak</b> jadi anak buah (menolak → <b>Duel</b>)<br>Pukul pohon = <b>kayu</b> → buat <b>pancing</b> &amp; <b>perahu</b> di <b>Tas</b> · pulau tidak berjembatan: berenang / berlayar<br><b>Peta</b>: Kencana (barat) memusuhimu · Aeloria (utara) damai bila kamu tidak rusuh · <b>Frostfall</b> (timur): pegunungan salju, gua & kastel · <b>ketuk kios / elf</b>'
+const HINT_KEYS = '<b>WASD / panah</b>: berjalan (Shift = pelan) · Seret: putar kamera · Roda: zoom<br>F: pukul (kombo) · 1–4: jurus · Spasi: lompat / panjat · orc kalah = koin · B: tas · G / Enter: bicara · J: ajak prajurit jadi anak buah · U: duel<br>Pukul pohon = kayu → buat pancing &amp; perahu di Tas · C: mancing / tarik · V: naik / turun perahu<br>M: peta — Kencana (barat) memusuhimu · Aeloria (utara) damai bila kamu tidak rusuh · Frostfall (timur): pegunungan salju, gua & kastel · klik kios / elf'
 
 // FOV kamera (tegak, mendatar): layar tegak butuh FOV lebih lebar agar sisi kiri-kanan tetap
 // terlihat dari kamera di belakang karakter
@@ -171,6 +176,8 @@ async function start() {
 
   setStatus('Membentuk pulau-pulau…')
   await nextFrame()
+  // lorong Gua Es Kristal minimal 3 langkah grid (lihat setCavePassage) — sebelum tanah dibentuk
+  setCavePassage((3 * ISLAND.size) / quality.terrainSegments)
   const ground = createGround(quality.terrainSegments)
   const shore = createShoreData(ground, quality.water.shoreRes)
   // rencana Kepulauan Kencana (kota, jalan, sawah) & Aeloria (kerajaan elf di utara) dulu: catnya
@@ -185,9 +192,12 @@ async function start() {
   const dockBarat = plan.docks.find(d => d.id === 'tropis-barat')
   const dockPerak = elfPlan.docks.find(d => d.id === 'perak')
   const dockUtara = elfPlan.docks.find(d => d.id === 'tropis-utara')
-  const terrain = createTerrain(ground, { ...shared, regions: [region, elfMask] })
+  // Kerajaan Frostfall (pegunungan salju di timur): jalan, es, lantai batu & gua dicat di shader tanah
+  const frostPlan = planFrostfall(ground)
+  const frostMask = createFrostMask(frostPlan)
+  const terrain = createTerrain(ground, { ...shared, regions: [region, elfMask], frost: frostMask })
   scene.add(terrain)
-  const reservedAll = (x, z, r) => region.reserved(x, z, r) || elfMask.reserved(x, z, r)
+  const reservedAll = (x, z, r) => region.reserved(x, z, r) || elfMask.reserved(x, z, r) || frostMask.reserved(x, z, r)
 
   setStatus('Menanam pohon dan menebar batu…')
   await nextFrame()
@@ -208,15 +218,21 @@ async function start() {
   await nextFrame()
   const aeloria = createAeloria({ ground, plan: elfPlan, mask: elfMask, grid, quality, noiseTexture })
   scene.add(aeloria.object)
-  // lantai jembatan, dermaga, batur pendopo, tangga: bisa diinjak
-  ground.setSurfaces([...kencana.surfaces, ...aeloria.surfaces])
-  terrain.userData.applyOcclusion([...trees.userData.occlusion, ...rocks.userData.occlusion, ...kencana.occlusion, ...aeloria.occlusion])
+  setStatus('Membangun Kerajaan Frostfall…')
+  await nextFrame()
+  const frost = createFrostfall({ ground, plan: frostPlan, mask: frostMask, grid, quality, noiseTexture, terrainMaterial: terrain.userData.material })
+  scene.add(frost.object)
+  // lantai jembatan, dermaga, batur pendopo, tangga, menara jaga, lantai aula: bisa diinjak
+  const allSurfaces = [...kencana.surfaces, ...aeloria.surfaces, ...frost.surfaces]
+  ground.setSurfaces(allSurfaces)
+  terrain.userData.applyOcclusion([...trees.userData.occlusion, ...rocks.userData.occlusion, ...kencana.occlusion, ...aeloria.occlusion, ...frost.occlusion])
   // batang pohon + batu besar + dinding bangunan menghalangi pemain; batu kecil bisa dilangkahi
   const colliders = createColliders([
     ...trees.userData.trunks,
     ...rocks.userData.colliders.filter(c => c.radius >= 0.8),
     ...kencana.colliders,
     ...aeloria.colliders,
+    ...frost.colliders,
   ])
   // peta jalan untuk "ketuk untuk berjalan" (memutari pohon, batu, tebing, laut dalam)
   const nav = createNavGrid(ground, colliders)
@@ -231,6 +247,8 @@ async function start() {
   const normalTexture = createWaterNormalTexture(renderer)
   const water = createWater({ ground, shore, env, noiseTexture, normalTexture, quality })
   scene.add(water)
+  // salju turun, kabut & cahaya musim dingin, lampu api unggun / kristal, asap cerobong (Frostfall)
+  const weather = createWeather({ scene, env, quality, water, smoke: frost.smoke, lights: frost.lights })
 
   setStatus('Menyiapkan karakter…')
   await nextFrame()
@@ -449,6 +467,9 @@ async function start() {
   const touchUI = navigator.maxTouchPoints > 0 || 'ontouchstart' in window
   const cam = createFollowCamera(camera, ground)
   cam.lookFrom(spawn.heading + Math.PI) // di belakang prajurit, menghadap gunung
+  // ruang dalam Frostfall (aula singgasana, kedai) & gua: kamera tetap di dalamnya
+  const roomAt = (x, z, y) => frost.interiors.find(r => x > r.rect.x0 && x < r.rect.x1 && z > r.rect.z0 && z < r.rect.z1 && y > r.floor - 1.5 && y < r.ceil) ?? null
+  cam.setVolumes({ roofAt: frost.cave.roofAt, inCave: frost.cave.inside, roomAt })
   const skillButtons = { cincang: $('btn-cincang'), hentak: $('btn-hentak'), putar: $('btn-putar'), penggal: $('btn-penggal') }
   const input = createInput({
     canvas, joystick: $('joystick'), knob: $('joystick').querySelector('.kenop'), jumpButton: $('btn-lompat'), attackButton: $('btn-pukul'), skillButtons, touch: touchUI,
@@ -596,6 +617,41 @@ async function start() {
   }
   const btnAjak = createActionButton(aksiBox, { id: 'btn-ajak', icon: IKON_AKSI.ajak, cls: 'ungu' }, invitePress)
   const btnDuel = createActionButton(aksiBox, { id: 'btn-duel', icon: IKON_AKSI.duel, cls: 'merah' }, duelPress)
+  // Frostfall: lempeng lantai di samping singgasana menutup tangga rahasia ke Gua Es Kristal; peti
+  // harta di Ruang Harta gua (sekali saja: tersimpan di browser)
+  const HARTA_KEY = 'pulau-tropis:harta-frostfall'
+  const HARTA_KOIN = 150
+  let chestOpened = false
+  try {
+    chestOpened = localStorage.getItem(HARTA_KEY) === '1'
+  } catch {
+    // penyimpanan diblokir: peti bisa dibuka sekali per pemuatan
+  }
+  if (chestOpened) frost.openChest()
+  function openSecret() {
+    if (mode !== 'main' || frost.trapdoorOpen) return
+    frost.openTrapdoor()
+    ground.setSurfaces(allSurfaces.filter(s => !s.trapdoor))
+    frost.trapdoor.gate.off = true
+    cam.shake(0.15)
+    showMessage(player.position.y < frost.trapdoor.y - 1
+      ? 'Lempeng di atasmu terdorong bergeser… tangga ini naik ke Ruang Singgasana Kastel Frostfall.'
+      : 'Lempeng lantai bergeser… tangga rahasia turun ke bawah kastel, menuju gua di dalam gunung.', 3800)
+  }
+  function openChest() {
+    if (mode !== 'main' || chestOpened) return
+    chestOpened = true
+    try {
+      localStorage.setItem(HARTA_KEY, '1')
+    } catch {
+      // tidak apa-apa
+    }
+    frost.openChest()
+    shop.reward(HARTA_KOIN)
+    showMessage(`Harta Raja Frostfall! Di dalam peti ada ${HARTA_KOIN} koin emas.`, 3600)
+  }
+  const btnRahasia = createActionButton(aksiBox, { id: 'btn-rahasia', icon: IKON_AKSI.rahasia, cls: 'coklat' }, openSecret)
+  const btnPeti = createActionButton(aksiBox, { id: 'btn-peti', icon: IKON_AKSI.peti, cls: 'kuning' }, openChest)
   let actionT = 0
   let buildSpot = null
   const anakBuahEl = $('anak-buah')
@@ -612,6 +668,14 @@ async function start() {
     const ajak = free && !boat.aboard && recruits ? recruits.near : null
     btnAjak.set(!!ajak, 'Ajak', ajak ? `anak buah ${recruits.followers.length}/${recruits.max}` : '')
     btnDuel.set(free && !boat.aboard && !!recruits?.rival, 'Duel', 'yang kalah ikut')
+    // Frostfall: pintu rahasia (dari lantai aula atau dari tangga di bawahnya) & peti harta
+    const td = frost.trapdoor
+    const onSlab = Math.abs(p.x - td.x) < td.hx && Math.abs(p.z - td.z) < td.hz && Math.abs(p.y - td.y) < 0.6
+    const nearTop = onSlab || (Math.hypot(p.x - td.top.x, p.z - td.top.z) < 4.2 && Math.abs(p.y - td.y) < 1.2)
+    const nearBottom = Math.hypot(p.x - td.bottom.x, p.z - td.bottom.z) < 5 && p.y < td.y - 0.6 && p.y > td.y - 5
+    btnRahasia.set(free && !frost.trapdoorOpen && (nearTop || nearBottom), nearBottom ? 'Dorong lempeng' : 'Geser lempeng', nearBottom ? 'jalan keluar di atas' : 'lantai di sini berongga')
+    const ch = frost.chest
+    btnPeti.set(free && !chestOpened && Math.hypot(p.x - ch.x, p.z - ch.z) < 2.8 && Math.abs(p.y - ch.y) < 1.5, 'Buka peti', 'harta karun')
     // jumlah anak buah di HUD (di bawah koin)
     const nBuah = recruits ? recruits.followers.length : 0
     if (nBuah !== shownBuah) {
@@ -869,7 +933,7 @@ async function start() {
     resize()
   }
   // peta dunia + spanduk nama wilayah
-  const worldMap = createWorldMap({ ground, plans: [plan, elfPlan], regions: [region, elfMask], camps: enemies ? enemies.camps : [], shops: elfPlan.shops })
+  const worldMap = createWorldMap({ ground, plans: [plan, elfPlan, frostPlan], regions: [region, elfMask], frost: frostMask, camps: enemies ? enemies.camps : [], shops: elfPlan.shops })
   const banner = createRegionBanner({ ground, spans: [...plan.spans, ...elfPlan.spans] })
   function toggleMap() {
     if (worldMap.open) worldMap.hide()
@@ -978,6 +1042,7 @@ async function start() {
   // saat prajurit pertama kali terlihat
   if (soldiers) {
     cam.update(0.016, camTarget, NO_INPUT)
+    frost.update(0.016, camera)
     env.update(0, camera, player.position)
     soldiers.warmUp(player.position)
     renderer.render(scene, camera)
@@ -1092,6 +1157,13 @@ async function start() {
     health.set(player.hp, MAX_HP)
     effects.update(dt, camera)
     updateSkillButtons()
+    {
+      // iklim Frostfall: dingin menurut posisi, gelap di dalam gua, redup di dalam ruangan
+      const fp = mode === 'main' ? player.position : controls.target
+      const caveK = frost.cave.inside(fp.x, fp.z, fp.y) ? frost.cave.darkness(fp.x, fp.z) : 0
+      weather.update(dt, t, { target: fp, inCave: caveK, indoorK: roomAt(fp.x, fp.z, fp.y) ? 1 : 0, far: mode === 'main' ? camera.far : null, camera })
+      frost.update(dt, camera)
+    }
     env.update(t, camera, mode === 'main' ? player.position : controls.target)
     waveTime.value = t
     trees.userData.update(t)
@@ -1128,6 +1200,7 @@ async function start() {
   // akses untuk debugging / pengujian otomatis
   window.__pulau = {
     renderer, scene, camera, controls, ground, shore, quality, trees, rocks, grass, water, env, kencana, region, plan, villagers, army, worldMap, banner, aeloria, elfPlan, elfMask, life,
+    frost, frostPlan, frostMask, weather, openSecret, openChest,
     player, cam, input, colliders, nav, markers, effects, enemies, soldiers, security, patrol, recruits, bubbles, pickGround, setMode, getMode: () => mode, bag, gear, shop, elfSec, elfCard,
     boat, fishing, ripples, recipes, craftBoat, boardBoat, leaveBoat, chat, placesFor,
     frames: () => frameCount, debug,

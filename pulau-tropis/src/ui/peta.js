@@ -3,6 +3,8 @@ import { ISLANDS, CITY, KERATON, TEGAL, inRect } from '../world/kencana/layout.j
 import { islandDistance } from '../world/kencana/height.js'
 import { DIVISIONS } from '../world/kencana/barisan.js'
 import { REGIONS as ELF_REGIONS, LANDS as ELF_LANDS, landDistance } from '../world/aeloria/layout.js'
+import { REGIONS as FROST_REGIONS, PEAKS as FROST_PEAKS, COLD_X0, landDistance as frostLandDistance, polyInfo } from '../world/frostfall/layout.js'
+import { caveFloor } from '../world/frostfall/height.js'
 
 // Peta dunia (tombol "Peta") dan spanduk nama wilayah saat prajurit memasuki pulau/kota baru.
 
@@ -28,6 +30,17 @@ const LABELS = [
   { text: 'Padang Pesta', x: 235, z: -718, size: 11 },
   { text: 'Dermaga Perak', x: 54, z: -384, size: 10 },
   { text: 'Dermaga Utara', x: 54, z: -238, size: 10 },
+  { text: 'Frostfall · Kerajaan Salju', x: 860, z: -520, size: 15 },
+  { text: 'Desa Emberwick', x: 692, z: -112, size: 12 },
+  { text: 'Kastel Frostfall', x: 1000, z: -390, size: 12 },
+  { text: 'Lembah Beku', x: 600, z: 70, size: 11 },
+  { text: 'Lembah Atas', x: 1058, z: -48, size: 11 },
+  { text: 'Gua Es', x: 1112, z: -238, size: 11 },
+  { text: 'Hutan Pinus Salju', x: 860, z: 330, size: 12 },
+  { text: 'Air Terjun Beku', x: 930, z: -112, size: 10 },
+  { text: 'Dermaga Frostfall', x: 470, z: 50, size: 10 },
+  { text: 'Dermaga Fajar', x: 250, z: 62, size: 10 },
+  ...FROST_PEAKS.filter(p => p.name).map(p => ({ text: p.name, x: p.x, z: p.z, size: 10 })),
 ]
 
 const lerp = (a, b, t) => a + (b - a) * t
@@ -35,6 +48,18 @@ const clamp01 = t => Math.min(1, Math.max(0, t))
 
 // Wilayah tempat (x, z) berada: { id, name, sub } atau null (di laut)
 export function regionAt(x, z, ground, spans) {
+  // Frostfall (timur): gua, kawasan, lalu daratannya
+  if (x > COLD_X0) {
+    if (caveFloor(x, z) !== null) return { id: 'gua', name: 'Gua Es Kristal', sub: 'Gua beku di dalam gunung · kristal bercahaya' }
+    for (const r of FROST_REGIONS) {
+      if (r.rect && inRect(x, z, r.rect)) return { id: r.id, name: r.name, sub: r.sub }
+      if (r.line && polyInfo(r.line, x, z).d < r.width) return { id: r.id, name: r.name, sub: r.sub }
+    }
+    if (frostLandDistance(x, z) < 1.05 && ground.heightAt(x, z) > -1.2)
+      return ground.heightAt(x, z) > 80
+        ? { id: 'pegunungan', name: 'Pegunungan Frostfall', sub: 'Puncak bersalju & tebing es' }
+        : { id: 'frostfall', name: 'Kerajaan Frostfall', sub: 'Negeri pegunungan salju di timur · Lembah Beku' }
+  }
   // Aeloria (kerajaan elf di utara): kawasan dulu, lalu daratannya
   if (z < -330)
     for (const r of ELF_REGIONS) {
@@ -107,8 +132,51 @@ function colorAt(h, mask, out) {
   out[2] = b
 }
 
-// plans & regions: rencana dan masker semua wilayah (Kencana, Aeloria); shops: toko yang bisa dibeli
-export function createWorldMap({ ground, plans, regions, camps = [], shops = [] }) {
+// warna peta Frostfall: laut dingin, salju (makin tinggi makin putih), batu di tebing, es, jalan, lantai batu
+function frostColorAt(h, slope, mask, out) {
+  let r
+  let g
+  let b
+  if (h < 0) {
+    const d = clamp01(-h / 14)
+    r = lerp(96, 20, d)
+    g = lerp(150, 60, d)
+    b = lerp(170, 110, d)
+  } else if (h < 1.8) {
+    r = 150
+    g = 148
+    b = 146
+  } else {
+    const t = clamp01(h / 260)
+    r = lerp(222, 250, t)
+    g = lerp(228, 252, t)
+    b = lerp(238, 255, t)
+    if (slope > 1.0) {
+      const k = clamp01((slope - 1.0) / 0.8)
+      r = lerp(r, 112, k)
+      g = lerp(g, 114, k)
+      b = lerp(b, 124, k)
+    }
+  }
+  if (mask) {
+    const mix = (k, cr, cg, cb) => {
+      r = lerp(r, cr, k)
+      g = lerp(g, cg, k)
+      b = lerp(b, cb, k)
+    }
+    mix(mask.gua * 0.7, 70, 110, 160)
+    mix(mask.es, 140, 196, 228)
+    mix(mask.jalan, 176, 160, 140)
+    mix(mask.batu, 160, 162, 170)
+  }
+  out[0] = r
+  out[1] = g
+  out[2] = b
+}
+
+// plans & regions: rencana dan masker semua wilayah (Kencana, Aeloria); frost: masker Frostfall
+// (warna salju / es / gua sendiri); shops: toko yang bisa dibeli
+export function createWorldMap({ ground, plans, regions, frost = null, camps = [], shops = [] }) {
   const panel = document.getElementById('peta')
   const canvas = document.getElementById('peta-kanvas')
   const ctx = canvas.getContext('2d')
@@ -132,7 +200,8 @@ export function createWorldMap({ ground, plans, regions, camps = [], shops = [] 
         const z = WORLD.minZ + (j + 0.5) * M_PER_PX
         let m = null
         for (const r of regions) if (!m) m = r.at(x, z)
-        colorAt(ground.heightAt(x, z), m, col)
+        if (frost && x > COLD_X0) frostColorAt(ground.heightAt(x, z), ground.slopeAt(x, z), frost.at(x, z), col)
+        else colorAt(ground.heightAt(x, z), m, col)
         const k = (j * W + i) * 4
         img.data[k] = col[0]
         img.data[k + 1] = col[1]
