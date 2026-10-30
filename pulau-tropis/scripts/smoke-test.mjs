@@ -2,7 +2,9 @@ import { chromium, devices } from 'playwright'
 import { mkdirSync } from 'node:fs'
 // Smoke test otomatis (Chromium headless, render software) untuk HP portrait/landscape,
 // HP kualitas Rendah, dan komputer. Memeriksa:
-// - game termuat tanpa error, karakter prajurit (model + pedang) muncul berdiri di tanah
+// - game termuat tanpa error, karakter prajurit (model + pedang) muncul berdiri di tanah, rangka
+//   bersendi (lutut, pergelangan kaki, pinggang, siku) dengan klip gerak mirip manusia (diam, lari,
+//   gaya renang), peronda melangkah dengan klip jalan
 // - rumput di lereng gunung, data garis pantai (ombak) valid; memotret pantai & kelapa
 // - komputer: klik tanah tidak menggerakkan karakter, jalan (W), lompat (Spasi), tabrakan batang
 //   pohon, laut dalam → berenang (tidak dikembalikan ke pantai), mendaki lereng gunung, obrolan
@@ -32,6 +34,9 @@ import { mkdirSync } from 'node:fs'
 // - (HP tegak & komputer) air & dermaga: menabrak sisi dek dari air = tertahan, tombol Panjat / Spasi
 //   memanjat ke dek; prajurit terjun & berenang mengejar; kabur lewat laut → perahu patroli (awak
 //   naik, mengejar, melempar tombak), lolos ke darat di luar wilayah → perahu pulang & bersandar
+// - (HP tegak & komputer) anak buah & duel: tombol Ajak / J di dekat prajurit → mau → anak buah yang
+//   mengikuti; menolak → tombol Duel / U → duel → menang = lawan menjadi anak buah; kalah = pemain
+//   jatuh terduduk & membayar upeti; pukulan pemain tidak mengenai anak buahnya
 // - Kerajaan Elf Aeloria (utara): 10.000 kesatria + penduduk, elf terlihat di pasar, tombol Belanja
 //   di depan kios, membeli makanan & perlengkapan (koin berkurang, tombak dipakai), ketuk elf →
 //   kartu isi pikiran, keributan warga dilerai kesatria; (HP tegak & komputer) memukul kesatria →
@@ -213,6 +218,15 @@ for (const [name, opts, query] of cases) {
   else ok('prajurit dengan pedang termuat')
   if (Math.abs(s0.h) > 0.05) fail(`karakter tidak berdiri di tanah (selisih ${s0.h.toFixed(2)} m)`)
   else ok('karakter berdiri di tanah')
+  // rangka bersendi (lutut, pergelangan kaki, pinggang, siku) + klip gerak mirip manusia
+  const rig = await page.evaluate(() => {
+    const { player } = window.__pulau
+    const bones = ['shin-left', 'foot-right', 'spine', 'forearm-right'].filter(n => player.root.getObjectByName(n))
+    const sword = player.root.getObjectByName('weapon-sword')
+    return { bones: bones.length, swordOn: sword?.parent?.name, anim: player.anim }
+  })
+  if (rig.bones < 4 || rig.swordOn !== 'forearm-right' || !(rig.anim.w.diam > 0)) fail(`rangka bersendi: ${JSON.stringify(rig)}`)
+  else ok('rangka bersendi (lutut, pergelangan kaki, pinggang, siku), pedang di genggaman siku, klip diam bernapas')
   const greenRing = await page.evaluate(() => {
     let found = false
     window.__pulau.scene.traverse(o => {
@@ -323,6 +337,13 @@ for (const [name, opts, query] of cases) {
   const zonesOk = ['kota', 'kencana', 'dermaga', 'sawah', 'nelayan', 'pura', 'wira'].every(z => (guards0.wilayah[z] || 0) >= 2)
   if (guards0.pos < 28 || guards0.peronda < 40 || !zonesOk) fail(`prajurit penjaga: ${JSON.stringify(guards0)}`)
   else ok(`prajurit penjaga: ${guards0.pos} di pos + ${guards0.peronda} peronda di ${Object.keys(guards0.wilayah).length} wilayah (${Object.entries(guards0.wilayah).map(([z, n]) => `${z} ${n}`).join(', ')})`)
+  // peronda yang sedang berjalan memutar klip jalan (dulu meluncur dalam pose diam)
+  const stride = await waitUntil(page, () => {
+    const moving = window.__pulau.soldiers.list.filter(a => a.state === 'ronda' && a.moved > 0.5)
+    return moving.length > 5 && { n: moving.length, walk: moving.filter(a => a.clip === 'walk').length }
+  }, 120, 10)
+  if (!stride || stride.walk < stride.n * 0.8) fail(`peronda berjalan tanpa klip jalan: ${JSON.stringify(stride)}`)
+  else ok(`peronda melangkah (klip jalan bersendi): ${stride.walk}/${stride.n} yang sedang berjalan`)
 
   // ===== tanpa jembatan antarpulau: empat dermaga, selat di antaranya terlalu dalam untuk berjalan
   const sea = await page.evaluate(() => {
@@ -697,6 +718,145 @@ for (const [name, opts, query] of cases) {
     })
   }
 
+  // ===== Anak buah & duel: prajurit Kencana diajak (mau → ikut pemain), yang menolak ditantang duel
+  // (menang → ikut; kalah → upeti), anak buah mengikuti & tidak terkena pukulan pemain
+  if (name === 'hp-portrait' || name === 'desktop') {
+    await page.evaluate(() => {
+      const { security, soldiers, player } = window.__pulau
+      window.__pulau.debug.timeScale = 1
+      security.ceasefire(true)
+      soldiers.resetAll()
+      player.revive()
+    })
+    // pemain 2 m di depan peronda terdekat dari Dermaga Timur, menghadapnya
+    const nextToSoldier = () => page.evaluate(() => {
+      const { soldiers, player, cam } = window.__pulau
+      player.placeAt(-330, 40, Math.PI / 2)
+      const p = player.position
+      const a = soldiers.list.filter(s => soldiers.alive(s) && !s.follower && s.kind !== 'pos' && !s.swim && !s.ride)
+        .sort((x, y) => Math.hypot(x.x - p.x, x.z - p.z) - Math.hypot(y.x - p.x, y.z - p.z))[0]
+      player.placeAt(a.x + Math.sin(a.heading) * 2, a.z + Math.cos(a.heading) * 2, a.heading + Math.PI)
+      player.stop()
+      cam.lookFrom(a.heading, true, 0.25)
+      window.__sasaran = a.id
+      return a.id
+    })
+    const press = (id, key) => (name === 'desktop' ? page.keyboard.press(key) : page.tap(`#${id}`))
+    const shown = id => page.evaluate(id => !document.getElementById(id).hidden, id)
+    const answered = () => waitUntil(page, () => {
+      const b = window.__pulau.recruits.stats().bicara
+      return !b || b.dijawab
+    }, 200, 4)
+    // 1) diajak → mau
+    await nextToSoldier()
+    await waitFrames(page, 6)
+    const ajakBtn = await shown('btn-ajak')
+    await page.evaluate(() => window.__pulau.recruits.forceAnswer(true))
+    if (ajakBtn) await press('btn-ajak', 'KeyJ')
+    await answered()
+    const joined = await waitUntil(page, () => {
+      const a = window.__pulau.soldiers.list[window.__sasaran]
+      return a.follower && a.state === 'ikut' && { n: window.__pulau.recruits.followers.length }
+    }, 60, 4)
+    if (!ajakBtn || !joined || joined.n !== 1) fail(`ajak prajurit: tombol ${ajakBtn}, ${JSON.stringify(joined)}`)
+    else ok(`tombol Ajak di dekat prajurit → ${name === 'desktop' ? 'J' : 'ketuk'} → mau → anak buah (1)`)
+    // anak buah mengikuti pemain yang berjalan 18 m
+    await page.evaluate(() => {
+      const { player } = window.__pulau
+      window.__pertama = window.__sasaran
+      const p = player.position
+      player.followPath([{ x: p.x + 18 * Math.sin(player.heading), z: p.z + 18 * Math.cos(player.heading) }])
+    })
+    await waitUntil(page, () => !window.__pulau.player.hasPath, 300, 5)
+    const tail = await waitUntil(page, () => {
+      const { soldiers, player } = window.__pulau
+      const a = soldiers.list[window.__pertama]
+      const d = Math.hypot(a.x - player.position.x, a.z - player.position.z)
+      return d < 4.5 && { d, clip: a.clip }
+    }, 200, 5)
+    if (!tail) fail('anak buah tidak mengikuti pemain')
+    else ok(`anak buah mengikuti pemain (${tail.d.toFixed(1)} m di belakangnya)`)
+    // 2) diajak → menolak → duel → menang → anak buah
+    await nextToSoldier()
+    await waitFrames(page, 6)
+    await page.evaluate(() => window.__pulau.recruits.forceAnswer(false))
+    await press('btn-ajak', 'KeyJ')
+    await answered()
+    await waitFrames(page, 4)
+    const duelBtn = await shown('btn-duel')
+    if (duelBtn) await press('btn-duel', 'KeyU')
+    const duel = await waitUntil(page, () => window.__pulau.recruits.stats().duel, 60, 3)
+    await page.screenshot({ path: `${out}/${name}-duel.png` })
+    if (!duelBtn || !duel || duel.nyawa < 15) fail(`menolak → duel: tombol ${duelBtn}, ${JSON.stringify(duel)}`)
+    else ok(`menolak → tombol Duel → duel (lawan ${duel.nyawa} nyawa, ${duel.penonton} penonton)`)
+    // pemain menebas lawan beberapa kali, lalu nyawa lawan dihabiskan → menyerah & ikut
+    for (let i = 0; i < 3; i++) {
+      await page.evaluate(() => {
+        const { soldiers, player } = window.__pulau
+        const a = soldiers.list[window.__sasaran]
+        player.face(a.x, a.z)
+      })
+      if (name === 'desktop') await page.keyboard.press('KeyF')
+      else await page.tap('#btn-pukul')
+      await waitFrames(page, 6)
+    }
+    await page.evaluate(() => {
+      const { soldiers, player } = window.__pulau
+      const a = soldiers.list[window.__sasaran]
+      soldiers.damage(a, a.hp + 1, player.position)
+    })
+    const won = await waitUntil(page, () => {
+      const { soldiers, recruits } = window.__pulau
+      const a = soldiers.list[window.__sasaran]
+      return !recruits.stats().duel && a.follower && { n: recruits.followers.length, hp: a.hp, max: a.maxHp }
+    }, 60, 3)
+    if (!won || won.n !== 2 || won.hp !== won.max) fail(`menang duel: ${JSON.stringify(won)}`)
+    else ok('menang duel → lawan menyerah & menjadi anak buah (2), nyawanya pulih')
+    // 3) duel kalah: nyawa pemain jatuh ke batasnya → jatuh terduduk, upeti 30% koin
+    await page.evaluate(() => window.__pulau.bag.reset(100))
+    await nextToSoldier()
+    await waitFrames(page, 6)
+    await page.evaluate(() => window.__pulau.recruits.forceAnswer(false))
+    await press('btn-ajak', 'KeyJ')
+    await answered()
+    await waitFrames(page, 4)
+    await press('btn-duel', 'KeyU')
+    await waitUntil(page, () => window.__pulau.recruits.stats().duel, 60, 3)
+    await page.evaluate(() => {
+      const { soldiers, player } = window.__pulau
+      player.damage(500, soldiers.list[window.__sasaran], 12)
+    })
+    const lost = await waitUntil(page, () => {
+      const { recruits, player, bag } = window.__pulau
+      return !recruits.stats().duel && { koin: bag.koin, hp: Math.round(player.hp), stun: player.stunned, defeated: player.defeated, n: recruits.followers.length }
+    }, 60, 3)
+    if (!lost || lost.koin !== 70 || lost.hp !== 12 || !lost.stun || lost.defeated || lost.n !== 2) fail(`kalah duel: ${JSON.stringify(lost)}`)
+    else ok('kalah duel → pemain jatuh terduduk (tidak roboh), menjadi anak buah si pemenang: upeti 30 dari 100 koin')
+    await waitUntil(page, () => !window.__pulau.player.stunned, 100, 5)
+    // 4) pukulan pemain tidak mengenai anak buahnya
+    const before = await page.evaluate(() => {
+      const { player, recruits } = window.__pulau
+      player.revive()
+      const f = recruits.followers[0]
+      player.placeAt(f.x - Math.sin(f.heading) * 1.1, f.z - Math.cos(f.heading) * 1.1, f.heading)
+      return recruits.followers.map(a => a.hp)
+    })
+    for (let i = 0; i < 2; i++) {
+      if (name === 'desktop') await page.keyboard.press('KeyF')
+      else await page.tap('#btn-pukul')
+      await waitFrames(page, 8)
+    }
+    const after = await page.evaluate(() => window.__pulau.recruits.followers.map(a => a.hp))
+    if (JSON.stringify(before) !== JSON.stringify(after)) fail(`pukulan pemain melukai anak buah: ${JSON.stringify(before)} → ${JSON.stringify(after)}`)
+    else ok('pukulan pemain tidak melukai anak buahnya')
+    await page.evaluate(() => {
+      const { soldiers, player, bag } = window.__pulau
+      soldiers.resetAll()
+      player.revive()
+      bag.reset()
+    })
+  }
+
   // ===== Kerajaan Elf Aeloria (utara): rakyat, toko, kartu elf, keributan, kerusuhan, benteng
   const elf = await page.evaluate(() => {
     const { life } = window.__pulau
@@ -1000,6 +1160,9 @@ for (const [name, opts, query] of cases) {
     await page.screenshot({ path: `${out}/${name}-berenang.png` })
     if (!swim || !deep.swim || deep.y < -1.3 || deep.y > 0 || deep.msg.includes('kembali ke pantai')) fail(`berenang: ${JSON.stringify({ swim, ...deep })}`)
     else ok(`laut dalam (${deep.depth.toFixed(1)} m) → berenang di permukaan (kaki ${deep.y.toFixed(2)} m), tidak dikembalikan ke pantai`)
+    const strokes = await page.evaluate(() => window.__pulau.player.anim)
+    if (strokes.main !== 'berenang' || !((strokes.w.renang || 0) + (strokes.w.apung || 0) > 0.9)) fail(`gaya renang: ${JSON.stringify(strokes)}`)
+    else ok(`gaya renang: gaya bebas ${(strokes.w.renang || 0).toFixed(2)} + mengapung ${(strokes.w.apung || 0).toFixed(2)}`)
     await page.keyboard.down('KeyF')
     await page.keyboard.up('KeyF')
     await waitFrames(page, 3)
@@ -1093,6 +1256,7 @@ for (const [name, opts, query] of cases) {
     await holdJoystick(0, -70)
     await waitFrames(page, 30)
     const j1 = await state(page)
+    const gait = await page.evaluate(() => window.__pulau.player.anim)
     const joyOn = await page.evaluate(() => window.__pulau.input.joystickActive && document.getElementById('joystick').classList.contains('aktif'))
     await page.screenshot({ path: `${out}/${name}-joystick.png` })
     await touch('touchEnd', [])
@@ -1104,6 +1268,8 @@ for (const [name, opts, query] of cases) {
     const off = Math.abs(Math.atan2(Math.sin(runDir - camFwd), Math.cos(runDir - camFwd)))
     const ran = Math.hypot(j1.x - j0.x, j1.z - j0.z)
     if (!joyOn) fail('joystick tidak tampil aktif saat ditahan')
+    if (gait.main !== 'gerak' || !((gait.w.lari || 0) > 0.5)) fail(`klip lari bersendi saat berlari: ${JSON.stringify(gait)}`)
+    else ok(`berlari memakai klip lari bersendi (bobot ${gait.w.lari.toFixed(2)})`)
     if (ran < 5 || off > 0.3 || Math.abs(j1.h) > 0.05) fail(`joystick maju: pindah ${ran.toFixed(1)} m, menyimpang ${off.toFixed(2)} rad dari arah kamera`)
     else ok(`joystick maju: lari ${ran.toFixed(1)} m menjauhi kamera (simpang ${off.toFixed(2)} rad), tetap di tanah`)
     if (j2.speed > 0.3) fail(`joystick dilepas: masih bergerak ${j2.speed.toFixed(2)} m/s`)
