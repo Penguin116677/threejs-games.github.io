@@ -1231,6 +1231,315 @@ for (const [name, opts, query] of cases) {
     await page.screenshot({ path: `${out}/${name}-mendaki.png` })
   }
 
+  // ===================================================================== Kerajaan Frostfall (timur)
+  // semua profil: isi wilayah, tanpa benda melayang / terbenam, tanah tanpa lubang, selat harus
+  // direnangi, salju & iklim dingin, masuk gua (gelap, kamera di bawah atap), peti harta.
+  // HP tegak & komputer: berjalan sungguhan di jembatan, tangga menara jaga, masuk kedai, gerbang →
+  // halaman → ruang singgasana, pintu rahasia → tangga → lorong → gua, mulut gua, pagar di atas gua
+  if (await page.evaluate(() => !!window.__pulau.frost)) {
+    const full = name === 'hp-portrait' || name === 'desktop'
+    await page.evaluate(() => window.__pulau.security?.ceasefire(true))
+    // jalan mengikuti titik-titik (seperti ketuk untuk berjalan); hasil: sampai / tertahan + posisi
+    async function walk(points, maxFrames = 400) {
+      await page.evaluate(pts => window.__pulau.player.followPath(pts), points)
+      const end = points[points.length - 1]
+      let s = null
+      for (let f = 0; f < maxFrames; f += 5) {
+        await waitFrames(page, 5)
+        s = await page.evaluate(([ex, ez]) => {
+          const { player } = window.__pulau
+          const p = player.position
+          return { x: p.x, y: p.y, z: p.z, d: Math.hypot(p.x - ex, p.z - ez), path: player.hasPath, swim: player.swimming }
+        }, [end.x, end.z])
+        if (s.d < 1.6 || !s.path) break
+      }
+      await page.evaluate(() => window.__pulau.player.stop())
+      return s
+    }
+    const placeAndLook = (x, z, tx, tz) => page.evaluate(([x, z, tx, tz]) => {
+      const { player, cam } = window.__pulau
+      const h = Math.atan2(tx - x, tz - z)
+      player.placeAt(x, z, h)
+      player.stop()
+      cam.lookFrom(h + Math.PI)
+    }, [x, z, tx, tz])
+
+    const fs = await page.evaluate(() => {
+      const { frost, frostPlan } = window.__pulau
+      const n = t => frostPlan.build.filter(b => b.type === t).length
+      return { ...frost.stats, n: { rumah: n('rumah'), kedai: n('kedai'), kios: n('kios'), menara: n('menara'), api: n('api'), jembatan: n('jembatan'), tembok: n('tembok'), menaraKastel: n('menara-kastel'), gerbang: n('gerbang'), aula: n('aula'), air: n('air-terjun'), tenda: n('tenda') } }
+    })
+    if (fs.n.rumah < 15 || !fs.n.kedai || fs.n.kios < 4 || !fs.n.menara || fs.n.jembatan < 3 || fs.n.menaraKastel !== 4 || !fs.n.gerbang || !fs.n.aula || !fs.n.air || fs.n.tenda < 3 || fs.pinus < 800 || fs.kristal < 30 || !fs.gua.atap || !fs.gua.pagar)
+      fail(`isi Frostfall: ${JSON.stringify(fs)}`)
+    else ok(`Frostfall: ${fs.n.rumah} rumah + kedai, ${fs.n.kios} kios, menara jaga, ${fs.n.api} api unggun, ${fs.n.jembatan} jembatan, kastel (${fs.n.tembok} tembok, ${fs.n.menaraKastel} menara, gerbang, aula singgasana), air terjun beku, ${fs.n.tenda} kemah pemburu, ${fs.pinus} pinus, ${fs.kristal} kristal, gua (${fs.gua.atap} segitiga atap, ${fs.gua.pagar} pagar)`)
+
+    // benda di tanah / lantai: tidak melayang / terbenam (> 0,6 m dari pijakan di titik tengahnya: tanah,
+    // atau lantai seperti lantai ruang singgasana — tanah di bawahnya bisa terkeruk lorong rahasia)
+    const floating = await page.evaluate(() => {
+      const { frostPlan, ground } = window.__pulau
+      const onGround = ['rumah', 'kedai', 'kios', 'api', 'lentera', 'sumur', 'peti', 'gerobak', 'tenda', 'rak', 'luncur', 'kayu-bakar', 'pagar', 'menara', 'menara-kastel', 'anglo', 'harta', 'singgasana', 'aula']
+      const foot = b => ground.supportAt(b.x, b.z, b.y + 0.3, 0.45)
+      const bad = frostPlan.build.filter(b => onGround.includes(b.type) && Math.abs(b.y - foot(b)) > 0.6)
+        .map(b => `${b.type}@${b.x.toFixed(0)},${b.z.toFixed(0)}: ${b.y.toFixed(1)} vs ${foot(b).toFixed(1)}`)
+      return { n: frostPlan.build.filter(b => onGround.includes(b.type)).length, bad }
+    })
+    if (floating.bad.length) fail(`benda melayang / terbenam: ${floating.bad.slice(0, 6).join(' · ')}`)
+    else ok(`${floating.n} bangunan & perabot Frostfall berdiri tepat di tanah (selisih ≤ 0,6 m)`)
+
+    // tanah tanpa lubang: setiap titik daratan (grid 30 m) tertutup potongan terrain, tinggi bukan NaN
+    const holes = await page.evaluate(() => {
+      const { scene, ground } = window.__pulau
+      const chunks = scene.getObjectByName('terrain').children.filter(m => m.name.startsWith('terrain-')).map(m => {
+        m.geometry.computeBoundingBox()
+        return m.geometry.boundingBox
+      })
+      let n = 0
+      const miss = []
+      for (let x = 400; x < 1420; x += 30)
+        for (let z = -560; z < 520; z += 30) {
+          const h = ground.heightAt(x, z)
+          if (Number.isNaN(h)) miss.push(`NaN@${x},${z}`)
+          if (!(h > -8)) continue
+          n++
+          if (!chunks.some(b => x >= b.min.x - 0.01 && x <= b.max.x + 0.01 && z >= b.min.z - 0.01 && z <= b.max.z + 0.01)) miss.push(`${x},${z}`)
+        }
+      return { n, miss }
+    })
+    if (holes.miss.length) fail(`lubang di tanah Frostfall: ${holes.miss.slice(0, 8).join(' · ')}`)
+    else ok(`tanah Frostfall utuh: ${holes.n} titik daratan semuanya tertutup potongan terrain`)
+
+    // selat Pulau Tropis ↔ Frostfall: dermaga di kedua sisi, airnya harus direnangi
+    const strait = await page.evaluate(() => {
+      const { frostPlan, ground } = window.__pulau
+      const [fr, fj] = ['frostfall', 'fajar'].map(id => frostPlan.docks.find(d => d.id === id))
+      let shallow = Infinity
+      for (let x = fj.s1 + 2; x < fr.s1 - 2; x += 1) shallow = Math.min(shallow, -ground.heightAt(x, (fr.at + fj.at) / 2))
+      return { fajar: [fj.s0, fj.s1].map(v => +v.toFixed(0)), frost: [fr.s1, fr.s0].map(v => +v.toFixed(0)), gap: +(fr.s1 - fj.s1).toFixed(0), shallow: +shallow.toFixed(1), deck: +ground.surfaceAt(fj.s1 - 1, fj.at).toFixed(2) }
+    })
+    if (!(strait.gap > 60) || !(strait.shallow > 1.4) || Math.abs(strait.deck - 1.75) > 0.05) fail(`selat ke Frostfall: ${JSON.stringify(strait)}`)
+    else ok(`Dermaga Fajar (Pulau Tropis, x ${strait.fajar.join('–')}) ↔ Dermaga Frostfall (x ${strait.frost.join('–')}): selat ${strait.gap} m, terdangkal ${strait.shallow} m — harus berenang / berperahu`)
+    // berenang dari ujung Dermaga Fajar ke arah Frostfall
+    {
+      const fj = await page.evaluate(() => window.__pulau.frostPlan.docks.find(d => d.id === 'fajar'))
+      await placeAndLook(fj.s1 + 4, fj.at, fj.s1 + 40, fj.at)
+      // berenang hanya dengan joystick / tombol arah (jalur ketukan tidak melewati air)
+      await page.keyboard.down('KeyW')
+      await waitFrames(page, 240)
+      await page.keyboard.up('KeyW')
+      const sw = await page.evaluate(() => {
+        const { player } = window.__pulau
+        return { x: player.position.x, y: player.position.y, z: player.position.z, swim: player.swimming }
+      })
+      if (!sw || !sw.swim || sw.x < fj.s1 + 12) fail(`berenang ke Frostfall: ${JSON.stringify(sw)}`)
+      else ok(`berenang menyeberangi selat dari Dermaga Fajar ke arah Frostfall (x ${(fj.s1 + 4).toFixed(0)} → ${sw.x.toFixed(0)})`)
+    }
+
+    // desa: spanduk, salju turun, iklim dingin; Pulau Tropis tidak bersalju
+    await placeAndLook(640, -40, 700, -40)
+    await page.evaluate(() => {
+      window.__pesanLog.length = 0
+    })
+    await waitFrames(page, 40)
+    const village = await page.evaluate(() => {
+      const { weather } = window.__pulau
+      return { frost: +weather.state.frost.toFixed(2), snow: weather.snow.visible, banner: document.querySelector('#wilayah .wilayah-nama')?.textContent }
+    })
+    await page.screenshot({ path: `${out}/${name}-frostfall-desa.png` })
+    if (village.frost < 0.9 || !village.snow || village.banner !== 'Desa Emberwick') fail(`desa Frostfall: ${JSON.stringify(village)}`)
+    else ok(`Desa Emberwick: spanduk "${village.banner}", salju turun, iklim dingin ${village.frost}`)
+
+    if (full) {
+      // jembatan desa: menyeberangi sungai beku di atas lantai jembatan
+      const br = await page.evaluate(() => window.__pulau.frostPlan.surfaces.find(s => s.arch && Math.abs(s.x - 716) < 2))
+      const ux = Math.sin(br.rot)
+      const uz = Math.cos(br.rot)
+      const a = { x: br.x - ux * (br.hz + 3), z: br.z - uz * (br.hz + 3) }
+      const b = { x: br.x + ux * (br.hz + 3), z: br.z + uz * (br.hz + 3) }
+      await placeAndLook(a.x, a.z, b.x, b.z)
+      await page.evaluate(() => {
+        window.__maxY = -99
+      })
+      const iceY = await page.evaluate(([x, z]) => window.__pulau.ground.heightAt(x, z), [br.x, br.z])
+      let top = -99
+      await page.evaluate(pts => window.__pulau.player.followPath(pts), [{ x: br.x, z: br.z }, b])
+      for (let f = 0; f < 200; f += 4) {
+        await waitFrames(page, 4)
+        const s = await state(page)
+        if (Math.hypot(s.x - br.x, s.z - br.z) < 4) top = Math.max(top, s.y)
+        if (Math.hypot(s.x - b.x, s.z - b.z) < 1.6) break
+      }
+      const brEnd = await state(page)
+      await page.screenshot({ path: `${out}/${name}-frostfall-jembatan.png` })
+      if (Math.hypot(brEnd.x - b.x, brEnd.z - b.z) > 2.5 || top < iceY + 1.2) fail(`jembatan desa: ${JSON.stringify({ top, iceY, end: brEnd })}`)
+      else ok(`Jembatan Desa: menyeberang di atas lantainya (${top.toFixed(2)} m, es sungai ${iceY.toFixed(2)} m)`)
+
+      // menara jaga: naik anak tangga ke lantai pandang
+      await placeAndLook(752, -72, 752, -90)
+      const tw = await walk([{ x: 752, z: -77.5 }, { x: 752, z: -86 }, { x: 752, z: -90 }], 260)
+      if (!tw || Math.abs(tw.y - 17.5) > 0.4) fail(`menara jaga: ${JSON.stringify(tw)}`)
+      else ok(`menara jaga: naik anak tangga sampai lantai pandang (y ${tw.y.toFixed(2)} m)`)
+
+      // kedai panjang: masuk lewat pintu, kamera tetap di dalam ruangan
+      await placeAndLook(676, -80, 664, -80)
+      const kd = await walk([{ x: 669.5, z: -80 }, { x: 664, z: -80 }], 200)
+      await waitFrames(page, 25)
+      const inKedai = await page.evaluate(() => {
+        const { camera, frost, weather } = window.__pulau
+        const r = frost.interiors.find(i => i.id === 'kedai')
+        const c = camera.position
+        return { indoor: +weather.state.indoor.toFixed(2), cam: [c.x, c.y, c.z].map(v => +v.toFixed(1)), inside: c.x > r.rect.x0 && c.x < r.rect.x1 && c.z > r.rect.z0 && c.z < r.rect.z1 && c.y < r.ceil }
+      })
+      await page.screenshot({ path: `${out}/${name}-frostfall-kedai.png` })
+      if (!kd || kd.d > 1.8 || inKedai.indoor < 0.5 || !inKedai.inside) fail(`kedai: ${JSON.stringify({ kd, inKedai })}`)
+      else ok(`masuk kedai panjang lewat pintunya; kamera di dalam ruangan (${inKedai.cam.join(', ')}), cahaya redup ${inKedai.indoor}`)
+
+      // kastel: gerbang → halaman → ruang singgasana
+      await placeAndLook(944, -331, 980, -331)
+      const cs = await walk([{ x: 960, z: -331 }, { x: 990, z: -331 }, { x: 1006, z: -331 }, { x: 1020, z: -331 }], 400)
+      await waitFrames(page, 25)
+      const hall = await page.evaluate(() => {
+        const { camera, frost, weather } = window.__pulau
+        const r = frost.interiors.find(i => i.id === 'aula')
+        const c = camera.position
+        return { indoor: +weather.state.indoor.toFixed(2), inside: c.x > r.rect.x0 && c.x < r.rect.x1 && c.z > r.rect.z0 && c.z < r.rect.z1 && c.y < r.ceil, banner: document.querySelector('#wilayah .wilayah-nama')?.textContent }
+      })
+      await page.screenshot({ path: `${out}/${name}-frostfall-aula.png` })
+      if (!cs || cs.d > 1.8 || Math.abs(cs.y - 72) > 0.3 || !hall.inside) fail(`kastel → ruang singgasana: ${JSON.stringify({ cs, hall })}`)
+      else ok(`lewat gerbang Kastel Frostfall → halaman → Ruang Singgasana (y ${cs.y.toFixed(2)} m); kamera di bawah langit-langit aula, spanduk "${hall.banner}"`)
+
+      // pintu rahasia: tombol di samping singgasana → lempeng bergeser → turun tangga → lorong → gua
+      const td = await page.evaluate(() => window.__pulau.frost.trapdoor)
+      // lempeng tertutup = lantai: masuk dari ujung baratnya (sisi panjangnya berlangkan) & berjalan di
+      // atasnya tanpa jatuh ke tangga di bawahnya; lalu kembali ke samping singgasana
+      const slab = await walk([{ x: td.top.x, z: td.top.z }, { x: td.x - 8, z: td.z }, { x: td.x + 6, z: td.z }], 320)
+      const back = await walk([{ x: td.x - 8, z: td.z }, { x: td.top.x, z: td.top.z }], 260)
+      const blocked = { slab, back }
+      const btn = await page.evaluate(() => (document.getElementById('btn-rahasia').hidden ? null : document.getElementById('btn-rahasia').innerText.replace(/\n/g, ' / ')))
+      if (!slab || slab.d > 1.8 || Math.abs(slab.y - td.y) > 0.3) fail(`berjalan di atas lempeng tertutup: ${JSON.stringify(slab)}`)
+      else ok(`lempeng pintu rahasia tertutup menahan pemain (berjalan di atasnya, y ${slab.y.toFixed(2)} m)`)
+      if (!btn) fail(`tombol pintu rahasia tidak muncul (${JSON.stringify(blocked)})`)
+      else {
+        await page.click('#btn-rahasia')
+        await waitFrames(page, 30)
+        const down = await walk([{ x: td.x - 9.5, z: td.z }, { x: td.x - 8, z: td.z }, { x: td.x + 9.5, z: td.z }, { x: 1052, z: -327 }], 420)
+        const tunnel = await page.evaluate(() => {
+          const { player, frost } = window.__pulau
+          const p = player.position
+          return { y: +p.y.toFixed(2), cave: frost.cave.inside(p.x, p.z, p.y) }
+        })
+        if (!down || down.d > 2 || tunnel.y > 65 || !tunnel.cave) fail(`tangga rahasia: ${JSON.stringify({ btn, blocked, down, tunnel })}`)
+        else ok(`"${btn}" → lempeng bergeser, tangga rahasia turun dari aula (y 72) ke lorong di dalam gunung (y ${tunnel.y})`)
+      }
+
+      // lorong rahasia → Balairung Es: gelap, kamera di bawah atap gua
+      await placeAndLook(1066, -262, 1066, -224)
+      const ch = await walk([{ x: 1066, z: -240 }, { x: 1068, z: -212 }], 300)
+      await waitFrames(page, 40)
+      const inCave = await page.evaluate(() => {
+        const { player, camera, frost, weather } = window.__pulau
+        const p = player.position
+        const roof = frost.cave.roofAt(camera.position.x, camera.position.z)
+        return { cave: frost.cave.inside(p.x, p.z, p.y), dark: +weather.state.cave.toFixed(2), camBelowRoof: roof === -Infinity || camera.position.y < roof - 0.2, camY: +camera.position.y.toFixed(1), roof: +roof.toFixed(1), banner: document.querySelector('#wilayah .wilayah-nama')?.textContent }
+      })
+      await page.screenshot({ path: `${out}/${name}-frostfall-gua.png` })
+      if (!ch || ch.d > 2 || !inCave.cave || inCave.dark < 0.3 || !inCave.camBelowRoof) fail(`di dalam gua: ${JSON.stringify({ ch, inCave })}`)
+      else ok(`lorong rahasia → Balairung Es: di dalam gua (gelap ${inCave.dark}), kamera ${inCave.camY} m di bawah atap ${inCave.roof} m, spanduk "${inCave.banner}"`)
+
+      // mulut gua dari Lembah Atas
+      await placeAndLook(1060, -96, 1064, -150)
+      const mo = await walk([{ x: 1062, z: -125 }, { x: 1066, z: -158 }], 300)
+      const mouth = await page.evaluate(() => {
+        const { player, frost } = window.__pulau
+        const p = player.position
+        return { cave: frost.cave.inside(p.x, p.z, p.y), y: +p.y.toFixed(2) }
+      })
+      if (!mo || mo.d > 2 || !mouth.cave) fail(`mulut gua: ${JSON.stringify({ mo, mouth })}`)
+      else ok(`dari Lembah Atas berjalan masuk lewat mulut gua (y ${mouth.y} m, di bawah atap)`)
+
+      // pagar tak terlihat: yang berjalan di atas gunung tidak jatuh menembus atap gua
+      const fence = await page.evaluate(() => {
+        const { frost, ground, colliders } = window.__pulau
+        const { roofAt } = frost.cave
+        // titik luar yang landai, 3 m di luar pagar, menjauhi rongga
+        for (const f of frost.colliders.filter(c => c.y1 === 1e4))
+          for (const [dx, dz] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+            const x = f.x + dx * 3.2
+            const z = f.z + dz * 3.2
+            const ix = f.x - dx * 4
+            const iz = f.z - dz * 4
+            if (roofAt(x, z) > -Infinity || roofAt(ix, iz) === -Infinity) continue
+            if (ground.slopeAt(x, z) > 0.5 || !colliders.isFree(x, z, 0.6, ground.heightAt(x, z))) continue
+            return { x, z, ix, iz, roof: roofAt(ix, iz) }
+          }
+        return null
+      })
+      if (!fence) fail('pagar di atas gua: tidak ada titik uji yang landai')
+      else {
+        await placeAndLook(fence.x, fence.z, fence.ix, fence.iz)
+        const fw = await walk([{ x: fence.ix, z: fence.iz }], 120)
+        const fell = await page.evaluate(() => {
+          const { player, frost } = window.__pulau
+          const p = player.position
+          return { y: +p.y.toFixed(1), roof: +frost.cave.roofAt(p.x, p.z).toFixed(1), cave: frost.cave.inside(p.x, p.z, p.y) }
+        })
+        if (fell.cave || (fell.roof > -Infinity && fell.y < fell.roof - 1)) fail(`pagar di atas gua: ${JSON.stringify({ fence, fw, fell })}`)
+        else ok(`pagar di atas gua: berjalan di gunung ke arah rongga tertahan di luar atap (y ${fell.y} m)`)
+      }
+    } else {
+      // profil ringan: masuk gua dengan teleport
+      await placeAndLook(1070, -196, 1080, -210)
+      await waitFrames(page, 40)
+      const c2 = await page.evaluate(() => {
+        const { player, frost, weather, camera } = window.__pulau
+        const p = player.position
+        const roof = frost.cave.roofAt(camera.position.x, camera.position.z)
+        return { cave: frost.cave.inside(p.x, p.z, p.y), dark: +weather.state.cave.toFixed(2), snow: weather.snow.visible, camBelowRoof: roof === -Infinity || camera.position.y < roof - 0.2 }
+      })
+      await page.screenshot({ path: `${out}/${name}-frostfall-gua.png` })
+      if (!c2.cave || c2.dark < 0.3 || c2.snow || !c2.camBelowRoof) fail(`di dalam gua: ${JSON.stringify(c2)}`)
+      else ok(`di dalam Gua Es Kristal: gelap ${c2.dark}, tanpa salju turun, kamera di bawah atap`)
+    }
+
+    // lorong gua bisa dilalui di setiap kualitas (lorong sempit di grid terrain kasar = lereng curam):
+    // lorong rahasia dari kaki tangga sampai Balairung Es, lalu Galeri Kristal → celah sempit → Ruang Harta
+    {
+      const routes = [
+        ['lorong rahasia', [1052, -327], [[1058, -322], [1063, -295], [1068, -268], [1066, -246], [1064, -224], [1068, -210]]],
+        ['celah ke Ruang Harta', [1124, -225], [[1142, -232], [1151, -247], [1160, -262], [1166, -272]]],
+      ]
+      for (const [label, [sx, sz], pts] of routes) {
+        await placeAndLook(sx, sz, pts[0][0], pts[0][1])
+        await waitFrames(page, 5)
+        const r = await walk(pts.map(([x, z]) => ({ x, z })), 900)
+        const end = pts[pts.length - 1]
+        if (!r || r.d > 2) fail(`gua tidak bisa dilalui (${label}): ${JSON.stringify(r)}, tujuan ${end.join(',')}`)
+        else ok(`gua bisa dilalui (${label}): ${sx},${sz} → ${r.x.toFixed(0)},${r.z.toFixed(0)} (y ${r.y.toFixed(1)} m)`)
+      }
+    }
+
+    // peti harta di Ruang Harta: sekali saja, +150 koin
+    const chest = await page.evaluate(() => window.__pulau.frost.chest)
+    await placeAndLook(chest.x + 1.8, chest.z + 1.2, chest.x, chest.z)
+    await waitFrames(page, 10)
+    const coin0 = await page.evaluate(() => window.__pulau.bag.koin)
+    const btnPeti = await page.evaluate(() => !document.getElementById('btn-peti').hidden)
+    if (btnPeti) await page.click('#btn-peti')
+    await waitFrames(page, 20)
+    const coin1 = await page.evaluate(() => ({ koin: window.__pulau.bag.koin, again: !document.getElementById('btn-peti').hidden }))
+    if (!btnPeti || coin1.koin - coin0 !== 150 || coin1.again) fail(`peti harta: ${JSON.stringify({ btnPeti, coin0, coin1 })}`)
+    else ok(`peti harta di Ruang Harta: Buka peti → koin ${coin0} → ${coin1.koin}, tidak bisa dibuka lagi`)
+    await page.evaluate(() => {
+      window.__pulau.bag.bayar(150) // koin kembali seperti semula untuk cek berikutnya
+    })
+
+    // kembali ke Pulau Tropis: tidak bersalju
+    await placeAndLook(-122, 122, 0, 0)
+    await waitFrames(page, 60)
+    const back = await page.evaluate(() => ({ frost: +window.__pulau.weather.state.frost.toFixed(2), snow: window.__pulau.weather.snow.visible }))
+    if (back.frost > 0.1 || back.snow) fail(`kembali ke Pulau Tropis masih bersalju: ${JSON.stringify(back)}`)
+    else ok(`kembali ke Pulau Tropis: iklim tropis lagi (dingin ${back.frost}, tanpa salju turun)`)
+  }
+
   if (name === 'hp-portrait') {
     const cdp = await ctx.newCDPSession(page)
     const touch = (type, points) => cdp.send('Input.dispatchTouchEvent', { type, touchPoints: points })
