@@ -30,7 +30,9 @@ export function packMatrix(m, out, o) {
 
 // Rangka 7 tulang Kenney di bawah `root`: dari SkinnedMesh bila ada; file rangka tanpa badan
 // (models/*.glb sejak v0.16.0) → dibuat dari simpul bernama, titik ikatnya = pose diam relatif akar.
-const TULANG = ['root', 'leg-left', 'leg-right', 'torso', 'arm-left', 'arm-right', 'head']
+// Rangka bersendi (tokoh/gerak.js) = 7 tulang itu + 7 tulang tambahan, urutan indeks tokoh/rupa.js SENDI.
+export const TULANG = ['root', 'leg-left', 'leg-right', 'torso', 'arm-left', 'arm-right', 'head']
+export const TULANG_SENDI = [...TULANG, 'shin-left', 'shin-right', 'foot-left', 'foot-right', 'spine', 'forearm-left', 'forearm-right']
 export function skeletonOf(root) {
   let skinned = null
   root.traverse(o => {
@@ -39,13 +41,13 @@ export function skeletonOf(root) {
   if (skinned) return skinned.skeleton
   root.updateMatrixWorld(true)
   _inv.copy(root.matrixWorld).invert()
-  const bones = TULANG.map(name => root.getObjectByName(name))
+  const bones = (root.getObjectByName('spine') ? TULANG_SENDI : TULANG).map(name => root.getObjectByName(name))
   return new THREE.Skeleton(bones, bones.map(b => new THREE.Matrix4().multiplyMatrices(_inv, b.matrixWorld).invert()))
 }
 
 // Panggang klip-klip sebuah rangka. specs: { kunci: { clip, loop = true, hold: { tulang: 'klip' } } }
 // — hold = tulang yang dikunci pada pose bingkai pertama klip lain (mis. lengan kiri memegang
-// perisai ke depan, sementara badan tetap bernapas dengan klip idle).
+// perisai ke depan, sementara badan tetap bernapas dengan klip idle), atau 'bind' = pose diamnya.
 // Pilihan tambahan (gerak buatan dari klip yang ada, dipakai para elf Aeloria):
 //   speed = kecepatan klip dasar, frames = banyak bingkai yang dipanggang (bawaan: satu putaran klip),
 //   mix = { tulang: 'klip' } tulang yang ikut klip lain pada waktu yang sama (mis. lengan kanan
@@ -57,7 +59,9 @@ export function bakeRig(root, clips, rows, specs, { fresh = false } = {}) {
   const skeleton = skeletonOf(root)
   const mixer = new THREE.AnimationMixer(root)
   const poses = {}
+  // 'bind' = pose diam rangka (mis. siku lurus pada lengan yang memegang senjata)
   const poseOf = name => {
+    if (name === 'bind') return skeleton.bones.map(() => new THREE.Quaternion())
     if (!poses[name]) {
       mixer.stopAllAction()
       mixer.clipAction(THREE.AnimationClip.findByName(clips, name)).reset().play()

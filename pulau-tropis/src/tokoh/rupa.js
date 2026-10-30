@@ -37,6 +37,30 @@ export const handBind = j => BAHU[j].clone().add(HAND[j])
 // putar arah di ruang tulang lengan supaya mengikuti juntaian (mis. arah bilah pedang pemain)
 export const droopDir = (j, d) => d.clone().applyAxisAngle(v3(0, 0, 1), j === 5 ? DROOP : -DROOP)
 
+// Rangka BERSENDI (pemain, tokoh/gerak.js): 7 tulang Kenney + 7 tulang tambahan — betis (lutut),
+// telapak (pergelangan kaki), pinggang (dada berputar sendiri dari panggul), lengan bawah (siku).
+// Paha & betis, lengan atas & bawah = dua kapsul yang bertemu di bola sendinya, jadi lutut dan siku
+// menekuk tanpa celah. Tanpa sendi (semua tokoh lain) tulang tambahan dilipat ke induknya (KAKU).
+export const SENDI = { betis: { 1: 7, 2: 8 }, telapak: { 1: 9, 2: 10 }, pinggang: 11, lenganBawah: { 4: 12, 5: 13 } }
+export const KAKU = [0, 1, 2, 3, 4, 5, 6, 1, 2, 1, 2, 3, 4, 5]
+const KAKI_X = 0.068 // sumbu kaki (titik putar paha Kenney ±0,0836)
+const LUTUT_Y = 0.115
+const SIKU = 0.085 // bahu → siku
+const PINGGANG_Y = 0.205
+// titik sendi tulang tambahan saat bind (ruang model)
+export const TITIK_SENDI = {
+  7: v3(KAKI_X * 0.99, LUTUT_Y, -0.018),
+  8: v3(-KAKI_X * 0.99, LUTUT_Y, -0.018),
+  9: v3(KAKI_X * 0.98, 0.05, -0.014),
+  10: v3(-KAKI_X * 0.98, 0.05, -0.014),
+  11: v3(0, PINGGANG_Y, -0.02),
+  12: BAHU[4].clone().addScaledVector(armDir(4), SIKU),
+  13: BAHU[5].clone().addScaledVector(armDir(5), SIKU),
+}
+// sepatu bot (elipsoid, telapaknya rata di y = 0): pusat & jari-jari di ruang model, kaki kiri
+export const SEPATU = { c: v3(KAKI_X * 0.98, 0.034, 0.008), r: v3(0.04, 0.036, 0.062) }
+let BERSENDI = false
+
 // cat: nama warna palet, atau { uv, slot } (elf: warna per orang diatur shader lewat slot)
 const paint = c => (typeof c === 'string' ? [uvWarna(c), 0] : [c.uv, c.slot])
 function put(d, geo, bone, c) {
@@ -165,25 +189,34 @@ function sabuk(d, warna = 'samakTua', gesper = 'emas', y = 0.205, lebar = 1) {
 function lengan(d, { baju, tangan = 'kulit', tebal = 1, manset = null, pendek = false }) {
   for (const j of [4, 5]) {
     const a = along(j, 0)
-    const e = along(j, 0.085)
+    const e = along(j, SIKU)
     const w = along(j, 0.142)
-    put(d, capsule(a, e, 0.031 * tebal, 0.027 * tebal, 6, 1), j, baju)
-    put(d, capsule(e, w, 0.027 * tebal, 0.024 * tebal, 6, 1), j, pendek ? tangan : baju)
-    put(d, ellipsoid(handBind(j), [0.026 * tebal, 0.027 * tebal, 0.025 * tebal], 6, 4), j, tangan)
-    if (manset) put(d, cylinder(0, 0, 0, 0.03 * tebal, 0.031 * tebal, 0.024, 6, true).rotateZ(j === 4 ? -Math.PI / 2 - DROOP : Math.PI / 2 + DROOP).translate(...along(j, 0.118).toArray()), j, manset)
+    // bersendi: lengan bawah, tangan & manset ikut tulang siku; ujung kapsul membulat di siku
+    const jb = BERSENDI ? SENDI.lenganBawah[j] : j
+    const cap = BERSENDI ? 2 : 1
+    put(d, capsule(a, e, 0.031 * tebal, 0.027 * tebal, 6, cap), j, baju)
+    put(d, capsule(e, w, 0.027 * tebal, 0.024 * tebal, 6, cap), jb, pendek ? tangan : baju)
+    put(d, ellipsoid(handBind(j), [0.026 * tebal, 0.027 * tebal, 0.025 * tebal], 6, 4), jb, tangan)
+    if (manset) put(d, cylinder(0, 0, 0, 0.03 * tebal, 0.031 * tebal, 0.024, 6, true).rotateZ(j === 4 ? -Math.PI / 2 - DROOP : Math.PI / 2 + DROOP).translate(...along(j, 0.118).toArray()), jb, manset)
   }
 }
 // kaki: celana + sepatu bot (ujung ke depan) + lipatan bot
 function kaki(d, { celana, sepatu = 'samak', tebal = 1, bot = true, pelindung = null }) {
   for (const j of [1, 2]) {
     const s = j === 1 ? 1 : -1
-    const x = s * 0.068
-    put(d, capsule(v3(x, 0.17, -0.02), v3(x * 0.98, 0.06, -0.016), 0.043 * tebal, 0.036 * tebal, 6, 1), j, celana)
-    const boot = ellipsoid([x * 0.98, 0.034, 0.008], [0.04 * tebal, 0.036, 0.062], 7, 5)
+    const x = s * KAKI_X
+    // bersendi: paha + betis (dua kapsul bertemu di lutut), sepatu ikut tulang telapak
+    const betis = BERSENDI ? SENDI.betis[j] : j
+    if (BERSENDI) {
+      const lutut = TITIK_SENDI[betis]
+      put(d, capsule(v3(x, 0.17, -0.02), lutut, 0.043 * tebal, 0.04 * tebal, 6, 2), j, celana)
+      put(d, capsule(lutut, v3(x * 0.98, 0.06, -0.016), 0.04 * tebal, 0.036 * tebal, 6, 2), betis, celana)
+    } else put(d, capsule(v3(x, 0.17, -0.02), v3(x * 0.98, 0.06, -0.016), 0.043 * tebal, 0.036 * tebal, 6, 1), j, celana)
+    const boot = ellipsoid([x * 0.98, SEPATU.c.y, SEPATU.c.z], [SEPATU.r.x * tebal, SEPATU.r.y, SEPATU.r.z], 7, 5)
     clip(boot, v3(0, 0, 0), v3(0, 1, 0))
-    put(d, boot, j, sepatu)
-    if (bot) put(d, cylinder(x * 0.98, 0.045, -0.014, 0.04 * tebal, 0.042 * tebal, 0.04, 7, true), j, sepatu)
-    if (pelindung) put(d, cylinder(x * 0.98, 0.058, -0.012, 0.043 * tebal, 0.045 * tebal, 0.06, 7, true), j, pelindung)
+    put(d, boot, BERSENDI ? SENDI.telapak[j] : j, sepatu)
+    if (bot) put(d, cylinder(x * 0.98, 0.045, -0.014, 0.04 * tebal, 0.042 * tebal, 0.04, 7, true), betis, sepatu)
+    if (pelindung) put(d, cylinder(x * 0.98, 0.058, -0.012, 0.043 * tebal, 0.045 * tebal, 0.06, 7, true), betis, pelindung)
   }
 }
 
@@ -707,13 +740,20 @@ export const RUPA = {
   senapati: () => prajurit({ tabarW: 'unguTua', jambul: 'ungu', jubahW: 'ungu', lis: 'emas' }),
 }
 
-// data badan rupa `nama` (varian `arg`); ringan = lebih sedikit sisi (kerumunan bala tentara)
-export function buatRupa(nama, arg = 0, { ringan = false } = {}) {
+// data badan rupa `nama` (varian `arg`); ringan = lebih sedikit sisi (kerumunan bala tentara);
+// sendi = untuk rangka bersendi (14 tulang, lihat SENDI)
+export function buatRupa(nama, arg = 0, { ringan = false, sendi = false } = {}) {
   setDetail(ringan ? 0.7 : 1)
+  BERSENDI = sendi
   try {
-    return RUPA[nama](arg)
+    const d = RUPA[nama](arg)
+    // badan di atas pinggang (dada, zirah, tabar & jubah bagian atas, syal) ikut tulang pinggang;
+    // segitiga yang melintasi garis pinggang meregang sedikit saat dada berputar dari panggul
+    if (sendi) for (let i = 0; i < d.bone.length; i++) if (d.bone[i] === 3 && d.pos[i * 3 + 1] > PINGGANG_Y + 0.007) d.bone[i] = SENDI.pinggang
+    return d
   } finally {
     setDetail(1)
+    BERSENDI = false
   }
 }
 

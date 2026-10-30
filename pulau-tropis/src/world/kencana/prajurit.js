@@ -1,7 +1,8 @@
 import * as THREE from 'three'
 import { clone as cloneSkinned } from 'three/addons/utils/SkeletonUtils.js'
 import { FPS, bakeRig, bakedMatrix, attach, toBufferGeometry, boneTexture, animate, frameOf } from './rig.js'
-import { buatRupa, paletteTexture, HAND, armDir, tombakGeo, pedangGeo, perisaiGeo, geoWarna } from '../../tokoh/rupa.js'
+import { buatRupa, paletteTexture, handBind, armDir, tombakGeo, pedangGeo, perisaiGeo, geoWarna, SENDI } from '../../tokoh/rupa.js'
+import { artikulasi, buatGerak, siku } from '../../tokoh/gerak.js'
 import { ISLAND } from '../island.js'
 import { buildRoutes } from './routes.js'
 import { TEGAL } from './layout.js'
@@ -19,13 +20,13 @@ import { zoneAt } from './wilayah.js'
 // naik perahu patroli (perahu-patroli.js mengatur perahunya).
 // Siapa yang dihadang & dilawan (pemain, orc) atau ditanyai (pendatang) diputuskan keamanan.js lewat
 // perintah (order).
-// Gambar: rupa prajurit berhelm berjambul (tokoh/rupa.js) di atas rangka Kenney "Mini Arena", rangka
-// dipanggang (rig.js) — satu InstancedMesh per jenis seragam.
+// Gambar: rupa prajurit berhelm berjambul (tokoh/rupa.js) di atas rangka Kenney "Mini Arena" yang
+// diberi sendi seperti pemain (lutut, pergelangan kaki, pinggang, siku — tokoh/gerak.js): berjalan,
+// berlari, dan mengapung dengan gerak mirip manusia; klip Kenney untuk sisanya. Rangka dipanggang
+// (rig.js) — satu InstancedMesh per jenis seragam.
 
 const SCALE = 2.3 // sama dengan prajurit pemain
 const RADIUS = 0.35
-const WALK_ANIM = 1.4 // m/s yang cocok dengan klip walk pada kecepatan 1×
-const RUN_ANIM = 3.6 // … klip sprint
 const FADE = 0.2 // detik peralihan antar animasi
 const SPEED = { ronda: 1.15, kembali: 1.6, dekati: 2.6, kejar: 5.2 } // m/s; pemain berlari 5,6
 const DOWN_TIME = 9 // detik terbaring setelah roboh
@@ -33,8 +34,8 @@ const SINK_TIME = 1
 const RESPAWN = 30 // detik menghilang sebelum kembali bertugas
 const ATTACK = { hit: 0.24, dur: 0.42 } // detik: saat kena & lama klip serang
 // berenang: mulai di air lebih dalam dari `depth` m, kembali berjalan di bawah `exit` m; laju (m/s);
-// kaki `sink` m di bawah permukaan (kepala & bahu di atas air)
-const SWIM = { depth: 1.15, exit: 0.95, speed: 2.1, sink: 1.0 }
+// titik letak `sink` m di bawah permukaan (mengapung tegak: air setinggi leher)
+const SWIM = { depth: 1.15, exit: 0.95, speed: 2.1, sink: 0.85 }
 const STEP = 0.45 // lantai (dek, batur) setinggi ini di atas kaki dilangkahi; lebih tinggi = tepi
 const CLIMB = { max: 2.95, time: 0.95 } // tepi dek yang bisa dipanjat dari air & lamanya (detik)
 export const HOP = 0.55 // detik: lompatan naik / turun perahu patroli (perahu-patroli.js)
@@ -42,20 +43,29 @@ export const RIDE_REACH = 0.9 // m: dari perahu tombak / pedang dijulurkan lebih
 const _ax = new THREE.Vector3(1, 0, 0)
 const _dir = new THREE.Vector3()
 const sm = THREE.MathUtils.smoothstep
-// memanjat dek dari air (gerak buatan, klip Kenney tidak punya): lengan meraih tepi → menekan dek,
-// badan condong, lutut kanan naik. b = tulang rangka (urutan Kenney)
+// memanjat dek dari air (gerak buatan, klip Kenney tidak punya): lengan meraih tepi, siku menarik
+// badan → menekan dek, badan condong, kaki kanan melangkah naik (lutut menekuk, telapak rata).
+// b = tulang rangka bersendi (urutan rig.js TULANG_SENDI)
+const { betis: BETIS, telapak: TELAPAK, lenganBawah: SIKU } = SENDI
 function climbMod(b, t) {
   const u = Math.min(1, t / CLIMB.time)
   const push = sm(u, 0.4, 0.66)
+  const pull = 0.25 + 1.35 * sm(u, 0.18, 0.4) * (1 - sm(u, 0.5, 0.72))
   for (const j of [4, 5]) {
     _dir.set((j === 4 ? 1 : -1) * 0.31, 0.85 - 1.3 * push, 0.45 + 0.4 * push).normalize()
     b[j].quaternion.setFromUnitVectors(armDir(j), _dir)
+    siku(j, pull, b[SIKU[j]].quaternion)
   }
   b[3].quaternion.setFromAxisAngle(_ax, 0.5 * sm(u, 0.3, 0.55) * (1 - sm(u, 0.75, 1)))
-  b[2].quaternion.setFromAxisAngle(_ax, -1.15 * sm(u, 0.45, 0.7) * (1 - sm(u, 0.86, 1)))
-  b[1].quaternion.setFromAxisAngle(_ax, 0.35 * sm(u, 0, 0.3) * (1 - sm(u, 0.6, 0.9)))
+  const step = sm(u, 0.45, 0.7) * (1 - sm(u, 0.86, 1))
+  b[2].quaternion.setFromAxisAngle(_ax, -1.15 * step)
+  b[BETIS[2]].quaternion.setFromAxisAngle(_ax, 1.75 * step)
+  b[TELAPAK[2]].quaternion.setFromAxisAngle(_ax, -0.6 * step)
+  const back = sm(u, 0, 0.3) * (1 - sm(u, 0.6, 0.9))
+  b[1].quaternion.setFromAxisAngle(_ax, 0.35 * back)
+  b[BETIS[1]].quaternion.setFromAxisAngle(_ax, 0.55 * back)
 }
-// melompat (naik / turun perahu): lutut ditekuk di udara, lengan terbuka menjaga keseimbangan
+// melompat (naik / turun perahu): lutut ditarik di udara, lengan terbuka menjaga keseimbangan
 function hopMod(b, t) {
   const k = Math.sin(Math.PI * Math.min(1, t / HOP))
   for (const j of [4, 5]) {
@@ -64,6 +74,8 @@ function hopMod(b, t) {
   }
   b[1].quaternion.setFromAxisAngle(_ax, -0.75 * k)
   b[2].quaternion.setFromAxisAngle(_ax, -0.35 * k)
+  b[BETIS[1]].quaternion.setFromAxisAngle(_ax, 1.2 * k)
+  b[BETIS[2]].quaternion.setFromAxisAngle(_ax, 0.7 * k)
   b[3].quaternion.setFromAxisAngle(_ax, 0.18 * k)
 }
 const PATROL = { rendah: 40, sedang: 64, tinggi: 96 } // peronda (berpasangan)
@@ -79,15 +91,18 @@ export const TYPES = [
 ]
 
 // klip yang dipanggang per jenis senjata; hold = tulang yang dikunci pada pose klip lain
-// (tombak tetap tegak di tangan kanan, perisai tetap di depan badan saat berjalan / berlari)
+// (tombak tetap tegak di tangan kanan, perisai tetap di depan badan saat berjalan / berlari /
+// mengapung — siku lengan pemegang senjata lurus). Jalan, lari, dan mengapung = gerak bersendi
+// (tokoh/gerak.js); lengan yang tidak memegang apa-apa ikut berayun.
 function specsFor(weapon) {
-  const spear = { 5: 'idle' }
-  const both = { 4: 'holding-left', 5: 'holding-right' }
+  const spear = { 5: 'idle', [SIKU[5]]: 'bind' }
+  const both = { 4: 'holding-left', 5: 'holding-right', [SIKU[4]]: 'bind', [SIKU[5]]: 'bind' }
   const arm = weapon === 'tombak' ? spear : both
   return {
     idle: { clip: 'idle', hold: weapon === 'tombak' ? {} : both },
-    walk: { clip: 'walk', hold: arm },
-    sprint: { clip: 'sprint', hold: arm },
+    walk: { clip: 'jalan', hold: arm },
+    sprint: { clip: 'lari', hold: arm },
+    swim: { clip: 'apung', hold: arm },
     attack: { clip: 'attack-melee-right', hold: weapon === 'tombak' ? {} : { 4: 'holding-left' }, loop: false },
     die: { clip: 'die', loop: false },
     yes: { clip: 'emote-yes', hold: arm, loop: false },
@@ -101,29 +116,36 @@ const _m = new THREE.Matrix4()
 const _q = new THREE.Quaternion()
 const Y = new THREE.Vector3(0, 1, 0)
 
+// soldier.model = rangka Kenney apa adanya (pemain.rig); di sini diberi sendi & klip gerak bersendi
 function buildTypes(soldier, rows) {
-  const clone = cloneSkinned(soldier.model)
+  const clone = artikulasi(cloneSkinned(soldier.model))
+  const gerak = buatGerak(clone)
+  const clips = [...soldier.clips, ...gerak]
   const map = paletteTexture()
-  const handAt = (skeleton, row, j) => HAND[j].clone()
-    .applyMatrix4(skeleton.boneInverses[j].clone().invert())
-    .applyMatrix4(bakedMatrix(rows, row, j))
-  return TYPES.map(T => {
-    const rig = bakeRig(clone, soldier.clips, rows, specsFor(T.weapon))
+  // tengah genggaman tangan j pada bingkai `row` (ruang model) — tangan ikut tulang siku
+  const handAt = (row, j) => handBind(j).applyMatrix4(bakedMatrix(rows, row, SIKU[j]))
+  const types = TYPES.map(T => {
+    // fresh: klip Kenney (tanpa lutut / siku) tidak mewarisi tekukan klip bersendi sebelumnya
+    const rig = bakeRig(clone, clips, rows, specsFor(T.weapon), { fresh: true })
     const { row } = rig.table.idle
-    const data = buatRupa(T.rupa)
-    const h = handAt(rig.skeleton, row, 5)
+    const data = buatRupa(T.rupa, 0, { sendi: true })
+    const h = handAt(row, 5)
     if (T.weapon === 'tombak') {
       // tombak tegak di tangan kanan, pangkalnya hampir di tanah
       const butt = Math.max(0.02, h.y - 0.02)
-      attach(data, geoWarna(tombakGeo(butt + 1.05, butt)).translate(h.x, h.y, h.z), rows, row, 5, null)
+      attach(data, geoWarna(tombakGeo(butt + 1.05, butt)).translate(h.x, h.y, h.z), rows, row, SIKU[5], null)
     } else {
       // pedang di tangan kanan (bilah ke atas, condong ke depan) + perisai layang di tangan kiri
-      attach(data, geoWarna(pedangGeo()).applyMatrix4(_m.makeRotationX(0.25)).translate(h.x, h.y + 0.01, h.z), rows, row, 5, null)
-      const l = handAt(rig.skeleton, row, 4)
-      attach(data, geoWarna(perisaiGeo('hijauTua', 0.95)).translate(l.x + 0.01, l.y - 0.04, l.z + 0.05), rows, row, 4, null)
+      attach(data, geoWarna(pedangGeo()).applyMatrix4(_m.makeRotationX(0.25)).translate(h.x, h.y + 0.01, h.z), rows, row, SIKU[5], null)
+      const l = handAt(row, 4)
+      attach(data, geoWarna(perisaiGeo('hijauTua', 0.95)).translate(l.x + 0.01, l.y - 0.04, l.z + 0.05), rows, row, SIKU[4], null)
     }
     return { ...T, data, table: rig.table, map }
   })
+  // panjang langkah (m per siklus klip) pada laju putar 1×: langkah alami klip, sedikit diperpanjang
+  // seperti pemain (kaki pendek) supaya irama langkah tidak terlalu cepat
+  const stride = n => gerak.find(c => c.name === n).userData.langkah * SCALE
+  return { types, gait: { walk: stride('jalan') * 1.15, sprint: stride('lari') * 1.35 } }
 }
 
 // --- jaringan jalan peronda: jalan + jalur kerajaan, ditambah keliling barisan di Pulau Wira
@@ -196,8 +218,8 @@ export function createSoldiers({ ground, colliders, nav, plan, spots, quality, s
   const group = new THREE.Group()
   group.name = 'prajurit-bertugas'
   const rows = []
-  const types = buildTypes(soldier, rows)
-  const bones = boneTexture(rows, 7)
+  const { types, gait } = buildTypes(soldier, rows)
+  const bones = boneTexture(rows, 14)
 
   // --- jaringan jalan & wilayah tugas tiap ruas
   const routes = patrolRoutes(plan, nav)
@@ -864,13 +886,13 @@ export function createSoldiers({ ground, colliders, nav, plan, spots, quality, s
     for (const a of agents) {
       if (a.state === 'hilang') continue
       if (a.state !== 'roboh' && !a.atk && !a.climb && !a.ride?.hop && a.clip !== 'stop' && a.clip !== 'yes')
-        if (a.swim) setClip(a, 'walk') // menendang air, senjata tetap di tangan
+        if (a.swim) setClip(a, 'swim') // mengapung & mengayuh, senjata tetap di tangan
         else if (a.moved > 2.4) setClip(a, 'sprint')
         else if (a.moved > 0.05) setClip(a, 'walk')
         else setClip(a, 'idle')
       else if ((a.clip === 'stop' || a.clip === 'yes') && clipDone(a)) setClip(a, 'idle')
-      a.animSpeed = a.swim && a.clip === 'walk' ? 0.55 + 0.2 * Math.min(1, a.moved / SWIM.speed)
-        : a.clip === 'walk' ? a.moved / WALK_ANIM : a.clip === 'sprint' ? a.moved / RUN_ANIM : 1
+      a.animSpeed = a.clip === 'swim' ? 0.8 + 0.6 * Math.min(1, a.moved / SWIM.speed)
+        : a.clip === 'walk' ? a.moved / gait.walk : a.clip === 'sprint' ? Math.max(1.6, a.moved / gait.sprint) : 1
       a.t += dt * a.animSpeed
       if (a.fade > 0) {
         a.fade = Math.max(0, a.fade - dt)

@@ -3,12 +3,14 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js'
 import { ISLAND } from '../world/island.js'
 import { insideWorld } from '../world/world.js'
 import { ATTACK_CLIPS, createCombat } from './combat.js'
-import { buatRupa, splitData, skinnedFrom, paletteTexture, HAND, droopDir, armDir, pedangGeo, geoWarna } from '../tokoh/rupa.js'
-import { skeletonOf } from '../world/kencana/rig.js'
+import { buatRupa, splitData, skinnedFrom, paletteTexture, droopDir, armDir, pedangGeo, geoWarna } from '../tokoh/rupa.js'
+import { artikulasi, buatGerak, genggam, siku, sudutSiku, TUNGKAI } from '../tokoh/gerak.js'
+import { skeletonOf, TULANG_SENDI } from '../world/kencana/rig.js'
 
-// Karakter pemain: pendekar berzirah ringan bersyal merah (tokoh/rupa.js) di atas rangka & animasi
-// Kenney "Mini Arena" (CC0): idle / walk / sprint / jump / fall + animasi serang (tebasan, tinju,
-// tendangan — lihat combat.js).
+// Karakter pemain: pendekar berzirah ringan bersyal merah (tokoh/rupa.js) di atas rangka Kenney
+// "Mini Arena" (CC0) yang diberi sendi lutut, pergelangan kaki, pinggang, dan siku (tokoh/gerak.js):
+// diam / jalan / lari / renang gaya bebas / mengapung dengan gerak mirip manusia, lompat / jatuh /
+// duduk + animasi serang (tebasan, tinju, tendangan — lihat combat.js) dari klip Kenney.
 // Bergerak dengan joystick / keyboard (relatif kamera) atau mengikuti jalur ke kios yang diketuk,
 // dengan fisika sederhana: gravitasi, lompat, batas kemiringan lereng, tabrakan batang pohon, batu &
 // dinding bangunan, berpijak di tanah atau lantai bangunan (jembatan, dermaga, batur —
@@ -45,10 +47,9 @@ const SWIM_DEPTH = 1.15
 const SWIM_EXIT = 0.95
 const SWIM_SPEED = 2.4 // m/s (joystick penuh)
 const SWIM_ACCEL = 5
-// titik kaki di bawah permukaan air: mengapung tegak (kepala di atas air) / berenang maju (badan
-// mendatar, dimiringkan SWIM_TILT radian ke depan)
-const SWIM_SINK = { tegak: 1.02, maju: 0.32 }
-const SWIM_TILT = 1.25
+// titik letak pemain di bawah permukaan air: mengapung tegak (air setinggi leher) / gaya bebas (badan
+// mendatar di sekitar dada — klip 'renang' — punggung di permukaan)
+const SWIM_SINK = { tegak: 0.82, maju: 0.63 }
 const WORLD_MARGIN = 30 // m dari tepi dunia (data laut & pantai berakhir di sana)
 export const MAX_HP = 100
 const REGEN = { delay: 6, rate: 5 } // pulih 5 nyawa/detik setelah 6 detik tidak terkena
@@ -59,19 +60,20 @@ const smooth = (a, b, x) => {
 }
 const wrap = a => Math.atan2(Math.sin(a), Math.cos(a))
 
-// Pedang di tangan kanan, dalam ruang lokal tulang lengan kanan (satuan model asli).
-// hand = tengah genggaman (rupa.js); blade = arah bilah: ke depan dan sedikit searah lengan (ikut
-// juntaian lengan), jadi saat lengan turun bilah menunjuk ke depan-bawah.
-const WEAPON_GRIP = { hand: HAND[5].toArray(), blade: droopDir(5, new THREE.Vector3(-0.45, 0, 0.9)).toArray() }
+// Pedang di tangan kanan: arah bilah dalam ruang tulang lengan (Kenney, tanpa tekukan siku) — ke depan
+// dan sedikit searah lengan (ikut juntaian lengan), jadi saat lengan turun bilah menunjuk ke
+// depan-bawah. Pada rangka bersendi pedang ikut tulang siku; bilahnya sama selama siku lurus
+// (animasi serang Kenney), tekukan siku (jalan, lari) sebagian dikembalikan (orientSword).
+const BLADE = droopDir(5, new THREE.Vector3(-0.45, 0, 0.9)).normalize()
 
-// Pasang pedang pada tulang lengan kanan: ikut setiap animasi (ayunan lengan saat jalan/lari).
+// Pasang pedang di genggaman kanan: ikut setiap animasi (ayunan lengan saat jalan/lari).
 function attachSword(model, material) {
   const weapon = new THREE.Mesh(geoWarna(pedangGeo()), material)
   weapon.name = 'weapon-sword' // nama lama (pedang Kenney) — dicari smoke test
-  const blade = new THREE.Vector3().fromArray(WEAPON_GRIP.blade).normalize()
-  weapon.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), blade)
-  weapon.position.fromArray(WEAPON_GRIP.hand)
-  model.getObjectByName('arm-right')?.add(weapon)
+  weapon.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), BLADE)
+  const grip = genggam(model, 5)
+  weapon.position.copy(grip.at)
+  grip.bone?.add(weapon)
   // diputar saat jurus Hentak (pedang menghadap ke bawah). Tidak "enumerable": Object3D.clone
   // menyalin userData lewat JSON, dan menyalin pedang ke JSON itu lambat
   Object.defineProperty(model.userData, 'sword', { value: weapon, enumerable: false })
@@ -79,9 +81,9 @@ function attachSword(model, material) {
 
 // Pasang badan rupa pada rangka file (models/*.glb hanya berisi rangka + animasi Kenney): dua mesh
 // seperti aslinya, badan & kepala — kepala orc bisa terlepas saat jurus Penggal.
-function addBody(model, rupa, material) {
+function addBody(model, rupa, material, sendi) {
   const skeleton = skeletonOf(model)
-  const data = buatRupa(rupa)
+  const data = buatRupa(rupa, 0, { sendi })
   const body = skinnedFrom(splitData(data, b => b !== 6), skeleton, material)
   const head = skinnedFrom(splitData(data, b => b === 6), skeleton, material)
   body.name = 'body-mesh'
@@ -91,14 +93,25 @@ function addBody(model, rupa, material) {
 
 // source: URL file .glb (rangka & animasi Kenney), atau isi file-nya (ArrayBuffer) — yang kedua dipakai
 // halaman pratinjau yang tidak bisa menyajikan file .glb. rupa = nama rupa badan (tokoh/rupa.js);
-// pedang = pasang pedang di tangan kanan.
-export async function loadPlayerModel(source, quality, { rupa = 'pemain', pedang = false } = {}) {
+// pedang = pasang pedang di tangan kanan; sendi = rangka bersendi + gerak mirip manusia
+// (tokoh/gerak.js: klip 'diam', 'jalan', 'lari', 'renang', 'apung' ditambahkan ke klip Kenney).
+// Hasil `rig` = rangka & klip Kenney apa adanya (tanpa sendi & badan) untuk tokoh lain yang
+// memanggang rangka ini (prajurit, bala tentara).
+export async function loadPlayerModel(source, quality, { rupa = 'pemain', pedang = false, sendi = false } = {}) {
   const loader = new GLTFLoader()
   const gltf = await (typeof source === 'string' ? loader.loadAsync(source) : loader.parseAsync(source, ''))
   const model = gltf.scene
+  let rig = { model, clips: gltf.animations }
+  let clips = gltf.animations
+  if (sendi) {
+    rig = { model: model.clone(), clips: gltf.animations }
+    rig.model.scale.setScalar(MODEL_SCALE)
+    artikulasi(model)
+    clips = [...clips, ...buatGerak(model, { pedang })]
+  }
   // Lambert + palet karakter: sama dengan dunia (ringan, warnanya senada)
   const material = new THREE.MeshLambertMaterial({ map: paletteTexture() })
-  addBody(model, rupa, material)
+  addBody(model, rupa, material, sendi)
   model.scale.setScalar(MODEL_SCALE)
   if (pedang) attachSword(model, material)
 
@@ -108,7 +121,7 @@ export async function loadPlayerModel(source, quality, { rupa = 'pemain', pedang
     o.receiveShadow = quality.shadows
     o.frustumCulled = false // batas skinned mesh tidak ikut animasi
   })
-  return { model, clips: gltf.animations }
+  return { model, clips, rig }
 }
 
 // karakter sederhana bila model gagal dimuat (mis. koneksi putus)
@@ -132,9 +145,10 @@ export function createPlayer({ ground, colliders, quality, asset }) {
   root.add(model)
 
   // --- animasi. Klip-klip dicampur dengan bobot yang bergerak halus menuju sasarannya (lapisan yang
-  // bertukar), jadi tidak ada peralihan yang patah. Lapisan GERAK = campuran diam / jalan / lari
-  // menurut kecepatan, dan jalan & lari berbagi satu fase langkah: saat laju berubah, kaki tidak
-  // meloncat dari satu klip ke klip lain.
+  // bertukar), jadi tidak ada peralihan yang patah. Dua lapisan gabungan: GERAK = campuran diam /
+  // jalan / lari menurut kecepatan (jalan & lari berbagi satu fase langkah, jadi saat laju berubah
+  // kaki tidak meloncat dari satu klip ke klip lain), dan RENANG = mengapung tegak / gaya bebas
+  // menurut laju berenang. Klip gerak itu dari tokoh/gerak.js (rangka bersendi), sisanya klip Kenney.
   const mixer = asset ? new THREE.AnimationMixer(model) : null
   const actions = {}
   // lompat & serangan diputar sekali lalu berhenti di pose akhir sampai berganti animasi
@@ -142,7 +156,7 @@ export function createPlayer({ ground, colliders, quality, asset }) {
   // (interact-right), mengangkat ikan (emote-yes)
   const once = ['jump', 'die', 'interact-right', 'emote-yes', 'pick-up', ...ATTACK_CLIPS]
   if (mixer)
-    for (const name of ['idle', 'walk', 'sprint', 'fall', 'sit', 'drive', 'holding-right', ...once]) {
+    for (const name of ['diam', 'jalan', 'lari', 'renang', 'apung', 'fall', 'sit', 'drive', 'holding-right', ...once]) {
       const clip = THREE.AnimationClip.findByName(asset.clips, name)
       if (!clip) continue
       const a = mixer.clipAction(clip)
@@ -153,15 +167,20 @@ export function createPlayer({ ground, colliders, quality, asset }) {
       actions[name] = a
     }
   const GERAK = 'gerak'
-  const LOCO = { idle: 1, walk: 0, sprint: 0 } // bobot di dalam lapisan gerak
+  const RENANG = 'berenang'
+  const LOCO = { diam: 1, jalan: 0, lari: 0 } // bobot di dalam lapisan gerak
+  const SWIM = { apung: 1, renang: 0 } // ... di dalam lapisan berenang
+  const MIX = { [GERAK]: LOCO, [RENANG]: SWIM }
   const layers = [] // [{ key, w }]: yang terakhir = tujuan peralihan
   let fadeRate = 1 / 0.15 // per detik
   let mainKey = null
-  let current = null // aksi lapisan tujuan (null = lapisan gerak)
+  let current = null // aksi lapisan tujuan (null = lapisan gabungan)
   let gait = 0 // fase langkah bersama jalan & lari (0..1)
-  // berganti ke klip `name` (atau GERAK) dalam `fade` detik
+  let stroke = 0 // fase kayuhan gaya bebas
+  let tread = 0 // fase kayuhan mengapung
+  // berganti ke klip `name` (atau lapisan gabungan) dalam `fade` detik
   function play(name, fade = 0.15) {
-    if (name === mainKey || (name !== GERAK && !actions[name])) return
+    if (name === mainKey || (!MIX[name] && !actions[name])) return
     mainKey = name
     fadeRate = 1 / Math.max(0.02, fade)
     let layer = layers.find(l => l.key === name)
@@ -174,9 +193,20 @@ export function createPlayer({ ground, colliders, quality, asset }) {
       current.timeScale = 1
     }
   }
+  // panjang langkah alami (m per putaran) klip jalan & lari
+  const strideOf = (n, m) => (actions[n]?.getClip().userData?.langkah ?? m / MODEL_SCALE) * MODEL_SCALE
+  const STRIDE = { jalan: strideOf('jalan', 0.65), lari: strideOf('lari', 1.3) }
   const want = {}
-  // bobot lapisan → bobot tiap aksi; hs = kecepatan datar (m/s) untuk campuran gerak
-  function blend(dt, hs) {
+  // putar klip `n` pada fase `ph` (0..1) — waktunya diatur di sini, bukan oleh mixer
+  const atPhase = (n, ph) => {
+    const a = actions[n]
+    if (!a || mainKey === n) return
+    a.timeScale = 0
+    a.time = ph * a.getClip().duration
+  }
+  // bobot lapisan → bobot tiap aksi; hs = kecepatan datar (m/s) untuk campuran gerak / berenang,
+  // swim = sikap berenang (0 = mengapung tegak, 1 = gaya bebas)
+  function blend(dt, hs, swim = 0) {
     if (!mixer || !layers.length) return
     const top = layers[layers.length - 1]
     top.w = Math.min(1, top.w + dt * fadeRate)
@@ -187,20 +217,26 @@ export function createPlayer({ ground, colliders, quality, asset }) {
       layers[i].w *= k
       if (layers[i].w < 0.002) layers.splice(i, 1)
     }
-    // diam → jalan (0,12–0,85 m/s) → lari (2,7–4,3 m/s); satu putaran langkah (dua langkah) ±0,93 m
-    // saat berjalan, ±1,8 m saat berlari
+    // diam → jalan (0,12–0,85 m/s) → lari (2,7–4,3 m/s). Irama langkah mengikuti panjang langkah
+    // alami klip (telapak tumpuan tidak meluncur) — kaki tokoh pendek, jadi pada laju tinggi langkah
+    // dibiarkan sedikit lebih panjang dari alaminya (sampai 1,35 ×) supaya kaki tidak berputar terlalu
+    // cepat: ±2,3 putaran (4,6 langkah) per detik saat berjalan 2 m/s, ±3,2 saat berlari 5,6 m/s
     const move = smooth(0.12, 0.85, hs)
     const run = smooth(2.7, 4.3, hs)
-    LOCO.idle = 1 - move
-    LOCO.walk = move * (1 - run)
-    LOCO.sprint = move * run
-    gait = (gait + dt * THREE.MathUtils.clamp(hs / (0.93 + 0.87 * run), 0.9, 3.3)) % 1
+    LOCO.diam = 1 - move
+    LOCO.jalan = move * (1 - run)
+    LOCO.lari = move * run
+    const stride = (STRIDE.jalan + (STRIDE.lari - STRIDE.jalan) * run) * (1 + 0.35 * smooth(0.8, RUN_SPEED, hs))
+    gait = (gait + dt * THREE.MathUtils.clamp(hs / stride, 0.7, 3.4)) % 1
+    // berenang: makin cepat makin mendatar (gaya bebas); kayuhan ±0,55–1,1 putaran per detik
+    SWIM.renang = swim
+    SWIM.apung = 1 - swim
+    stroke = (stroke + dt * (0.55 + 0.23 * hs)) % 1
+    tread = (tread + dt / 1.6) % 1
     for (const n in actions) want[n] = 0
-    let loco = 0
     for (const l of layers)
-      if (l.key === GERAK) {
-        loco += l.w
-        for (const n in LOCO) if (n in want) want[n] += l.w * LOCO[n]
+      if (MIX[l.key]) {
+        for (const n in MIX[l.key]) if (n in want) want[n] += l.w * MIX[l.key][n]
       } else want[l.key] += l.w
     for (const n in actions) {
       const a = actions[n]
@@ -209,15 +245,10 @@ export function createPlayer({ ground, colliders, quality, asset }) {
         a.setEffectiveWeight(want[n])
       } else if (a.isScheduled()) a.stop()
     }
-    // jalan & lari di lapisan gerak: waktu klip mengikuti fase langkah bersama (berenang memakai
-    // klip jalan / lari sendiri dengan lajunya sendiri)
-    if (loco > 0)
-      for (const n of ['walk', 'sprint']) {
-        const a = actions[n]
-        if (!a || mainKey === n) continue
-        a.timeScale = 0
-        a.time = gait * a.getClip().duration
-      }
+    atPhase('jalan', gait)
+    atPhase('lari', gait)
+    atPhase('renang', stroke)
+    atPhase('apung', tread)
   }
   play(GERAK, 0)
 
@@ -366,10 +397,11 @@ export function createPlayer({ ground, colliders, quality, asset }) {
     }
   }
 
-  // pedang dibalik: orientasi dunia yang diinginkan diubah ke ruang tulang lengan kanan
+  // pedang dibalik: orientasi dunia yang diinginkan diubah ke ruang tulang genggaman kanan (siku)
   const sword = model.userData.sword || null
   const swordRest = sword ? sword.quaternion.clone() : null
-  const arm = model.getObjectByName('arm-right')
+  const grip = asset ? genggam(model, 5) : { bone: null, at: new THREE.Vector3() }
+  const arm = grip.bone
   let swordDown = false
   const qArm = new THREE.Quaternion()
   const qWant = new THREE.Quaternion()
@@ -378,7 +410,9 @@ export function createPlayer({ ground, colliders, quality, asset }) {
   function orientSword() {
     if (!sword) return
     if (!swordDown) {
-      sword.quaternion.copy(swordRest)
+      // siku yang menekuk (jalan, lari) ikut mengangkat bilah: sebagian dikembalikan supaya bilah
+      // tetap condong ke depan-bawah, tidak teracung saat berlari
+      sword.quaternion.copy(siku(5, -0.6 * sudutSiku(5, arm.quaternion), qWant)).multiply(swordRest)
       return
     }
     arm.getWorldQuaternion(qArm)
@@ -403,7 +437,7 @@ export function createPlayer({ ground, colliders, quality, asset }) {
     rodTip = new THREE.Object3D()
     rodTip.position.set(0, 1.9 * k, 0)
     rod.add(stick, reel, rodTip)
-    rod.position.fromArray(WEAPON_GRIP.hand)
+    rod.position.copy(grip.at)
     arm?.add(rod)
   }
   function orientRod() {
@@ -422,18 +456,18 @@ export function createPlayer({ ground, colliders, quality, asset }) {
   }
 
   // --- bentuk badan tiap frame (ditumpangkan di atas animasi):
-  // - berenang maju: dimiringkan mendatar dan digeser ke belakang supaya badan tetap di atas titik
-  //   letak pemain (mengapung tegak = pose biasa);
   // - condong ke depan saat menambah laju / berlari kencang, miring ke dalam tikungan;
-  // - tarik-tekan (pegas teredam): memanjang saat menolak untuk melompat, memendek saat mendarat;
-  // - direndahkan (kuda-kuda jurus Hentak).
+  // - pegas teredam saat menolak & mendarat: seperti kaki manusia — mendarat = lutut, pinggul, dan
+  //   pergelangan kaki menekuk meredam hentakan (pinggul turun) lalu meregang lagi; menolak = ujung
+  //   kaki menjinjit sesaat;
+  // - kuda-kuda jurus Hentak: lutut ditekuk dalam.
   let leanF = 0
   let leanS = 0
   let prevFwd = 0
   let prevHeading = 0
-  let sq = 0 // > 0 memanjang, < 0 memendek
+  let sq = 0 // > 0 menolak, < 0 meredam
   let sqV = 0
-  let crouchY = 0
+  let crouchY = 0 // m pinggul diturunkan (kuda-kuda)
   function shape(dt, hs, onFoot) {
     const fwd = vel.x * Math.sin(heading) + vel.z * Math.cos(heading)
     const acc = dt > 0 ? (fwd - prevFwd) / dt : 0
@@ -450,63 +484,82 @@ export function createPlayer({ ground, colliders, quality, asset }) {
       sqV += (-170 * sq - 15 * sqV) * h
       sq += sqV * h
     }
-    const s = THREE.MathUtils.clamp(sq, -0.2, 0.14)
-    const swim = swimming ? swimPose : 0
-    model.scale.set(MODEL_SCALE * (1 - 0.45 * s), MODEL_SCALE * (1 + s), MODEL_SCALE * (1 - 0.45 * s))
-    model.rotation.x = swim * SWIM_TILT + leanF
+    model.rotation.x = leanF
     model.rotation.z = leanS
-    model.position.z = -swim * 0.55
-    model.position.y = -crouchY
+    legSpring(THREE.MathUtils.clamp(sq, -0.2, 0.14))
   }
   // bentuk badan biasa (duduk di perahu, roboh)
   function neutralShape() {
     leanF = leanS = sq = sqV = 0
-    model.scale.setScalar(MODEL_SCALE)
     model.rotation.x = model.rotation.z = 0
-    model.position.z = 0
-    model.position.y = -crouchY
+    model.position.y = 0
   }
 
-  // tulang yang digerakkan sendiri saat memanjat. Sebelum mixer.update tulang-tulang ini dikembalikan
-  // ke pose bind, jadi klip yang tidak menggerakkannya (mis. kaki pada klip diam) tidak mewarisi
-  // pose panjat
-  const BONE_NAMES = ['torso', 'arm-left', 'arm-right', 'leg-left', 'leg-right']
-  const bones = Object.fromEntries(BONE_NAMES.map(n => [n, model.getObjectByName(n)]))
+  // Tulang-tulang rangka bersendi. Ubahan sesudah mixer (memanjat, di udara, lutut meredam) dihapus
+  // lagi sebelum mixer.update berikutnya dengan memulihkan pose hasil mixer: mixer hanya menulis nilai
+  // yang BERUBAH sejak bingkai sebelumnya (pose yang tertahan — akhir lompatan, kuda-kuda, game dijeda
+  // — tidak ditulis ulang), jadi tulang tidak boleh dikembalikan ke pose bind. Tulang yang tidak lagi
+  // digerakkan klip mana pun dikembalikan mixer sendiri ke pose bind.
+  const bones = Object.fromEntries(TULANG_SENDI.map(n => [n, model.getObjectByName(n)]).filter(([, b]) => b))
+  const mixed = Object.fromEntries(Object.entries(bones).map(([n, b]) => [n, [b.position.clone(), b.quaternion.clone()]]))
+  function restorePose() {
+    for (const n in bones) {
+      bones[n].position.copy(mixed[n][0])
+      bones[n].quaternion.copy(mixed[n][1])
+    }
+  }
+  function savePose() {
+    for (const n in bones) {
+      mixed[n][0].copy(bones[n].position)
+      mixed[n][1].copy(bones[n].quaternion)
+    }
+  }
   const X = new THREE.Vector3(1, 0, 0)
   const toward = (j, x, y, z) => new THREE.Quaternion().setFromUnitVectors(armDir(j), new THREE.Vector3(x, y, z).normalize())
+  const rotX = a => new THREE.Quaternion().setFromAxisAngle(X, a)
   const CLIMB_Q = {
     up: { 4: toward(4, 0.3, 0.85, 0.45), 5: toward(5, -0.3, 0.85, 0.45) }, // meraih tepi
     push: { 4: toward(4, 0.32, -0.45, 0.85), 5: toward(5, -0.32, -0.45, 0.85) }, // menekan dek
-    lean: new THREE.Quaternion().setFromAxisAngle(X, 0.5),
-    knee: new THREE.Quaternion().setFromAxisAngle(X, -1.15),
-    back: new THREE.Quaternion().setFromAxisAngle(X, 0.35),
-  }
-  let overridden = false
-  function resetOverrides() {
-    if (!overridden) return
-    for (const n of BONE_NAMES) bones[n]?.quaternion.identity()
-    overridden = false
+    lean: rotX(0.5),
+    // kaki kanan melangkah naik (paha ke depan 66°, lutut 100°, telapak rata), kaki kiri menolak
+    knee: rotX(-1.15),
+    shin: rotX(1.75),
+    foot: rotX(-0.6),
+    back: rotX(0.35),
+    shinBack: rotX(0.55),
   }
   const qMix = new THREE.Quaternion()
+  const qAdd = new THREE.Quaternion()
   function overrideBone(name, q, w) {
     if (!bones[name] || w <= 0.001) return
     bones[name].quaternion.slerp(q, Math.min(1, w))
-    overridden = true
   }
-  // pose panjat pada saat u (0..1): lengan meraih ke atas → menekan dek, badan condong, satu lutut
-  // diangkat untuk melangkah naik
+  // tambahkan putaran sudut `a` pada sumbu X lokal tulang (di atas pose klip)
+  function bendBone(name, a) {
+    if (bones[name] && Math.abs(a) > 1e-4) bones[name].quaternion.multiply(qAdd.setFromAxisAngle(X, a))
+  }
+  // pose panjat pada saat u (0..1): lengan meraih ke atas, siku menekuk menarik badan, lalu menekan
+  // dek; badan condong, kaki kanan diangkat melangkah naik
   function climbPose(u) {
     const arms = smooth(0, 0.18, u) * (1 - smooth(0.8, 1, u))
     const push = smooth(0.4, 0.66, u)
-    for (const [j, name] of [[4, 'arm-left'], [5, 'arm-right']]) {
+    const pull = 0.25 + 1.35 * smooth(0.18, 0.4, u) * (1 - smooth(0.5, 0.72, u))
+    for (const j of [4, 5]) {
       qMix.copy(CLIMB_Q.up[j]).slerp(CLIMB_Q.push[j], push)
-      overrideBone(name, qMix, arms)
+      overrideBone(j === 4 ? 'arm-left' : 'arm-right', qMix, arms)
+      overrideBone(j === 4 ? 'forearm-left' : 'forearm-right', siku(j, pull, qMix), arms)
     }
     overrideBone('torso', CLIMB_Q.lean, smooth(0.3, 0.55, u) * (1 - smooth(0.75, 1, u)))
-    overrideBone('leg-right', CLIMB_Q.knee, smooth(0.45, 0.7, u) * (1 - smooth(0.86, 1, u)))
-    overrideBone('leg-left', CLIMB_Q.back, smooth(0, 0.3, u) * (1 - smooth(0.6, 0.9, u)))
+    const step = smooth(0.45, 0.7, u) * (1 - smooth(0.86, 1, u))
+    overrideBone('leg-right', CLIMB_Q.knee, step)
+    overrideBone('shin-right', CLIMB_Q.shin, step)
+    overrideBone('foot-right', CLIMB_Q.foot, step)
+    const back = smooth(0, 0.3, u) * (1 - smooth(0.6, 0.9, u))
+    overrideBone('leg-left', CLIMB_Q.back, back)
+    overrideBone('shin-left', CLIMB_Q.shinBack, back)
   }
-  // di udara: lengan berayun naik ke depan saat menolak, terbuka menjaga keseimbangan saat turun
+  // di udara: lengan berayun naik ke depan saat menolak, terbuka menjaga keseimbangan saat turun,
+  // siku sedikit menekuk; lutut ditarik ke atas saat naik & di puncak, diluruskan menjelang mendarat
   // (klip lompat Kenney hanya merentangkan lengan lurus ke samping)
   // (lengan kanan berpedang berayun lebih sedikit: bilahnya tetap condong ke bawah)
   const AIR_Q = {
@@ -518,10 +571,33 @@ export function createPlayer({ ground, colliders, quality, asset }) {
     airW += ((on ? 0.8 : 0) - airW) * (1 - Math.exp(-(on ? 10 : 14) * dt))
     if (airW < 0.01) return
     const rise = smooth(-2.5, 3.5, vel.y)
-    for (const [j, name] of [[4, 'arm-left'], [5, 'arm-right']]) {
+    for (const j of [4, 5]) {
       qMix.copy(AIR_Q.fall[j]).slerp(AIR_Q.rise[j], rise)
-      overrideBone(name, qMix, airW)
+      overrideBone(j === 4 ? 'arm-left' : 'arm-right', qMix, airW)
+      overrideBone(j === 4 ? 'forearm-left' : 'forearm-right', siku(j, j === 5 ? 0.25 : 0.45, qMix), airW)
     }
+    const tuck = airW * smooth(-4.5, -1, vel.y)
+    for (const k of ['left', 'right']) {
+      bendBone(`leg-${k}`, -0.45 * tuck)
+      bendBone(`shin-${k}`, 0.95 * tuck)
+      bendBone(`foot-${k}`, 0.35 * tuck)
+    }
+  }
+  // lutut menekuk sudut a (paha a ke depan, lutut 2a, pergelangan a → telapak tetap rata) dan pinggul
+  // turun sebanyak itu; pegas: s < 0 meredam (mendarat), s > 0 menjinjit (menolak); kuda-kuda
+  // Hentak: pinggul turun crouchY m — selebihnya dari tekukan terdalam, badan diturunkan
+  function legSpring(s) {
+    const drop = Math.max(0, -s) * 0.09 + crouchY / MODEL_SCALE
+    const a = Math.acos(1 - Math.min(drop, TUNGKAI * 0.45) / TUNGKAI)
+    if (a > 1e-3)
+      for (const k of ['left', 'right']) {
+        bendBone(`leg-${k}`, -a)
+        bendBone(`shin-${k}`, 2 * a)
+        bendBone(`foot-${k}`, -a)
+      }
+    if (bones.root) bones.root.position.y -= TUNGKAI * (1 - Math.cos(a))
+    if (s > 0) for (const k of ['left', 'right']) bendBone(`foot-${k}`, 2.4 * s)
+    model.position.y = -Math.max(0, drop - TUNGKAI * 0.45) * MODEL_SCALE
   }
   // pedang (dan perlengkapan lain di badan) disembunyikan saat berenang, di perahu, atau memegang
   // pancing
@@ -583,10 +659,9 @@ export function createPlayer({ ground, colliders, quality, asset }) {
     swordDown(on) {
       swordDown = on
     },
-    // badan direndahkan (kuda-kuda saat pedang tertancap)
+    // badan direndahkan `amount` m (kuda-kuda saat pedang tertancap): lutut menekuk
     crouch(amount) {
       crouchY = amount
-      model.position.y = -amount
     },
     stopWalking() {
       path.length = 0
@@ -829,9 +904,10 @@ export function createPlayer({ ground, colliders, quality, asset }) {
 
   // animasi + bentuk badan + barang di tangan + bayangan bulat; climbU = saat panjat (0..1) atau −1
   function animate(dt, hs, climbU = -1) {
-    resetOverrides()
-    blend(dt, hs)
+    restorePose()
+    blend(dt, hs, swimming ? swimPose : 0)
     mixer?.update(dt)
+    savePose()
     if (climbU >= 0) climbPose(climbU)
     airPose(dt, climbU < 0 && !grounded && !swimming && !combat.busy && !pose && (mainKey === 'jump' || mainKey === 'fall'))
     shape(dt, hs, grounded && !swimming && climbU < 0 && !combat.busy)
@@ -930,6 +1006,12 @@ export function createPlayer({ ground, colliders, quality, asset }) {
     },
     get attacking() {
       return combat.busy
+    },
+    // pengujian: lapisan animasi & bobot klip yang sedang diputar
+    get anim() {
+      const w = {}
+      for (const n in actions) if (actions[n].isScheduled()) w[n] = +actions[n].getEffectiveWeight().toFixed(2)
+      return { main: mainKey, layers: layers.map(l => `${l.key}:${l.w.toFixed(2)}`), w }
     },
     get hp() {
       return hp
@@ -1043,9 +1125,10 @@ export function createPlayer({ ground, colliders, quality, asset }) {
         climb = null
         climbable = null
         neutralShape()
-        resetOverrides()
+        restorePose()
         blend(dt, 0)
         mixer?.update(dt)
+        savePose()
         return
       }
       if (hp < MAX_HP && (calmT += dt) > REGEN.delay) hp = Math.min(MAX_HP, hp + REGEN.rate * dt)
@@ -1060,9 +1143,10 @@ export function createPlayer({ ground, colliders, quality, asset }) {
         climbable = null
         neutralShape()
         if ((gestureT -= dt) <= 0) play(pose || (r.moving ? 'drive' : 'sit'), 0.25)
-        resetOverrides()
+        restorePose()
         blend(dt, 0)
         mixer?.update(dt)
+        savePose()
         orientRod()
         showGear(false)
         if (blob) blob.visible = false
@@ -1130,20 +1214,17 @@ export function createPlayer({ ground, colliders, quality, asset }) {
         lastSafeHeading = heading
       }
 
-      // animasi menurut keadaan (animasi serangan dibiarkan selesai dulu). Berenang: klip lari
-      // dengan badan mendatar (gaya bebas) / klip jalan pelan dengan badan tegak (mengapung). Di
-      // darat: lapisan gerak (campuran diam / jalan / lari menurut kecepatan); di udara: lompat
-      // selama naik, jatuh saat turun
+      // animasi menurut keadaan (animasi serangan dibiarkan selesai dulu). Berenang: lapisan berenang
+      // (mengapung tegak ↔ gaya bebas menurut laju). Di darat: lapisan gerak (campuran diam / jalan /
+      // lari menurut kecepatan); di udara: lompat selama naik, jatuh saat turun
       const hs = Math.hypot(vel.x, vel.z)
-      if (swimming) play(swimPose > 0.45 ? 'sprint' : 'walk', 0.3)
+      if (swimming) play(RENANG, 0.3)
       else if ((gestureT -= dt) > 0) {
         // gerakan sekali sedang diputar
       } else if (pose && !combat.busy) play(pose, 0.2)
       else if (!combat.busy && grounded) play(GERAK, mainKey === 'jump' || mainKey === 'fall' ? 0.1 : 0.2)
       else if (!combat.busy && airTime > 0.12) play(vel.y > 0 && mainKey === 'jump' ? 'jump' : 'fall', mainKey === 'jump' ? 0.25 : 0.15)
-      if (swimming && actions.walk) actions.walk.timeScale = 0.55
-      if (swimming && actions.sprint) actions.sprint.timeScale = 0.75
-      animate(dt, swimming ? 0 : hs)
+      animate(dt, hs)
     },
   }
 }

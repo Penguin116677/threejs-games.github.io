@@ -236,7 +236,7 @@ async function start() {
   const modelUrl = name => new URL(`models/${name}`, document.baseURI).href
   let asset = null
   try {
-    asset = await loadPlayerModel(modelUrl('prajurit.glb'), quality, { rupa: 'pemain', pedang: true })
+    asset = await loadPlayerModel(modelUrl('prajurit.glb'), quality, { rupa: 'pemain', pedang: true, sendi: true })
   } catch (err) {
     console.warn('Model karakter gagal dimuat:', err)
   }
@@ -253,7 +253,7 @@ async function start() {
   let soldiers = null
   if (asset)
     try {
-      soldiers = createSoldiers({ ground, colliders, nav, plan, spots: kencana.spots, quality, soldier: asset })
+      soldiers = createSoldiers({ ground, colliders, nav, plan, spots: kencana.spots, quality, soldier: asset.rig })
       scene.add(soldiers.object)
     } catch (err) {
       console.warn('Prajurit penjaga gagal dibuat:', err)
@@ -268,7 +268,7 @@ async function start() {
   try {
     rigGltf = await new GLTFLoader().loadAsync(modelUrl('elf.glb'))
     const spots = soldiers ? kencana.spots.filter(s => s.role !== 'penjaga') : kencana.spots
-    villagers = createVillagers({ ground, routes: kencana.routes, spots, quality, rigGltf, soldier: soldiers ? null : asset, scripted: soldiers ? 2 : 0 })
+    villagers = createVillagers({ ground, routes: kencana.routes, spots, quality, rigGltf, soldier: soldiers || !asset ? null : asset.rig, scripted: soldiers ? 2 : 0 })
     scene.add(villagers.object)
   } catch (err) {
     console.warn('Penduduk gagal dimuat:', err)
@@ -293,7 +293,7 @@ async function start() {
   let army = null
   if (asset)
     try {
-      army = createArmy({ ground, plan, quality, soldier: asset, renderer, env })
+      army = createArmy({ ground, plan, quality, soldier: asset.rig, renderer, env })
       scene.add(army.object)
     } catch (err) {
       console.warn('Bala tentara gagal dimuat:', err)
@@ -306,7 +306,7 @@ async function start() {
   player.placeAt(spawn.x, spawn.z, spawn.heading)
   // tas pemain (koin, bekal, ramuan, perlengkapan) + perlengkapan yang tampak di badan
   const bag = createBag()
-  const gear = asset ? createGear(asset.model, quality) : null
+  const gear = asset ? createGear(asset.model, quality, asset.clips) : null
   const applyGear = () => {
     const fx = bag.effect()
     player.setDefense(fx.tahan)

@@ -1,15 +1,18 @@
 import * as THREE from 'three'
 import { ellipsoid, lathe, band, v3 } from '../tokoh/bentuk.js'
-import { HAND, KEPALA, armDir } from '../tokoh/rupa.js'
+import { KEPALA, armDir, TITIK_SENDI } from '../tokoh/rupa.js'
+import { genggam, arahLokal } from '../tokoh/gerak.js'
 
 // Perlengkapan yang dibeli di Tempa Aeloria tampak di badan pemain: perisai di tangan kiri, tombak
 // (pedang disimpan) atau pedang perak di tangan kanan, zirah (pelat dada + pelindung bahu), helm elf
 // (lingkar dahi bermata hijau + sayap perak). Bentuk-bentuk ditempel pada tulang rangka pemain, jadi
 // ikut setiap animasi. Satuan = satuan model asli (model diskala 2,3 × oleh pemain); badan pemain:
-// tokoh/rupa.js (kepala berpusat di KEPALA, genggaman tangan di HAND).
+// tokoh/rupa.js (kepala berpusat di KEPALA), barang di tangan pada genggaman (tokoh/gerak.js — tulang
+// siku pada rangka bersendi, jadi ikut tekukan siku).
 // Titik asal tiap tulang saat bind:
 const ORIGIN = {
   torso: [0, 0.17625, -0.02375],
+  spine: TITIK_SENDI[11].toArray(),
   'arm-left': [0.0999, 0.28775, -0.01225],
   'arm-right': [-0.0999, 0.28775, -0.01225],
   head: [0, 0.34325, 0.00264],
@@ -23,9 +26,12 @@ const BADAN_Z = -0.02
 // geometri dalam ruang MODEL → ruang tulang `bone`
 const toBone = (bone, g) => g.translate(-ORIGIN[bone][0], -ORIGIN[bone][1], -ORIGIN[bone][2])
 
-export function createGear(model, quality) {
+export function createGear(model, quality, clips = []) {
   const bones = {}
   for (const name of Object.keys(ORIGIN)) bones[name] = model.getObjectByName(name)
+  // zirah dada ikut dada (tulang pinggang, berputar sendiri dari panggul) bila ada
+  const chest = bones.spine ? 'spine' : 'torso'
+  const grip = { 4: genggam(model, 4), 5: genggam(model, 5) }
   const sword = model.userData.sword || null
   const swordMats = []
   sword?.traverse(o => {
@@ -38,34 +44,38 @@ export function createGear(model, quality) {
   }
   const parts = {} // id barang → [Mesh…] (dibuat saat pertama dipakai)
 
+  // bone = nama tulang atau tulangnya sendiri
   function mesh(bone, geo, color) {
     const m = new THREE.Mesh(geo, mat(color))
     m.castShadow = quality.shadows
     m.visible = false
-    bones[bone]?.add(m)
+    const parent = typeof bone === 'string' ? bones[bone] : bone
+    parent?.add(m)
     return m
   }
 
-  // perisai bundar di genggaman kiri, menghadap ke depan (ruang tulang lengan kiri)
-  const shieldAt = g => g.rotateX(Math.PI / 2).translate(HAND[4].x - 0.004, HAND[4].y, HAND[4].z + 0.05)
+  // perisai bundar di genggaman kiri, menghadap ke depan (ruang tulang genggaman kiri)
+  const left = grip[4].at
+  const shieldAt = g => g.rotateX(Math.PI / 2).translate(left.x - 0.004, left.y, left.z + 0.05)
   const BUILD = {
     perisaiDaun: () => [
-      mesh('arm-left', shieldAt(new THREE.CylinderGeometry(0.11, 0.11, 0.018, 16)), C.kayu),
-      mesh('arm-left', shieldAt(new THREE.CylinderGeometry(0.097, 0.097, 0.022, 16)), C.daun),
-      mesh('arm-left', shieldAt(new THREE.CylinderGeometry(0.03, 0.03, 0.036, 10)), C.emas),
+      mesh(grip[4].bone, shieldAt(new THREE.CylinderGeometry(0.11, 0.11, 0.018, 16)), C.kayu),
+      mesh(grip[4].bone, shieldAt(new THREE.CylinderGeometry(0.097, 0.097, 0.022, 16)), C.daun),
+      mesh(grip[4].bone, shieldAt(new THREE.CylinderGeometry(0.03, 0.03, 0.036, 10)), C.emas),
     ],
     perisaiPerak: () => [
-      mesh('arm-left', shieldAt(new THREE.CylinderGeometry(0.122, 0.122, 0.02, 18)), C.emas),
-      mesh('arm-left', shieldAt(new THREE.CylinderGeometry(0.112, 0.112, 0.024, 18)), C.perak),
-      mesh('arm-left', new THREE.ConeGeometry(0.04, 0.13, 4).rotateY(Math.PI / 4).scale(1, 1, 0.25).translate(HAND[4].x - 0.004, HAND[4].y, HAND[4].z + 0.066), C.daun),
+      mesh(grip[4].bone, shieldAt(new THREE.CylinderGeometry(0.122, 0.122, 0.02, 18)), C.emas),
+      mesh(grip[4].bone, shieldAt(new THREE.CylinderGeometry(0.112, 0.112, 0.024, 18)), C.perak),
+      mesh(grip[4].bone, new THREE.ConeGeometry(0.04, 0.13, 4).rotateY(Math.PI / 4).scale(1, 1, 0.25).translate(left.x - 0.004, left.y, left.z + 0.066), C.daun),
     ],
-    // tombak panjang di genggaman kanan: saat berdiri (lengan idle turun 45°) tegak, sedikit condong
-    // ke depan; saat menyerang ikut ayunan lengan
+    // tombak panjang di genggaman kanan: saat berdiri diam tegak, sedikit condong ke depan; saat
+    // berjalan & menyerang ikut ayunan lengan
     tombakElf: () => {
       const g = new THREE.Group()
-      const dir = new THREE.Vector3(0.621, 0.729, 0.287).normalize()
+      const idle = THREE.AnimationClip.findByName(clips, 'diam')
+      const dir = idle ? arahLokal(model, idle, grip[5].bone, new THREE.Vector3(-0.06, 0.96, 0.27)) : new THREE.Vector3(0.621, 0.729, 0.287).normalize()
       g.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), dir)
-      g.position.copy(HAND[5])
+      g.position.copy(grip[5].at)
       const add = (geo, color) => {
         const m = new THREE.Mesh(geo, mat(color))
         m.castShadow = quality.shadows
@@ -75,7 +85,7 @@ export function createGear(model, quality) {
       add(new THREE.ConeGeometry(0.032, 0.13, 4).translate(0, 0.84, 0), C.perak)
       add(new THREE.CylinderGeometry(0.018, 0.018, 0.025, 6).translate(0, 0.765, 0), C.emas)
       g.visible = false
-      bones['arm-right']?.add(g)
+      grip[5].bone?.add(g)
       return [g]
     },
     // zirah: pelat dada + pelindung bahu kiri-kanan (+ lis emas pada zirah perak), di atas zirah
@@ -92,7 +102,7 @@ export function createGear(model, quality) {
   }
   function zirah(main, dark, trim) {
     const list = [
-      mesh('torso', toBone('torso', lathe([[0.094, 0.19], [0.096, 0.235], [0.109, 0.274], [0.111, 0.3], [0.094, 0.325], [0.05, 0.341]], 12, 1, 0.8).translate(0, 0, BADAN_Z)), main),
+      mesh(chest, toBone(chest, lathe([[0.094, 0.19], [0.096, 0.235], [0.109, 0.274], [0.111, 0.3], [0.094, 0.325], [0.05, 0.341]], 12, 1, 0.8).translate(0, 0, BADAN_Z)), main),
       mesh('torso', toBone('torso', band(0, 0.2, BADAN_Z, 0.098, 0.026, 12, 0.81)), trim || dark),
     ]
     for (const [bone, j] of [['arm-left', 4], ['arm-right', 5]]) {
