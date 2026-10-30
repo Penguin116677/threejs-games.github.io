@@ -28,7 +28,10 @@ import { zoneAt } from './wilayah.js'
 const SCALE = 2.3 // sama dengan prajurit pemain
 const RADIUS = 0.35
 const FADE = 0.2 // detik peralihan antar animasi
-const SPEED = { ronda: 1.15, kembali: 1.6, dekati: 2.6, kejar: 5.2 } // m/s; pemain berlari 5,6
+const SPEED = { ronda: 1.15, kembali: 1.6, dekati: 2.6, kejar: 5.2, susul: 5.9 } // m/s; pemain berlari 5,6
+// anak buah pemain (rekrut.js): barisan dua-dua di belakang pemain (m ke samping, jarak baris
+// pertama & antar-baris); musuh pemain sejauh `fight` m dari pemain dilawan
+const FOLLOW = { side: 0.8, back: 1.7, row: 1.1, fight: 14 }
 const DOWN_TIME = 9 // detik terbaring setelah roboh
 const SINK_TIME = 1
 const RESPAWN = 30 // detik menghilang sebelum kembali bertugas
@@ -106,6 +109,7 @@ function specsFor(weapon) {
     attack: { clip: 'attack-melee-right', hold: weapon === 'tombak' ? {} : { 4: 'holding-left' }, loop: false },
     die: { clip: 'die', loop: false },
     yes: { clip: 'emote-yes', hold: arm, loop: false },
+    no: { clip: 'emote-no', hold: arm, loop: false },
     stop: { clip: 'interact-left', hold: weapon === 'tombak' ? spear : { 5: 'holding-right' }, loop: false },
     panjat: { clip: 'idle', loop: false, frames: Math.round(CLIMB.time * FPS), mod: climbMod },
     lompat: { clip: 'idle', loop: false, frames: Math.round(HOP * FPS), mod: hopMod },
@@ -246,6 +250,7 @@ export function createSoldiers({ ground, colliders, nav, plan, spots, quality, s
       clip: 'idle', t: Math.random() * 2, prev: null, prevT: 0, fade: 0, animSpeed: 1,
       path: null, navT: 0, goalX: 0, goalZ: 0, moved: 0, downT: 0, waitT: 0, tpx: null, tpz: null, tvx: 0, tvz: 0,
       swim: false, vy: 0, climb: null, wantUp: false, wet: false, rippleT: 0, ride: null, atBoat: false,
+      follower: false, barisan: 0, foe: null, duel: false, watch: null,
       ...extra,
     }
     agents.push(a)
@@ -604,7 +609,16 @@ export function createSoldiers({ ground, colliders, nav, plan, spots, quality, s
   let onStrike = () => {} // fn(prajurit, sasaran, kerusakan) saat ayunan serangannya mengenai
   let onDown = () => {} // fn(prajurit) saat roboh
 
+  let onYield = () => {} // fn(prajurit) saat lawan duel menyerah (nyawanya habis)
   function knockDown(a, from) {
+    // lawan duel tidak roboh: menyerah (rekrut.js menjadikannya anak buah)
+    if (a.duel) {
+      a.hp = 0
+      a.atk = null
+      a.stagger = 0.8
+      onYield(a)
+      return
+    }
     a.hp = 0
     a.state = 'roboh'
     a.order = null
@@ -624,21 +638,23 @@ export function createSoldiers({ ground, colliders, nav, plan, spots, quality, s
     onDown(a)
   }
 
-  // kena pukulan / serangan: nyawa berkurang, berkedip, terpental & terhuyung sesaat
+  // kena pukulan / serangan: nyawa berkurang, berkedip, terpental & terhuyung sesaat. Lawan duel
+  // lebih kokoh: hampir tidak terhuyung & terpental, ayunannya jarang batal karena terkena
   function damage(a, amount, from, knock = 2.5) {
     if (a.state === 'roboh' || a.state === 'hilang') return
     a.hp -= amount
     a.flash = 0.15
     a.barT = 5
-    a.stagger = 0.3
-    a.atk = null
+    a.stagger = a.duel ? 0.08 : 0.3
+    if (!a.duel || Math.random() < 0.3) a.atk = null
     a.climb = null // terlepas dari tepi dek
     if (from) {
       const dx = a.x - from.x
       const dz = a.z - from.z
       const d = Math.hypot(dx, dz) || 1
-      a.kx = (dx / d) * knock
-      a.kz = (dz / d) * knock
+      const k = a.duel ? knock * 0.4 : knock
+      a.kx = (dx / d) * k
+      a.kz = (dz / d) * k
     }
     if (a.hp <= 0) knockDown(a, from)
   }
@@ -697,6 +713,14 @@ export function createSoldiers({ ground, colliders, nav, plan, spots, quality, s
       a.z += a.kz * dt
       a.kx *= f
       a.kz *= f
+      // anak buah pemain hanya pingsan: bangun lagi, lalu menyusul pemain
+      if (a.follower && a.downT > DOWN_TIME) {
+        a.hp = a.maxHp
+        a.state = 'ikut'
+        a.foe = null
+        setClip(a, 'idle', true)
+        return
+      }
       if (a.downT > DOWN_TIME + SINK_TIME) {
         a.state = 'hilang'
         a.downT = 0
@@ -757,6 +781,21 @@ export function createSoldiers({ ground, colliders, nav, plan, spots, quality, s
 
       return
     }
+    if (st === 'ikut') {
+      follow(a, dt, ctx)
+      return
+    }
+    if (st === 'hadap') {
+      // mendengarkan ajakan pemain: berhenti, menghadapnya
+      face(a, ctx.leader.x, ctx.leader.z, dt, 6)
+      return
+    }
+    if (st === 'tonton') {
+      // menonton duel: berdiri di lingkaran penonton, menghadap ke tengah gelanggang
+      const w = a.watch
+      if (moveToward(a, w.x, w.z, SPEED.dekati, 0.5, dt, true)) face(a, w.cx, w.cz, dt, 5)
+      return
+    }
     const o = a.order
     if (st === 'naik') {
       // ke tepi dek di samping perahu patroli (perahu-patroli.js menaikkannya); yang sedang di air
@@ -779,37 +818,65 @@ export function createSoldiers({ ground, colliders, nav, plan, spots, quality, s
       face(a, tp.x, tp.z, dt)
       return
     }
-    if (st === 'serang') {
-      const T = types[a.type]
-      const dx = tp.x - a.x
-      const dz = tp.z - a.z
-      const d = Math.hypot(dx, dz)
-      track(a, tp, dt)
-      if (a.atk) {
-        swing(a, tp, d, dt)
-        return
+    if (st === 'serang') fight(a, tp, dt, o.target)
+  }
+
+  // anak buah: berjalan di belakang pemain (barisan dua-dua), ikut terjun & berenang, memanjat dek;
+  // melawan musuh pemain yang ditunjuk rekrut.js (a.foe) selama musuh itu dekat pemain
+  function follow(a, dt, ctx) {
+    const L = ctx.leader
+    const fp = a.foe ? ctx.targetPos(a.foe) : null
+    if (fp && Math.hypot(fp.x - L.x, fp.z - L.z) < FOLLOW.fight) {
+      fight(a, fp, dt, a.foe)
+      return
+    }
+    a.foe = null
+    a.atk = null
+    const sh = Math.sin(L.heading)
+    const ch = Math.cos(L.heading)
+    const side = (a.barisan % 2 ? 1 : -1) * FOLLOW.side
+    const back = FOLLOW.back + Math.floor(a.barisan / 2) * FOLLOW.row
+    const tx = L.x - sh * back + ch * side
+    const tz = L.z - ch * back - sh * side
+    const d = Math.hypot(tx - a.x, tz - a.z)
+    // tertinggal jauh: berlari menyusul (sedikit lebih cepat dari pemain); dekat: selaju pemain
+    const speed = d > 7 ? SPEED.susul : Math.min(SPEED.susul, Math.max(SPEED.ronda, L.speed * 1.05 + d * 0.9))
+    if (moveToward(a, tx, tz, speed, L.speed > 0.3 ? 0.25 : 0.5, dt, true, L.y > a.y + STEP) && L.speed < 0.3)
+      a.heading = turn(a.heading, L.heading, Math.min(1, dt * 3))
+  }
+
+  // menyerang sasaran target (posisinya tp): mendekat memotong jalannya, lalu menebas / menusuk.
+  // Lawan duel menyerang lebih kerap
+  function fight(a, tp, dt, target) {
+    const T = types[a.type]
+    const dx = tp.x - a.x
+    const dz = tp.z - a.z
+    const d = Math.hypot(dx, dz)
+    track(a, tp, dt)
+    if (a.atk) {
+      swing(a, tp, d, dt, 0.5, target)
+      return
+    }
+    const want = T.reach * 0.8
+    if (d > want + 0.15) {
+      // masih jauh: berlari memotong jalan sasaran — menuju perkiraan posisinya sebentar lagi —
+      // jadi prajurit di depannya menghadang, bukan membuntuti dari belakang. Sasaran yang lari
+      // dikejar penuh sampai terjangkau; yang diam didekati sambil berlari kecil
+      const ahead = d > 6 ? Math.min(2.5, d / SPEED.kejar) : 0
+      const fast = d > 6 || Math.hypot(a.tvx, a.tvz) > 2
+      // sasaran di air: ikut terjun & berenang; sasaran di atas dek: dek dipanjat
+      moveToward(a, tp.x + a.tvx * ahead, tp.z + a.tvz * ahead, fast ? SPEED.kejar : SPEED.dekati, want, dt, true, (tp.y ?? a.y) > a.y + STEP)
+    } else {
+      face(a, tp.x, tp.z, dt, 10)
+      // terlalu dekat: mundur sedikit
+      if (d < 0.75 && d > 1e-3) {
+        a.x -= (dx / d) * (0.75 - d)
+        a.z -= (dz / d) * (0.75 - d)
       }
-      const want = T.reach * 0.8
-      if (d > want + 0.15) {
-        // masih jauh: berlari memotong jalan sasaran — menuju perkiraan posisinya sebentar lagi —
-        // jadi prajurit di depannya menghadang, bukan membuntuti dari belakang. Sasaran yang lari
-        // dikejar penuh sampai terjangkau; yang diam didekati sambil berlari kecil
-        const ahead = d > 6 ? Math.min(2.5, d / SPEED.kejar) : 0
-        const fast = d > 6 || Math.hypot(a.tvx, a.tvz) > 2
-        // sasaran di air: ikut terjun & berenang; sasaran di atas dek: dek dipanjat
-        moveToward(a, tp.x + a.tvx * ahead, tp.z + a.tvz * ahead, fast ? SPEED.kejar : SPEED.dekati, want, dt, true, (tp.y ?? a.y) > a.y + STEP)
-      } else {
-        face(a, tp.x, tp.z, dt, 10)
-        // terlalu dekat: mundur sedikit
-        if (d < 0.75 && d > 1e-3) {
-          a.x -= (dx / d) * (0.75 - d)
-          a.z -= (dz / d) * (0.75 - d)
-        }
-        if (a.atkCd <= 0) {
-          a.atk = { t: 0, hit: false }
-          a.atkCd = 1.8 + Math.random() * 0.8
-          setClip(a, 'attack', true)
-        }
+      if (a.atkCd <= 0) {
+        a.atk = { t: 0, hit: false }
+        a.atkCd = a.duel ? 1.3 + Math.random() * 0.5 : 1.8 + Math.random() * 0.8
+        setClip(a, 'attack', true)
       }
     }
   }
@@ -818,14 +885,14 @@ export function createSoldiers({ ground, colliders, nav, plan, spots, quality, s
   // onStrike bisa langsung mengubah keadaan prajurit ini (mis. pemain roboh → semua penyerang
   // ditarik mundur), jadi ayunannya dipegang di variabel sendiri
   // atk.release (lemparan dari perahu patroli) dipanggil di tengah ayunan, menggantikan tusukan
-  function swing(a, tp, d, dt, extra = 0.5) {
+  function swing(a, tp, d, dt, extra = 0.5, target = a.order?.target) {
     const { atk } = a
     if (tp) face(a, tp.x, tp.z, dt, 10)
     atk.t += dt
     if (!atk.hit && atk.t >= ATTACK.hit) {
       atk.hit = true
       if (atk.release) atk.release(a)
-      else if (tp && d <= types[a.type].reach + extra) onStrike(a, a.order.target, types[a.type].damage)
+      else if (tp && d <= types[a.type].reach + extra) onStrike(a, target, types[a.type].damage * (a.duel ? 1.5 : 1))
     }
     if (atk.t >= ATTACK.dur && a.atk === atk) a.atk = null
   }
@@ -885,12 +952,12 @@ export function createSoldiers({ ground, colliders, nav, plan, spots, quality, s
     // animasi menurut keadaan
     for (const a of agents) {
       if (a.state === 'hilang') continue
-      if (a.state !== 'roboh' && !a.atk && !a.climb && !a.ride?.hop && a.clip !== 'stop' && a.clip !== 'yes')
+      if (a.state !== 'roboh' && !a.atk && !a.climb && !a.ride?.hop && a.clip !== 'stop' && a.clip !== 'yes' && a.clip !== 'no')
         if (a.swim) setClip(a, 'swim') // mengapung & mengayuh, senjata tetap di tangan
         else if (a.moved > 2.4) setClip(a, 'sprint')
         else if (a.moved > 0.05) setClip(a, 'walk')
         else setClip(a, 'idle')
-      else if ((a.clip === 'stop' || a.clip === 'yes') && clipDone(a)) setClip(a, 'idle')
+      else if ((a.clip === 'stop' || a.clip === 'yes' || a.clip === 'no') && clipDone(a)) setClip(a, 'idle')
       a.animSpeed = a.clip === 'swim' ? 0.8 + 0.6 * Math.min(1, a.moved / SWIM.speed)
         : a.clip === 'walk' ? a.moved / gait.walk : a.clip === 'sprint' ? Math.max(1.6, a.moved / gait.sprint) : 1
       a.t += dt * a.animSpeed
@@ -980,6 +1047,69 @@ export function createSoldiers({ ground, colliders, nav, plan, spots, quality, s
     onDown(fn) {
       onDown = fn
     },
+    // fn(prajurit): lawan duel menyerah (nyawanya habis)
+    onYield(fn) {
+      onYield = fn
+    },
+    // --- anak buah pemain & duel (rekrut.js)
+    // jadi anak buah di tempat barisan `barisan` (0, 1, … dua-dua di belakang pemain)
+    follow(a, barisan) {
+      if (!alive(a)) return
+      a.follower = true
+      a.barisan = barisan
+      a.state = 'ikut'
+      a.order = null
+      a.foe = null
+      a.atk = null
+      a.duel = false
+      a.ride = null
+      a.hp = a.maxHp = types[a.type].hp
+      a.path = null
+    },
+    // pindahkan seketika ke (x, z) menghadap h (anak buah yang menyusul pemain dari jauh)
+    place(a, x, z, h) {
+      a.x = x
+      a.z = z
+      a.y = ground.surfaceAt(x, z)
+      a.heading = h
+      a.swim = false
+      a.climb = null
+      a.path = null
+      a.vy = 0
+      a.kx = a.kz = 0
+    },
+    // anak buah melawan sasaran foe ({ kind: 'prajurit', ref } | { kind: 'orc', id }) atau null
+    setFoe(a, foe) {
+      if (a.foe === foe) return
+      a.foe = foe
+      a.tpx = a.tpz = null
+      a.tvx = a.tvz = 0
+    },
+    // berhenti & menghadap pemain (mendengarkan ajakan); selesai → kembali ke keadaan semula lewat
+    // command / release / follow
+    listen(a) {
+      if (!alive(a)) return
+      a.state = 'hadap'
+      a.atk = null
+      a.path = null
+    },
+    // menonton duel dari titik spot { x, z, cx, cz } (cx, cz = tengah gelanggang)
+    watch(a, spot) {
+      if (!alive(a)) return
+      a.watch = spot
+      a.state = 'tonton'
+      a.atk = null
+      a.path = null
+    },
+    // lawan duel: nyawa dikali hpScale (bar nyawa ikut), serangan lebih kerap & lebih keras, tidak
+    // roboh melainkan menyerah (onYield); off → nyawa kembali biasa
+    setDuel(a, on, hpScale = 2.5) {
+      a.duel = on
+      const base = types[a.type].hp
+      a.maxHp = on ? base * hpScale : base
+      a.hp = a.maxHp
+      a.barT = on ? 99 : 0
+    },
     // fn(x, z, besar, kuat): prajurit terjun / berenang (riak air)
     onWater(fn) {
       onWater = fn
@@ -1040,11 +1170,12 @@ export function createSoldiers({ ground, colliders, nav, plan, spots, quality, s
       }
       return best
     },
-    // pukulan pemain: lingkaran (x, z, r) → prajurit yang kena (nyawa berkurang, terpental)
-    hit(shape, amount, knock, from) {
+    // pukulan pemain: lingkaran (x, z, r) → prajurit yang kena (nyawa berkurang, terpental);
+    // only(a) = yang boleh kena (anak buah pemain tidak; saat duel hanya lawannya)
+    hit(shape, amount, knock, from, only = () => true) {
       const out = []
       for (const a of agents) {
-        if (!alive(a)) continue
+        if (!alive(a) || !only(a)) continue
         if (Math.hypot(a.x - shape.x, a.z - shape.z) > shape.r + RADIUS) continue
         out.push(a)
         damage(a, amount, from, knock)
@@ -1085,7 +1216,9 @@ export function createSoldiers({ ground, colliders, nav, plan, spots, quality, s
     // kembalikan semua prajurit ke tugasnya, utuh (untuk pengujian)
     resetAll() {
       for (const a of agents) {
-        a.hp = a.maxHp
+        a.follower = a.duel = false
+        a.foe = a.watch = null
+        a.hp = a.maxHp = types[a.type].hp
         a.flash = a.barT = a.stagger = 0
         a.order = null
         a.atk = null

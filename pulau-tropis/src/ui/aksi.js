@@ -1,5 +1,5 @@
 // Tombol aksi sesuai keadaan, di baris #aksi-konteks (tengah layar tegak / kanan layar mendatar):
-// Naik perahu, Turun, Mancing / Tarik!, Buat perahu, Bicara, Panjat, … Elemennya dibuat sekali; set() hanya
+// Naik perahu, Turun, Mancing / Tarik!, Buat perahu, Bicara, Panjat, Ajak, Duel, … Elemennya dibuat sekali; set() hanya
 // menulis ulang isinya bila teks/keadaannya berubah (dipanggil tiap frame tanpa membebani DOM).
 
 // ikon SVG 24 × 24 (UI tidak memakai huruf/emoji sebagai ikon)
@@ -12,6 +12,10 @@ export const IKON_AKSI = {
   buat: svg('<path d="M14.2 3.8 20.2 9.8l-2.1 2.1-6-6z" fill="#fff"/><path d="M15 11 5.6 20.4a1.6 1.6 0 0 1-2.3-2.3L12.7 8.7z" fill="#fff" fill-opacity=".85"/>'),
   // tepi lantai (dek / batur) + panah naik ke atasnya
   panjat: svg('<path d="M2.5 20.5h9v-7.5h10" fill="none" stroke="#fff" stroke-width="2.2" stroke-linejoin="round"/><path d="M16 10V3.6M12.7 6.9 16 3.6l3.3 3.3" fill="none" stroke="#fff" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"/>'),
+  // orang + tanda tambah (mengajak prajurit menjadi anak buah)
+  ajak: svg('<circle cx="9.5" cy="7.2" r="3.6" fill="#fff"/><path d="M2.5 20.5c.4-4.2 3.2-6.8 7-6.8s6.6 2.6 7 6.8z" fill="#fff"/><path d="M19 7.5v7M15.5 11h7" stroke="#fff" stroke-width="2.3" stroke-linecap="round"/>'),
+  // dua pedang bersilang (duel)
+  duel: svg('<path d="M4 3.5 15.5 15M20 3.5 8.5 15" stroke="#fff" stroke-width="2.4" stroke-linecap="round"/><path d="M13.3 17.2l4.2-4.2M10.7 17.2 6.5 13M16.4 17.4l3.4 3.4M7.6 17.4l-3.4 3.4" stroke="#fff" stroke-width="2.2" stroke-linecap="round"/>'),
   bicara: svg('<path d="M4 4.5h16a1.5 1.5 0 0 1 1.5 1.5v9a1.5 1.5 0 0 1-1.5 1.5h-8.4L6.5 20.6V16.5H4A1.5 1.5 0 0 1 2.5 15V6A1.5 1.5 0 0 1 4 4.5z" fill="#fff"/><circle cx="8" cy="10.5" r="1.3" fill="#2f7d4a"/><circle cx="12" cy="10.5" r="1.3" fill="#2f7d4a"/><circle cx="16" cy="10.5" r="1.3" fill="#2f7d4a"/>'),
 }
 

@@ -10,6 +10,9 @@ import { inKingdom } from './wilayah.js'
 // - ORC (penyerbu yang mendarat dengan perahu perang di pantai timur): langsung dihadang & dilawan.
 // - PENDATANG (penduduk dari seberang, turun dari kapal penyeberangan di Dermaga Timur): ditanyai
 //   di gapura dermaga, lalu boleh lewat.
+// - ANAK BUAH pemain (prajurit yang diajak / dikalahkan dalam duel — rekrut.js) bukan lagi prajurit
+//   kerajaan: tidak diberi perintah di sini. Selama pemain mengajak bicara / berduel, penjagaan
+//   berhenti sejenak (pause).
 // Tubuh & gerak prajurit ada di prajurit.js; modul ini hanya memberi perintah.
 
 const DETECT = 40 // m: prajurit sejauh ini melihat pemain di wilayah kerajaan
@@ -74,6 +77,9 @@ export function createSecurity({ soldiers, enemies, player, bubbles, message, vi
   let raidAnnounced = false
   let raidsOn = true // serbuan berkala (pengujian bisa mematikannya; raid() tetap bisa memicu)
   let peace = false // gencatan senjata (pengujian): prajurit tidak menghiraukan pemain
+  let paused = false // jeda sejenak: pemain sedang mengajak bicara / berduel (rekrut.js)
+  let duelFloor = 0 // nyawa pemain paling rendah oleh pukulan lawan duel (kalah duel, tidak roboh)
+  let onStruck = () => {} // fn(penyerang, yang diserang): prajurit menyerang sesama prajurit
 
   // awak perahu patroli (a.ride) tidak bebas: perahunya yang mengatur mereka sampai turun di dermaga
   const free = a => !a.ride && (a.state === 'ronda' || a.state === 'jaga' || a.state === 'kembali')
@@ -84,6 +90,7 @@ export function createSecurity({ soldiers, enemies, player, bubbles, message, vi
 
   function targetPos(target) {
     if (target === PLAYER) return player.defeated ? null : pp
+    if (target.kind === 'prajurit') return soldiers.alive(target.ref) ? target.ref : null
     if (target.kind === 'orc') return enemies ? enemies.position(target.id) : null
     if (target.kind === 'orang') return target.ref.gone ? null : target.ref
     return null
@@ -91,8 +98,11 @@ export function createSecurity({ soldiers, enemies, player, bubbles, message, vi
 
   // serangan prajurit mengenai sasarannya
   soldiers.onStrike((a, target, damage) => {
-    if (target === PLAYER) player.damage(damage, a)
-    else if (target.kind === 'orc') enemies?.damage(target.id, 3, a) // orc (6 nyawa) tumbang dalam dua pukulan
+    if (target === PLAYER) player.damage(damage, a, a.duel ? duelFloor : 0)
+    else if (target.kind === 'prajurit') {
+      soldiers.damage(target.ref, damage, a)
+      onStruck(a, target.ref)
+    } else if (target.kind === 'orc') enemies?.damage(target.id, 3, a) // orc (6 nyawa) tumbang dalam dua pukulan
   })
 
   // ---------------------------------------------------------------- pemain = musuh kerajaan
@@ -301,7 +311,9 @@ export function createSecurity({ soldiers, enemies, player, bubbles, message, vi
     update(dt) {
       S.inside = !player.defeated && inKingdom(pp.x, pp.z)
       if (S.grace > 0) S.grace -= dt
-      if (!peace && !S.engaged) watch(dt)
+      if (paused) {
+        // jeda (ajakan / duel): tidak ada yang mulai mengejar, yang sudah mengejar tidak dilepas
+      } else if (!peace && !S.engaged) watch(dt)
       else if (!peace) {
         const hunted = soldiers.nearest(pp.x, pp.z, LOST.range, hunting) || soldiers.nearest(pp.x, pp.z, RIDE.lost, a => a.ride && hunting(a))
           || soldiers.list.some(a => a.state === 'naik' && soldiers.alive(a))
@@ -329,6 +341,7 @@ export function createSecurity({ soldiers, enemies, player, bubbles, message, vi
     },
     // prajurit diserang orc: membalas, dibantu pasangannya (di mana pun, juga di luar wilayah)
     defend(a, orcId) {
+      if (a.follower) return // anak buah pemain: lawannya dipilih rekrut.js
       const t = orcTarget(orcId)
       const helpers = [a, ...(a.squad ? a.squad.members.filter(m => m !== a) : [])]
       helpers.forEach((m, i) => {
@@ -340,6 +353,7 @@ export function createSecurity({ soldiers, enemies, player, bubbles, message, vi
     // pemain memukul prajurit (daftar yang kena, boleh sudah roboh) → dilawan, di mana pun
     playerStruck(list) {
       if (!list.length || peace) return
+      if (paused) return
       if (!S.engaged) engage(list[0], pick(['Berani menyerang prajurit Kencana?! Serang!', 'Penyerang! Lawan dia!']))
       for (const a of list) if (soldiers.alive(a) && free(a)) hunt(a)
     },
@@ -357,6 +371,25 @@ export function createSecurity({ soldiers, enemies, player, bubbles, message, vi
     reset() {
       calmDown(null, 0)
       S.scanT = 0
+    },
+    // jeda penjagaan selama pemain mengajak bicara / berduel (rekrut.js); floor = nyawa pemain paling
+    // rendah oleh pukulan lawan duel
+    pause(on, floor = 0) {
+      paused = on
+      duelFloor = floor
+    },
+    get paused() {
+      return paused
+    },
+    // pemain diburu prajurit `a` (atau anak buahnya sedang dilawan)
+    isHunting: hunting,
+    // fn(penyerang, yang diserang): prajurit memukul sesama prajurit (anak buah ↔ prajurit kerajaan)
+    onSoldierStruck(fn) {
+      onStruck = fn
+    },
+    // berhenti mengejar pemain & beri jeda (mis. pemain kalah duel: urusannya dianggap selesai)
+    standDown(text, grace = GRACE.calm) {
+      calmDown(text, grace)
     },
     // untuk pengujian: gencatan senjata hidup-mati (orc & pendatang tetap diurus)
     ceasefire(on) {

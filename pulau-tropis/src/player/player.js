@@ -289,6 +289,7 @@ export function createPlayer({ ground, colliders, quality, asset }) {
   let safeTimer = 0
   let onRespawnNeeded = () => {}
   let frozen = false
+  let stunT = 0 // detik sisa terjatuh (stun)
   let hp = MAX_HP
   let calmT = 0 // detik sejak terakhir terkena
   let defeated = false
@@ -1019,10 +1020,11 @@ export function createPlayer({ ground, colliders, quality, asset }) {
     get defeated() {
       return defeated
     },
-    // terkena serangan sebesar `amount` dari arah `from` ({ x, z }): terdorong menjauh
-    damage(amount, from) {
+    // terkena serangan sebesar `amount` dari arah `from` ({ x, z }): terdorong menjauh. floor = nyawa
+    // paling rendah oleh pukulan ini (> 0: tidak roboh — mis. kalah duel, lihat rekrut.js)
+    damage(amount, from, floor = 0) {
       if (defeated || frozen) return
-      hp = Math.max(0, hp - amount * (1 - defense))
+      hp = Math.max(floor, hp - amount * (1 - defense))
       calmT = 0
       if (from) {
         const dx = pos.x - from.x
@@ -1058,6 +1060,7 @@ export function createPlayer({ ground, colliders, quality, asset }) {
       calmT = 0
       defeated = false
       frozen = false
+      stunT = 0
       play(GERAK, 0.05)
     },
     onHurt(fn) {
@@ -1113,11 +1116,27 @@ export function createPlayer({ ground, colliders, quality, asset }) {
       combat.reset()
       climb = null
       frozen = false
+      stunT = 0
       play(GERAK, 0.05)
     },
     freeze() {
       frozen = true
       vel.set(0, 0, 0)
+    },
+    // jatuh terduduk sesaat (mis. kalah duel): roboh, tidak bisa bergerak, bangun setelah `seconds` detik
+    stun(seconds) {
+      if (defeated || ride) return
+      path.length = 0
+      combat.reset()
+      climb = null
+      frozen = true
+      vel.set(0, 0, 0)
+      stunT = seconds
+      gestureT = seconds
+      play('die', 0.12)
+    },
+    get stunned() {
+      return stunT > 0
     },
     update(dt, input, camYaw) {
       if (defeated) {
@@ -1132,6 +1151,10 @@ export function createPlayer({ ground, colliders, quality, asset }) {
         return
       }
       if (hp < MAX_HP && (calmT += dt) > REGEN.delay) hp = Math.min(MAX_HP, hp + REGEN.rate * dt)
+      if (stunT > 0 && (stunT -= dt) <= 0) {
+        frozen = false
+        play(GERAK, 0.35)
+      }
       swimT += dt
       // duduk di perahu: letak & arah mengikuti perahu (perahu.js), tanpa fisika
       if (ride) {

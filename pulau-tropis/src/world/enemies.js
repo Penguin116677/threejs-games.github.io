@@ -604,6 +604,10 @@ export function createEnemies({ ground, colliders, nav, asset, spawn, shipMesh =
     get raidActive() {
       return list.some(e => e.raid && e.state === 'hidup')
     },
+    // orc hidup sedekat r m dari (x, z): [{ id, x, z }] (lawan anak buah pemain)
+    near(x, z, r) {
+      return list.filter(e => e.state === 'hidup' && Math.hypot(e.pos.x - x, e.pos.z - z) < r).map(e => ({ id: e.id, x: e.pos.x, z: e.pos.z }))
+    },
     // orc penyerbu yang masih hidup
     raiders() {
       return list.filter(e => e.raid && e.state === 'hidup').map(e => ({ id: e.id, x: e.pos.x, z: e.pos.z }))

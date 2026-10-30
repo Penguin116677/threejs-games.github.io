@@ -622,6 +622,20 @@ body {
   background: rgba(0, 20, 30, 0.45);
 }
 
+/* jumlah anak buah (prajurit Kencana yang ikut pemain) */
+#anak-buah {
+  display: flex;
+  width: max-content;
+  margin-top: 5px;
+  padding: 3px 10px 3px 5px;
+  border-radius: 12px;
+  background: rgba(60, 30, 90, 0.55);
+}
+
+#anak-buah[hidden] {
+  display: none;
+}
+
 .koin-tambah {
   position: absolute;
   left: 100%;
@@ -698,6 +712,16 @@ body {
 
 #hud #aksi-konteks button.coklat {
   background: rgba(130, 85, 40, 0.88);
+}
+
+/* Ajak (prajurit menjadi anak buah) & Duel */
+#hud #aksi-konteks button.ungu {
+  background: rgba(105, 70, 150, 0.9);
+}
+
+#hud #aksi-konteks button.merah {
+  background: rgba(175, 45, 40, 0.92);
+  border-color: #ffd9c4;
 }
 
 /* Tarik! saat ikan menyambar: jingga berdenyut */

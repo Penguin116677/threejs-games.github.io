@@ -24,6 +24,7 @@ import { createVillagers } from './world/kencana/villagers.js'
 import { createArmy } from './world/kencana/pasukan.js'
 import { createSoldiers } from './world/kencana/prajurit.js'
 import { createSecurity } from './world/kencana/keamanan.js'
+import { createRecruits } from './world/kencana/rekrut.js'
 import { createPatrolBoats } from './world/kencana/perahu-patroli.js'
 import { planAeloria } from './world/aeloria/plan.js'
 import { createAeloria } from './world/aeloria/kingdom.js'
@@ -103,8 +104,8 @@ function findSpawn(ground, colliders) {
   return { x: -128, z: 128, heading: Math.atan2(128, -128) }
 }
 
-const HINT_TOUCH = '<b>Joystick</b> (kiri bawah): berjalan, dorong penuh = lari · Geser layar: putar kamera · Cubit: zoom<br><b>Pukul</b> berulang = kombo · 4 <b>jurus</b> · orc kalah = <b>koin</b> · dekati orang: <b>Bicara</b><br>Pukul pohon = <b>kayu</b> → buat <b>pancing</b> &amp; <b>perahu</b> di <b>Tas</b> · pulau tidak berjembatan: berenang / berlayar<br><b>Peta</b>: Kencana (barat) memusuhimu · Aeloria (utara) damai bila kamu tidak rusuh · <b>ketuk kios / elf</b>'
-const HINT_KEYS = '<b>WASD / panah</b>: berjalan (Shift = pelan) · Seret: putar kamera · Roda: zoom<br>F: pukul (kombo) · 1–4: jurus · Spasi: lompat / panjat · orc kalah = koin · B: tas · G / Enter: bicara<br>Pukul pohon = kayu → buat pancing &amp; perahu di Tas · C: mancing / tarik · V: naik / turun perahu<br>M: peta — Kencana (barat) memusuhimu · Aeloria (utara) damai bila kamu tidak rusuh · klik kios / elf'
+const HINT_TOUCH = '<b>Joystick</b> (kiri bawah): berjalan, dorong penuh = lari · Geser layar: putar kamera · Cubit: zoom<br><b>Pukul</b> berulang = kombo · 4 <b>jurus</b> · orc kalah = <b>koin</b> · dekati orang: <b>Bicara</b> · dekati prajurit Kencana: <b>Ajak</b> jadi anak buah (menolak → <b>Duel</b>)<br>Pukul pohon = <b>kayu</b> → buat <b>pancing</b> &amp; <b>perahu</b> di <b>Tas</b> · pulau tidak berjembatan: berenang / berlayar<br><b>Peta</b>: Kencana (barat) memusuhimu · Aeloria (utara) damai bila kamu tidak rusuh · <b>ketuk kios / elf</b>'
+const HINT_KEYS = '<b>WASD / panah</b>: berjalan (Shift = pelan) · Seret: putar kamera · Roda: zoom<br>F: pukul (kombo) · 1–4: jurus · Spasi: lompat / panjat · orc kalah = koin · B: tas · G / Enter: bicara · J: ajak prajurit jadi anak buah · U: duel<br>Pukul pohon = kayu → buat pancing &amp; perahu di Tas · C: mancing / tarik · V: naik / turun perahu<br>M: peta — Kencana (barat) memusuhimu · Aeloria (utara) damai bila kamu tidak rusuh · klik kios / elf'
 
 // FOV kamera (tegak, mendatar): layar tegak butuh FOV lebih lebar agar sisi kiri-kanan tetap
 // terlihat dari kamera di belakang karakter
@@ -393,12 +394,15 @@ async function start() {
   // penjagaan kerajaan (dibuat setelah input, lihat di bawah); sasaran jurus Penggal: orc & prajurit
   // Kencana hidup terdekat (pemain musuh setiap kerajaan). id: 'o3' = orc ke-3, 's12' = prajurit ke-12
   let security = null
+  let recruits = null // anak buah & duel (rekrut.js)
   const soldierOf = id => soldiers.list[Number(id.slice(1))]
+  // prajurit yang boleh dipukul pemain: bukan anak buahnya; saat duel hanya lawannya
+  const canHit = a => !recruits || recruits.canHit(a)
   player.setArena({
     pickTargets(x, z, range, max) {
       const cands = enemies ? enemies.pickTargets(x, z, range, 99).map(t => ({ ...t, id: `o${t.id}` })) : []
       if (soldiers)
-        for (const a of soldiers.list) if (soldiers.alive(a) && Math.hypot(a.x - x, a.z - z) <= range) cands.push({ id: `s${a.id}`, x: a.x, z: a.z })
+        for (const a of soldiers.list) if (soldiers.alive(a) && canHit(a) && Math.hypot(a.x - x, a.z - z) <= range) cands.push({ id: `s${a.id}`, x: a.x, z: a.z })
       // elf Aeloria hanya bila sedang melawan pemain (yang damai tidak pernah jadi sasaran)
       if (elfSec) cands.push(...elfSec.targets(x, z, range))
       const near = cands.sort((a, b) => Math.hypot(a.x - x, a.z - z) - Math.hypot(b.x - x, b.z - z)).slice(0, max)
@@ -580,8 +584,22 @@ async function start() {
   const btnBuatPerahu = createActionButton(aksiBox, { id: 'btn-buat-perahu', icon: IKON_AKSI.buat, cls: 'coklat' }, () => showMessage(craftBoat(), 3800))
   const btnBicara = createActionButton(aksiBox, { id: 'btn-bicara', icon: IKON_AKSI.bicara, cls: 'hijau' }, () => chat.talk())
   const btnPanjat = createActionButton(aksiBox, { id: 'btn-panjat', icon: IKON_AKSI.panjat, cls: 'coklat' }, climbPress)
+  // mengajak prajurit Kencana menjadi anak buah; yang menolak bisa ditantang duel (rekrut.js)
+  const invitePress = () => {
+    if (mode !== 'main' || chat.open || boat.aboard) return
+    fishing.cancel()
+    recruits?.invite()
+  }
+  const duelPress = () => {
+    if (mode !== 'main' || chat.open || boat.aboard) return
+    recruits?.challenge()
+  }
+  const btnAjak = createActionButton(aksiBox, { id: 'btn-ajak', icon: IKON_AKSI.ajak, cls: 'ungu' }, invitePress)
+  const btnDuel = createActionButton(aksiBox, { id: 'btn-duel', icon: IKON_AKSI.duel, cls: 'merah' }, duelPress)
   let actionT = 0
   let buildSpot = null
+  const anakBuahEl = $('anak-buah')
+  let shownBuah = 0
   function updateActions(dt) {
     if ((actionT -= dt) > 0) return
     actionT = 0.1
@@ -591,6 +609,16 @@ async function start() {
     btnNaik.set(free && !fishing.state && boat.reachable(p) !== null, 'Naik perahu', player.swimming ? 'naik dari air' : '')
     btnTurun.set(free && boat.aboard, 'Turun', boat.aground ? 'perahu kandas' : '')
     btnPanjat.set(free && !boat.aboard && player.climbable, 'Panjat', player.swimming ? 'naik dari air' : '')
+    const ajak = free && !boat.aboard && recruits ? recruits.near : null
+    btnAjak.set(!!ajak, 'Ajak', ajak ? `anak buah ${recruits.followers.length}/${recruits.max}` : '')
+    btnDuel.set(free && !boat.aboard && !!recruits?.rival, 'Duel', 'yang kalah ikut')
+    // jumlah anak buah di HUD (di bawah koin)
+    const nBuah = recruits ? recruits.followers.length : 0
+    if (nBuah !== shownBuah) {
+      shownBuah = nBuah
+      anakBuahEl.hidden = !nBuah
+      anakBuahEl.innerHTML = `${IKON_AKSI.ajak.replace(/#fff/g, '#e6d4ff')}<span>${nBuah} anak buah</span>`
+    }
     // Mancing muncul saat berdiri diam di tepi air yang cukup dalam (di perahu: saat perahu diam)
     const still = player.speed < 0.5 || (boat.aboard && boat.speed < 0.6)
     const fishHere = free && !player.swimming && (!!fishing.state || (still && !!fishing.spot()))
@@ -626,9 +654,11 @@ async function start() {
       for (const id of ev.targets) {
         if (id[0] !== 's') continue
         const a = soldierOf(id)
-        if (!soldiers.alive(a)) continue
+        if (!soldiers.alive(a) || !canHit(a)) continue
         cut.push({ x: a.x, y: a.y, z: a.z })
-        soldiers.knockDown(a, player.position)
+        // lawan duel tidak langsung roboh: luka berat (duel tetap duel)
+        if (recruits?.inDuel(a)) soldiers.damage(a, a.maxHp * 0.4, player.position)
+        else soldiers.knockDown(a, player.position)
         felled.push(a)
       }
       security?.playerStruck(felled)
@@ -658,7 +688,7 @@ async function start() {
       const struck = enemies ? enemies.hit(shape, damage, ev.knock, ev.origin) : []
       const felledOrcs = struck.filter(o => o.dead).length
       if (felledOrcs) shop.reward(orcCoins(felledOrcs))
-      const guards = soldiers ? soldiers.hit(shape, damage, ev.knock, ev.origin) : []
+      const guards = soldiers ? soldiers.hit(shape, damage, ev.knock, ev.origin, canHit) : []
       security?.playerStruck(guards)
       for (const a of guards) struck.push({ x: a.x, y: a.y, z: a.z })
       // elf Aeloria: memukul elf = membuat rusuh (kesatria melawan, warga kabur / ikut berkelahi)
@@ -782,6 +812,7 @@ async function start() {
   let patrol = null
   if (soldiers) {
     security = createSecurity({ soldiers, enemies, player, bubbles, villagers, visit, ground, message: showMessage })
+    recruits = createRecruits({ soldiers, security, player, enemies, bag, shop, bubbles, message: showMessage, ground, colliders })
     patrol = createPatrolBoats({ boats: kencana.boats, soldiers, security, player, boat, ground, bubbles, message: showMessage, ripples })
     scene.add(patrol.object)
   }
@@ -860,6 +891,8 @@ async function start() {
     else if (e.code === 'KeyV' && !e.repeat && mode === 'main') toggleBoat()
     else if (e.code === 'KeyC' && !e.repeat && mode === 'main' && !player.swimming) fishPress()
     else if ((e.code === 'KeyG' || e.code === 'Enter') && !e.repeat && mode === 'main' && !chat.open) chat.talk()
+    else if (e.code === 'KeyJ' && !e.repeat) invitePress()
+    else if (e.code === 'KeyU' && !e.repeat) duelPress()
     else if (e.code === 'Escape') {
       worldMap.hide()
       elfCard?.hide()
@@ -988,6 +1021,7 @@ async function start() {
   let hinted = quality.level === 'rendah'
 
   let frameCount = 0
+  const leader = { x: 0, y: 0, z: 0, heading: 0, speed: 0 } // pemain, untuk anak buahnya (prajurit.js)
   const roofs = [...kencana.roofs, ...aeloria.roofs]
   const debug = { timeScale: 1 } // pengujian: < 1 = gerak lambat (untuk memotret efek)
   renderer.setAnimationLoop(() => {
@@ -1035,12 +1069,19 @@ async function start() {
     life?.update(dt, camera, mode === 'main' ? player.position : controls.target, mode === 'main' ? 110 : 260)
     elfSec?.update(dt)
     security?.update(dt)
+    recruits?.update(dt)
     patrol?.update(dt, t)
+    leader.x = player.position.x
+    leader.y = player.position.y
+    leader.z = player.position.z
+    leader.heading = player.heading
+    leader.speed = player.speed
     soldiers?.update(dt, {
       camera,
       focus: mode === 'main' ? player.position : controls.target,
       range: mode === 'main' ? 110 : 260,
       player: player.position,
+      leader,
       playerVisible: !player.defeated,
       targetPos: security.targetPos,
     })
@@ -1087,7 +1128,7 @@ async function start() {
   // akses untuk debugging / pengujian otomatis
   window.__pulau = {
     renderer, scene, camera, controls, ground, shore, quality, trees, rocks, grass, water, env, kencana, region, plan, villagers, army, worldMap, banner, aeloria, elfPlan, elfMask, life,
-    player, cam, input, colliders, nav, markers, effects, enemies, soldiers, security, patrol, bubbles, pickGround, setMode, getMode: () => mode, bag, gear, shop, elfSec, elfCard,
+    player, cam, input, colliders, nav, markers, effects, enemies, soldiers, security, patrol, recruits, bubbles, pickGround, setMode, getMode: () => mode, bag, gear, shop, elfSec, elfCard,
     boat, fishing, ripples, recipes, craftBoat, boardBoat, leaveBoat, chat, placesFor,
     frames: () => frameCount, debug,
   }
