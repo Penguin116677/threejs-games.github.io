@@ -7,6 +7,8 @@ import { ISLAND } from '../world/island.js'
 //   = jarak. Saat karakter berbelok atau berbalik, kamera TIDAK ikut berputar sendiri (permintaan
 //   pengguna, v0.15.0). Arah "maju" joystick selalu arah pandang kamera.
 // - tidak menembus bukit dan tidak masuk ke bawah permukaan air
+// - di dalam ruangan (gua, aula, kedai) tetap di bawah langit-langit dan di dalam dindingnya; dari
+//   luar, atap gua (permukaan gunung di atas rongganya) dianggap tanah (lihat setVolumes)
 const SENS_YAW = 0.0058 // radian per piksel geser
 const SENS_PITCH = 0.0045
 const PITCH_MIN = -0.12 // sedikit dari bawah (melihat ke atas)
@@ -33,10 +35,34 @@ export function createFollowCamera(camera, ground) {
     const cp = Math.cos(state.pitch)
     return out.set(Math.sin(state.yaw) * cp * dist, Math.sin(state.pitch) * dist, Math.cos(state.yaw) * cp * dist)
   }
-  const floorAt = (x, z) => Math.max(ground.surfaceAt(x, z), ISLAND.seaLevel)
+  // volumes (opsional): { roofAt(x, z), inCave(x, z, y), roomAt(x, z, y) → { rect, ceil } | null }
+  let volumes = null
+  let pivotY = 0
+  let inCave = false
+  let room = null
+  let covered = false // ada lantai bangunan tepat di atas pemain (mis. di tangga di bawah lempeng)
+  // lantai: tanah + lantai bangunan (saat pemain di bawah lantai lain: hanya yang tidak lebih tinggi
+  // dari titik putar), dan atap gua bila pemain di luar gua
+  const floorAt = (x, z) => {
+    let f = Math.max(covered ? ground.supportAt(x, z, pivotY, 0.5) : ground.surfaceAt(x, z), ISLAND.seaLevel)
+    if (volumes && !inCave) f = Math.max(f, volumes.roofAt(x, z))
+    return f
+  }
+  const ceilAt = (x, z) => {
+    let c = covered ? ground.ceilingAt(x, z, pivotY + 0.5) : Infinity
+    if (inCave) {
+      const r = volumes.roofAt(x, z)
+      if (r > -Infinity) c = Math.min(c, r)
+    }
+    if (room) c = Math.min(c, room.ceil)
+    return c
+  }
 
   return {
     state,
+    setVolumes(v) {
+      volumes = v
+    },
     // arah kamera di bidang datar (gerak joystick/keyboard relatif terhadap kamera)
     get yaw() {
       return state.yaw
@@ -72,20 +98,32 @@ export function createFollowCamera(camera, ground) {
         pivot.y += (ty - pivot.y) * (1 - Math.exp(-7 * dt))
       }
 
-      // jarak dipendekkan bila ada bukit / lantai di antara karakter dan kamera
+      pivotY = pivot.y
+      covered = ground.ceilingAt(p.x, p.z, pivotY) < Infinity
+      inCave = !!volumes?.inCave(p.x, p.z, p.y)
+      room = volumes?.roomAt(p.x, p.z, p.y) ?? null
+      // jarak dipendekkan bila ada bukit / lantai / langit-langit / dinding ruangan di antara
+      // karakter dan kamera
       let dist = state.dist * (target.distScale ?? 1)
       for (let i = 1; i <= 8; i++) {
         const f = i / 8
         offset(probe, dist * f).add(pivot)
-        if (probe.y < floorAt(probe.x, probe.z) + 0.35) {
+        const out = room && (probe.x < room.rect.x0 + 0.4 || probe.x > room.rect.x1 - 0.4 || probe.z < room.rect.z0 + 0.4 || probe.z > room.rect.z1 - 0.4)
+        if (out || probe.y < floorAt(probe.x, probe.z) + 0.35 || probe.y > ceilAt(probe.x, probe.z) - 0.35) {
           dist = Math.max(DIST_MIN * 0.5, dist * (f - 1 / 8))
           break
         }
       }
       offset(desired, dist).add(pivot)
-      // jangan pernah di bawah tanah atau di bawah permukaan air
+      if (room) {
+        desired.x = THREE.MathUtils.clamp(desired.x, room.rect.x0 + 0.4, room.rect.x1 - 0.4)
+        desired.z = THREE.MathUtils.clamp(desired.z, room.rect.z0 + 0.4, room.rect.z1 - 0.4)
+      }
+      // jangan pernah di bawah tanah / air, dan di dalam ruangan jangan menembus langit-langit
       const floor = floorAt(desired.x, desired.z) + 0.45
       if (desired.y < floor) desired.y = floor
+      const ceil = ceilAt(desired.x, desired.z) - 0.4
+      if (desired.y > ceil) desired.y = Math.max(floor, ceil)
 
       if (snap) camera.position.copy(desired)
       else camera.position.lerp(desired, 1 - Math.exp(-12 * dt))

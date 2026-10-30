@@ -105,6 +105,15 @@ vec3 buildingPattern(vec3 col) {
     return col * mix(0.95, 0.84 + 0.22 * weave, fade);
   }
   if (kind == 10) return col; // cahaya (api, bara, lentera): lihat totalEmissiveRadiance
+  if (kind == 11) { // salju: putih bergelombang halus, kebiruan di bidang yang menghadap ke bawah/samping
+    float s = texture2D(uNoise, p.xz * 0.37 + p.y * 0.21).r;
+    return col * (0.93 + 0.1 * s) * mix(vec3(0.86, 0.91, 1.0), vec3(1.0), smoothstep(-0.2, 0.8, n.y));
+  }
+  if (kind == 12) { // es: alur tegak (aliran yang membeku) + kilau
+    float st = texture2D(uNoise, vec2(u * 0.9, v * 0.07)).g;
+    return col * (0.82 + 0.3 * st);
+  }
+  if (kind == 13) return col; // kristal: lihat totalEmissiveRadiance
   // 9: plester, sedikit noda
   return col * (0.9 + 0.14 * texture2D(uNoise, p.xz * 0.11 + p.y * 0.07).b);
 }
@@ -158,7 +167,11 @@ export function buildingMaterial(noiseTexture, seeThroughOn = true) {
       '#include <emissivemap_fragment>',
       `#include <emissivemap_fragment>
       // api, bara & lentera menyala sendiri dan sedikit berkedip
-      if (int(vKind + 0.5) == 10) totalEmissiveRadiance += diffuseColor.rgb * (0.8 + 0.2 * sin(uTime * 11.0 + vBWorld.x * 2.3 + vBWorld.z * 1.7));`
+      int bk = int(vKind + 0.5);
+      if (bk == 10) totalEmissiveRadiance += diffuseColor.rgb * (0.8 + 0.2 * sin(uTime * 11.0 + vBWorld.x * 2.3 + vBWorld.z * 1.7));
+      // kristal es berdenyut pelan; es sedikit bercahaya (cahaya menembusnya)
+      else if (bk == 13) totalEmissiveRadiance += diffuseColor.rgb * (0.75 + 0.25 * sin(uTime * 1.6 + vBWorld.x * 0.7 + vBWorld.y * 1.3));
+      else if (bk == 12) totalEmissiveRadiance += diffuseColor.rgb * 0.16;`
     )
   }
   return mat

@@ -724,6 +724,12 @@ body {
   border-color: #ffd9c4;
 }
 
+/* Buka peti harta (Frostfall) */
+#hud #aksi-konteks button.kuning {
+  background: rgba(176, 130, 32, 0.92);
+  border-color: #fff0b8;
+}
+
 /* Tarik! saat ikan menyambar: jingga berdenyut */
 #hud #aksi-konteks button.menyala {
   background: rgba(235, 110, 30, 0.95);

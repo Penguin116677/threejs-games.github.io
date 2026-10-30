@@ -8,7 +8,8 @@ import { SITI_COLS } from './layout.js'
 // (bata, genteng, jerami, papan kayu, batu, …) yang digambar shader bangunan (material.js).
 // Titik asal = tengah alas bangunan di tanah, depan bangunan menghadap +z lokal.
 
-export const K = { POLOS: 0, BATA: 1, GENTENG: 2, JERAMI: 3, KAYU: 4, BATU: 5, SIRAP: 6, UBIN: 7, ANYAMAN: 8, PLESTER: 9, CAHAYA: 10 }
+// SALJU / ES / KRISTAL: lapisan salju, es (sedikit tembus cahaya), kristal es yang bercahaya (Frostfall)
+export const K = { POLOS: 0, BATA: 1, GENTENG: 2, JERAMI: 3, KAYU: 4, BATU: 5, SIRAP: 6, UBIN: 7, ANYAMAN: 8, PLESTER: 9, CAHAYA: 10, SALJU: 11, ES: 12, KRISTAL: 13 }
 
 export const COL = {
   bata: '#a5523a',

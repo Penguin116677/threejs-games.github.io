@@ -37,6 +37,7 @@ const MAX_SLOPE = 1.3 // kemiringan maksimum yang bisa didaki (±52°)
 // STEP_UP m di atas kaki; lebih tinggi = penghalang, dan bila paling tinggi CLIMB_MAX m (dek dermaga
 // dari air: ±2,8 m) bisa DIPANJAT (tombol Panjat / Spasi)
 const STEP_UP = 0.45
+const HEADROOM = 2.2 // lantai ruangan setinggi ini di atas kaki bisa dilewati di bawahnya
 const CLIMB_MAX = 2.95
 const CLIMB_REACH = 0.55 // m dari badan ke tepi: tombol Panjat muncul
 const CLIMB_IN = 0.6 // m ke dalam lantai dari tepinya: tempat berdiri setelah memanjat
@@ -350,6 +351,8 @@ export function createPlayer({ ground, colliders, quality, asset }) {
       if (hit.gap < 0 && ground.surfaceHeight(s, pos.x, pos.z) <= footY + STEP_UP) return
       const h = ground.surfaceHeight(s, hit.px - hit.nx * 0.02, hit.pz - hit.nz * 0.02)
       if (h <= footY + STEP_UP) return
+      // lantai ruangan jauh di atas kepala (mis. lantai aula di atas lorong rahasia) = langit-langit
+      if (s.floor && h > footY + HEADROOM) return
       pos.x += hit.nx * (RADIUS - hit.gap)
       pos.z += hit.nz * (RADIUS - hit.gap)
       const vn = vel.x * hit.nx + vel.z * hit.nz
@@ -374,7 +377,7 @@ export function createPlayer({ ground, colliders, quality, asset }) {
       const lx = hit.px - hit.nx * CLIMB_IN
       const lz = hit.pz - hit.nz * CLIMB_IN
       const top = ground.surfaceHeight(s, lx, lz)
-      if (!(Math.abs(top - pos.y - rise) < 0.35) || ground.surfaceAt(lx, lz) > top + 0.3 || !colliders.isFree(lx, lz, RADIUS)) return
+      if (!(Math.abs(top - pos.y - rise) < 0.35) || ground.surfaceAt(lx, lz) > top + 0.3 || !colliders.isFree(lx, lz, RADIUS, top)) return
       if (!best || hit.gap < best.gap)
         best = { gap: hit.gap, x: lx, y: top, z: lz, ex: hit.px, ez: hit.pz, nx: hit.nx, nz: hit.nz, heading: Math.atan2(-hit.nx, -hit.nz) }
     })

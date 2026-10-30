@@ -3,14 +3,20 @@
 // - kotak { x, z, hx, hz, rot, kind } — dinding rumah, tembok kota, pagar jembatan
 //   (setengah lebar hx × setengah panjang hz, diputar rot radian seperti rotation.y mesh)
 // kind: 'pohon' / 'batu' / 'bata' / 'kayu' … (warna serpihan saat dipukul)
+// Opsional: y0 / y1 = hanya menahan badan yang kakinya di antara (y0 − tinggi badan) dan y1 (mis.
+// dinding aula di atas lorong rahasia, pagar jembatan, pagar tak terlihat di atas gua — lihat
+// resolve), off = dimatikan sementara (mis. pintu rahasia yang sudah dibuka)
 const CELL = 8
+const BODY = 1.7
+const skip = (o, y) => (o.src || o).off || (y !== undefined && o.y0 !== undefined && (y + BODY < o.y0 || y > o.y1))
 
 const cellKey = (i, j) => (i + 32768) * 65536 + (j + 32768)
 
 function prepare(c) {
   if (c.hx === undefined) return c
   const rot = c.rot || 0
-  return { ...c, cos: Math.cos(rot), sin: Math.sin(rot), radius: Math.hypot(c.hx, c.hz) }
+  // kotak disalin (+ nilai turunan); src = data aslinya, mis. `off` yang diubah sesudah dibuat
+  return { ...c, src: c, cos: Math.cos(rot), sin: Math.sin(rot), radius: Math.hypot(c.hx, c.hz) }
 }
 
 // Titik terdekat pada penghalang dari (x, z), jarak bertanda (negatif = di dalam), dan arah keluar.
@@ -118,6 +124,7 @@ export function createColliders(input) {
     resolve(pos, r, vel) {
       let touched = false
       forEachNear(pos.x, pos.z, r, o => {
+        if (skip(o, pos.y)) return true
         probe(o, pos.x, pos.z, hit)
         if (hit.gap >= r) return true
         pos.x += hit.nx * (r - hit.gap)
@@ -132,9 +139,10 @@ export function createColliders(input) {
       })
       return touched
     },
-    // apakah titik (x, z) dengan jari-jari r bebas dari penghalang
-    isFree(x, z, r) {
-      return forEachNear(x, z, r, o => probe(o, x, z, hit).gap >= r)
+    // apakah titik (x, z) dengan jari-jari r bebas dari penghalang (y = tinggi kaki, opsional: tanpa y
+    // penghalang berbatas tinggi dianggap menahan di semua ketinggian)
+    isFree(x, z, r, y) {
+      return forEachNear(x, z, r, o => skip(o, y) || probe(o, x, z, hit).gap >= r)
     },
     // jarak bertanda dari (x, z) ke penghalang terdekat (maks. `max`)
     clearance(x, z, max = 4) {
