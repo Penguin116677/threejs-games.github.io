@@ -1,18 +1,19 @@
 import { fbm, valueNoise, smoothstep } from '../../core/noise.js'
 import {
-  BOX, LAND, RANGES, PEAKS, VILLAGE, CASTLE, CASTLE_YARD, HIGH_VALLEY, CLIFF_X, RIVER, ROADS, TRAILS, GORGE, CAVE, LAKE,
+  BOX, LAND, RANGES, PEAKS, VILLAGE, CASTLE, CASTLE_YARD, HIGH_VALLEY, CLIFF_X, RIVER, ROADS, TRAILS, GORGE, CAVES,
   polyInfo, polyBox, inBox, rectDist, segmentInfo, landDistance, HARBOR,
 } from './layout.js'
 
-// Lebar lorong gua minimum (m). Mesh terrain berupa grid: segitiga yang menyeberangi dinding gua
-// menjadi lereng yang terlalu curam untuk dilalui, jadi lorong yang hanya selebar 1–2 langkah grid
-// tertutup di kualitas Rendah / Sedang. main.js mengaturnya sekali (dari langkah grid) sebelum
-// terrain dibuat; tangga rahasia (berlantai sendiri) tidak ikut dilebarkan.
-let minPassage = 0
-export function setCavePassage(width) {
-  minPassage = width
+// Lebar lorong gua minimum, dalam langkah grid terrain. Mesh terrain berupa grid: segitiga yang
+// menyeberangi dinding gua menjadi lereng yang terlalu curam untuk dilalui, jadi lorong yang hanya
+// selebar 1–2 langkah grid tertutup di kualitas Rendah / Sedang. main.js mengatur langkah grid sekali
+// sebelum terrain dibuat. Lorong boleh meminta lebih (minSteps, mis. lorong diagonal di grid kasar);
+// tangga rahasia (berlantai sendiri) tidak ikut dilebarkan.
+let gridStep = 0
+export function setCaveGrid(step) {
+  gridStep = step
 }
-export const cavePassage = c => (c.stair ? c.w : Math.max(c.w, minPassage))
+export const cavePassage = c => (c.stair ? c.w : Math.max(c.w, gridStep * (c.minSteps ?? 3)))
 
 // Bentuk tanah Kerajaan Frostfall. Profil pantainya sama dengan pulau-pulau lain (dasar laut →
 // paparan dangkal → pantai), lalu:
@@ -24,7 +25,36 @@ export const cavePassage = c => (c.stair ? c.w : Math.max(c.w, minPassage))
 //              menjadi atap gua (gua.js)
 const SEA_FLOOR = -18
 const REACH = (1 + LAND.wobble) * 1.38
-const CAVE_REACH = { x0: 960, x1: 1230, z0: -380, z1: -140 }
+
+// Sistem gua: kotak batas tiap gua (rongga + pelebaran lorong + dinding bergelombang) dan jangkauan
+// batu penutupnya (kotak + 40 m). Gua Es Kristal memakai jangkauan lamanya (v0.19.0) supaya bentuk
+// gunung di sekitarnya tetap sama persis.
+const REACH_TETAP = { kristal: { x0: 960, x1: 1230, z0: -380, z1: -140 } }
+export const CAVE_SYSTEMS = CAVES.map(cave => {
+  const box = { x0: Infinity, x1: -Infinity, z0: Infinity, z1: -Infinity }
+  for (const c of cave.shapes) {
+    const pts = c.kind === 'bulat' ? [{ x: c.x, z: c.z }] : [c.a, c.b]
+    const r = (c.r ?? c.w / 2) + 12 // + pelebaran lorong (setCaveGrid) & dinding bergelombang
+    for (const p of pts) {
+      box.x0 = Math.min(box.x0, p.x - r)
+      box.x1 = Math.max(box.x1, p.x + r)
+      box.z0 = Math.min(box.z0, p.z - r)
+      box.z1 = Math.max(box.z1, p.z + r)
+    }
+  }
+  const reach = REACH_TETAP[cave.id] || { x0: box.x0 - 40, x1: box.x1 + 40, z0: box.z0 - 40, z1: box.z1 + 40 }
+  // mulut: koridor keluar sepanjang 30 m searah lorong pertama (dari dalam ke luar)
+  const c0 = cave.shapes[0]
+  const ol = Math.hypot(c0.a.x - c0.b.x, c0.a.z - c0.b.z) || 1
+  const mouths = cave.mouths.map(m => ({ ...m, ex: m.x + ((c0.a.x - c0.b.x) / ol) * 30, ez: m.z + ((c0.a.z - c0.b.z) / ol) * 30 }))
+  // gua baru: tepi batu penutup memudar halus sebelum batas 40 m (di kaki gunung yang rendah batas yang
+  // tajam menjadi tebing kecil); Gua Es Kristal tetap seperti v0.19.0
+  return { cave, box, reach, mouths, halus: !REACH_TETAP[cave.id], cover: cave.shapes.filter(c => !c.stair) }
+})
+// kotak gabungan semua gua
+export const CAVE_BOX = CAVE_SYSTEMS.reduce((b, s) => ({
+  x0: Math.min(b.x0, s.box.x0), x1: Math.max(b.x1, s.box.x1), z0: Math.min(b.z0, s.box.z0), z1: Math.max(b.z1, s.box.z1),
+}), { x0: Infinity, x1: -Infinity, z0: Infinity, z1: -Infinity })
 
 // ridged multifractal (Musgrave): igir tajam yang bercabang, lembah di antaranya; ±0..1,2
 function multiRidge(x, z, seed) {
@@ -79,17 +109,23 @@ function natural(x, z) {
   // gunung boleh sampai ke pantai (tebing ke laut), dataran rendah tidak
   h += inland * low + smoothstep(1.0, 0.74, t) * m
   h += (fbm(x * 0.08, z * 0.08, 2, 67) - 0.5) * 0.6 * inland
-  return { h: Math.max(h, caveCover(x, z)), t }
+  // batu penutup gua memudar di tepi pantai (mulut gua laut, tanpa pulau batu di depannya)
+  return { h: Math.max(h, caveCover(x, z) - 80 * smoothstep(0.93, 1.0, t)), t }
 }
 
-// Batu di atas Gua Es Kristal: di atas setiap rongga (kecuali tangga rahasia) tanah
-// alami setidaknya 24 m di atas lantainya, melandai 4–36 m di luar tepinya — lembah di antara igir
-// tidak pernah membuka atap gua
-const COVER = CAVE.filter(c => !c.stair)
+// Batu di atas gua: di atas setiap rongga (kecuali tangga rahasia) tanah alami setidaknya 24 m di
+// atas lantainya, melandai 4–36 m di luar tepinya — lembah di antara igir tidak pernah membuka atap
+// gua. Di mulut gua (mouths) batu penutup tidak menimbun lereng / pantai aslinya, jadi lorong masuk
+// terbuka seperti celah di kaki tebing.
 function caveCover(x, z) {
-  if (x < CAVE_REACH.x0 || x > CAVE_REACH.x1 || z < CAVE_REACH.z0 || z > CAVE_REACH.z1) return -Infinity
   let best = -Infinity
-  for (const c of COVER) {
+  for (const sys of CAVE_SYSTEMS) best = Math.max(best, systemCover(sys, x, z))
+  return best
+}
+function systemCover(sys, x, z) {
+  if (!inBox(x, z, sys.reach)) return -Infinity
+  let best = -Infinity
+  for (const c of sys.cover) {
     let d
     let top
     if (c.kind === 'bulat') {
@@ -100,10 +136,16 @@ function caveCover(x, z) {
       d = s.d - cavePassage(c) / 2
       top = Math.max(c.ya, c.yb) + 24
     }
-    if (d < 40) best = Math.max(best, top - 30 * smoothstep(4, 36, d))
+    if (d < 40) best = Math.max(best, top - 30 * smoothstep(4, 36, d) - (sys.halus ? 60 * smoothstep(22, 38, d) : 0))
   }
+  if (best === -Infinity) return best
   // berbatu seperti lereng sekitarnya (bukan kubah mulus)
-  return best === -Infinity ? best : best + 14 * multiRidge(x * 0.02 + 1.3, z * 0.02 + 4.1, 89) - 5
+  best += 14 * multiRidge(x * 0.02 + 1.3, z * 0.02 + 4.1, 89) - 5
+  for (const m of sys.mouths) {
+    const k = smoothstep(m.r * 0.5, m.r * 1.8, segmentInfo(x, z, m.x, m.z, m.ex, m.ez).d)
+    if (k < 1) best -= (1 - k) * 80
+  }
+  return best
 }
 
 // ratakan h menuju y: penuh sampai `pad` m di luar kawasan, memudar sampai pad + fall
@@ -176,31 +218,34 @@ export function frostSurface(x, z) {
   return h
 }
 
-// ------------------------------------------------------------------ Gua Es Kristal
-const CAVE_BOX = (() => {
-  const b = { x0: Infinity, x1: -Infinity, z0: Infinity, z1: -Infinity }
-  for (const c of CAVE) {
-    const pts = c.kind === 'bulat' ? [{ x: c.x, z: c.z }] : [c.a, c.b]
-    const r = (c.r ?? c.w / 2) + 12 // + pelebaran lorong (setCavePassage) & dinding bergelombang
-    for (const p of pts) {
-      b.x0 = Math.min(b.x0, p.x - r)
-      b.x1 = Math.max(b.x1, p.x + r)
-      b.z0 = Math.min(b.z0, p.z - r)
-      b.z1 = Math.max(b.z1, p.z + r)
-    }
-  }
-  return b
-})()
-export { CAVE_BOX }
+// ------------------------------------------------------------------ gua (lantai dikeruk)
 
 // Lantai gua di (x, z), atau null bila di luar rongga. Dinding bergelombang (noise), lantai
 // sedikit berbatu; danau beku rata; tangga rata menanjak.
 export function caveFloor(x, z) {
-  if (!inBox(x, z, CAVE_BOX)) return null
+  for (const sys of CAVE_SYSTEMS) {
+    if (!inBox(x, z, sys.box)) continue
+    const f = systemFloor(sys, x, z)
+    if (f !== null) return f
+  }
+  return null
+}
+
+// lantai satu sistem gua saja (gua.js membangun atap tiap gua dari grid-nya sendiri; kotak dua gua
+// boleh bertumpang tanpa atap ganda)
+export const caveFloorIn = (sys, x, z) => (inBox(x, z, sys.box) ? systemFloor(sys, x, z) : null)
+
+// gua tempat (x, z) berada (salah satu CAVES), atau null
+export function caveAt(x, z) {
+  for (const sys of CAVE_SYSTEMS) if (inBox(x, z, sys.box) && systemFloor(sys, x, z) !== null) return sys.cave
+  return null
+}
+
+function systemFloor(sys, x, z) {
   const wob = (fbm(x * 0.09, z * 0.09, 2, 91) - 0.5) * 3.2
   let floor = null
   let stair = false
-  for (const c of CAVE) {
+  for (const c of sys.cave.shapes) {
     let d
     let fy
     if (c.kind === 'bulat') {
@@ -221,10 +266,20 @@ export function caveFloor(x, z) {
   }
   if (floor === null) return null
   if (stair) return floor
-  const lake = Math.hypot((x - LAKE.x) / LAKE.rx, (z - LAKE.z) / LAKE.rz)
-  if (lake < 1) return LAKE.y
-  // lantai berbatu kecil + tepi danau sedikit menurun ke es
-  return floor + (fbm(x * 0.22, z * 0.22, 2, 93) - 0.5) * 0.7 + (LAKE.y - floor) * (1 - smoothstep(1, 1.35, lake))
+  // danau beku terdekat: rata di dalamnya, tepinya sedikit menurun ke es
+  let lake = null
+  let ld = Infinity
+  for (const l of sys.cave.lakes) {
+    const e = Math.hypot((x - l.x) / l.rx, (z - l.z) / l.rz)
+    if (e < ld) {
+      ld = e
+      lake = l
+    }
+  }
+  if (lake && ld < 1) return lake.y
+  // lantai berbatu kecil
+  const rough = floor + (fbm(x * 0.22, z * 0.22, 2, 93) - 0.5) * 0.7
+  return lake ? rough + (lake.y - floor) * (1 - smoothstep(1, 1.35, ld)) : rough
 }
 
 // Tinggi tanah Frostfall (dengan gua dikeruk).

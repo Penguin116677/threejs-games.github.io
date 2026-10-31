@@ -1,10 +1,10 @@
 import { rng } from '../../core/random.js'
 import { dockSpans } from '../kencana/height.js'
 import { TOWER } from './buildings.js'
-import { cavePassage } from './height.js'
+import { cavePassage, caveFloorIn, frostSurface, CAVE_SYSTEMS } from './height.js'
 import {
   VILLAGE, SQUARE, CASTLE, CASTLE_YARD, HALL, THRONE, TRAPDOOR, CAVE, LAKE, TREASURE, CAVE_MOUTH, WATERFALL, RIVER, ROADS, TRAILS,
-  GORGE, BRIDGES, DOCKS, CAMPS, HIGH_VALLEY, polyInfo,
+  GORGE, BRIDGES, DOCKS, CAMPS, HIGH_VALLEY, CAVES, polyInfo,
 } from './layout.js'
 
 // Rencana rinci Kerajaan Frostfall: letak setiap bangunan, penghalang (sebagian berbatas tinggi:
@@ -38,6 +38,8 @@ export function planFrostfall(ground) {
     spans: [], // (Frostfall tidak punya jembatan antarpulau)
     shops: [],
     chest: null,
+    chests: [], // peti harta tiap gua { id, x, y, z, rot, koin, key, pesan, gua }
+    caves: CAVES,
     trapdoor: null,
   }
   const add = b => {
@@ -399,6 +401,323 @@ export function planFrostfall(ground) {
   box(TREASURE.x, TREASURE.z, 1.7, 1.1, TREASURE.rot, 'kayu')
   P.chest = { x: TREASURE.x, y: yAt(TREASURE.x, TREASURE.z), z: TREASURE.z, rot: TREASURE.rot }
   light(TREASURE.x, P.chest.y + 2, TREASURE.z, '#ffd27a', 16, 10, 0)
+  P.chests = [{ id: 'kristal', ...P.chest, koin: CAVES[0].chest.koin, key: CAVES[0].chest.key, pesan: CAVES[0].chest.pesan, gua: CAVES[0].name }]
+
+  // ===================================================================== lima gua besar (v0.20.0)
+  // Isi bertema tiap gua baru (CAVES selain Gua Es Kristal): bingkai batu di mulut, kristal di dinding,
+  // tiang es & stalagmit, jurai es di bawah langit-langit yang rendah, perlengkapan tambang, bangkai
+  // kapal, altar, peti harta. Acak sendiri (rng terpisah) supaya isi Frostfall yang lama tetap sama.
+  {
+    const rc = rng(2020)
+    const rb = (a, b) => a + (b - a) * rc()
+    // tinggi atap seperti mesh atap gua (gua.js): permukaan asli di titik grid, interpolasi segitiga
+    const { step: gs, x0: gx0, z0: gz0 } = ground
+    const meshRoof = (x, z) => {
+      const fx = (x - gx0) / gs
+      const fz = (z - gz0) / gs
+      const i = Math.floor(fx)
+      const j = Math.floor(fz)
+      const u = fx - i
+      const v = fz - j
+      const at = (di, dj) => frostSurface(gx0 + (i + di) * gs, gz0 + (j + dj) * gs)
+      const a = at(0, 0)
+      const b = at(0, 1)
+      const c = at(1, 1)
+      const d = at(1, 0)
+      return u + v <= 1 ? a + (d - a) * u + (b - a) * v : c + (b - c) * (1 - u) + (d - c) * (1 - v)
+    }
+    for (const cv of CAVES) {
+      if (cv.tema === 'kristal') continue
+      const sys = CAVE_SYSTEMS.find(sy => sy.cave === cv)
+      const floorAt = (x, z) => caveFloorIn(sys, x, z)
+      const gapAt = (x, z) => meshRoof(x, z) - yAt(x, z)
+      // titik di dalam rongga, setidaknya m meter dari dinding
+      const insideBy = (x, z, m) => [[0, 0], [m, 0], [-m, 0], [0, m], [0, -m]].every(([dx, dz]) => floorAt(x + dx, z + dz) !== null)
+      const ch = cv.chest
+      // jalan utama (rute mulut → peti) & sekitar peti dijaga lapang
+      const clear = (x, z, r) => polyInfo(cv.route, x, z).d > r + 2.4 && Math.hypot(x - ch.x, z - ch.z) > r + 3.5
+      const lorong = cv.shapes.filter(c => c.kind === 'lorong')
+      const bulat = cv.shapes.filter(c => c.kind === 'bulat')
+      const axis = c => {
+        const len = Math.hypot(c.b.x - c.a.x, c.b.z - c.a.z)
+        return { len, ux: (c.b.x - c.a.x) / len, uz: (c.b.z - c.a.z) / len }
+      }
+      const crystal = (x, z, n, size, ungu) => {
+        if (floorAt(x, z) === null) return
+        const y = yAt(x, z)
+        P.crystals.push({ x, y, z, n, size, seed: Math.round(x * 3 + z * 7), ungu })
+        if (size > 1.5) circle(x, z, size * 0.5, 'es')
+        if (size >= 1.4) light(x, y + size * 1.5, z, ungu ? '#a99cff' : '#66c8ff', 18 * size, 9 + size * 3, 0)
+      }
+      const pillar = (x, z, r, tinggi, seed) => {
+        const gap = gapAt(x, z)
+        const atap = gap < tinggi + 3
+        add({ type: 'tiang-es', x, y: yAt(x, z), z, rot: rb(0, 6), h: atap ? gap + 0.6 : tinggi, r, sampai: atap, seed })
+        circle(x, z, r * 1.1, 'es')
+      }
+
+      // bingkai batu & es di mulut gua, menghadap keluar lorong pertama, di tempat atapnya cukup tinggi
+      for (const m of cv.mouths) {
+        const c0 = cv.shapes[0]
+        const { ux, uz } = axis(c0)
+        let x = c0.a.x + ux * 6
+        let z = c0.a.z + uz * 6
+        for (let t = 3; t < 22; t += 1) {
+          x = c0.a.x + ux * t
+          z = c0.a.z + uz * t
+          if (gapAt(x, z) >= m.h) break
+        }
+        add({ type: 'mulut-gua', x, y: yAt(x, z), z, rot: Math.atan2(-ux, -uz), w: m.w, h: m.h })
+      }
+
+      // kristal di dinding setiap rongga — tambang: kristal ungu hanya di Urat Kristal & ujung terowongan
+      const ungu = { tambang: 1, gletser: 0, katedral: 0.3, laut: 0.15, tiang: 0.25 }[cv.tema]
+      for (const c of cv.shapes) {
+        if (cv.tema === 'tambang' && !(c.kind === 'bulat' && c.r < 18)) continue
+        if (c.kind === 'bulat') {
+          const n = Math.max(4, Math.round(c.r / 3.2))
+          for (let i = 0; i < n; i++) {
+            const a = (i / n) * Math.PI * 2 + rc() * 0.5
+            const r = c.r - 2.5 - rc() * 2
+            const x = c.x + Math.cos(a) * r
+            const z = c.z + Math.sin(a) * r
+            if (clear(x, z, 1)) crystal(x, z, 5 + Math.floor(rc() * 5), rb(0.9, cv.tema === 'katedral' ? 2.4 : 1.9), rc() < ungu)
+          }
+        } else {
+          const { len, ux, uz } = axis(c)
+          for (let t = 6; t < len - 3; t += 9 + rc() * 6) {
+            const side = rc() < 0.5 ? -1 : 1
+            const off = cavePassage(c) / 2 - 1.6
+            crystal(c.a.x + ux * t - uz * side * off, c.a.z + uz * t + ux * side * off, 4 + Math.floor(rc() * 4), rb(0.6, 1.3), rc() < ungu)
+          }
+        }
+      }
+
+      // jurai es di langit-langit yang rendah (5–16 m di atas lantai), dekat dinding lorong & ruang
+      const jurai = (x, z) => {
+        if (!insideBy(x, z, 1.5)) return
+        const gap = gapAt(x, z)
+        if (gap < 5 || gap > 16) return
+        add({ type: 'jurai-es', x, y: meshRoof(x, z) + 0.15, z, rot: rb(0, 6), n: 5 + Math.floor(rc() * 5), len: Math.min(3, gap * 0.22), seed: Math.round(x + z) })
+      }
+      for (const c of lorong) {
+        const { len, ux, uz } = axis(c)
+        for (let t = 3; t < len; t += 5) for (const side of [-1, 1]) jurai(c.a.x + ux * t - uz * side * (cavePassage(c) / 2 - 2.2), c.a.z + uz * t + ux * side * (cavePassage(c) / 2 - 2.2))
+      }
+      for (const c of bulat)
+        for (let i = 0; i < 14; i++) {
+          const a = (i / 14) * Math.PI * 2
+          jurai(c.x + Math.cos(a) * (c.r - 3), c.z + Math.sin(a) * (c.r - 3))
+        }
+
+      if (cv.tema === 'tambang') {
+        // penyangga kayu tiap ±7 m di setiap lorong, selebar lorong sebenarnya di grid ini (sampai lantai
+        // mulai naik ke dinding); lentera di setiap penyangga kedua
+        for (const c of lorong) {
+          const { len, ux, uz } = axis(c)
+          const rot = Math.atan2(ux, uz)
+          let k = 0
+          for (let t = 4; t < len - 3; t += 7) {
+            const x = c.a.x + ux * t
+            const z = c.a.z + uz * t
+            const y = yAt(x, z)
+            const side = sgn => {
+              let r = 0.5
+              for (; r < 9; r += 0.25) {
+                const px = x + uz * sgn * r
+                const pz = z - ux * sgn * r
+                if (floorAt(px, pz) === null || Math.abs(yAt(px, pz) - y) > 0.5) break
+              }
+              return r - 0.6
+            }
+            const half = Math.min(side(1), side(-1), 4.5)
+            const h = Math.min(4.2, gapAt(x, z) - 0.4)
+            if (half < 1.6 || h < 2.8) continue
+            add({ type: 'penyangga', x, y, z, rot, w: half * 2, h })
+            for (const sgn of [-1, 1]) circle(x + uz * sgn * (half - 0.15), z - ux * sgn * (half - 0.15), 0.3, 'kayu')
+            if (k++ % 2 === 0) {
+              const lx = x + uz * (half - 0.55) + ux * 0.7
+              const lz = z - ux * (half - 0.55) + uz * 0.7
+              const ly = yAt(lx, lz)
+              add({ type: 'lentera', x: lx, y: ly, z: lz, rot: rot - Math.PI / 2 })
+              light(lx, ly + 2.7, lz, '#ffb060', 22, 12, 1)
+            }
+          }
+        }
+        // rel dari mulut sampai Urat Kristal (potongan ≤ 3 m mengikuti lantai)
+        const rails = cv.route.slice(1, 7)
+        for (let i = 0; i < rails.length - 1; i++) {
+          const a = rails[i]
+          const b = rails[i + 1]
+          const L = Math.hypot(b.x - a.x, b.z - a.z)
+          const n = Math.ceil(L / 3)
+          for (let k = 0; k < n; k++) {
+            const x0 = a.x + ((b.x - a.x) * k) / n
+            const z0 = a.z + ((b.z - a.z) * k) / n
+            const x1 = a.x + ((b.x - a.x) * (k + 1)) / n
+            const z1 = a.z + ((b.z - a.z) * (k + 1)) / n
+            if (floorAt(x0, z0) === null || floorAt(x1, z1) === null) continue
+            add({ type: 'rel', x: (x0 + x1) / 2, y: (yAt(x0, z0) + yAt(x1, z1)) / 2, z: (z0 + z1) / 2, rot: Math.atan2(x1 - x0, z1 - z0), len: L / n + 0.05 })
+          }
+        }
+        // kereta tambang (di Aula Tambang, di ujung terowongan buntu, di Urat Kristal), peti kayu, bekas
+        // api unggun penambang — hanya yang tidak menghalangi jalan utama
+        const spot = (x, z, r) => floorAt(x, z) !== null && insideBy(x, z, r) && clear(x, z, r)
+        for (const [x, z, rot] of [[638, -272, 2.2], [686, -318, -2.27], [606, -346, 0.9]]) {
+          if (!spot(x, z, 1.2)) continue
+          add({ type: 'kereta-tambang', x, y: yAt(x, z), z, rot })
+          box(x, z, 1.3, 2.0, rot, 'besi')
+        }
+        for (const [x, z, n] of [[634, -282, 4], [644, -266, 3], [692, -323, 3], [612, -346, 3]]) {
+          if (!spot(x, z, 1.1)) continue
+          add({ type: 'peti', x, y: yAt(x, z), z, rot: rb(0, 3), n, seed: Math.round(x - z) })
+          circle(x, z, 1.1, 'kayu')
+        }
+        if (spot(660, -280, 1)) {
+          add({ type: 'api', x: 660, y: yAt(660, -280), z: -280, rot: 0, lit: false, logs: true })
+          circle(660, -280, 0.9, 'kayu')
+        }
+        // lentera di kiri-kanan mulut tambang
+        const m = cv.mouths[0]
+        const c0 = cv.shapes[0]
+        const { ux, uz } = axis(c0)
+        for (const sgn of [-1, 1]) {
+          const x = m.x + uz * sgn * 5.2 - ux * 1
+          const z = m.z - ux * sgn * 5.2 - uz * 1
+          add({ type: 'lentera', x, y: yAt(x, z), z, rot: Math.atan2(-ux, -uz) })
+          light(x, yAt(x, z) + 2.7, z, '#ffb060', 22, 12, 1)
+        }
+      }
+
+      if (cv.tema === 'gletser') {
+        // tiang es di kedua ruang besar; yang langit-langitnya rendah menjadi tiang sampai atap
+        for (const c of bulat) {
+          const want = Math.round(c.r / 3.4)
+          let n = 0
+          for (let i = 0; i < want * 6 && n < want; i++) {
+            const a = rc() * Math.PI * 2
+            const d = Math.sqrt(rc()) * (c.r - 3)
+            const x = c.x + Math.cos(a) * d
+            const z = c.z + Math.sin(a) * d
+            const r = rb(0.9, 1.7)
+            if (!insideBy(x, z, r + 1) || !clear(x, z, r)) continue
+            pillar(x, z, r, rb(7, 14), i + 31)
+            n++
+          }
+        }
+        // air terjun beku di dinding timur Ruang Air Terjun Beku, menghadap ke tengah ruang
+        const c = bulat[bulat.length - 1]
+        let tw = 0
+        for (let t = 0; t < c.r + 8; t += 0.5) {
+          if (floorAt(c.x + t, c.z) === null || Math.abs(yAt(c.x + t, c.z) - c.y) > 1) break
+          tw = t
+        }
+        const fx = c.x + tw - 2.2
+        const h = Math.min(14, gapAt(fx, c.z) - 1)
+        if (h > 4) {
+          add({ type: 'air-terjun', x: fx, y: yAt(fx, c.z), z: c.z, rot: FACE.barat, h, w: 7, lean: 0 })
+          box(fx, c.z, 1.6, 7.5, 0, 'es')
+          P.ice.push({ ellipse: { x: fx - 2.5, z: c.z, rx: 4.5, rz: 5 } })
+        }
+      }
+
+      if (cv.tema === 'katedral') {
+        // barisan tiang es raksasa melingkar seperti tiang katedral (yang menghalangi rute dilewati)
+        const c = bulat[0]
+        for (let i = 0; i < 12; i++) {
+          const a = (i / 12) * Math.PI * 2
+          const x = c.x + Math.cos(a) * c.r * 0.66
+          const z = c.z + Math.sin(a) * c.r * 0.66
+          const r = rb(1.5, 2.3)
+          if (!insideBy(x, z, r + 1) || !clear(x, z, r)) continue
+          pillar(x, z, r, rb(26, 42), i + 7)
+        }
+        // stalagmit batu di antara tiang
+        let n = 0
+        for (let i = 0; i < 80 && n < 16; i++) {
+          const a = rc() * Math.PI * 2
+          const d = Math.sqrt(rc()) * (c.r - 3)
+          const x = c.x + Math.cos(a) * d
+          const z = c.z + Math.sin(a) * d
+          const r = rb(0.8, 1.6)
+          if (!insideBy(x, z, r + 1) || !clear(x, z, r)) continue
+          add({ type: 'stalagmit', x, y: yAt(x, z), z, rot: rb(0, 6), h: rb(3, 9), r, seed: i + 3, es: false })
+          circle(x, z, r * 1.1, 'batu')
+          n++
+        }
+      }
+
+      if (cv.tema === 'laut') {
+        // bangkai kapal terjebak di laguna beku, peti-peti muatannya, bongkah es
+        const lk = cv.lakes[0]
+        const wx = lk.x + 2
+        const wz = lk.z + 1
+        add({ type: 'bangkai-kapal', x: wx, y: lk.y + 0.05, z: wz, rot: 0.55, len: 14 })
+        box(wx, wz, 5, 14, 0.55, 'kayu')
+        for (const [x, z, n] of [[lk.x - 8, lk.z + 4, 4], [lk.x + 9, lk.z - 5, 3]]) {
+          add({ type: 'peti', x, y: yAt(x, z), z, rot: rb(0, 3), n, seed: Math.round(x + z) })
+          circle(x, z, 1.1, 'kayu')
+        }
+        let n = 0
+        for (let i = 0; i < 60 && n < 10; i++) {
+          const x = lk.x + rb(-1, 1) * lk.rx
+          const z = lk.z + rb(-1, 1) * lk.rz
+          const r = rb(0.7, 1.4)
+          if (Math.hypot((x - lk.x) / lk.rx, (z - lk.z) / lk.rz) > 0.9 || Math.hypot(x - wx, z - wz) < 9 || !clear(x, z, r)) continue
+          add({ type: 'stalagmit', x, y: yAt(x, z), z, rot: rb(0, 6), h: rb(0.8, 2), r, seed: i + 50, es: true })
+          circle(x, z, r, 'es')
+          n++
+        }
+      }
+
+      if (cv.tema === 'tiang') {
+        // hutan tiang: kisi berjarak ±6,5 m yang digeser acak — stalagmit batu & tiang es (sampai atap
+        // bila langit-langitnya terjangkau)
+        const c = bulat[0]
+        for (let gx = c.x - c.r; gx <= c.x + c.r; gx += 6.5)
+          for (let gz = c.z - c.r; gz <= c.z + c.r; gz += 6.5) {
+            const x = gx + rb(-2, 2)
+            const z = gz + rb(-2, 2)
+            const es = rc() < 0.45
+            const r = es ? rb(1.0, 1.8) : rb(0.9, 1.6)
+            if (Math.hypot(x - c.x, z - c.z) > c.r - 2 || !insideBy(x, z, r + 0.8) || !clear(x, z, r)) continue
+            if (es) pillar(x, z, r, rb(10, 22), Math.round(gx * 3 + gz))
+            else {
+              add({ type: 'stalagmit', x, y: yAt(x, z), z, rot: rb(0, 6), h: rb(4, 11), r, seed: Math.round(gx + gz), es: false })
+              circle(x, z, r * 1.05, 'batu')
+            }
+          }
+      }
+
+      // danau beku: cat es di masker tanah
+      for (const l of cv.lakes) P.ice.push({ ellipse: { x: l.x, z: l.z, rx: l.rx + 1, rz: l.rz + 1 } })
+
+      // peti harta menghadap arah datangnya pemain (titik rute sebelumnya); altar di belakangnya
+      // (Katedral Taring), tiang kembar mengapitnya (Gua Seribu Tiang)
+      const prev = cv.route[cv.route.length - 2]
+      const rot = Math.atan2(prev.x - ch.x, prev.z - ch.z)
+      const y = yAt(ch.x, ch.z)
+      add({ type: 'harta', x: ch.x, y, z: ch.z, rot })
+      box(ch.x, ch.z, 1.7, 1.1, rot, 'kayu')
+      P.chests.push({ id: cv.id, x: ch.x, y, z: ch.z, rot, koin: ch.koin, key: ch.key, pesan: ch.pesan, gua: cv.name })
+      light(ch.x, y + 2, ch.z, '#ffd27a', 16, 10, 0)
+      const fx = Math.sin(rot)
+      const fz = Math.cos(rot)
+      if (cv.tema === 'katedral') {
+        const ax = ch.x - fx * 2.8
+        const az = ch.z - fz * 2.8
+        add({ type: 'altar', x: ax, y: yAt(ax, az), z: az, rot })
+        box(ax, az, 4.2, 2.4, rot, 'batu')
+        for (const sgn of [-1, 1]) crystal(ax - fz * sgn * 3.6 - fx * 0.6, az + fx * sgn * 3.6 - fz * 0.6, 9, 2.4, sgn > 0)
+      }
+      if (cv.tema === 'tiang')
+        for (const sgn of [-1, 1]) {
+          const x = ch.x + fz * sgn * 3.4
+          const z = ch.z - fx * sgn * 3.4
+          if (floorAt(x, z) !== null) pillar(x, z, 1.6, 30, sgn + 90)
+        }
+    }
+  }
 
   // ===================================================================== kemah pemburu
   for (const c of CAMPS) {
@@ -426,6 +745,7 @@ export function planFrostfall(ground) {
     if (x > CASTLE.x0 - 10 - r && x < CASTLE.x1 + 10 + r && z > CASTLE.z0 - 10 - r && z < CASTLE.z1 + 10 + r) return true
     if (x > CASTLE_YARD.x0 - 6 - r && x < CASTLE_YARD.x1 + r && z > CASTLE_YARD.z0 - 6 - r && z < CASTLE_YARD.z1 + 6 + r) return true
     if (Math.hypot(x - CAVE_MOUTH.x, z - CAVE_MOUTH.z + 6) < 16 + r) return true
+    for (const cv of CAVES) for (const m of cv.mouths) if (Math.hypot(x - m.x, z - m.z) < m.r + 6 + r) return true
     if (Math.hypot(x - WATERFALL.x, z - WATERFALL.z) < 14 + r) return true
     const river = polyInfo(RIVER, x, z, ['w'])
     if (river.d < river.w / 2 + 5 + r) return true

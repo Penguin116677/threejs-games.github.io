@@ -13,7 +13,7 @@ import { caveFloor } from './height.js'
 import { createCave } from './gua.js'
 
 // Kerajaan Frostfall dalam 3D: bangunan dari rencana (plan.js) digabung per petak (buildTiles, sama
-// seperti Kencana & Aeloria), kristal es, Gua Es Kristal (atap + langit-langit, gua.js), hutan pinus
+// seperti Kencana & Aeloria), kristal es, enam gua (atap + langit-langit, gua.js), hutan pinus
 // bersalju dengan dua tingkat detail (dekat: bertingkat + salju; jauh: satu kerucut), batu besar
 // bersalju, batang tumbang, bongkah es di laut dekat pantai, serta lempeng pintu rahasia & tutup
 // peti harta (mesh terpisah yang bisa bergerak).
@@ -192,6 +192,14 @@ function partsFor(b) {
     case 'singgasana': return F.singgasana()
     case 'tangga': return F.tanggaRahasia(b.len, b.drop, b.w)
     case 'langkan': return F.temboKastel(b.len, 0.45, 0.6)
+    case 'tiang-es': return F.tiangEs(b.h, b.r, b.seed, b.sampai)
+    case 'stalagmit': return F.stalagmit(b.h, b.r, b.seed, b.es)
+    case 'jurai-es': return F.juraiEs(b.n, b.len, b.seed)
+    case 'penyangga': return F.penyangga(b.w, b.h)
+    case 'rel': return F.rel(b.len)
+    case 'kereta-tambang': return F.keretaTambang()
+    case 'bangkai-kapal': return F.bangkaiKapal(b.len)
+    case 'altar': return F.altar()
     case 'lantai': return F.lantaiAula(b.w, b.d)
     case 'anglo': {
       const P = new B.Parts()
@@ -245,16 +253,21 @@ export function createFrostfall({ ground, plan, mask, grid, quality, noiseTextur
   slab.name = 'pintu-rahasia'
   slab.position.set(plan.trapdoor.x, plan.trapdoor.y, plan.trapdoor.z)
   slab.receiveShadow = shadows
-  const lidPivot = new THREE.Group()
-  lidPivot.name = 'tutup-peti'
-  // engsel di tepi belakang peti (lokal z = −0,5), di atas badan peti (y = 0,8)
-  const c = Math.cos(plan.chest.rot)
-  const s = Math.sin(plan.chest.rot)
-  lidPivot.position.set(plan.chest.x - 0.52 * s, plan.chest.y + 0.8, plan.chest.z - 0.52 * c)
-  lidPivot.rotation.y = plan.chest.rot
-  const lid = new THREE.Mesh(F.tutupPeti().build(), solidMat)
-  lidPivot.add(lid)
-  group.add(slab, lidPivot)
+  group.add(slab)
+  // tutup tiap peti harta (satu peti per gua): engsel di tepi belakang peti (lokal z = −0,5), di atas
+  // badan peti (y = 0,8)
+  const lidGeo = F.tutupPeti().build()
+  const lids = new Map()
+  for (const ch of plan.chests) {
+    const pivot = new THREE.Group()
+    pivot.name = `tutup-peti-${ch.id}`
+    pivot.position.set(ch.x - 0.52 * Math.sin(ch.rot), ch.y + 0.8, ch.z - 0.52 * Math.cos(ch.rot))
+    pivot.rotation.y = ch.rot
+    const lid = new THREE.Mesh(lidGeo, solidMat)
+    pivot.add(lid)
+    group.add(pivot)
+    lids.set(ch.id, { lid, open: 0, target: 0 })
+  }
 
   // ------------------------------------------------------------------- gua
   const cave = createCave({ ground, terrainMaterial, noiseTexture, shadows })
@@ -359,11 +372,9 @@ export function createFrostfall({ ground, plan, mask, grid, quality, noiseTextur
   // ------------------------------------------------------------------- pintu rahasia & peti
   let slabOpen = 0 // 0 = tertutup … 1 = terbuka penuh (animasi)
   let slabTarget = 0
-  let lidOpen = 0
-  let lidTarget = 0
   return {
     object: group,
-    colliders: [...plan.colliders, ...trunks, ...cave.fences],
+    colliders: [...plan.colliders, ...trunks],
     surfaces: plan.surfaces,
     occlusion,
     cave,
@@ -372,14 +383,17 @@ export function createFrostfall({ ground, plan, mask, grid, quality, noiseTextur
     smoke: plan.smoke,
     trapdoor: plan.trapdoor,
     chest: plan.chest,
+    chests: plan.chests,
     get trapdoorOpen() {
       return slabTarget === 1
     },
     openTrapdoor() {
       slabTarget = 1
     },
-    openChest() {
-      lidTarget = 1
+    // buka tutup peti gua `id` (bawaan: peti Gua Es Kristal)
+    openChest(id = 'kristal') {
+      const l = lids.get(id)
+      if (l) l.target = 1
     },
     update(dt, camera) {
       pineGroup.userData.update(camera, quality.level === 'tinggi' ? 230 : quality.level === 'sedang' ? 150 : 100)
@@ -394,10 +408,11 @@ export function createFrostfall({ ground, plan, mask, grid, quality, noiseTextur
         slab.position.x = plan.trapdoor.x - slide * (plan.trapdoor.hx * 2 + 0.5)
         slab.visible = slabOpen < 1
       }
-      if (lidOpen !== lidTarget) {
-        lidOpen = Math.min(1, lidOpen + dt / 0.9)
-        lid.rotation.x = -1.9 * (1 - (1 - lidOpen) ** 3)
-      }
+      for (const l of lids.values())
+        if (l.open !== l.target) {
+          l.open = Math.min(1, l.open + dt / 0.9)
+          l.lid.rotation.x = -1.9 * (1 - (1 - l.open) ** 3)
+        }
     },
     stats: {
       bangunan: plan.build.length,

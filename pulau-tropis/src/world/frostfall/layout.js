@@ -166,6 +166,12 @@ export const TRAILS = [
   },
   // di dalam Lembah Atas: jembatan sungai → mulut gua
   { id: 'gua', w: 3, line: [{ x: 1020, z: -72, y: null }, { x: 1052, z: -86, y: null }, { x: 1060, z: -112, y: null }, { x: 1062, z: -126, y: null }] },
+  // ujung utara jalan desa → mulut Tambang Tua di kaki bukit
+  { id: 'tambang', w: 3, line: [{ x: 694, z: -95, y: null }, { x: 692, z: -140, y: null }, { x: 688, z: -180, y: null }, { x: 688, z: -200, y: null }] },
+  // Lembah Atas → mulut Katedral Taring (ujung timur lembah)
+  { id: 'katedral', w: 3, line: [{ x: 1062, z: -92, y: null }, { x: 1100, z: -96, y: null }, { x: 1122, z: -95, y: null }] },
+  // kemah timur → mulut Gua Seribu Tiang
+  { id: 'tiang', w: 2.8, line: [{ x: 1020, z: 175, y: null }, { x: 1080, z: 160, y: null }, { x: 1130, z: 138, y: null }, { x: 1158, z: 130, y: null }] },
 ]
 // Celah Tersembunyi: ngarai sempit menembus punggung R2 dari hutan ke Lembah Atas (y = lantai)
 export const GORGE = [
@@ -235,6 +241,97 @@ export const TREASURE = { x: 1170, z: -278, rot: -2.4 } // peti harta di Ruang H
 export const CAVE_MOUTH = { x: 1062, z: -124 }
 // tinggi rongga minimum: di bawah ini atap tidak dibuat (mulut gua & lubang tangga terbuka)
 export const ROOF_MIN = 5
+
+// ------------------------------------------------------------------ semua gua (v0.20.0: + 5 gua besar)
+// Tiap gua = sistem rongga sendiri (atap, kegelapan, nama di spanduk & peta):
+//   shapes : bentuk rongga seperti CAVE ('bulat' / 'lorong', tinggi lantai)
+//   mouths : mulut gua { x, z, r, w, h } (bingkai batu w × h menghadap keluar lorong pertama) — batu penutup
+//            (height.js) tidak menimbun mulutnya, jadi lorong masuk terbuka ke lereng / pantai
+//   lakes  : danau / laguna beku { x, z, rx, rz, y }
+//   chest  : peti harta { x, z, koin, key (localStorage) } — menghadap titik rute sebelum ujungnya
+//   route  : jalan dari luar mulut sampai peti — dijaga bebas dari tiang & dipakai uji otomatis
+//   tema   : isi gua (plan.js): kristal · tambang · gletser · katedral · laut · tiang
+//   gelap  : seberapa gelap bagian dalamnya (bawaan 1)
+export const CAVES = [
+  {
+    id: 'kristal', name: 'Gua Es Kristal', short: 'Gua Es', sub: 'Gua beku di dalam gunung · kristal bercahaya', tema: 'kristal',
+    shapes: CAVE, mouths: [], lakes: [LAKE], label: { x: 1112, z: -238 },
+    chest: { ...TREASURE, koin: 150, key: 'pulau-tropis:harta-frostfall', pesan: 'Harta Raja Frostfall!' },
+    route: [{ x: 1062, z: -118 }, { x: 1062, z: -130 }, { x: 1068, z: -168 }, { x: 1080, z: -200 }, { x: 1096, z: -212 }, { x: 1142, z: -232 }, { x: 1160, z: -262 }, { x: 1168, z: -274 }],
+  },
+  {
+    // bukit di barat laut Desa Emberwick: tambang kristal tua, lorongnya turun ke urat kristal ungu
+    id: 'tambang', name: 'Tambang Tua Emberwick', short: 'Tambang Tua', sub: 'Tambang kristal yang ditinggalkan penduduk desa', tema: 'tambang',
+    gelap: 0.55, // diterangi lentera penambang: tidak segelap gua alam
+    shapes: [
+      { kind: 'lorong', a: { x: 686, z: -208 }, b: { x: 658, z: -270 }, ya: 16.6, yb: 16, w: 8 },
+      { kind: 'bulat', x: 650, z: -284, r: 20, y: 16 }, // Aula Tambang
+      { kind: 'lorong', a: { x: 660, z: -295 }, b: { x: 690, z: -320 }, ya: 16, yb: 16.4, w: 7 }, // terowongan buntu
+      { kind: 'lorong', a: { x: 640, z: -292 }, b: { x: 604, z: -331 }, ya: 16, yb: 9, w: 8 }, // turunan
+      { kind: 'bulat', x: 598, z: -338, r: 15, y: 9 }, // Urat Kristal
+    ],
+    mouths: [{ x: 688, z: -203, r: 12, w: 9, h: 6 }],
+    lakes: [], label: { x: 650, z: -322 },
+    chest: { x: 594, z: -343, koin: 60, key: 'pulau-tropis:peti-gua-tambang', pesan: 'Peti para penambang!' },
+    route: [{ x: 690, z: -194 }, { x: 686, z: -208 }, { x: 658, z: -270 }, { x: 650, z: -284 }, { x: 640, z: -292 }, { x: 604, z: -331 }, { x: 599, z: -337 }],
+  },
+  {
+    // pantai utara di bawah pegunungan utara: gua gletser berdinding es biru, air terjun beku di dalam
+    id: 'gletser', name: 'Gua Gletser Utara', short: 'Gua Gletser', sub: 'Es biru purba di bawah pegunungan utara', tema: 'gletser',
+    shapes: [
+      { kind: 'lorong', a: { x: 1055, z: -451 }, b: { x: 1090, z: -402 }, ya: 1.4, yb: 9, w: 11 },
+      { kind: 'bulat', x: 1100, z: -386, r: 26, y: 9 }, // Aula Gletser
+      { kind: 'lorong', a: { x: 1118, z: -373 }, b: { x: 1150, z: -340 }, ya: 9, yb: 11.5, w: 10, minSteps: 3.6 }, // diagonal
+      { kind: 'bulat', x: 1160, z: -332, r: 18, y: 11.5 }, // Ruang Air Terjun Beku
+    ],
+    mouths: [{ x: 1052, z: -456, r: 13, w: 11, h: 7 }],
+    lakes: [{ x: 1094, z: -394, rx: 10, rz: 7, y: 8.4 }], label: { x: 1100, z: -418 },
+    chest: { x: 1160, z: -340, koin: 90, key: 'pulau-tropis:peti-gua-gletser', pesan: 'Peti yang membeku di dalam gletser!' },
+    route: [{ x: 1040, z: -449 }, { x: 1055, z: -451 }, { x: 1090, z: -402 }, { x: 1108, z: -378 }, { x: 1118, z: -373 }, { x: 1150, z: -340 }, { x: 1155, z: -335 }],
+  },
+  {
+    // rongga raksasa di bawah Puncak Taring Es (masuk dari ujung timur Lembah Atas), tiang es raksasa
+    id: 'katedral', name: 'Katedral Taring', short: 'Katedral Taring', sub: 'Rongga raksasa di bawah Puncak Taring Es', tema: 'katedral',
+    shapes: [
+      { kind: 'lorong', a: { x: 1128, z: -97 }, b: { x: 1182, z: -115 }, ya: 57.8, yb: 60, w: 12 },
+      { kind: 'bulat', x: 1210, z: -124, r: 34, y: 60 }, // katedral
+      { kind: 'lorong', a: { x: 1222, z: -152 }, b: { x: 1236, z: -178 }, ya: 60, yb: 63, w: 10 },
+      { kind: 'bulat', x: 1240, z: -186, r: 16, y: 63 }, // Kolam Taring
+    ],
+    mouths: [{ x: 1124, z: -95, r: 12, w: 12, h: 8 }],
+    lakes: [{ x: 1248, z: -184, rx: 7, rz: 6, y: 62.4 }], label: { x: 1210, z: -78 },
+    chest: { x: 1236, z: -192, koin: 120, key: 'pulau-tropis:peti-gua-katedral', pesan: 'Persembahan di altar Katedral Taring!' },
+    route: [{ x: 1118, z: -93 }, { x: 1128, z: -97 }, { x: 1182, z: -115 }, { x: 1206, z: -128 }, { x: 1222, z: -152 }, { x: 1236, z: -178 }, { x: 1237, z: -186 }],
+  },
+  {
+    // tebing pantai timur: gua laut dengan laguna beku & bangkai kapal — hanya lewat laut
+    id: 'laut', name: 'Gua Laut Beku', short: 'Gua Laut Beku', sub: 'Laguna beku di balik tebing pantai timur', tema: 'laut',
+    shapes: [
+      { kind: 'lorong', a: { x: 1372, z: -4 }, b: { x: 1306, z: -13 }, ya: 0.9, yb: 1.9, w: 12 },
+      { kind: 'bulat', x: 1288, z: -14, r: 26, y: 1.9 }, // laguna
+      { kind: 'lorong', a: { x: 1284, z: -32 }, b: { x: 1295, z: -68 }, ya: 1.9, yb: 3.4, w: 9 },
+      { kind: 'bulat', x: 1298, z: -76, r: 13, y: 3.4 }, // Ceruk Karang Es
+    ],
+    mouths: [{ x: 1372, z: -3, r: 16, w: 12, h: 7 }],
+    lakes: [{ x: 1284, z: -8, rx: 15, rz: 11, y: 1.3 }], label: { x: 1330, z: 26 },
+    chest: { x: 1300, z: -80, koin: 150, key: 'pulau-tropis:peti-gua-laut', pesan: 'Harta bajak laut yang terdampar!' },
+    route: [{ x: 1380, z: -4 }, { x: 1372, z: -4 }, { x: 1306, z: -13 }, { x: 1290, z: -28 }, { x: 1284, z: -32 }, { x: 1295, z: -68 }, { x: 1298, z: -74 }],
+  },
+  {
+    // punggung tenggara, masuk dari hutan: rongga besar penuh tiang batu & es
+    id: 'tiang', name: 'Gua Seribu Tiang', short: 'Gua Seribu Tiang', sub: 'Hutan tiang batu & es di dalam gunung', tema: 'tiang',
+    shapes: [
+      { kind: 'lorong', a: { x: 1160, z: 128 }, b: { x: 1216, z: 123 }, ya: 20.4, yb: 27, w: 12 },
+      { kind: 'bulat', x: 1242, z: 124, r: 32, y: 27 }, // Hutan Tiang
+      { kind: 'lorong', a: { x: 1250, z: 94 }, b: { x: 1260, z: 72 }, ya: 27, yb: 29.5, w: 10 },
+      { kind: 'bulat', x: 1262, z: 62, r: 15, y: 29.5 }, // Ruang Tiang Kembar
+    ],
+    mouths: [{ x: 1156, z: 129, r: 12, w: 12, h: 8 }],
+    lakes: [], label: { x: 1240, z: 170 },
+    chest: { x: 1264, z: 57, koin: 90, key: 'pulau-tropis:peti-gua-tiang', pesan: 'Peti tersembunyi di antara tiang kembar!' },
+    route: [{ x: 1150, z: 130 }, { x: 1160, z: 128 }, { x: 1216, z: 123 }, { x: 1238, z: 112 }, { x: 1250, z: 94 }, { x: 1260, z: 72 }, { x: 1263, z: 63 }],
+  },
+]
 
 // ------------------------------------------------------------------ nama kawasan (spanduk & peta)
 export const REGIONS = [

@@ -1,6 +1,6 @@
 import * as THREE from 'three'
 import { polyInfo, polyBox, rectDist, segmentInfo, COLD_X0, COLD_X1 } from './layout.js'
-import { caveFloor, CAVE_BOX } from './height.js'
+import { caveFloor, CAVE_SYSTEMS } from './height.js'
 
 // Masker permukaan Kerajaan Frostfall (1 texel = cell m), dibaca shader tanah (FROST_REGION):
 //   r = jalan / jejak di salju, g = es (sungai & danau beku), b = lantai batu, a = gua.
@@ -32,12 +32,13 @@ export function createFrostMask(plan, { rect = FROST_MASK, cell = 1.5 } = {}) {
   }
   const soft = d => Math.min(1, Math.max(0, 0.5 - d / cell))
 
-  // gua: rongga + 1 texel (dindingnya ikut berwarna batu gua)
-  paint(3, CAVE_BOX.x0, CAVE_BOX.z0, CAVE_BOX.x1, CAVE_BOX.z1, (x, z) => {
-    if (caveFloor(x, z) !== null) return 1
-    for (const [dx, dz] of [[cell, 0], [-cell, 0], [0, cell], [0, -cell]]) if (caveFloor(x + dx, z + dz) !== null) return 0.85
-    return 0
-  })
+  // gua: rongga + 1 texel (dindingnya ikut berwarna batu gua), per gua di kotaknya sendiri
+  for (const { box } of CAVE_SYSTEMS)
+    paint(3, box.x0, box.z0, box.x1, box.z1, (x, z) => {
+      if (caveFloor(x, z) !== null) return 1
+      for (const [dx, dz] of [[cell, 0], [-cell, 0], [0, cell], [0, -cell]]) if (caveFloor(x + dx, z + dz) !== null) return 0.85
+      return 0
+    })
   // es: sungai (lebar per titik) & elips (danau, kolam air terjun) — tepinya bersalju tipis
   for (const ic of plan.ice)
     if (ic.line) {

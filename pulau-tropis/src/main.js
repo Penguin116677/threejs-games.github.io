@@ -35,7 +35,7 @@ import { planFrostfall } from './world/frostfall/plan.js'
 import { createFrostMask } from './world/frostfall/mask.js'
 import { createFrostfall } from './world/frostfall/kingdom.js'
 import { createWeather } from './world/frostfall/cuaca.js'
-import { setCavePassage } from './world/frostfall/height.js'
+import { setCaveGrid } from './world/frostfall/height.js'
 import { createWorldMap, createRegionBanner } from './ui/peta.js'
 import { createBubbles, createHealthBar } from './ui/tanya.js'
 import { createShop } from './ui/toko.js'
@@ -176,8 +176,8 @@ async function start() {
 
   setStatus('Membentuk pulau-pulau…')
   await nextFrame()
-  // lorong Gua Es Kristal minimal 3 langkah grid (lihat setCavePassage) — sebelum tanah dibentuk
-  setCavePassage((3 * ISLAND.size) / quality.terrainSegments)
+  // lorong gua minimal 3 langkah grid (lihat setCaveGrid) — sebelum tanah dibentuk
+  setCaveGrid(ISLAND.size / quality.terrainSegments)
   const ground = createGround(quality.terrainSegments)
   const shore = createShoreData(ground, quality.water.shoreRes)
   // rencana Kepulauan Kencana (kota, jalan, sawah) & Aeloria (kerajaan elf di utara) dulu: catnya
@@ -225,6 +225,8 @@ async function start() {
   // lantai jembatan, dermaga, batur pendopo, tangga, menara jaga, lantai aula: bisa diinjak
   const allSurfaces = [...kencana.surfaces, ...aeloria.surfaces, ...frost.surfaces]
   ground.setSurfaces(allSurfaces)
+  // atap gua-gua Frostfall = pijakan bagi yang berjalan di atas gunungnya (tanpa pagar tak terlihat)
+  ground.setRoof(frost.cave.roofAt)
   terrain.userData.applyOcclusion([...trees.userData.occlusion, ...rocks.userData.occlusion, ...kencana.occlusion, ...aeloria.occlusion, ...frost.occlusion])
   // batang pohon + batu besar + dinding bangunan menghalangi pemain; batu kecil bisa dilangkahi
   const colliders = createColliders([
@@ -617,17 +619,19 @@ async function start() {
   }
   const btnAjak = createActionButton(aksiBox, { id: 'btn-ajak', icon: IKON_AKSI.ajak, cls: 'ungu' }, invitePress)
   const btnDuel = createActionButton(aksiBox, { id: 'btn-duel', icon: IKON_AKSI.duel, cls: 'merah' }, duelPress)
-  // Frostfall: lempeng lantai di samping singgasana menutup tangga rahasia ke Gua Es Kristal; peti
-  // harta di Ruang Harta gua (sekali saja: tersimpan di browser)
-  const HARTA_KEY = 'pulau-tropis:harta-frostfall'
-  const HARTA_KOIN = 150
-  let chestOpened = false
-  try {
-    chestOpened = localStorage.getItem(HARTA_KEY) === '1'
-  } catch {
-    // penyimpanan diblokir: peti bisa dibuka sekali per pemuatan
+  // Frostfall: lempeng lantai di samping singgasana menutup tangga rahasia ke Gua Es Kristal; satu peti
+  // harta di setiap gua (sekali saja: tersimpan di browser)
+  const chestOpened = new Set()
+  for (const ch of frost.chests) {
+    try {
+      if (localStorage.getItem(ch.key) === '1') chestOpened.add(ch.id)
+    } catch {
+      // penyimpanan diblokir: peti bisa dibuka sekali per pemuatan
+    }
+    if (chestOpened.has(ch.id)) frost.openChest(ch.id)
   }
-  if (chestOpened) frost.openChest()
+  // peti yang belum dibuka di dekat pemain (2,8 m, setinggi kakinya)
+  const chestNear = p => frost.chests.find(ch => !chestOpened.has(ch.id) && Math.hypot(p.x - ch.x, p.z - ch.z) < 2.8 && Math.abs(p.y - ch.y) < 1.5) ?? null
   function openSecret() {
     if (mode !== 'main' || frost.trapdoorOpen) return
     frost.openTrapdoor()
@@ -639,16 +643,17 @@ async function start() {
       : 'Lempeng lantai bergeser… tangga rahasia turun ke bawah kastel, menuju gua di dalam gunung.', 3800)
   }
   function openChest() {
-    if (mode !== 'main' || chestOpened) return
-    chestOpened = true
+    const ch = mode === 'main' ? chestNear(player.position) : null
+    if (!ch) return
+    chestOpened.add(ch.id)
     try {
-      localStorage.setItem(HARTA_KEY, '1')
+      localStorage.setItem(ch.key, '1')
     } catch {
       // tidak apa-apa
     }
-    frost.openChest()
-    shop.reward(HARTA_KOIN)
-    showMessage(`Harta Raja Frostfall! Di dalam peti ada ${HARTA_KOIN} koin emas.`, 3600)
+    frost.openChest(ch.id)
+    shop.reward(ch.koin)
+    showMessage(`${ch.pesan} Di dalam peti ada ${ch.koin} koin emas.`, 3600)
   }
   const btnRahasia = createActionButton(aksiBox, { id: 'btn-rahasia', icon: IKON_AKSI.rahasia, cls: 'coklat' }, openSecret)
   const btnPeti = createActionButton(aksiBox, { id: 'btn-peti', icon: IKON_AKSI.peti, cls: 'kuning' }, openChest)
@@ -674,8 +679,8 @@ async function start() {
     const nearTop = onSlab || (Math.hypot(p.x - td.top.x, p.z - td.top.z) < 4.2 && Math.abs(p.y - td.y) < 1.2)
     const nearBottom = Math.hypot(p.x - td.bottom.x, p.z - td.bottom.z) < 5 && p.y < td.y - 0.6 && p.y > td.y - 5
     btnRahasia.set(free && !frost.trapdoorOpen && (nearTop || nearBottom), nearBottom ? 'Dorong lempeng' : 'Geser lempeng', nearBottom ? 'jalan keluar di atas' : 'lantai di sini berongga')
-    const ch = frost.chest
-    btnPeti.set(free && !chestOpened && Math.hypot(p.x - ch.x, p.z - ch.z) < 2.8 && Math.abs(p.y - ch.y) < 1.5, 'Buka peti', 'harta karun')
+    const ch = chestNear(p)
+    btnPeti.set(free && !!ch, 'Buka peti', 'harta karun')
     // jumlah anak buah di HUD (di bawah koin)
     const nBuah = recruits ? recruits.followers.length : 0
     if (nBuah !== shownBuah) {
@@ -1160,8 +1165,9 @@ async function start() {
     {
       // iklim Frostfall: dingin menurut posisi, gelap di dalam gua, redup di dalam ruangan
       const fp = mode === 'main' ? player.position : controls.target
-      const caveK = frost.cave.inside(fp.x, fp.z, fp.y) ? frost.cave.darkness(fp.x, fp.z) : 0
-      weather.update(dt, t, { target: fp, inCave: caveK, indoorK: roomAt(fp.x, fp.z, fp.y) ? 1 : 0, far: mode === 'main' ? camera.far : null, camera })
+      const covered = frost.cave.inside(fp.x, fp.z, fp.y) ? 1 : 0
+      const caveK = covered ? frost.cave.darkness(fp.x, fp.z) : 0
+      weather.update(dt, t, { target: fp, inCave: caveK, covered, indoorK: roomAt(fp.x, fp.z, fp.y) ? 1 : 0, far: mode === 'main' ? camera.far : null, camera })
       frost.update(dt, camera)
     }
     env.update(t, camera, mode === 'main' ? player.position : controls.target)

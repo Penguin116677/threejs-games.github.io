@@ -628,3 +628,119 @@ export function lempengRahasia(hx, hz) {
   P.box(0.5, 0.14, 0.18, FC.besiTua, K.POLOS, { x: -hx + 1.2, y: 0 })
   return P
 }
+
+// --------------------------------------------------------------------------- isi lima gua besar (v0.20.0)
+// tiang es: beberapa ruas bertumpuk yang sedikit bergeser & mengecil ke atas; setinggi langit-langit
+// atau berdiri sendiri sebagai stalagmit es raksasa (ujung runcing)
+export function tiangEs(h, r, seed = 1, sampaiAtap = false) {
+  const P = new Parts()
+  const rr = rnd(seed * 13 + 5)
+  const seg = Math.max(2, Math.round(h / 5))
+  const sh = h / seg
+  let y = 0
+  let rad = r
+  for (let i = 0; i < seg; i++) {
+    const last = i === seg - 1
+    const top = last && !sampaiAtap ? rad * 0.25 : sampaiAtap ? r * (0.6 + 0.3 * Math.abs(i / seg - 0.5) * 2) : rad * 0.82
+    P.cyl(top, rad, sh * 1.04, 7, i % 2 ? FC.es : FC.esTua, K.ES, { x: (rr() - 0.5) * 0.25 * r, y, z: (rr() - 0.5) * 0.25 * r, ry: rr() * 6 })
+    y += sh
+    rad = Math.max(top, r * 0.3)
+  }
+  P.add(new THREE.IcosahedronGeometry(r * 1.35, 0), FC.esTua, K.ES, { y: 0.1, sy: 0.4 })
+  return P
+}
+
+// stalagmit batu (atau bongkah es): kerucut utama + 2–3 kerucut kecil di kakinya
+export function stalagmit(h, r, seed = 1, es = false) {
+  const P = new Parts()
+  const rr = rnd(seed * 7 + 3)
+  const col = es ? FC.es : '#6f7279'
+  const dark = es ? FC.esTua : '#53565c'
+  P.cyl(0, r, h, 7, col, es ? K.ES : K.POLOS, { ry: rr() * 6 })
+  for (let i = 0; i < 3; i++) {
+    const a = rr() * Math.PI * 2
+    const d = r * (0.8 + rr() * 0.6)
+    P.cyl(0, r * (0.35 + rr() * 0.3), h * (0.25 + rr() * 0.35), 6, dark, es ? K.ES : K.POLOS, { x: Math.cos(a) * d, z: Math.sin(a) * d })
+  }
+  return P
+}
+
+// sekelompok jurai es menggantung dari langit-langit (titik asal = langit-langit, menggantung ke bawah)
+export function juraiEs(n = 6, len = 2, seed = 1) {
+  const P = new Parts()
+  const rr = rnd(seed * 11 + 1)
+  for (let i = 0; i < n; i++) {
+    const l = len * (0.4 + rr() * 0.9)
+    const rad = 0.08 + rr() * 0.16
+    P.cyl(rad, 0, l, 5, rr() < 0.7 ? FC.es : FC.esTua, K.ES, { x: (rr() - 0.5) * 2.4, y: -l, z: (rr() - 0.5) * 2.4 })
+  }
+  P.cyl(1.0, 1.4, 0.3, 7, FC.esTua, K.ES, { y: -0.3 })
+  return P
+}
+
+// penyangga tambang: dua tiang kayu di sisi lorong (selebar w), palang atas, dua siku penguat;
+// sumbu lorong = z lokal
+export function penyangga(w, h) {
+  const P = new Parts()
+  for (const s of [-1, 1]) {
+    P.box(0.3, h, 0.3, FC.kayu, K.KAYU, { x: s * (w / 2 - 0.15) })
+    P.box(0.18, 1.2, 0.18, FC.kayuTua, K.KAYU, { x: s * (w / 2 - 0.6), y: h - 1.0, rz: s * 0.78 })
+  }
+  P.box(w + 0.3, 0.34, 0.36, FC.kayuTua, K.KAYU, { y: h - 0.34 })
+  return P
+}
+
+// rel tambang sepanjang len (sumbu z lokal): bantalan kayu + dua batang besi
+export function rel(len) {
+  const P = new Parts()
+  for (let z = -len / 2 + 0.3; z < len / 2; z += 0.75) P.box(1.5, 0.1, 0.24, FC.kayuTua, K.KAYU, { z })
+  for (const s of [-1, 1]) P.box(0.08, 0.1, len, FC.besi, K.POLOS, { x: s * 0.5, y: 0.1 })
+  return P
+}
+
+// kereta tambang di atas rel: bak besi berisi bongkah kristal ungu, empat roda
+export function keretaTambang() {
+  const P = new Parts()
+  P.box(1.2, 0.85, 1.8, FC.besiTua, K.POLOS, { y: 0.32 })
+  P.box(1.0, 0.1, 1.6, '#2c3036', K.POLOS, { y: 1.08 })
+  for (let i = 0; i < 4; i++) P.add(new THREE.IcosahedronGeometry(0.24 + (i % 2) * 0.08, 0), FC.kristalUngu, K.KRISTAL, { x: (i % 2 - 0.5) * 0.5, y: 1.15, z: (i - 1.5) * 0.36 })
+  for (const sx of [-1, 1]) for (const sz of [-1, 1]) P.cyl(0.2, 0.2, 0.12, 8, FC.besi, K.POLOS, { x: sx * 0.5, y: 0.2, z: sz * 0.6, rz: Math.PI / 2 })
+  return P
+}
+
+// bangkai kapal terjebak es: lunas, rusuk-rusuk patah, papan lambung sebagian, tiang layar patah
+// dengan layar robek; panjang len (sumbu z lokal), sedikit miring
+export function bangkaiKapal(len = 14) {
+  const P = new Parts()
+  const rr = rnd(91)
+  const half = len / 2
+  P.box(0.5, 0.6, len, FC.kayuTua, K.KAYU, { y: -0.2 })
+  for (let z = -half + 1; z <= half - 1; z += 1.4) {
+    const t = 1 - Math.abs(z / half) ** 2
+    const bw = 1.2 + 2.2 * t
+    for (const s of [-1, 1]) {
+      if (rr() < 0.18) continue // rusuk patah
+      P.box(0.22, 2.2 + 0.8 * t, 0.26, FC.kayu, K.KAYU, { x: s * bw * 0.8, y: 0.1, z, rz: -s * 0.35 })
+    }
+    if (rr() < 0.55) P.box(bw * 1.9, 0.18, 1.2, rr() < 0.5 ? FC.kayuMuda : FC.kayu, K.KAYU, { y: 0.4, z })
+  }
+  // papan lambung yang tersisa di satu sisi
+  for (let i = 0; i < 4; i++) P.box(0.14, 0.4, len * (0.4 + rr() * 0.3), FC.kayu, K.KAYU, { x: 2.3 - i * 0.06, y: 0.4 + i * 0.45, z: (rr() - 0.5) * 3, rz: -0.32 })
+  // tiang layar patah & layar robek
+  P.cyl(0.18, 0.22, 7, 7, FC.kayuTua, K.KAYU, { y: 0.3, z: 1, rz: 0.5 })
+  P.box(2.6, 2.2, 0.06, FC.kain, K.POLOS, { x: -2.0, y: 4.2, z: 1.2, rz: 0.5 })
+  // es & salju menutupi lambung
+  P.add(new THREE.IcosahedronGeometry(1.8, 0), FC.es, K.ES, { x: -1.2, y: 0.1, z: -half + 1.5, sy: 0.4 })
+  P.box(2.4, 0.3, len * 0.5, FC.salju, K.SALJU, { y: 0.55, z: -1.5 })
+  return P
+}
+
+// altar batu bertingkat dengan kristal besar di belakangnya (persembahan di Katedral Taring)
+export function altar() {
+  const P = new Parts()
+  P.box(4.2, 0.4, 2.4, FC.batuTua, K.BATU)
+  P.box(3.2, 0.6, 1.6, FC.batu, K.BATU, { y: 0.4 })
+  P.box(2.4, 0.12, 1.2, FC.emasTua, K.POLOS, { y: 1.0 })
+  for (const s of [-1, 1]) P.cyl(0.32, 0.4, 2.6, 6, FC.batuTua, K.BATU, { x: s * 2.4, z: -0.6 })
+  return P
+}

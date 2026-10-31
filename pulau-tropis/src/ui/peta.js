@@ -3,8 +3,8 @@ import { ISLANDS, CITY, KERATON, TEGAL, inRect } from '../world/kencana/layout.j
 import { islandDistance } from '../world/kencana/height.js'
 import { DIVISIONS } from '../world/kencana/barisan.js'
 import { REGIONS as ELF_REGIONS, LANDS as ELF_LANDS, landDistance } from '../world/aeloria/layout.js'
-import { REGIONS as FROST_REGIONS, PEAKS as FROST_PEAKS, COLD_X0, landDistance as frostLandDistance, polyInfo } from '../world/frostfall/layout.js'
-import { caveFloor } from '../world/frostfall/height.js'
+import { REGIONS as FROST_REGIONS, PEAKS as FROST_PEAKS, CAVES as FROST_CAVES, COLD_X0, landDistance as frostLandDistance, polyInfo } from '../world/frostfall/layout.js'
+import { caveAt, frostSurface } from '../world/frostfall/height.js'
 
 // Peta dunia (tombol "Peta") dan spanduk nama wilayah saat prajurit memasuki pulau/kota baru.
 
@@ -35,22 +35,24 @@ const LABELS = [
   { text: 'Kastel Frostfall', x: 1000, z: -390, size: 12 },
   { text: 'Lembah Beku', x: 600, z: 70, size: 11 },
   { text: 'Lembah Atas', x: 1058, z: -48, size: 11 },
-  { text: 'Gua Es', x: 1112, z: -238, size: 11 },
   { text: 'Hutan Pinus Salju', x: 860, z: 330, size: 12 },
   { text: 'Air Terjun Beku', x: 930, z: -112, size: 10 },
   { text: 'Dermaga Frostfall', x: 470, z: 50, size: 10 },
   { text: 'Dermaga Fajar', x: 250, z: 62, size: 10 },
   ...FROST_PEAKS.filter(p => p.name).map(p => ({ text: p.name, x: p.x, z: p.z, size: 10 })),
+  ...FROST_CAVES.map(c => ({ text: c.short, x: c.label.x, z: c.label.z, size: 10 })),
 ]
 
 const lerp = (a, b, t) => a + (b - a) * t
 const clamp01 = t => Math.min(1, Math.max(0, t))
 
-// Wilayah tempat (x, z) berada: { id, name, sub } atau null (di laut)
-export function regionAt(x, z, ground, spans) {
+// Wilayah tempat (x, z) berada: { id, name, sub } atau null (di laut). y = tinggi kaki (opsional): di
+// atas gunung yang menaungi gua tidak dianggap di dalam guanya
+export function regionAt(x, z, ground, spans, y = -Infinity) {
   // Frostfall (timur): gua, kawasan, lalu daratannya
   if (x > COLD_X0) {
-    if (caveFloor(x, z) !== null) return { id: 'gua', name: 'Gua Es Kristal', sub: 'Gua beku di dalam gunung · kristal bercahaya' }
+    const cave = caveAt(x, z)
+    if (cave && y < frostSurface(x, z) - 1.5) return { id: `gua-${cave.id}`, name: cave.name, sub: cave.sub }
     for (const r of FROST_REGIONS) {
       if (r.rect && inRect(x, z, r.rect)) return { id: r.id, name: r.name, sub: r.sub }
       if (r.line && polyInfo(r.line, x, z).d < r.width) return { id: r.id, name: r.name, sub: r.sub }
@@ -368,7 +370,7 @@ export function createRegionBanner({ ground, spans }) {
       }
       if ((check -= dt) > 0) return false
       check = 0.25
-      const r = regionAt(pos.x, pos.z, ground, spans)
+      const r = regionAt(pos.x, pos.z, ground, spans, pos.y)
       const id = r ? r.id : null
       if (current === undefined) {
         current = id // wilayah awal tidak diumumkan (petunjuk kontrol sedang tampil)

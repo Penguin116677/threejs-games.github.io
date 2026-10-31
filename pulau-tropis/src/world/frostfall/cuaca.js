@@ -166,7 +166,7 @@ export function createWeather({ scene, env, quality, water, smoke = [], lights =
   }
   const cave = { fog: new THREE.Color('#0d1a2b'), hemiSky: new THREE.Color('#5d86b8'), hemiGround: new THREE.Color('#1d3350'), hemiI: 0.42, sunI: 0.12 }
   const indoor = { hemiI: 1.0, sunI: 0.5, hemiSky: new THREE.Color('#f0dcc4'), hemiGround: new THREE.Color('#6a5644') }
-  const state = { frost: 0, cave: 0, indoor: 0 }
+  const state = { frost: 0, cave: 0, covered: 0, indoor: 0 }
   const approach = (cur, target, rate, dt) => cur + (target - cur) * (1 - Math.exp(-rate * dt))
 
   // seberapa "dingin" titik (x, z): 0 di Pulau Tropis, 1 di Frostfall (memudar di selat)
@@ -182,11 +182,13 @@ export function createWeather({ scene, env, quality, water, smoke = [], lights =
       return state
     },
     coldAt,
-    // target: { x, y, z } posisi pemain; inCave: 0..1 (kegelapan gua), indoorK: 0..1 (di dalam aula /
-    // kedai); far: jarak pandang kamera; camera: kamera
-    update(dt, time, { target, inCave, indoorK, far, camera }) {
+    // target: { x, y, z } posisi pemain; inCave: 0..1 (kegelapan gua), covered: 0/1 (di bawah atap gua:
+    // tanpa salju & sinar matahari — tambang yang diterangi lentera tidak gelap, tapi tetap beratap);
+    // indoorK: 0..1 (di dalam aula / kedai); far: jarak pandang kamera; camera: kamera
+    update(dt, time, { target, inCave, covered = 0, indoorK, far, camera }) {
       state.frost = approach(state.frost, coldAt(target.x, target.z), 1.5, dt)
       state.cave = approach(state.cave, inCave, 2.2, dt)
+      state.covered = approach(state.covered, covered, 2.2, dt)
       state.indoor = approach(state.indoor, indoorK, 3, dt)
       const f = state.frost
       const c = state.cave
@@ -214,9 +216,9 @@ export function createWeather({ scene, env, quality, water, smoke = [], lights =
       env.sun.color.copy(base.sun).lerp(cold.sun, f)
       let sunI = base.sunI + (cold.sunI - base.sunI) * f
       sunI += (indoor.sunI - sunI) * ind
-      env.sun.intensity = sunI + (cave.sunI - sunI) * c
+      env.sun.intensity = sunI + (cave.sunI - sunI) * Math.max(c, 0.75 * state.covered)
       // salju turun (tidak di dalam gua / ruangan)
-      const snowK = f * (1 - c) * (1 - ind)
+      const snowK = f * (1 - Math.max(c, state.covered)) * (1 - ind)
       snow.visible = snowK > 0.02
       if (snow.visible) {
         snowUniforms.uTime.value = time
