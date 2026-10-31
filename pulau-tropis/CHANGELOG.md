@@ -1,5 +1,61 @@
 # CHANGELOG — Pulau Tropis
 
+## [0.20.0] — 2026-10-31 — Lima gua besar di Frostfall (permintaan pengguna)
+### Ditambah
+- **Lima gua besar baru di pulau es** (permintaan: *"Tambahkan 5 goa besar di pulau es"*), masing-masing
+  dengan mulut yang terlihat dari luar, beberapa ruang besar yang disambung lorong, isi bertema, nama di
+  spanduk & peta, dan **satu peti harta** (sekali buka, tersimpan di browser):
+  - **Tambang Tua Emberwick** — di bukit barat laut desa (jalan setapak dari ujung utara jalan desa).
+    Lorong bertiang penyangga kayu, rel, lentera menyala, Aula Tambang dengan kereta tambang & peti kayu,
+    turunan ke **Urat Kristal** (kristal ungu). Peti: 60 koin.
+  - **Gua Gletser Utara** — di pantai utara di bawah pegunungan utara (lewat pantai sempit dari dataran
+    barat). Aula Gletser dengan danau beku & tiang es, **air terjun beku di dalam gua**. Peti: 90 koin.
+  - **Katedral Taring** — rongga raksasa di bawah Puncak Taring Es, masuk dari ujung timur Lembah Atas
+    (jalan setapak baru). Barisan tiang es setinggi 26–42 m, stalagmit, lalu Kolam Taring dengan **altar**
+    dan kristal besar. Peti: 120 koin.
+  - **Gua Laut Beku** — gua laut di tebing pantai timur, **hanya bisa dicapai lewat laut** (berenang /
+    berperahu). Laguna beku dengan **bangkai kapal** dan peti muatannya, Ceruk Karang Es. Peti: 150 koin.
+  - **Gua Seribu Tiang** — di punggung tenggara, masuk dari hutan (jalan setapak dari kemah timur).
+    Rongga besar penuh **tiang batu & es**, Ruang Tiang Kembar. Peti: 90 koin.
+  - Jurai es menggantung di bagian yang langit-langitnya rendah; kristal bercahaya di dinding; gelap makin
+    jauh dari mulut (tambang lebih terang karena lentera).
+### Diubah
+- **Atap gua kini bisa diinjak** — pagar tak terlihat di atas gua dihapus. Yang berjalan di gunung atau
+  bukit di atas gua berjalan di atas atapnya (permukaan gunung asli); dari dalam gua atap tetap
+  langit-langit. Berlaku juga untuk Gua Es Kristal.
+- Spanduk nama gua hanya muncul saat benar-benar di dalam gua (bukan saat berdiri di gunung di atasnya).
+- Peta dunia: nama keenam gua.
+### Diperbaiki (ditemukan saat menguji gua-gua baru, sebelum rilis)
+- Lorong yang ujungnya hanya menyentuh tepi ruang membentuk "leher" sempit yang dinding-dindingnya bertemu:
+  Gua Gletser Utara tertutup di semua kualitas, turunan Tambang Tua di Sedang & Tinggi. Kini setiap lorong
+  masuk beberapa meter ke dalam ruangnya.
+- Lorong diagonal Gua Gletser Utara terjepit dinding bergelombang di grid Rendah → lebar minimum 3,6
+  langkah grid untuk lorong itu.
+- Tepi batu penutup gua yang tajam (dipotong pada 40 m) menjadi tebing kecil di kaki gunung yang rendah,
+  dan cincin curam mengelilingi mulut: mulut Gua Seribu Tiang tidak bisa didatangi dari hutan. Kini tepinya
+  memudar halus dan mulut punya koridor masuk yang landai.
+- Batu penutup Gua Laut Beku memunculkan pulau batu di laut di depan mulutnya → memudar di tepi pantai.
+- Salju turun & sinar matahari masih ada di dalam Tambang Tua (yang sengaja tidak segelap gua lain):
+  "di bawah atap gua" kini dipisah dari "gelap".
+- Peti di dekat dinding berdiri di lereng di grid Rendah (tombol Buka peti tidak muncul) → peti dipindah
+  lebih ke tengah ruang.
+
+### Teknis
+- `layout.js`: `CAVES` — tiap gua sistem rongga sendiri (bentuk, mulut, danau beku, peti, rute, tema,
+  tingkat gelap). `height.js`: lantai, batu penutup, dan kotak batas per gua (`CAVE_SYSTEMS`,
+  `caveAt`, `caveFloorIn`); batu penutup tidak menimbun mulut gua dan memudar di tepi pantai; lebar lorong
+  minimum dalam langkah grid (`setCaveGrid`, bawaan 3, bisa per lorong: `minSteps`). Bentuk tanah di luar
+  lima gua baru **tidak berubah** (dibandingkan titik demi titik dengan v0.19.0).
+- `gua.js`: atap, langit-langit, dan kegelapan dibangun per gua. `terrain.js`: `setRoof` / `roofAt` /
+  `outerAt` — atap gua menjadi pijakan di `supportAt` bila kaki di atasnya; `player.js` mengukur
+  kemiringan di atas atap pada permukaan atap.
+- `buildings.js`: tiang es, stalagmit, jurai es, penyangga tambang, rel, kereta tambang, bangkai kapal,
+  altar. `plan.js`: isi bertema per gua (acak terpisah — isi Frostfall yang lama tetap sama), peti per
+  gua. `kingdom.js` / `main.js`: tutup peti & tombol Buka peti untuk setiap peti.
+- Uji asap: isi 6 gua & 6 peti, benda tidak melayang (termasuk perabot gua), berjalan di atas atap gua,
+  dan untuk kelima gua baru: berjalan dari luar mulut sampai peti, di dalam gelap / tanpa salju / kamera
+  di bawah atap / spanduk namanya, peti +koin sekali.
+
 ## [0.19.0] — 2026-10-30 — Kerajaan Frostfall: wilayah pegunungan salju baru di timur (permintaan pengguna)
 ### Ditambah
 - **Kerajaan Frostfall** (permintaan: *"ADD A NEW SEAMLESS SNOWY MOUNTAIN MAP TO MY EXISTING GAME …

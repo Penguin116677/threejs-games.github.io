@@ -27,8 +27,8 @@ npm run test:smoke # (dengan preview berjalan) tes otomatis + screenshot ke scre
 Smoke test butuh Chromium untuk Playwright. FPS yang dilaporkan smoke test berasal dari render
 software dan **tidak** mencerminkan performa HP. Untuk menjalankan sebagian kasus saja:
 `SMOKE_CASES=hp-portrait,desktop npm run test:smoke` (kasus: hp-portrait, hp-landscape, hp-rendah,
-desktop). Sejak v0.19.0 (Frostfall) satu putaran penuh **±5¼ jam** di render software (HP tegak ±85
-menit, mendatar ±44, Rendah ±18, komputer ±2¾ jam; v0.18.0: hampir 4 jam; v0.15.0 pixel art: ±1,5 jam) —
+desktop). Sejak v0.20.0 (lima gua) satu putaran penuh **±6¾ jam** di render software (HP tegak ±1 j 40 m,
+mendatar ±50 menit, Rendah ±28, komputer ±3¾ jam; v0.19.0: ±5¼ jam; v0.15.0 pixel art: ±1,5 jam) —
 bila lingkungan uji membatasi lama perintah (mis. 2 jam), jalankan per kasus — profil komputer sendiri pun
 melewati 2 jam.
 Batas waktu tiap langkah 90 detik.
@@ -491,3 +491,24 @@ sesuai yang diinginkan.
 
 Laporkan: bagian yang terlalu gelap / terang, salju yang mengganggu pandangan, tempat yang sulit dicapai
 atau membuat karakter tersangkut, dan FPS di tiap tempat.
+
+## Daftar uji manual — v0.20.0 (lima gua besar di Frostfall)
+Buka **Peta** untuk melihat letak keenam gua (nama di peta). Di setiap gua: spanduk nama gua muncul saat
+masuk, makin ke dalam makin gelap, salju berhenti, kamera tidak menembus langit-langit; di ujungnya ada peti
+— tombol **Buka peti** → koin bertambah (sekali saja, juga setelah halaman dimuat ulang).
+1. **Tambang Tua Emberwick**: dari alun-alun Desa Emberwick ikuti jalan ke utara, lalu jalan setapak ke
+   kaki bukit. Mulut tambang berlentera → lorong bertiang penyangga & rel → Aula Tambang (kereta tambang,
+   peti kayu) → turunan ke Urat Kristal (kristal ungu, peti 60 koin). Coba juga mendaki bukit di atasnya:
+   kamu berjalan di atas bukit, tidak jatuh ke dalam tambang, tanpa dinding gaib.
+2. **Gua Gletser Utara**: dari dataran barat (utara desa) turun ke pantai utara, ikuti pantai ke timur
+   sampai celah di kaki tebing. Aula Gletser (danau beku, tiang es) → Ruang Air Terjun Beku (peti 90 koin).
+3. **Katedral Taring**: di Lembah Atas ikuti jalan setapak ke ujung timur lembah. Rongga raksasa dengan
+   barisan tiang es tinggi → Kolam Taring dengan altar (peti 120 koin).
+4. **Gua Laut Beku**: berperahu / berenang ke pantai timur Frostfall (di balik pegunungan), cari celah di
+   tebing dekat garis pantai. Laguna beku dengan bangkai kapal → Ceruk Karang Es (peti 150 koin).
+5. **Gua Seribu Tiang**: dari kemah pemburu timur di hutan ikuti jalan setapak ke timur sampai mulut di
+   kaki gunung. Hutan tiang batu & es → Ruang Tiang Kembar (peti 90 koin).
+6. Di setiap gua: tabrak tiang, kereta, kapal, altar (tertahan), cari tempat tersangkut atau benda
+   melayang, dan catat FPS di ruang terbesar (Katedral Taring, Gua Seribu Tiang).
+
+Laporkan: gua mana yang terlalu gelap / sulit ditemukan, tempat tersangkut, dan FPS di tiap gua.

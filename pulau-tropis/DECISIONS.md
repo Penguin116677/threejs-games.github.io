@@ -881,3 +881,29 @@ tandai sebagai "diganti" bila berubah.
     (`setCavePassage`, diatur sekali sebelum tanah dibentuk). Dipilih yang terakhir: Tinggi tetap seperti
     rancangan (7,8 m), Sedang 11,7 m, Rendah 15 m — gua sedikit berbeda antar-kualitas, tetapi selalu bisa
     dilalui (3 langkah lulus di ketiga kualitas, juga dengan syarat jalur ≥ 1 m lebih lebar dari badan).
+84. **Lima gua besar = lima sistem rongga terpisah, masing-masing bertema** (v0.20.0, permintaan pengguna:
+    *"Tambahkan 5 goa besar di pulau es"*).
+    - Letaknya dipilih dari peta ketinggian supaya tiap gua berada di dalam bukit / gunung yang cukup tinggi
+      untuk atapnya, tersebar di Frostfall, dan dicapai dengan cara berbeda: **Tambang Tua** di bukit dekat
+      desa (gua pertama yang mudah dicapai), **Gua Gletser Utara** dari pantai utara, **Katedral Taring**
+      dari ujung Lembah Atas, **Gua Laut Beku** hanya lewat laut, **Gua Seribu Tiang** dari hutan.
+    - Setiap gua punya grid atap, kegelapan, kotak batas, nama, dan peti sendiri (`CAVES`): tidak saling
+      membuat atap ganda di kotak yang bertumpang, dan pemeriksaan "di gua mana" cepat (kotak dulu).
+    - Mulut gua dibuka dengan tidak menimbunkan batu penutup di sekitar titik mulut (lereng / pantai aslinya
+      tetap), jadi lorong masuk tampak sebagai celah di kaki tebing. Lorong selalu masuk beberapa meter ke
+      dalam ruangnya: lorong yang hanya "menyentuh" tepi ruang membentuk leher sempit yang dindingnya
+      bertemu (ditemukan saat pengujian, tertutup di semua kualitas).
+    - Isi tiap gua memakai acak sendiri, jadi letak isi Frostfall yang lama (pinus, kristal, kemah) tidak
+      bergeser; bentuk tanah di luar lima gua baru dibandingkan titik demi titik dengan v0.19.0: sama persis.
+    - Kelima peti memberi 60–150 koin (makin sulit dicapai, makin besar), sekali saja.
+85. **Atap gua menjadi pijakan, pagar tak terlihat dihapus** (v0.20.0, menggantikan bagian pagar di
+    DECISIONS #79). Dengan enam gua, terutama Tambang Tua di bawah bukit dekat desa, pagar tak terlihat di
+    sekeliling atap akan terasa sebagai dinding gaib di bukit yang wajar dijelajahi.
+    - `ground.supportAt` memakai atap gua sebagai pijakan bila kaki berada di atasnya (atap ≤ kaki +
+      langkah); dari dalam gua atap jauh di atas kepala, jadi tetap langit-langit. Kemiringan saat berdiri di
+      atas atap diukur pada permukaan atap (`outerAt`), bukan pada lantai gua di bawahnya.
+    - Bukaan gua (mulut, lubang tangga) tetap tanpa atap: berjalan dari lereng ke bukaan = turun ke mulut
+      gua seperti tepi tebing.
+    - Lebar lorong minimum kini dalam langkah grid (bawaan 3 seperti DECISIONS #83) dan bisa diminta lebih
+      per lorong (`minSteps`): lorong diagonal 45° di Gua Gletser Utara terjepit dinding bergelombang di
+      grid Rendah dan memakai 3,6 langkah.

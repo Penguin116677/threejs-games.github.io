@@ -74,7 +74,10 @@ menjadi anak buah yang menang (pemain yang kalah menyerahkan upeti). Lihat DECIS
   Emberwick** (rumah kayu, pasar, kedai, menara jaga), **Kastel Frostfall** di bahu gunung (tembok,
   menara, gerbang, halaman, Ruang Singgasana yang ditinggalkan dengan pintu rahasia ke bawah tanah),
   **Hutan Pinus Salju** dengan kemah pemburu yang ditinggalkan, **Lembah Atas** & **Celah Tersembunyi**,
-  dan **Gua Es Kristal** (kristal bercahaya, danau bawah tanah, Ruang Harta). Belum berpenghuni: tanpa
+  dan **Gua Es Kristal** (kristal bercahaya, danau bawah tanah, Ruang Harta). Sejak v0.20.0 ditambah
+  **lima gua besar**: Tambang Tua Emberwick (bukit dekat desa), Gua Gletser Utara (pantai utara),
+  Katedral Taring (di bawah Puncak Taring Es), Gua Laut Beku (tebing pantai timur, lewat laut), dan Gua
+  Seribu Tiang (punggung tenggara) — masing-masing dengan peti harta. Belum berpenghuni: tanpa
   penduduk / prajurit (lihat PROJECT_STATUS, "Masalah yang diketahui").
 - Keempat sisi Pulau Tropis kini terpakai (barat, utara, timur; selatan = laut lepas). Batas dunia,
   terrain, laut, dan peta jalan tetap umum (DECISIONS #33, #40, #78) bila wilayah lain ditambahkan.
@@ -148,3 +151,5 @@ anak buah atau ditantang duel (NPC yang lebih hidup — bagian Milestone 4).
 Di v0.19.0 (permintaan pengguna) dunia mendapat wilayah keempat, Kerajaan Frostfall di timur — bagian
 besar Milestone 3 yang belum ada sebelumnya: **sungai, air terjun, gua, dan reruntuhan** (kastel yang
 ditinggalkan), plus jalur eksplorasi & landmark pegunungan; juga cuaca (salju turun) dari Milestone 5.
+Di v0.20.0 (permintaan pengguna) Frostfall mendapat lima gua besar bertema dengan harta karun — lanjutan
+Milestone 3 (gua & jalur eksplorasi) dengan sedikit Milestone 4 (hadiah menjelajah).

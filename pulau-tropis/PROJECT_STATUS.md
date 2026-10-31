@@ -1,9 +1,9 @@
 # PROJECT_STATUS — Pulau Tropis
 
-**Milestone aktif:** 3 — Pembangunan dunia (v0.19.0: wilayah baru **Kerajaan Frostfall** di timur — pegunungan salju, Desa Emberwick, Kastel Frostfall dengan pintu rahasia, hutan pinus, sungai & air terjun beku, Gua Es Kristal dengan Ruang Harta —, satu dunia tanpa layar loading; v0.18.0: grafik HD, gerak mirip manusia, mengajak prajurit & duel — menunggu umpan balik dari HP).
+**Milestone aktif:** 3 — Pembangunan dunia (v0.20.0: **lima gua besar** di Frostfall — Tambang Tua Emberwick, Gua Gletser Utara, Katedral Taring, Gua Laut Beku, Gua Seribu Tiang — masing-masing dengan peti harta; atap gua kini bisa diinjak; v0.19.0: wilayah baru Kerajaan Frostfall — menunggu umpan balik dari HP).
 Pengembangan jurus dihentikan sementara atas permintaan pengguna.
-**Versi:** 0.19.0
-**Terakhir diperbarui:** 2026-10-30
+**Versi:** 0.20.0
+**Terakhir diperbarui:** 2026-10-31
 
 ## Kondisi awal repository (sebelum Milestone 1)
 - Repository `threejs-games.github.io` berisi koleksi contoh Three.js lama (folder `examples/`,
@@ -100,6 +100,39 @@ Sebagian sudah dikerjakan lebih awal (bayangan, tanah per-piksel, awan, kaustik 
 | File model hanya rangka + animasi (unduhan model 892 KB → 108 KB) | ✅ selesai (v0.16.0) |
 | Partikel lanjutan, suara, animasi vegetasi lanjutan, siang–malam | ⏳ belum |
 | Dicoba di HP Android sungguhan | ⏳ menunggu laporan pengguna |
+
+## Yang sudah diperiksa (v0.20.0 — lima gua besar di Frostfall)
+- **Pemeriksaan kode**: ESLint (konfigurasi repo) 0 error / 0 warning pada setiap commit.
+- **Build**: `vite build` berhasil (JS 1,26 MB / 405 KB gzip, +6 KB gzip dari v0.19.0).
+- **Pemeriksaan di Node** (fungsi tinggi & mesh tanah yang sebenarnya, `createGround`, ketiga kualitas):
+  - bentuk tanah di luar lima gua baru **sama persis** dengan v0.19.0 (166.224 titik, 0 berbeda — di tiga
+    lebar lorong);
+  - **pencarian jalan dari luar mulut sampai peti** di keenam gua (kisi 0,5 m, kemiringan ≤ 1,3, semua
+    penghalang: tiang, kereta, kapal, altar, peti, dengan jari-jari badan) — tersambung di Rendah, Sedang,
+    Tinggi; sebelumnya ditemukan & diperbaiki: Gletser tertutup (semua kualitas), Tambang tertutup
+    (Sedang / Tinggi), lorong diagonal Gletser terjepit (Rendah);
+  - **jalan darat ke mulut gua** (desa → Tambang, dataran barat → pantai utara → Gletser, Lembah Atas →
+    Katedral, kemah timur → Seribu Tiang) tersambung di ketiga kualitas (sebelumnya mulut Seribu Tiang
+    terkurung lereng curam);
+  - setiap peti berdiri di lantai datar (selisih tinggi ≤ 0,26 m di peti & di depannya).
+- **Smoke test otomatis** (versi build, per profil berurutan) — **LULUS: 309 cek, 0 gagal** (v0.19.0: 267):
+  HP Rendah 52 (±28 menit), HP mendatar 52 (±50 menit), HP tegak 110 (±1 j 40 m), komputer 95 (±3 j 43 m);
+  semua cek lama tetap lulus. Cek baru:
+  - isi: 6 gua (atap tiap gua), 6 peti, tiang es, penyangga tambang, bangkai kapal; 243 bangunan & perabot
+    (termasuk tiang, stalagmit, penyangga, kereta, altar, kapal) tidak melayang / terbenam;
+  - **atap gua bisa diinjak**: berjalan melintasi bukit di atas Aula Tambang Tua — kaki tetap di atap, tidak
+    jatuh ke dalam gua (semua profil);
+  - **kelima gua baru**: berjalan sungguhan dari luar mulut sampai peti (HP Rendah, HP tegak, komputer —
+    tiga kualitas tanah; HP mendatar: teleport ke ruang terdalam), di dalam gelap (tambang 0,55), tanpa
+    salju, kamera di bawah atap, spanduk nama gua; Buka peti → +60 / +90 / +120 / +150 / +90 koin, sekali saja.
+- **Uji di browser** (Chromium, render software, layar Pixel 7 tiruan): foto mulut & ruang kelima gua
+  (tambang berlentera & rel, tiang es Gletser & air terjun beku di dalam gua, tiang raksasa Katedral &
+  altar, mulut Gua Laut Beku dari laut & bangkai kapal di laguna, hutan tiang & tiang kembar); halaman
+  pratinjau (salinan lokal) termuat tanpa galat / berkas hilang di HP (Sedang) dan komputer (Tinggi).
+- **Performa & memori** (render software, bukan ukuran HP; tabel di bagian Performa): tempat-tempat lama
+  −5…+9% waktu per bingkai (satu putaran per versi, derau ±10%); di Frostfall dekat gua baru +1…+16%
+  (Sedang; +16–21 rb segitiga dari isi gua yang terlihat); di dalam gua baru 500–778 ms (Sedang) /
+  260–355 ms (Rendah) — tidak lebih berat daripada tempat lama yang ramai. Waktu siap +0,65–0,7 detik.
 
 ## Yang sudah diperiksa (v0.19.0 — Kerajaan Frostfall)
 - **Pemeriksaan kode**: ESLint (konfigurasi repo) 0 error / 0 warning pada setiap commit.
@@ -691,6 +724,9 @@ Sebagian sudah dikerjakan lebih awal (bayangan, tanah per-piksel, awan, kaustik 
   laut dalam → kembali ke pantai + pesan, mendaki lereng (+24 m dalam 120 frame).
 
 ## Yang BELUM diperiksa
+- **Lima gua baru di HP sungguhan** (v0.20.0): FPS di ruang terbesar (Katedral Taring, Gua Seribu Tiang:
+  banyak tiang), apakah gua terlalu gelap, apakah mulut gua mudah ditemukan dari jalan setapak / pantai, dan
+  berjalan di atas bukit / gunung yang menaungi gua (atap kini bisa diinjak) dengan joystick.
 - **FPS Frostfall di HP sungguhan** (v0.19.0): diukur hanya di render software (lihat Performa) — terutama
   hutan pinus, desa (asap, api, lampu titik), dan pandangan dari dermaga ke seluruh pegunungan. Memori GPU
   tambahan (pinus, bangunan, atap gua) belum diukur di HP.
@@ -772,6 +808,32 @@ Sebagian sudah dikerjakan lebih awal (bayangan, tanah per-piksel, awan, kaustik 
 - Apakah URL hosting (githack / GitHub Pages) terbuka di HP — tidak bisa diakses dari lingkungan pengembangan.
 
 ## Performa (segitiga per frame termasuk bayangan, dari smoke test)
+v0.20.0 (lima gua besar), layar HP tegak (Pixel 7), versi build, render software; v0.19.0 diukur bergantian
+di mesin yang sama, satu putaran per versi. Segitiga (ribu) / draw call dan waktu per bingkai (ms):
+| Tempat | Sedang v0.19.0 | Sedang v0.20.0 | Rendah v0.19.0 | Rendah v0.20.0 |
+|---|---|---|---|---|
+| Titik mulai | 457 rb / 71 · 986 ms | 457 rb / 71 · 994 ms (+1%) | 342 rb / 63 · 509 ms | 342 rb / 63 · 555 ms (+9%) |
+| Pasar Kotaraja | 328 rb / 49 · 620 ms | 328 rb / 49 · 588 ms (−5%) | 255 rb / 45 · 323 ms | 251 rb / 42 · 314 ms (−3%) |
+| Depan barisan Tegal Wira | 449 rb / 30 · 1.631 ms | 449 rb / 30 · 1.594 ms (−2%) | 318 rb / 37 · 1.003 ms | 318 rb / 37 · 951 ms (−5%) |
+| Pasar Aeloria | 561 rb / 96 · 832 ms | 561 rb / 97 · 874 ms (+5%) | 473 rb / 96 · 523 ms | 476 rb / 96 · 509 ms (−3%) |
+| Dermaga Fajar, memandang Frostfall | 291 rb / 69 · 683 ms | 291 rb / 68 · 713 ms (+4%) | 207 rb / 54 · 345 ms | 207 rb / 54 · 336 ms (−3%) |
+| Frostfall: Desa Emberwick | 231 rb / 57 · 602 ms | 260 rb / 71 · 647 ms (+7%) | 203 rb / 54 · 313 ms | 205 rb / 55 · 315 ms (+1%) |
+| Frostfall: halaman kastel | 154 rb / 41 · 683 ms | 172 rb / 49 · 743 ms (+9%) | 114 rb / 35 · 340 ms | 130 rb / 40 · 353 ms (+4%) |
+| Frostfall: hutan pinus | 248 rb / 51 · 581 ms | 251 rb / 52 · 658 ms (+13%) | 170 rb / 42 · 302 ms | 171 rb / 43 · 300 ms (−1%) |
+| Frostfall: Lembah Atas | 188 rb / 49 · 541 ms | 207 rb / 55 · 628 ms (+16%) | 120 rb / 34 · 279 ms | 137 rb / 40 · 303 ms (+9%) |
+| Frostfall: Gua Es Kristal | 163 rb / 42 · 555 ms | 184 rb / 47 · 637 ms (+15%) | 104 rb / 29 · 282 ms | 124 rb / 35 · 305 ms (+8%) |
+| Gua baru: Aula Tambang | — | 292 rb / 63 · 778 ms | — | 140 rb / 33 · 355 ms |
+| Gua baru: Katedral Taring | — | 138 rb / 36 · 527 ms | — | 97 rb / 27 · 260 ms |
+| Gua baru: Gua Seribu Tiang | — | 130 rb / 30 · 500 ms | — | 89 rb / 22 · 260 ms |
+| Gua baru: laguna Gua Laut Beku | — | 230 rb / 74 · 574 ms | — | 148 rb / 60 · 322 ms |
+- Segitiga di tempat lama sama; di Frostfall +16–29 rb (Sedang) dari isi gua baru yang terlihat (lentera &
+  mulut tambang dari desa, mulut Katedral dari Lembah Atas). Hutan pinus +13% dengan segitiga hampir sama =
+  derau antar-putaran.
+- Memori heap JS saat dimuat Sedang 205 → 237 MB, Rendah 183 → 190 MB; setelah mengunjungi semua tempat
+  Sedang 210 → 214 MB, Rendah 180 → 185 MB (angka saat dimuat bergantung waktu pengumpulan sampah).
+  Geometri setelah semua tempat: Sedang 230 → 262, Rendah 181 → 207.
+- Waktu siap: Sedang 5,3 → 6,0 detik, Rendah 4,4 → 5,1 detik (bentuk tanah & isi lima gua).
+
 v0.19.0 (Frostfall), layar HP tegak (Pixel 7), versi build, render software; v0.18.0 diukur bergantian di
 mesin yang sama, satu putaran per versi. Segitiga (ribu) / draw call dan waktu per bingkai (ms):
 | Tempat | Sedang v0.18.0 | Sedang v0.19.0 | Rendah v0.18.0 | Rendah v0.19.0 |
@@ -964,6 +1026,15 @@ v0.3.0: Rendah ±300 rb, Sedang ±400 rb, Tinggi ±850 rb. Tambahan v0.4.0 beras
 yang lebih rapat (untuk ombak) dan buah kelapa. v0.2.0 (HP): ±230 ribu.
 
 ## Masalah yang diketahui
+- (v0.20.0) **Gua Laut Beku hanya bisa dicapai lewat laut** (disengaja): pantai timur Frostfall berupa
+  tebing, jadi perlu berenang jauh mengitari pulau atau memakai perahu.
+- (v0.20.0) Langit-langit Katedral Taring adalah permukaan Puncak Taring Es — ±200 m di atas lantai, tidak
+  terlihat dalam gelap; tiang-tiang es setinggi 26–42 m "hilang" ke dalam kegelapan.
+- (v0.20.0) Di atas mulut beberapa gua (mis. Tambang Tua) lereng bukit berlekuk seperti celah: koridor
+  mulut gua dibiarkan setinggi lereng aslinya.
+- (v0.20.0) Lebar lorong & tepi dinding gua berbeda menurut kualitas (grid tanah); isi gua (tiang, peti,
+  penyangga) sama di semua kualitas, kecuali yang tidak muat di lorong yang lebih sempit (Tinggi: lebih
+  sedikit penyangga tambang).
 - (v0.19.0) **Frostfall belum berpenghuni**: tidak ada penduduk, pedagang, atau penjaga (desa, pasar, dan
   kastel kosong — kastelnya memang "ditinggalkan"); kios tidak bisa dibeli. Hanya **kedai panjang** dan
   **Ruang Singgasana** yang bisa dimasuki; rumah lain tertutup.
