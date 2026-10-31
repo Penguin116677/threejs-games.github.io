@@ -1235,7 +1235,8 @@ for (const [name, opts, query] of cases) {
   // semua profil: isi wilayah, tanpa benda melayang / terbenam, tanah tanpa lubang, selat harus
   // direnangi, salju & iklim dingin, masuk gua (gelap, kamera di bawah atap), peti harta.
   // HP tegak & komputer: berjalan sungguhan di jembatan, tangga menara jaga, masuk kedai, gerbang →
-  // halaman → ruang singgasana, pintu rahasia → tangga → lorong → gua, mulut gua, pagar di atas gua
+  // halaman → ruang singgasana, pintu rahasia → tangga → lorong → gua, mulut gua; semua profil: atap gua
+  // bisa diinjak, lima gua besar (v0.20.0) dijalani dari luar mulut sampai petinya
   if (await page.evaluate(() => !!window.__pulau.frost)) {
     const full = name === 'hp-portrait' || name === 'desktop'
     await page.evaluate(() => window.__pulau.security?.ceasefire(true))
@@ -1267,17 +1268,18 @@ for (const [name, opts, query] of cases) {
     const fs = await page.evaluate(() => {
       const { frost, frostPlan } = window.__pulau
       const n = t => frostPlan.build.filter(b => b.type === t).length
-      return { ...frost.stats, n: { rumah: n('rumah'), kedai: n('kedai'), kios: n('kios'), menara: n('menara'), api: n('api'), jembatan: n('jembatan'), tembok: n('tembok'), menaraKastel: n('menara-kastel'), gerbang: n('gerbang'), aula: n('aula'), air: n('air-terjun'), tenda: n('tenda') } }
+      return { ...frost.stats, peti: frost.chests.length, n: { rumah: n('rumah'), kedai: n('kedai'), kios: n('kios'), menara: n('menara'), api: n('api'), jembatan: n('jembatan'), tembok: n('tembok'), menaraKastel: n('menara-kastel'), gerbang: n('gerbang'), aula: n('aula'), air: n('air-terjun'), tenda: n('tenda'), tiang: n('tiang-es'), penyangga: n('penyangga'), kapal: n('bangkai-kapal') } }
     })
-    if (fs.n.rumah < 15 || !fs.n.kedai || fs.n.kios < 4 || !fs.n.menara || fs.n.jembatan < 3 || fs.n.menaraKastel !== 4 || !fs.n.gerbang || !fs.n.aula || !fs.n.air || fs.n.tenda < 3 || fs.pinus < 800 || fs.kristal < 30 || !fs.gua.atap || !fs.gua.pagar)
+    if (fs.n.rumah < 15 || !fs.n.kedai || fs.n.kios < 4 || !fs.n.menara || fs.n.jembatan < 3 || fs.n.menaraKastel !== 4 || !fs.n.gerbang || !fs.n.aula || fs.n.air < 2 || fs.n.tenda < 3 || fs.pinus < 800 || fs.kristal < 30 || fs.gua.gua !== 6 || Object.values(fs.gua.per).some(n => !n) || fs.peti !== 6 || fs.n.tiang < 30 || fs.n.penyangga < 5 || !fs.n.kapal)
       fail(`isi Frostfall: ${JSON.stringify(fs)}`)
-    else ok(`Frostfall: ${fs.n.rumah} rumah + kedai, ${fs.n.kios} kios, menara jaga, ${fs.n.api} api unggun, ${fs.n.jembatan} jembatan, kastel (${fs.n.tembok} tembok, ${fs.n.menaraKastel} menara, gerbang, aula singgasana), air terjun beku, ${fs.n.tenda} kemah pemburu, ${fs.pinus} pinus, ${fs.kristal} kristal, gua (${fs.gua.atap} segitiga atap, ${fs.gua.pagar} pagar)`)
+    else ok(`Frostfall: ${fs.n.rumah} rumah + kedai, ${fs.n.kios} kios, menara jaga, ${fs.n.api} api unggun, ${fs.n.jembatan} jembatan, kastel (${fs.n.tembok} tembok, ${fs.n.menaraKastel} menara, gerbang, aula singgasana), ${fs.n.air} air terjun beku, ${fs.n.tenda} kemah pemburu, ${fs.pinus} pinus, ${fs.kristal} kristal, ${fs.gua.gua} gua (${fs.gua.atap} segitiga atap) dengan ${fs.peti} peti harta, ${fs.n.tiang} tiang es, ${fs.n.penyangga} penyangga tambang, bangkai kapal`)
 
     // benda di tanah / lantai: tidak melayang / terbenam (> 0,6 m dari pijakan di titik tengahnya: tanah,
     // atau lantai seperti lantai ruang singgasana — tanah di bawahnya bisa terkeruk lorong rahasia)
     const floating = await page.evaluate(() => {
       const { frostPlan, ground } = window.__pulau
-      const onGround = ['rumah', 'kedai', 'kios', 'api', 'lentera', 'sumur', 'peti', 'gerobak', 'tenda', 'rak', 'luncur', 'kayu-bakar', 'pagar', 'menara', 'menara-kastel', 'anglo', 'harta', 'singgasana', 'aula']
+      const onGround = ['rumah', 'kedai', 'kios', 'api', 'lentera', 'sumur', 'peti', 'gerobak', 'tenda', 'rak', 'luncur', 'kayu-bakar', 'pagar', 'menara', 'menara-kastel', 'anglo', 'harta', 'singgasana', 'aula',
+        'penyangga', 'kereta-tambang', 'altar', 'tiang-es', 'stalagmit', 'bangkai-kapal']
       const foot = b => ground.supportAt(b.x, b.z, b.y + 0.3, 0.45)
       const bad = frostPlan.build.filter(b => onGround.includes(b.type) && Math.abs(b.y - foot(b)) > 0.6)
         .map(b => `${b.type}@${b.x.toFixed(0)},${b.z.toFixed(0)}: ${b.y.toFixed(1)} vs ${foot(b).toFixed(1)}`)
@@ -1455,36 +1457,6 @@ for (const [name, opts, query] of cases) {
       })
       if (!mo || mo.d > 2 || !mouth.cave) fail(`mulut gua: ${JSON.stringify({ mo, mouth })}`)
       else ok(`dari Lembah Atas berjalan masuk lewat mulut gua (y ${mouth.y} m, di bawah atap)`)
-
-      // pagar tak terlihat: yang berjalan di atas gunung tidak jatuh menembus atap gua
-      const fence = await page.evaluate(() => {
-        const { frost, ground, colliders } = window.__pulau
-        const { roofAt } = frost.cave
-        // titik luar yang landai, 3 m di luar pagar, menjauhi rongga
-        for (const f of frost.colliders.filter(c => c.y1 === 1e4))
-          for (const [dx, dz] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
-            const x = f.x + dx * 3.2
-            const z = f.z + dz * 3.2
-            const ix = f.x - dx * 4
-            const iz = f.z - dz * 4
-            if (roofAt(x, z) > -Infinity || roofAt(ix, iz) === -Infinity) continue
-            if (ground.slopeAt(x, z) > 0.5 || !colliders.isFree(x, z, 0.6, ground.heightAt(x, z))) continue
-            return { x, z, ix, iz, roof: roofAt(ix, iz) }
-          }
-        return null
-      })
-      if (!fence) fail('pagar di atas gua: tidak ada titik uji yang landai')
-      else {
-        await placeAndLook(fence.x, fence.z, fence.ix, fence.iz)
-        const fw = await walk([{ x: fence.ix, z: fence.iz }], 120)
-        const fell = await page.evaluate(() => {
-          const { player, frost } = window.__pulau
-          const p = player.position
-          return { y: +p.y.toFixed(1), roof: +frost.cave.roofAt(p.x, p.z).toFixed(1), cave: frost.cave.inside(p.x, p.z, p.y) }
-        })
-        if (fell.cave || (fell.roof > -Infinity && fell.y < fell.roof - 1)) fail(`pagar di atas gua: ${JSON.stringify({ fence, fw, fell })}`)
-        else ok(`pagar di atas gua: berjalan di gunung ke arah rongga tertahan di luar atap (y ${fell.y} m)`)
-      }
     } else {
       // profil ringan: masuk gua dengan teleport
       await placeAndLook(1070, -196, 1080, -210)
@@ -1514,6 +1486,79 @@ for (const [name, opts, query] of cases) {
         const end = pts[pts.length - 1]
         if (!r || r.d > 2) fail(`gua tidak bisa dilalui (${label}): ${JSON.stringify(r)}, tujuan ${end.join(',')}`)
         else ok(`gua bisa dilalui (${label}): ${sx},${sz} → ${r.x.toFixed(0)},${r.z.toFixed(0)} (y ${r.y.toFixed(1)} m)`)
+      }
+    }
+
+    // atap gua = pijakan (sejak v0.20.0, tanpa pagar tak terlihat): berjalan melintasi bukit di atas Aula
+    // Tambang Tua tetap di permukaan bukit, tidak jatuh ke dalam gua
+    {
+      // kedua ujung ≥ 7 m dari tapak gua (placeAt memakai tanah, bukan atap); lereng luar ≤ 0,96
+      const A = { x: 668.6, z: -323.9 }
+      const B = { x: 631.4, z: -244.1 }
+      await placeAndLook(A.x, A.z, B.x, B.z)
+      await waitFrames(page, 5)
+      const pts = []
+      for (let k = 1; k <= 6; k++) pts.push({ x: A.x + ((B.x - A.x) * k) / 6, z: A.z + ((B.z - A.z) * k) / 6 })
+      await page.evaluate(p => window.__pulau.player.followPath(p), pts)
+      const roofWalk = { over: 0, low: Infinity, inside: false, end: null }
+      for (let f = 0; f < 900; f += 5) {
+        await waitFrames(page, 5)
+        const st = await page.evaluate(([bx, bz]) => {
+          const { player, frost } = window.__pulau
+          const p = player.position
+          return { y: p.y, roof: frost.cave.roofAt(p.x, p.z), inside: frost.cave.inside(p.x, p.z, p.y), path: player.hasPath, d: Math.hypot(p.x - bx, p.z - bz) }
+        }, [B.x, B.z])
+        if (st.roof > -Infinity) {
+          roofWalk.over++
+          roofWalk.low = Math.min(roofWalk.low, st.y - st.roof)
+        }
+        roofWalk.inside ||= st.inside
+        roofWalk.end = st
+        if (!st.path) break
+      }
+      if (roofWalk.over < 3 || roofWalk.low < -0.5 || roofWalk.inside || roofWalk.end.d > 2) fail(`berjalan di atas atap gua: ${JSON.stringify(roofWalk)}`)
+      else ok(`atap gua bisa diinjak: melintasi bukit di atas Aula Tambang Tua (${roofWalk.over} titik di atas atap, kaki paling rendah ${roofWalk.low.toFixed(2)} m dari atap), tidak jatuh ke dalam gua`)
+    }
+
+    // lima gua besar (v0.20.0): dari luar mulut berjalan sampai peti (HP mendatar: teleport ke ujung
+    // rute); di dalam gelap, tanpa salju, kamera di bawah atap, spanduk nama gua; peti: koin bertambah
+    // sekali saja
+    {
+      const walkCaves = name !== 'hp-landscape'
+      const caves = await page.evaluate(() => window.__pulau.frostPlan.caves.filter(c => c.tema !== 'kristal').map(c => ({ id: c.id, name: c.name, route: c.route })))
+      const chests = await page.evaluate(() => window.__pulau.frost.chests)
+      for (const cv of caves) {
+        const r = cv.route
+        const end = r[r.length - 1]
+        let w = null
+        if (walkCaves) {
+          await placeAndLook(r[0].x, r[0].z, r[1].x, r[1].z)
+          await waitFrames(page, 5)
+          w = await walk(r.slice(1), 2400)
+        } else await placeAndLook(end.x, end.z, r[r.length - 2].x, r[r.length - 2].z)
+        await waitFrames(page, 30)
+        const st = await page.evaluate(() => {
+          const { player, frost, weather, camera } = window.__pulau
+          const p = player.position
+          const roof = frost.cave.roofAt(camera.position.x, camera.position.z)
+          return { cave: frost.cave.inside(p.x, p.z, p.y), dark: +weather.state.cave.toFixed(2), snow: weather.snow.visible, camBelowRoof: roof === -Infinity || camera.position.y < roof - 0.2, banner: document.querySelector('#wilayah .wilayah-nama')?.textContent }
+        })
+        await page.screenshot({ path: `${out}/${name}-gua-${cv.id}.png` })
+        if (walkCaves && (!w || w.d > 2)) fail(`${cv.name}: tidak sampai ke peti lewat mulut gua: ${JSON.stringify(w)}`)
+        else if (!st.cave || st.dark < 0.3 || st.snow || !st.camBelowRoof || st.banner !== cv.name) fail(`di dalam ${cv.name}: ${JSON.stringify(st)}`)
+        else ok(`${cv.name}: ${walkCaves ? `berjalan dari luar mulut sampai peti (${r.length - 1} titik rute)` : 'di ruang terdalam'}, gelap ${st.dark}, tanpa salju, kamera di bawah atap, spanduk "${st.banner}"`)
+        // peti: berdiri di depannya → Buka peti → koin bertambah sekali
+        const ch = chests.find(c => c.id === cv.id)
+        await placeAndLook(ch.x + Math.sin(ch.rot) * 1.9, ch.z + Math.cos(ch.rot) * 1.9, ch.x, ch.z)
+        await waitFrames(page, 10)
+        const k0 = await page.evaluate(() => window.__pulau.bag.koin)
+        const btn = await page.evaluate(() => !document.getElementById('btn-peti').hidden)
+        if (btn) await page.click('#btn-peti')
+        await waitFrames(page, 20)
+        const k1 = await page.evaluate(() => ({ koin: window.__pulau.bag.koin, again: !document.getElementById('btn-peti').hidden }))
+        if (!btn || k1.koin - k0 !== ch.koin || k1.again) fail(`peti ${cv.name}: ${JSON.stringify({ btn, k0, k1, koin: ch.koin })}`)
+        else ok(`peti ${cv.name}: Buka peti → +${ch.koin} koin, tidak bisa dibuka lagi`)
+        if (k1.koin > k0) await page.evaluate(k => window.__pulau.bag.bayar(k), k1.koin - k0) // koin kembali seperti semula
       }
     }
 
