@@ -81,11 +81,25 @@ export function createGround(segments, { heightFn = worldHeight, rect = WORLD } 
     return top
   }
 
-  // Pijakan untuk kaki setinggi footY: tanah, atau lantai yang paling tinggi `step` m di atas kaki.
-  // Lantai yang lebih tinggi dari itu (dek dermaga dilihat dari air, batur dari samping) bukan
-  // pijakan, melainkan tepi yang harus dipanjat (forEachSurfaceNear untuk tabrakannya).
+  // Atap gua (Frostfall): permukaan gunung di atas rongga gua. Tanah di sana = lantai gua, jadi bagi
+  // yang berjalan DI ATAS gunung atapnya menjadi pijakan (setRoof); dari dalam gua atap = langit-langit.
+  let roofFn = () => -Infinity
+  const setRoof = fn => {
+    roofFn = fn
+  }
+  // permukaan luar: atap gua bila ada, selain itu tanah (kemiringan bagi yang berjalan di atas atap)
+  const outerAt = (x, z) => {
+    const r = roofFn(x, z)
+    return r > -Infinity ? r : groundHeight(x, z)
+  }
+
+  // Pijakan untuk kaki setinggi footY: tanah (atau atap gua), atau lantai yang paling tinggi `step` m
+  // di atas kaki. Lantai yang lebih tinggi dari itu (dek dermaga dilihat dari air, batur dari samping)
+  // bukan pijakan, melainkan tepi yang harus dipanjat (forEachSurfaceNear untuk tabrakannya).
   function supportAt(x, z, footY, step) {
-    const h = groundHeight(x, z)
+    let h = groundHeight(x, z)
+    const roof = roofFn(x, z)
+    if (roof > h && roof <= footY + step) h = roof
     if (!surfaces.length) return h
     const list = surfCells.get(surfKey(Math.floor(x / SURF_CELL), Math.floor(z / SURF_CELL)))
     if (!list) return h
@@ -145,7 +159,8 @@ export function createGround(segments, { heightFn = worldHeight, rect = WORLD } 
 
   return {
     step, nx, nz, cols, x0, z0, heights,
-    heightAt: groundHeight, slopeAt, surfaceAt, supportAt, ceilingAt, forEachSurfaceNear, setSurfaces,
+    heightAt: groundHeight, slopeAt, surfaceAt, supportAt, ceilingAt, forEachSurfaceNear, setSurfaces, setRoof, outerAt,
+    roofAt: (x, z) => roofFn(x, z),
     get surfaces() {
       return surfaces
     },

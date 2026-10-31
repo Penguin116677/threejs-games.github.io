@@ -325,12 +325,12 @@ export function createPlayer({ ground, colliders, quality, asset }) {
   }
 
   // arah naik lereng TANAH (lantai bangunan datar / landai; tepinya bukan lereng melainkan tepi
-  // yang dilangkahi atau dipanjat — lihat blockLedges)
+  // yang dilangkahi atau dipanjat — lihat blockLedges). h = fungsi tinggi (atap gua: ground.outerAt)
   const grad = { x: 0, z: 0, len: 0 }
-  function gradient(x, z) {
+  function gradient(x, z, h = ground.heightAt) {
     const e = 0.5
-    grad.x = (ground.heightAt(x + e, z) - ground.heightAt(x - e, z)) / (2 * e)
-    grad.z = (ground.heightAt(x, z + e) - ground.heightAt(x, z - e)) / (2 * e)
+    grad.x = (h(x + e, z) - h(x - e, z)) / (2 * e)
+    grad.z = (h(x, z + e) - h(x, z - e)) / (2 * e)
     grad.len = Math.hypot(grad.x, grad.z)
     return grad
   }
@@ -814,9 +814,12 @@ export function createPlayer({ ground, colliders, quality, asset }) {
 
     // pijakan: tanah, atau lantai yang bisa dilangkahi dari kaki sebelum langkah ini
     const gy = support(pos.x, pos.z, y0)
-    const onFloor = gy > ground.heightAt(pos.x, pos.z) + 0.02
+    const floorY = ground.heightAt(pos.x, pos.z)
+    // berdiri di atas atap gua (gunung di atas rongga): lerengnya = lereng atap, bukan lantai gua
+    const onRoof = gy > floorY + 0.02 && gy === ground.roofAt(pos.x, pos.z)
+    const onFloor = gy > floorY + 0.02 && !onRoof
     // lereng tanah terlalu curam: tidak bisa didaki, perlahan merosot (lantai bangunan tidak)
-    const g = onFloor ? null : gradient(pos.x, pos.z)
+    const g = onFloor ? null : gradient(pos.x, pos.z, onRoof ? ground.outerAt : ground.heightAt)
     if (g && g.len > MAX_SLOPE) {
       const ux = g.x / g.len
       const uz = g.z / g.len
