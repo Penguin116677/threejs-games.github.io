@@ -4,7 +4,7 @@ import { TOWER } from './buildings.js'
 import { cavePassage, caveFloorIn, frostSurface, CAVE_SYSTEMS } from './height.js'
 import {
   VILLAGE, SQUARE, CASTLE, CASTLE_YARD, HALL, THRONE, TRAPDOOR, CAVE, LAKE, TREASURE, CAVE_MOUTH, WATERFALL, RIVER, ROADS, TRAILS,
-  GORGE, BRIDGES, DOCKS, CAMPS, HIGH_VALLEY, CAVES, polyInfo,
+  GORGE, BRIDGES, DOCKS, CAMPS, HIGH_VALLEY, CAVES, HAMLETS, PIER, polyInfo,
 } from './layout.js'
 
 // Rencana rinci Kerajaan Frostfall: letak setiap bangunan, penghalang (sebagian berbatas tinggi:
@@ -44,6 +44,15 @@ export function planFrostfall(ground) {
     shafts: [], // berkas cahaya dari celah atap { x, y, z, h, r, tilt, rot }
     caves: CAVES,
     trapdoor: null,
+    // penduduk (v0.22.0, warga.js): rumah keluarga & tempat berkegiatan
+    warga: {
+      homes: [], // { id, desa, x, z, y, rot, w, d, door: { x, z } }
+      spots: [], // { kind, desa, x, z, y, rot } — mancing, mancing-es, kios, beli, masak, kayu, asap, jemur, kulit, sumur, jaga, main, …
+      fires: [], // api unggun bersama { id, desa, x, z, y, seats: [{ x, z, rot }] }
+      tables: [], // meja jamuan { id, desa, x, z, y, rot, len, seats: [{ x, z, rot }] }
+      plazas: [], // lapangan / alun-alun { desa, x, z, y, r }
+      lanes: [], // garis jalan kampung untuk jaringan jalan penduduk [{ x, z }, …]
+    },
   }
   const add = b => {
     P.build.push(b)
@@ -115,6 +124,7 @@ export function planFrostfall(ground) {
     const w = 6 + (i % 3) * 0.8
     const d = 5.2 + (i % 2) * 0.6
     const b = add({ type: 'rumah', x: h.x, y: vy, z: h.z, rot: h.rot, w, d, roof: i % 5, chimney: i % 4 !== 3, porch: i % 3 === 1, seed: i + 1 })
+    P.warga.homes.push({ id: `desa-${i}`, desa: 'desa', x: h.x, z: h.z, y: vy, rot: h.rot, w, d, door: local(b, 0, d / 2 + 1.1) })
     localBox(b, 0, 0, w + 0.4, d + 0.4, 'kayu')
     block(h.x, h.z, w + 2, d + 2, h.rot)
     if (i % 4 !== 3) {
@@ -146,6 +156,19 @@ export function planFrostfall(ground) {
     P.interiors.push({ id: 'kedai', rect: { x0: b.x - d / 2 + t, z0: b.z - w / 2 + t, x1: b.x + d / 2 - t, z1: b.z + w / 2 - t }, floor: vy + 0.35, ceil: vy + 0.35 + 3.6 - 0.4 })
     const c = local(b, 0, -d / 2 + 1.0)
     P.smoke.push({ x: c.x, y: vy + 7.2, z: c.z })
+    // penduduk: kursi di kedua sisi kedua meja panjang (menghadap meja), juru masak di perapian
+    const seats = []
+    for (const s of [-1, 1])
+      for (const side of [-1, 1])
+        for (const lz of [-1.1, 0.1, 1.3, 2.5]) {
+          const p = local(b, s * w * 0.22 + side * 0.9, lz) // di atas bangkunya (±0,85 dari meja)
+          seats.push({ x: p.x, z: p.z, rot: b.rot + (side > 0 ? -Math.PI / 2 : Math.PI / 2) })
+        }
+    P.warga.tables.push({ id: 'kedai', desa: 'desa', x: b.x, z: b.z, y: vy + 0.35, rot: b.rot, len: w, seats, inside: true })
+    const cook = local(b, 1.6, -d / 2 + 1.9)
+    P.warga.spots.push({ kind: 'masak', desa: 'desa', x: cook.x, z: cook.z, y: vy + 0.35, rot: b.rot + Math.PI })
+    const door = local(b, 0, d / 2 + 1.2)
+    P.warga.spots.push({ kind: 'pintu-kedai', desa: 'desa', x: door.x, z: door.z, y: vy, rot: b.rot + Math.PI })
   }
   // pasar di alun-alun: kios di keempat sudut + dua di sisi utara
   const goods = ['roti', 'ikan', 'bulu', 'kayu', 'besi']
@@ -155,6 +178,10 @@ export function planFrostfall(ground) {
   ].forEach((k, i) => {
     const b = add({ type: 'kios', x: k.x, y: vy, z: k.z, rot: k.rot, color: i, goods: goods[i % goods.length] })
     localBox(b, 0, 0.45, 3.6, 1.2, 'kayu')
+    const sell = local(b, 0, -0.7)
+    const buy = local(b, 0, 1.95)
+    P.warga.spots.push({ kind: 'kios', desa: 'desa', x: sell.x, z: sell.z, y: vy, rot: b.rot, goods: goods[i % goods.length], kios: i })
+    P.warga.spots.push({ kind: 'beli', desa: 'desa', x: buy.x, z: buy.z, y: vy, rot: b.rot + Math.PI, goods: goods[i % goods.length], kios: i })
     for (const [sx, sz] of [[-1, -1], [1, -1]]) {
       const p = local(b, sx * 1.8, sz * 1.25)
       circle(p.x, p.z, 0.12, 'kayu')
@@ -876,9 +903,200 @@ export function planFrostfall(ground) {
     block(c.x, c.z, 14, 14)
   }
 
+  // ===================================================================== penduduk (v0.22.0)
+  // Rumah-rumah Desa Emberwick sudah tercatat di atas. Di sini: tempat berkegiatan di desa, dua kampung
+  // baru (nelayan & pemburu) lengkap dengan rumah, api unggun bersama, dan tempat kerjanya, lubang
+  // pancing di es sungai, tunggul tebangan di tepi hutan. Semua untuk warga.js.
+  const W = P.warga
+  const spot = (kind, desa, x, z, rot, extra = {}) => W.spots.push({ kind, desa, x, z, y: extra.y ?? yAt(x, z), rot, ...extra })
+  // api unggun bersama + bangku gelondong melingkar (2 tempat duduk per bangku, menghadap api)
+  const fireRing = (id, desa, x, z, y, { benches = 4, r = 3.4, start = Math.PI / 4, light: lit = true } = {}) => {
+    const seats = []
+    for (let i = 0; i < benches; i++) {
+      const a = start + (i / benches) * Math.PI * 2
+      const bx = x + Math.sin(a) * r
+      const bz = z + Math.cos(a) * r
+      const rot = a + Math.PI / 2 // panjang bangku menyinggung lingkaran
+      add({ type: 'bangku', x: bx, y, z: bz, rot, len: 2.4 })
+      box(bx, bz, 2.4, 0.55, rot, 'kayu')
+      for (const s of [-0.6, 0.6]) {
+        const sx = bx + Math.cos(rot) * s
+        const sz = bz - Math.sin(rot) * s
+        // duduk di atas bangku (sedikit ke sisi luar), menghadap api
+        const ox = sx + Math.sin(a) * 0.12
+        const oz = sz + Math.cos(a) * 0.12
+        seats.push({ x: ox, z: oz, rot: Math.atan2(x - ox, z - oz) })
+      }
+    }
+    W.fires.push({ id, desa, x, z, y, seats, r })
+    if (lit) light(x, y + 1.6, z, '#ffa050', 26, 16)
+  }
+  const tableAt = (id, desa, x, z, y, rot, len = 4.8) => {
+    add({ type: 'meja', x, y, z, rot, len })
+    box(x, z, len, 2.1, rot, 'kayu')
+    const seats = []
+    for (const side of [-1, 1])
+      for (let lx = -len / 2 + 0.7; lx <= len / 2 - 0.6; lx += 0.95) {
+        const c = Math.cos(rot)
+        const sn = Math.sin(rot)
+        const lz = side * 0.85
+        seats.push({ x: x + lx * c + lz * sn, z: z - lx * sn + lz * c, rot: rot + (side > 0 ? Math.PI : 0) })
+      }
+    W.tables.push({ id, desa, x, z, y, rot, len, seats })
+  }
+
+  // ----- Desa Emberwick: bangku di sekeliling api unggun alun-alun, meja jamuan, sumur, menara, kayu
+  {
+    fireRing('alun-alun', 'desa', 686, -47, vy, { light: false })
+    tableAt('alun-alun', 'desa', 703, -45, vy, 0)
+    W.plazas.push({ desa: 'desa', x: 694, z: -42, y: vy, r: 14 })
+    spot('sumur', 'desa', 702, -32.2, Math.PI, { y: vy })
+    spot('jaga', 'desa', 752, -90, Math.PI, { y: vy + 8 })
+    for (const [x, z, rot] of [[648, -63.4, 0], [734, -63.4, 0], [650, -15.6, Math.PI], [736, -14.6, Math.PI]]) spot('kayu', 'desa', x, z, rot, { y: vy })
+    // tempat bermain anak: sudut alun-alun & lapangan di selatan jalan utama
+    for (const [x, z] of [[690, -35], [699, -51], [672, -32], [716, -48]]) spot('main', 'desa', x, z, 0, { y: vy })
+    // pandai besi di belakang kios besi (menempa di landasan)
+    {
+      const x = 707
+      const z = -26.6
+      add({ type: 'peti', x: x + 2.2, y: vy, z, rot: 0.2, n: 2, seed: 77 })
+      circle(x + 2.2, z, 0.8, 'kayu')
+      spot('tempa', 'desa', x - 0.5, z, Math.PI, { y: vy })
+    }
+  }
+
+  // ----- kampung nelayan & pemburu
+  const HOUSE_ROT = [FACE.selatan, FACE.utara, FACE.selatan, FACE.utara]
+  for (const K of HAMLETS) {
+    const hy = K.y
+    let n = 0
+    K.rows.forEach((z, r) =>
+      K.xs.forEach((x, c) => {
+        const i = n++
+        const seed = (K.id === 'nelayan' ? 40 : 80) + i
+        const w = 5.8 + ((i * 7) % 3) * 0.7
+        const d = 5.0 + ((i * 5) % 2) * 0.6
+        const rot = HOUSE_ROT[r]
+        const b = add({ type: 'rumah', x, y: hy, z, rot, w, d, roof: (i + (K.id === 'nelayan' ? 2 : 4)) % 5, chimney: i % 5 !== 4, porch: (i + r) % 3 === 0, seed })
+        localBox(b, 0, 0, w + 0.4, d + 0.4, 'kayu')
+        block(x, z, w + 2, d + 2, rot)
+        if (i % 5 !== 4) {
+          const cc = local(b, w * 0.28, -d * 0.12)
+          P.smoke.push({ x: cc.x, y: hy + 0.5 + 2.9 + Math.max(2.2, d * 0.62) + 1.6, z: cc.z })
+        }
+        W.homes.push({ id: `${K.id}-${i}`, desa: K.id, x, z, y: hy, rot, w, d, door: local(b, 0, d / 2 + 1.1), col: c, row: r })
+      }))
+    // lorong kampung (cat jalan) + jaringan jalan penduduk
+    for (const lz of K.lanes) {
+      P.roads.push([K.x0 + 2, lz, K.x1 - 2, lz, 3.2])
+      W.lanes.push([{ x: K.x0 + 2, z: lz }, { x: K.lane, z: lz }, { x: K.x1 - 2, z: lz }])
+    }
+    P.roads.push([K.lane, K.z0 + 2, K.lane, K.z1 - 2, 3.6])
+    W.lanes.push([{ x: K.lane, z: K.z0 + 2 }, { x: K.lane, z: K.lanes[0] }, { x: K.lane, z: K.plaza.z }, { x: K.lane, z: K.lanes[1] }, { x: K.lane, z: K.z1 - 2 }])
+    for (const line of K.paths) {
+      for (let i = 0; i < line.length - 1; i++) P.roads.push([line[i].x, line[i].z, line[i + 1].x, line[i + 1].z, 3])
+      W.lanes.push(line)
+    }
+    // lapangan kampung: api unggun bersama, bangku, meja jamuan, sumur, tumpukan kayu
+    const pz = K.plaza
+    add({ type: 'api', x: pz.x, y: hy, z: pz.z, rot: 0.4, lit: true, logs: true })
+    circle(pz.x, pz.z, 1.2, 'batu')
+    fireRing(`api-${K.id}`, K.id, pz.x, pz.z, hy)
+    W.plazas.push({ desa: K.id, x: pz.x, z: pz.z, y: hy, r: 10 })
+    const sumur = { x: K.xs[1] + 1, z: pz.z }
+    add({ type: 'sumur', x: sumur.x, y: hy, z: sumur.z, rot: 0 })
+    circle(sumur.x, sumur.z, 1.25, 'batu')
+    spot('sumur', K.id, sumur.x + 1.8, sumur.z, -Math.PI / 2, { y: hy })
+    const wood = { x: K.xs[0] - 0.5, z: pz.z }
+    add({ type: 'kayu-bakar', x: wood.x, y: hy, z: wood.z - 1.6, rot: 0, len: 3 })
+    box(wood.x, wood.z - 1.6, 3.4, 1.3, 0, 'kayu')
+    add({ type: 'tunggul', x: wood.x, y: hy, z: wood.z + 1.2, rot: 0.3 })
+    circle(wood.x, wood.z + 1.2, 0.55, 'kayu')
+    spot('kayu', K.id, wood.x, wood.z + 2.4, Math.PI, { y: hy })
+    for (const [dx, dz] of [[-6, 4], [6, -4]]) spot('main', K.id, pz.x + dx, pz.z + dz, 0, { y: hy })
+    // pondok pengasapan (pintu menghadap lapangan, ke barat)
+    const asap = { x: K.xs[3] + 6.5, z: pz.z }
+    const ab = add({ type: 'pengasapan', x: asap.x, y: hy, z: asap.z, rot: -Math.PI / 2 })
+    localBox(ab, 0, 0, 4.0, 3.4, 'kayu')
+    block(asap.x, asap.z, 6, 5)
+    const top = local(ab, -3.6 * 0.28, -3.0 * 0.15)
+    P.smoke.push({ x: top.x, y: hy + 5.0, z: top.z })
+    const asapDoor = local(ab, 0, 2.6)
+    spot('asap', K.id, asapDoor.x, asapDoor.z, ab.rot + Math.PI, { y: hy })
+    if (K.id === 'pemburu') {
+      // rangka penjemur kulit, kereta luncur
+      for (const [dx, dz, rot] of [[-12, -3.2, 0], [-12, 3.2, Math.PI]]) {
+        const x = pz.x + dx
+        const z = pz.z + dz
+        add({ type: 'rangka-kulit', x, y: hy, z, rot })
+        box(x, z, 2.3, 0.4, rot, 'kayu')
+        spot('kulit', K.id, x, z + (rot ? -1.1 : 1.1), rot ? 0 : Math.PI, { y: hy })
+      }
+      add({ type: 'luncur', x: pz.x + 4, y: hy, z: K.z1 + 1, rot: 0.25 })
+      box(pz.x + 4, K.z1 + 1, 1.3, 2.6, 0.25, 'kayu')
+    }
+  }
+  // ----- pantai nelayan: dermaga kecil, sampan, rak ikan, tempat memancing
+  {
+    const len = PIER.x1 - PIER.x0
+    const mid = (PIER.x0 + PIER.x1) / 2
+    add({ type: 'dermaga', x: mid, y: PIER.deck, z: PIER.z, rot: FACE.timur, w: PIER.w, len })
+    P.surfaces.push({ x: mid, z: PIER.z, hx: len / 2, hz: PIER.w / 2, rot: 0, y0: PIER.deck, y1: PIER.deck })
+    block(mid, PIER.z, len + 2, PIER.w + 2)
+    // ujung dermaga & kedua sisinya (menghadap laut)
+    spot('mancing', 'nelayan', PIER.x0 + 1.2, PIER.z, FACE.barat, { y: PIER.deck })
+    for (const x of [PIER.x0 + 5, PIER.x0 + 11]) {
+      spot('mancing', 'nelayan', x, PIER.z - PIER.w / 2 + 0.45, FACE.utara, { y: PIER.deck })
+      spot('mancing', 'nelayan', x, PIER.z + PIER.w / 2 - 0.45, FACE.selatan, { y: PIER.deck })
+    }
+    // tepi air di pantai (menghadap barat)
+    for (const z of [-88, -76, -42, -30]) {
+      let x = 446
+      while (x > 430 && yAt(x - 1, z) > 0.12) x -= 0.5
+      spot('mancing', 'nelayan', x, z, FACE.barat)
+    }
+    // sampan (terbalik di pasir & tegak di tepi air), rak ikan
+    for (const [x, z, rot, terbalik] of [[452, -82, -1.45, true], [451, -70, -1.7, true], [447, -44, -1.5, false], [452, -33, -1.62, true]]) {
+      add({ type: 'sampan', x, y: yAt(x, z), z, rot, terbalik })
+      box(x, z, 1.2, 4.2, rot, 'kayu')
+    }
+    for (const [x, z] of [[458, -88], [459, -63], [459, -49], [458, -26]]) {
+      add({ type: 'rak-ikan', x, y: yAt(x, z), z, rot: FACE.timur })
+      box(x, z, 0.4, 3.0, 0, 'kayu')
+      spot('jemur', 'nelayan', x + 1.2, z, FACE.barat)
+    }
+  }
+  // ----- lubang pancing di es Sungai Beku (dekat muara & di bawah desa)
+  {
+    const holes = [[540, 148, 472, 174, [0.28, 0.5, 0.72], 'nelayan'], [680, 84, 610, 118, [0.3, 0.6], 'desa']]
+    for (const [ax, az, bx, bz, ts, desa] of holes) {
+      const dx = bx - ax
+      const dz = bz - az
+      const l = Math.hypot(dx, dz)
+      for (const t of ts) {
+        const x = ax + dx * t + (-dz / l) * 2.5
+        const z = az + dz * t + (dx / l) * 2.5
+        const { y } = polyInfo(RIVER, x, z, ['y'])
+        const hb = add({ type: 'lubang-es', x, y, z, rot: Math.atan2(dx, dz) })
+        // duduk di bangku kecil lubang itu, menghadap lubangnya
+        const seat = local(hb, -0.1, 0.85)
+        spot('mancing-es', desa, seat.x, seat.z, Math.atan2(x - seat.x, z - seat.z), { y, hole: { x, z } })
+      }
+    }
+  }
+  // ----- tunggul tebangan di tepi hutan (penebang kayu Rusa Putih & Emberwick)
+  for (const [x, z] of [[778, 190], [812, 192], [842, 184], [752, 182]]) {
+    add({ type: 'tunggul', x, y: yAt(x, z), z, rot: x * 0.7 })
+    circle(x, z, 0.55, 'kayu')
+    block(x, z, 4, 4)
+    spot('tebang', 'pemburu', x, z + 1.2, Math.PI)
+  }
+
   // ===================================================================== kawasan tanpa pohon
   P.clear = (x, z, r = 0) => {
     if (x > VILLAGE.x0 - 8 - r && x < VILLAGE.x1 + 8 + r && z > VILLAGE.z0 - 8 - r && z < VILLAGE.z1 + 8 + r) return true
+    for (const k of HAMLETS) if (x > k.x0 - 12 - r && x < k.x1 + 12 + r && z > k.z0 - 12 - r && z < k.z1 + 12 + r) return true
+    if (x > 440 - r && x < 470 + r && z > -100 - r && z < -15 + r) return true
     if (x > CASTLE.x0 - 10 - r && x < CASTLE.x1 + 10 + r && z > CASTLE.z0 - 10 - r && z < CASTLE.z1 + 10 + r) return true
     if (x > CASTLE_YARD.x0 - 6 - r && x < CASTLE_YARD.x1 + r && z > CASTLE_YARD.z0 - 6 - r && z < CASTLE_YARD.z1 + 6 + r) return true
     if (Math.hypot(x - CAVE_MOUTH.x, z - CAVE_MOUTH.z + 6) < 16 + r) return true

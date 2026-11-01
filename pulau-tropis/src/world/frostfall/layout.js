@@ -209,6 +209,36 @@ export const CAMPS = [
   { id: 'kemah-gunung', x: 1102, z: -84, rot: 2.6 }, // di Lembah Atas, dekat hulu sungai
 ]
 
+// ------------------------------------------------------------------ kampung penduduk (v0.22.0)
+// Dua kampung baru di dataran barat, masing-masing pad rata (height.js) dengan 20 rumah keluarga di
+// empat baris yang menghadap dua lorong melintang (lanes, z), dipotong lorong membujur (lane, x)
+// yang melewati lapangan kampung (plaza: api unggun bersama). rows[0] & rows[2] menghadap selatan
+// (rot 0), rows[1] & rows[3] menghadap utara; xs = tengah rumah di tiap baris.
+export const HAMLETS = [
+  {
+    id: 'nelayan', name: 'Kampung Teluk Salju', short: 'Teluk Salju', sub: 'Kampung nelayan di pantai barat · ikan asap & perahu',
+    x0: 462, z0: -96, x1: 536, z1: -20, y: 3.2,
+    lane: 504, lanes: [-77, -35], rows: [-87, -67, -45, -25], xs: [469, 481.5, 494, 514, 526.5], plaza: { x: 504, z: -56 },
+    // lorong ke jalan pantai (selatan) & ke pantai (barat: perahu, rak ikan, dermaga kecil)
+    paths: [[{ x: 504, z: -20 }, { x: 504, z: 22 }], [{ x: 462, z: -56 }, { x: 446, z: -56 }]],
+  },
+  {
+    id: 'pemburu', name: 'Kampung Rusa Putih', short: 'Rusa Putih', sub: 'Kampung pemburu di tepi Hutan Pinus Salju',
+    x0: 766, z0: 100, x1: 840, z1: 174, y: 16.2,
+    lane: 809, lanes: [116, 157], rows: [105, 127, 146, 168], xs: [773, 785, 797, 821, 833], plaza: { x: 809, z: 136.5 },
+    // lorong ke jalan setapak hutan (barat) & ke hutan perburuan (selatan)
+    paths: [[{ x: 766, z: 136.5 }, { x: 740, z: 136.5 }], [{ x: 809, z: 174 }, { x: 796, z: 206 }]],
+  },
+]
+// dermaga kecil nelayan Teluk Salju (dari pantai ke laut, ke barat): lantai setinggi deck
+export const PIER = { x0: 420, x1: 450, z: -56, w: 2.6, deck: 1.3 }
+// kawanan rusa kutub di hutan perburuan: pusat & jari-jari wilayah jelajah
+export const HERDS = [
+  { x: 700, z: 300, r: 55, n: 7 },
+  { x: 880, z: 300, r: 60, n: 8 },
+  { x: 1000, z: 230, r: 45, n: 6 },
+]
+
 // ------------------------------------------------------------------ Gua Es Kristal
 // rongga di dalam punggung R1: bentuk { kind: 'bulat' x z r | 'lorong' a b w } + tinggi lantai
 // y (lorong: ya → yb). Atapnya permukaan gunung asli (lihat height.js / gua.js)
@@ -347,5 +377,6 @@ export const REGIONS = [
   { id: 'desa', name: 'Desa Emberwick', sub: 'Desa kayu yang hangat di Lembah Beku', rect: { x0: VILLAGE.x0 - 6, z0: VILLAGE.z0 - 6, x1: VILLAGE.x1 + 6, z1: VILLAGE.z1 + 6 } },
   { id: 'lembah-atas', name: 'Lembah Atas', sub: 'Lembah gletser · hulu Sungai Beku', rect: { x0: HIGH_VALLEY.x0, z0: HIGH_VALLEY.z0 - 6, x1: HIGH_VALLEY.x1 + 10, z1: HIGH_VALLEY.z1 + 4 } },
   { id: 'celah', name: 'Celah Tersembunyi', sub: 'Ngarai sempit menembus gunung', line: GORGE, width: 9 },
-  { id: 'hutan', name: 'Hutan Pinus Salju', sub: 'Hutan lebat · kemah pemburu yang ditinggalkan', rect: FOREST },
+  ...HAMLETS.map(h => ({ id: h.id, name: h.name, sub: h.sub, rect: { x0: h.x0 - 6, z0: h.z0 - 6, x1: h.x1 + 6, z1: h.z1 + 6 } })),
+  { id: 'hutan', name: 'Hutan Pinus Salju', sub: 'Hutan lebat · tempat berburu rusa kutub', rect: FOREST },
 ]

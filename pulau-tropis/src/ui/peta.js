@@ -34,6 +34,8 @@ const LABELS = [
   { text: 'Desa Emberwick', x: 692, z: -112, size: 12 },
   { text: 'Kastel Frostfall', x: 1000, z: -390, size: 12 },
   { text: 'Lembah Beku', x: 600, z: 70, size: 11 },
+  { text: 'Teluk Salju', x: 500, z: -112, size: 11 },
+  { text: 'Rusa Putih', x: 803, z: 92, size: 11 },
   { text: 'Lembah Atas', x: 1058, z: -48, size: 11 },
   { text: 'Hutan Pinus Salju', x: 860, z: 330, size: 12 },
   { text: 'Air Terjun Beku', x: 930, z: -112, size: 10 },

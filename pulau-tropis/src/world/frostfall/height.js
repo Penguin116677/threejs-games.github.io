@@ -1,7 +1,7 @@
 import { fbm, valueNoise, smoothstep } from '../../core/noise.js'
 import {
   BOX, LAND, RANGES, PEAKS, VILLAGE, CASTLE, CASTLE_YARD, HIGH_VALLEY, CLIFF_X, RIVER, ROADS, TRAILS, GORGE, CAVES,
-  polyInfo, polyBox, inBox, rectDist, segmentInfo, landDistance, HARBOR,
+  polyInfo, polyBox, inBox, rectDist, segmentInfo, landDistance, HARBOR, HAMLETS,
 } from './layout.js'
 
 // Lebar lorong gua minimum, dalam langkah grid terrain. Mesh terrain berupa grid: segitiga yang
@@ -192,6 +192,11 @@ export function frostSurface(x, z) {
   const coast = smoothstep(0.97, 0.82, n.t)
   // desa & dataran kastel
   h = flatten(h, rectDist(x, z, VILLAGE), VILLAGE.y, 6, 26 * coast + 0.01)
+  // kampung nelayan & pemburu (v0.22.0): pad rata, tepinya memudar 20 m
+  for (const k of HAMLETS) {
+    const d = rectDist(x, z, k)
+    if (d < 26) h = flatten(h, d, k.y, 6, 20 * coast + 0.01)
+  }
   h = flatten(h, rectDist(x, z, CASTLE_YARD), CASTLE_YARD.y, 1, 16)
   h = flatten(h, rectDist(x, z, CASTLE_PAD), CASTLE.y, 1, 13)
   // Lembah Atas: dasar rata yang naik pelan ke timur; ujung baratnya tebing tegak (air terjun)

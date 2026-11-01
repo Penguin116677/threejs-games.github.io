@@ -548,6 +548,142 @@ export function rakJemur() {
   return P
 }
 
+// ----------------------------------------------------------------- perkakas kampung (v0.22.0)
+// rak jemur ikan: dua tiang + palang, deretan ikan tergantung
+export function rakIkan() {
+  const P = new Parts()
+  for (const s of [-1, 1]) P.cyl(0.07, 0.08, 2.0, 5, FC.kayuTua, K.KAYU, { x: s * 1.4 })
+  for (const y of [1.85, 1.25]) {
+    P.box(3.0, 0.08, 0.08, FC.kayu, K.KAYU, { y })
+    for (let i = 0; i < 8; i++) {
+      const x = -1.15 + i * 0.33
+      P.box(0.03, 0.18, 0.03, FC.kain, K.POLOS, { x, y: y - 0.16 })
+      P.add(new THREE.ConeGeometry(0.07, 0.42, 4).rotateX(Math.PI), i % 2 ? '#9fa9b3' : '#b9a27c', K.POLOS, { x, y: y - 0.5, sway: 0.03 })
+    }
+  }
+  P.box(3.1, 0.07, 0.18, FC.salju, K.SALJU, { y: 1.92 })
+  return P
+}
+
+// sampan kayu kecil (haluan ke +z) — tegak dengan dayung, atau terbalik di pantai (terbalik = true)
+export function sampan(terbalik = false) {
+  const P = new Parts()
+  const L = 4.2
+  const W = 1.1
+  const H = 0.5
+  const seg = 6
+  // terbalik: y dicerminkan (lunas di atas) & urutan titik dibalik supaya sisi luar tetap di luar
+  const fy = y => (terbalik ? H + 0.08 - y : y)
+  const tri = list => list.map(t => (terbalik ? [t[0], t[2], t[1]] : t).map(v => [v[0], fy(v[1]), v[2]]))
+  for (let i = 0; i < seg; i++) {
+    const z0 = -L / 2 + (L * i) / seg
+    const z1 = z0 + L / seg
+    const w0 = W * Math.sin(Math.PI * (i / seg) * 0.94 + 0.09)
+    const w1 = W * Math.sin(Math.PI * ((i + 1) / seg) * 0.94 + 0.09)
+    for (const s of [-1, 1]) {
+      const a = [(s * w0) / 2, H, z0]
+      const b = [(s * w1) / 2, H, z1]
+      const c = [s * w1 * 0.3, 0, z1]
+      const d = [s * w0 * 0.3, 0, z0]
+      P.faces(tri(s > 0 ? [[a, c, d], [a, b, c]] : [[a, d, c], [a, c, b]]), i % 2 ? FC.kayu : FC.kayuMuda, K.KAYU)
+    }
+    P.faces(tri([[[-w0 * 0.3, 0, z0], [w0 * 0.3, 0, z0], [w1 * 0.3, 0, z1]], [[-w0 * 0.3, 0, z0], [w1 * 0.3, 0, z1], [-w1 * 0.3, 0, z1]]]), FC.kayuTua, K.KAYU)
+  }
+  if (terbalik) {
+    // salju di lunas yang menghadap ke atas
+    P.box(0.42, 0.05, L * 0.6, FC.salju, K.SALJU, { y: H + 0.08 })
+    return P
+  }
+  P.box(0.9, 0.06, 0.22, FC.kayuTua, K.KAYU, { y: H * 0.7, z: -0.4 })
+  P.box(0.7, 0.06, 0.22, FC.kayuTua, K.KAYU, { y: H * 0.7, z: 0.7 })
+  P.box(0.06, 0.06, 2.4, FC.kayuMuda, K.KAYU, { x: 0.2, y: H * 0.8, z: 0.1, ry: 0.15 })
+  P.box(0.18, 0.03, 0.5, FC.kayuMuda, K.KAYU, { x: 0.36, y: H * 0.8, z: 1.25, ry: 0.15 })
+  return P
+}
+
+// pengasapan (pondok asap ikan / daging): pondok kayu kecil beratap sirap, pintu di depan (+z),
+// cerobong asap tebal — asapnya dari cuaca.js (P.smoke di plan.js)
+export function pengasapan() {
+  const P = new Parts()
+  const w = 3.6
+  const d = 3.0
+  P.box(w + 0.3, 0.3, d + 0.3, FC.batuTua, K.BATU)
+  P.box(w, 2.2, d, FC.kayuTua, K.KAYU, { y: 0.3 })
+  P.box(1.0, 1.7, 0.08, '#2a1f17', K.POLOS, { y: 0.3, z: d / 2 + 0.03 })
+  // celah bercahaya bara di bawah atap
+  P.box(w - 0.4, 0.14, 0.06, FC.bara, K.CAHAYA, { y: 2.25, z: d / 2 + 0.03 })
+  snowRoof(P, w + 0.8, d + 0.9, 2.5, 1.5, ROOF[1], { icicles: false })
+  P.box(0.7, 2.2, 0.7, FC.batuTua, K.BATU, { x: -w * 0.28, y: 2.3, z: -d * 0.15 })
+  // ikan / daging asap tergantung di depan
+  P.box(w * 0.9, 0.06, 0.06, FC.kayu, K.KAYU, { y: 2.05, z: d / 2 + 0.55 })
+  for (let x = -1.3; x <= 1.31; x += 0.52) P.add(new THREE.ConeGeometry(0.08, 0.45, 4).rotateX(Math.PI), '#8a5a3a', K.POLOS, { x, y: 1.7, z: d / 2 + 0.55, sway: 0.02 })
+  for (const s of [-1, 1]) P.cyl(0.06, 0.07, 2.1, 5, FC.kayuTua, K.KAYU, { x: s * w * 0.46, z: d / 2 + 0.55 })
+  drift(P, w / 2 + 0.3, 0.4, 0.7)
+  return P
+}
+
+// lubang pancing di es sungai: lubang gelap + bingkai es + bangku kecil + ember
+export function lubangEs() {
+  const P = new Parts()
+  P.cyl(0.42, 0.45, 0.04, 9, FC.esTua, K.ES, { y: 0.0 })
+  P.cyl(0.3, 0.3, 0.05, 9, '#1c3a52', K.POLOS, { y: 0.01 })
+  P.box(0.4, 0.32, 0.32, FC.kayu, K.KAYU, { x: -0.1, z: 0.85 })
+  P.cyl(0.13, 0.11, 0.26, 7, FC.kayuTua, K.KAYU, { x: 0.65, z: 0.55 })
+  drift(P, -0.8, -0.4, 0.45)
+  return P
+}
+
+// rangka penjemur kulit buruan: bingkai kayu + kulit terbentang
+export function rangkaKulit() {
+  const P = new Parts()
+  for (const s of [-1, 1]) P.cyl(0.07, 0.08, 2.3, 5, FC.kayuTua, K.KAYU, { x: s * 1.0 })
+  for (const y of [0.35, 2.1]) P.box(2.2, 0.08, 0.08, FC.kayu, K.KAYU, { y })
+  P.box(1.6, 1.5, 0.04, '#9c7a55', K.POLOS, { y: 0.48, sway: 0.01 })
+  P.box(1.2, 1.1, 0.045, '#b89470', K.POLOS, { y: 0.68, z: 0.01 })
+  for (const [x, y] of [[-0.8, 0.5], [0.8, 0.5], [-0.8, 1.95], [0.8, 1.95]]) P.box(0.25, 0.02, 0.02, FC.kain, K.POLOS, { x: x * 1.08, y })
+  P.box(2.3, 0.07, 0.16, FC.salju, K.SALJU, { y: 2.16 })
+  return P
+}
+
+// bangku gelondong (duduk di dekat api unggun)
+export function bangkuKayu(len = 2.4) {
+  const P = new Parts()
+  P.add(new THREE.CylinderGeometry(0.22, 0.22, len, 7).rotateZ(Math.PI / 2), FC.kayu, K.KAYU, { y: 0.3 })
+  for (const s of [-1, 1]) P.box(0.3, 0.2, 0.4, FC.kayuTua, K.KAYU, { x: s * (len / 2 - 0.3) })
+  P.box(len * 0.8, 0.05, 0.22, FC.salju, K.SALJU, { y: 0.53 })
+  return P
+}
+
+// meja panjang + dua bangku (jamuan di luar): panjang sepanjang x lokal
+export function mejaPanjang(len = 4.8) {
+  const P = new Parts()
+  P.box(len, 0.1, 1.0, FC.kayuMuda, K.KAYU, { y: 0.78 })
+  for (const sx of [-1, 1]) for (const sz of [-1, 1]) P.box(0.12, 0.78, 0.12, FC.kayuTua, K.KAYU, { x: sx * (len / 2 - 0.3), z: sz * 0.38 })
+  for (const sz of [-1, 1]) {
+    P.box(len, 0.08, 0.35, FC.kayu, K.KAYU, { y: 0.42, z: sz * 0.85 })
+    for (const sx of [-1, 1]) P.box(0.1, 0.42, 0.3, FC.kayuTua, K.KAYU, { x: sx * (len / 2 - 0.35), z: sz * 0.85 })
+  }
+  // piring, cangkir, roti di atas meja
+  for (let x = -len / 2 + 0.6; x < len / 2 - 0.3; x += 0.8) {
+    P.cyl(0.16, 0.14, 0.03, 8, '#e9e2d4', K.POLOS, { x, y: 0.83, z: -0.25 })
+    P.cyl(0.05, 0.045, 0.12, 6, FC.kayuMuda, K.KAYU, { x: x + 0.25, y: 0.83, z: 0.22 })
+  }
+  P.add(new THREE.SphereGeometry(0.22, 7, 5).scale(1.3, 0.6, 1), '#c98b4a', K.POLOS, { y: 0.92 })
+  return P
+}
+
+// tunggul pohon dengan kapak tertancap + kayu belah (tempat menebang & membelah kayu)
+export function tunggul() {
+  const P = new Parts()
+  P.cyl(0.42, 0.5, 0.55, 8, FC.kayu, K.KAYU)
+  P.cyl(0.4, 0.4, 0.03, 8, '#c9a77a', K.KAYU, { y: 0.55 })
+  P.box(0.05, 0.75, 0.05, FC.kayuMuda, K.KAYU, { x: 0.05, y: 0.7, z: 0.05, rz: 0.5 })
+  P.box(0.22, 0.12, 0.04, FC.besi, K.POLOS, { x: -0.06, y: 0.6, z: 0.05, rz: 0.5 })
+  for (let i = 0; i < 6; i++) P.box(0.16, 0.16, 0.7, i % 2 ? FC.kayuMuda : FC.kayu, K.KAYU, { x: 0.9 + (i % 3) * 0.19, y: 0.08 + Math.floor(i / 3) * 0.17, z: 0.1 })
+  P.box(0.7, 0.05, 0.7, FC.salju, K.SALJU, { y: 0.57, x: 0.05, shade: [0.95, 1] })
+  return P
+}
+
 // kereta luncur kayu berisi bungkusan
 export function keretaLuncur() {
   const P = new Parts()
