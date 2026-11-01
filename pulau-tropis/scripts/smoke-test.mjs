@@ -1620,17 +1620,24 @@ for (const [name, opts, query] of cases) {
       // perburuan & penangkapan ikan (simulasi dipercepat; paling lama dua hari Frostfall)
       const hunt = await page.evaluate(() => {
         const w = window.__pulau.warga
+        // permainan sudah berjalan beberapa hari Frostfall sebelum cek ini, jadi hitung dari titik awal:
+        // hanya rombongan yang berangkat SETELAH ini, dan hanya rusa & ikan yang bertambah sejak ini
+        const s0 = w.stats()
+        const p0 = w.perburuan.length
+        const r0 = s0.buru.rusa
+        const i0 = s0.ikan.nelayan + s0.ikan.desa
         w.setTime(7.4)
         const seen = new Set()
         let fishing = 0
         for (let i = 0; i < 1300; i++) {
           w.skip(2, 0.25)
-          for (const p of w.perburuan) if (p.stage !== 'selesai') seen.add(p.stage)
+          const baru = w.perburuan.slice(p0)
+          for (const p of baru) if (p.stage !== 'selesai') seen.add(p.stage)
           fishing = Math.max(fishing, w.agents.filter(a => a.act === 'mancing' || a.act === 'mancingEs').length)
-          if (w.stats().buru.rusa > 0 && !w.perburuan.some(p => p.stage !== 'selesai')) break
+          if (w.stats().buru.rusa > r0 && baru.length && !baru.some(p => p.stage !== 'selesai')) break
         }
         const st = w.stats()
-        return { seen: [...seen], rusa: st.buru.rusa, ikan: st.ikan.nelayan + st.ikan.desa, fishing, jam: st.jam, hari: st.hari, simpan: st.rusa.hilang || 0 }
+        return { seen: [...seen], rusa: st.buru.rusa - r0, ikan: st.ikan.nelayan + st.ikan.desa - i0, fishing, jam: st.jam, hari: st.hari, simpan: st.rusa.hilang || 0, awal: { rusa: r0, ikan: i0, rombongan: p0 } }
       })
       if (hunt.rusa < 1 || !['kumpul', 'berangkat', 'intai', 'ambil', 'pulang'].every(s => hunt.seen.includes(s)) || hunt.fishing < 5 || hunt.ikan < 1) fail(`perburuan & ikan: ${JSON.stringify(hunt)}`)
       else ok(`pemburu Rusa Putih: ${hunt.seen.join(' → ')} — ${hunt.rusa} rusa dipikul ke pondok pengasapan (hari ${hunt.hari} jam ${hunt.jam}); ${hunt.fishing} orang memancing sekaligus, ${hunt.ikan} ikan ditangkap`)
