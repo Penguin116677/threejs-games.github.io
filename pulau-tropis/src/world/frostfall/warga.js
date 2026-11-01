@@ -786,6 +786,8 @@ export function createWarga({ ground, plan, folk, rusa, quality, colliders = nul
       a.need.lapar = Math.max(0, a.need.lapar - 0.7)
       return goHome(a, 'sarapan', T + mins(20, 45))
     }
+    // tuan rumah berangkat lebih awal ke tempat acaranya (menyiapkan api, kecapi, meja)
+    for (const e of eventsToday()) if (e.host === a.id && !e.peserta.has(a.id) && inRange(jam(), e.mulai - 0.9, e.selesai)) return joinEvent(a, e)
     // acara yang sedang berlangsung
     for (const e of activeEvents()) if (e.peserta.has(a.id) ? false : wantsEvent(a, e)) return joinEvent(a, e)
     // makan malam bersama keluarga (yang tidak ikut acara)

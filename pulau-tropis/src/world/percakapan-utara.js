@@ -131,7 +131,13 @@ function perkenalan(H) {
   mem.kenalNama = true
   const tanya = mem.namaPemain ? '' : H.anak ? ' Nama Kakak siapa?' : ' Kau sendiri siapa?'
   if (H.anak) return { teks: `Namaku ${d.nama} ${d.keluarga}! Umurku ${d.umur} tahun. Rumahku di ${d.namaDesa}.${tanya}`, gerak: 'wave' }
-  return { teks: `Namaku ${d.namaLengkap}, ${d.pekerjaan} dari ${d.namaDesa}.${tanya}`, gerak: 'bow' }
+  const siapa = {
+    remaja: `Namaku ${d.namaLengkap}, umurku ${d.umur}. Aku membantu orang tuaku di ${d.namaDesa}.`,
+    warga: `Namaku ${d.namaLengkap} dari ${d.namaDesa}. Sehari-hari aku mengurus rumah dan keluarga.`,
+    tetua: `Namaku ${d.namaLengkap}, salah satu tetua ${d.namaDesa}.`,
+    kepala: `Namaku ${d.namaLengkap}, kepala desa Emberwick.`,
+  }[d.kerja] || `Namaku ${d.namaLengkap}, ${d.pekerjaan} dari ${d.namaDesa}.`
+  return { teks: `${siapa}${tanya}`, gerak: 'bow' }
 }
 
 function kabar(H) {
