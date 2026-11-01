@@ -1,6 +1,7 @@
 import * as THREE from 'three'
 import { bakeRig, toBufferGeometry, boneTexture, animate, frameOf as clipFrame, FPS } from '../kencana/rig.js'
-import { elfBadan, ELF_BADAN, ELF_TANGAN, armDir, paletteTexture } from '../../tokoh/rupa.js'
+import { elfBadan, ELF_BADAN, ELF_TANGAN, utaraBadan, UTARA_BADAN, armDir, paletteTexture } from '../../tokoh/rupa.js'
+import { uvWarna } from '../../tokoh/palet.js'
 
 // Rupa para elf Aeloria (kesatria & penduduk) dan cara menggambarnya dengan murah.
 // - Badan: rupa elf (tokoh/rupa.js: kepala bulat bertelinga runcing, rambut, tunik, zirah) di atas
@@ -44,18 +45,25 @@ const SLOT = {
   helm: 9, rambutPanjang: 10, tabung: 11, sarung: 12, jubah: 13, jambul: 14, mahkota: 15, celemek: 16,
   // warna aslinya tetap, tetapi ikut tersembunyi bersama bagiannya
   bulu: 17, gagang: 18, sabuk: 19,
+  // orang Utara (Frostfall, v0.22.0): bulu topi, tudung (warna zirah), bulu tudung, syal (warna panji),
+  // bulu jubah — elf tidak memakainya
+  buluTopi: 20, tudung: 21, buluTudung: 22, syal: 23, buluJubah: 24,
 }
 // bagian opsional yang dipakai seorang elf (bit-bit bendera di aDye.w)
 export const BAGIAN = { helm: 1, rambutPanjang: 2, tabung: 4, sarung: 8, jubah: 16, zirah: 32, mahkota: 64, celemek: 128 }
 // kanal: 0 kulit, 1 rambut, 2 baju, 3 celana, 4 sepatu, 5 hias, 6 zirah, 7 panji, 8 = emas tetap,
 // 9 = cokelat tetap, −1 = warna asli
-const SLOT_DYE = [-1, 0, 1, 2, 3, 4, 5, 6, 7, 6, 1, 9, 9, 7, 7, 8, 9, -1, -1, 5]
+const SLOT_DYE = [-1, 0, 1, 2, 3, 4, 5, 6, 7, 6, 1, 9, 9, 7, 7, 8, 9, -1, -1, 5, -1, 6, -1, 7, -1]
 const SLOT_FLAG = [
   0, 0, 0, 0, 0, 0, 0, BAGIAN.zirah, BAGIAN.zirah, BAGIAN.helm, BAGIAN.rambutPanjang, BAGIAN.tabung, BAGIAN.sarung, BAGIAN.jubah,
   BAGIAN.helm, BAGIAN.mahkota, BAGIAN.celemek, BAGIAN.tabung, BAGIAN.sarung, BAGIAN.zirah,
+  BAGIAN.helm, BAGIAN.mahkota, BAGIAN.mahkota, BAGIAN.zirah, BAGIAN.jubah,
 ]
 
 export const BODIES = ELF_BADAN
+// rupa yang bisa digambar createElfFolk: jenis badan + pembuat datanya + titik barang di tangan
+export const ELF_RUPA = { name: 'elf', bodies: ELF_BADAN, build: elfBadan, hands: ELF_TANGAN }
+export const UTARA_RUPA = { name: 'utara', bodies: UTARA_BADAN, build: utaraBadan, hands: ELF_TANGAN }
 
 // ------------------------------------------------------------------- klip
 // Kunci klip yang dipakai simulasi (kehidupan.js). Rangka Kenney: saat bind, lengan terentang ke
@@ -235,6 +243,26 @@ const SPECS = {
     },
   },
   carry: { clip: 'walk', hold: { 4: 'holding-both', 5: 'holding-both' } },
+  // orang Utara (v0.22.0): menghangatkan tangan di depan api (telapak ke depan, sedikit menggosok)
+  hangat: {
+    clip: 'idle', frames: 72,
+    mod: (b, t) => {
+      const p = (t / 1.2) * Math.PI * 2
+      aim(b, 4, [0.12 + 0.04 * Math.sin(p), -0.12, 1])
+      aim(b, 5, [0.12 - 0.04 * Math.sin(p), -0.12, 1])
+      turnTo(b[6], _ax, 0.08)
+    },
+  },
+  // memancing di lubang es sambil duduk di bangku kecil: joran pendek ke bawah-depan, sesekali disentak
+  mancingDuduk: {
+    clip: 'sit', frames: 120,
+    mod: (b, t) => {
+      b[0].position.y += SEAT * 0.6
+      const jerk = bump((t / 4) % 1, 0.7, 0.74, 0.78, 0.85)
+      aim(b, 5, [0.05, -0.55 + 0.25 * jerk, 1])
+      aim(b, 4, [-0.2, -0.6, 1])
+    },
+  },
   // terkena pukulan: badan terdorong ke belakang lalu tegak lagi
   hit: {
     clip: 'idle', frames: 15, loop: false,
@@ -383,6 +411,13 @@ const PROPS = {
   sendok: { bone: 5, ref: 'cook', rot: [0, 0, 0], geo: () => colored([[B(0.012, 0.22, 0.012, 0, -0.08, 0), PC.kayu], [C(0.032, 0.022, 0.028, 8, 0, -0.19, 0), PC.kayuTua]]) },
   kecapi: { bone: 3, ref: 'lute', rot: [0, 0, 0.75], geo: () => colored([[C(0.065, 0.065, 0.03, 10).rotateX(Math.PI / 2), PC.kayuMuda], [B(0.022, 0.2, 0.016, 0, 0.13, 0), PC.kayuTua], [C(0.018, 0.018, 0.032, 6).rotateX(Math.PI / 2).translate(0, 0, 0.002), PC.kayuTua]]) },
   pancing: { bone: 5, ref: 'fish', rot: [1.0, 0, 0], geo: () => colored([[B(0.009, 0.75, 0.009, 0, 0.3, 0), PC.kayu], [B(0.02, 0.05, 0.02, 0, 0.02, 0), PC.kayuTua]]) },
+  // orang Utara (v0.22.0)
+  pancingEs: { bone: 5, ref: 'mancingDuduk', rot: [1.5, 0, 0], geo: () => colored([[B(0.008, 0.32, 0.008, 0, 0.12, 0), PC.kayu], [B(0.022, 0.04, 0.03, 0, 0.0, 0), PC.kayuTua]]) },
+  kapak: { bone: 5, ref: 'guard', rot: [0.2, 0, 0], geo: () => colored([[B(0.016, 0.3, 0.016, 0, 0.1, 0), PC.kayu], [B(0.012, 0.07, 0.09, 0, 0.24, 0.035), PC.besiTua]]) },
+  ikan: { bone: 4, ref: 'idle', rot: [0, 0, 0], geo: () => colored([[C(0.0, 0.028, 0.06, 4, 0, -0.04, 0), PC.perak], [C(0.028, 0.0, 0.11, 4, 0, -0.125, 0), '#9fb0bf'], [B(0.004, 0.04, 0.035, 0, -0.19, 0), PC.perak]]) },
+  sekop: { bone: 5, ref: 'guard', rot: [0.3, 0, 0], geo: () => colored([[B(0.016, 0.42, 0.016, 0, 0.1, 0), PC.kayu], [B(0.12, 0.012, 0.13, 0, 0.32, 0.03), PC.kayuMuda]]) },
+  bolaSalju: { bone: 5, ref: 'drill', rot: [0, 0, 0], geo: () => colored([[new THREE.IcosahedronGeometry(0.035, 1), PC.putih]]) },
+  tongkat: { bone: 5, ref: 'idle', rot: [0.1, 0, 0], geo: () => colored([[C(0.012, 0.014, 0.42, 5, 0, -0.12, 0), PC.kayuTua], [C(0.02, 0.02, 0.03, 5, 0, 0.09, 0), PC.kayu]]) },
 }
 export const PROP_KEYS = Object.keys(PROPS)
 
@@ -428,9 +463,9 @@ function dyeShader(shader, bones, { simple = false, map = true } = {}) {
 // ------------------------------------------------------------------- pembuat
 // rigGltf: elf.glb (rangka + animasi), caps = { near, far } banyak instance maksimum per jenis
 // badan untuk model dekat & jauh
-export function createElfFolk({ rigGltf, quality, caps }) {
+export function createElfFolk({ rigGltf, quality, caps, rupa = ELF_RUPA }) {
   const group = new THREE.Group()
-  group.name = 'elf'
+  group.name = rupa.name
   const rows = []
   // salinan adegan rangka: masih pada pose bind (tidak terpengaruh pemanggangan lain)
   const rig = bakeRig(rigGltf.scene.clone(), rigGltf.animations, rows, SPECS, { fresh: true })
@@ -450,12 +485,13 @@ export function createElfFolk({ rigGltf, quality, caps }) {
   for (const [name, slot] of Object.entries(SLOT)) P[name] = { uv: uvOf(0, name === 'sabuk' || name === 'jubah'), slot }
   P.bulu.uv = uvOf(12)
   P.gagang.uv = uvOf(2)
+  for (const name of ['buluTopi', 'buluTudung', 'buluJubah']) P[name].uv = uvWarna('buluPutih')
   const { shadows } = quality
   const types = []
-  for (const name of BODIES) {
-    const d = elfBadan(name, P)
+  for (const name of rupa.bodies) {
+    const d = rupa.build(name, P)
     const far = simplify(d, FAR_CELL)
-    types.push({ name, near: d, far, hands: ELF_TANGAN })
+    types.push({ name, near: d, far, hands: rupa.hands })
   }
 
   // --- satu InstancedMesh per jenis badan untuk tiap tingkat detail
@@ -470,7 +506,7 @@ export function createElfFolk({ rigGltf, quality, caps }) {
     geo.setAttribute('aDye', dye)
     const mat = new THREE.MeshLambertMaterial({ map: colormap })
     mat.onBeforeCompile = shader => dyeShader(shader, bones, { simple: tier === 'far' })
-    mat.customProgramCacheKey = () => `elf-${tier}`
+    mat.customProgramCacheKey = () => `${rupa.name}-${tier}`
     const mesh = new THREE.InstancedMesh(geo, mat, cap)
     mesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage)
     mesh.frustumCulled = false // dipilah sendiri per orang
@@ -479,7 +515,7 @@ export function createElfFolk({ rigGltf, quality, caps }) {
       mesh.castShadow = true
       const depth = new THREE.MeshDepthMaterial({ depthPacking: THREE.RGBADepthPacking })
       depth.onBeforeCompile = shader => dyeShader(shader, bones, { map: false })
-      depth.customProgramCacheKey = () => 'elf-depth'
+      depth.customProgramCacheKey = () => `${rupa.name}-depth`
       mesh.customDepthMaterial = depth
     }
     mesh.receiveShadow = shadows && tier === 'near'
@@ -491,8 +527,8 @@ export function createElfFolk({ rigGltf, quality, caps }) {
     far: makeMesh(t.far, caps.far, 'far'),
   }))
   types.forEach((t, i) => {
-    tiers[i].near.mesh.name = `elf-${t.name}`
-    tiers[i].far.mesh.name = `elf-${t.name}-jauh`
+    tiers[i].near.mesh.name = `${rupa.name}-${t.name}`
+    tiers[i].far.mesh.name = `${rupa.name}-${t.name}-jauh`
   })
 
   // --- barang di tangan
@@ -512,7 +548,7 @@ export function createElfFolk({ rigGltf, quality, caps }) {
     })
   const props = PROP_KEYS.map(key => {
     const mesh = new THREE.InstancedMesh(PROPS[key].geo(), propMat, caps.near)
-    mesh.name = `elf-barang-${key}`
+    mesh.name = `${rupa.name}-barang-${key}`
     mesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage)
     mesh.frustumCulled = false
     mesh.count = 0
@@ -539,7 +575,7 @@ export function createElfFolk({ rigGltf, quality, caps }) {
       .replace('#include <opaque_fragment>', 'diffuseColor.a *= 1.0 - smoothstep(0.25, 1.0, dot(vBlob, vBlob));\n#include <opaque_fragment>')
   }
   const blobs = new THREE.Mesh(blobGeo, blobMat)
-  blobs.name = 'elf-bayangan'
+  blobs.name = `${rupa.name}-bayangan`
   blobs.frustumCulled = false
   blobs.renderOrder = 1
   group.add(blobs)

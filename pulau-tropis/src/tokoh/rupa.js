@@ -719,6 +719,83 @@ function elfData(gaya, P) {
   return d
 }
 
+// ------------------------------------------------------------------- orang Utara (Frostfall, v0.22.0)
+// Baju khas penduduk Frostfall, digambar dengan sistem warna-per-orang elf.js (slot): jaket panjang
+// tebal sampai lutut (parka) dengan kerah, manset, & ujung jaket berbulu putih; sulaman berwarna di dada,
+// di atas ujung jaket, dan lajur depan; sarung tangan & sepatu bot bulu (bertepi bulu). Bagian opsional:
+// topi bulu bundar (anak: + pompom), tudung berbulu, syal, jubah bulu (tetua), kepang, tabung panah &
+// pisau berburu, celemek. Anak-anak: kepala sedikit lebih besar (badannya diperkecil saat digambar).
+const UTARA_RAMBUT = { 'pria-a': 'pendek', 'pria-b': 'acak', 'wanita-a': 'sanggul', 'wanita-b': 'panjang', 'anak-a': 'acak', 'anak-b': 'kuncir' }
+export const UTARA_BADAN = Object.keys(UTARA_RAMBUT)
+export function utaraBadan(gaya, P) {
+  setDetail(0.75)
+  try {
+    return utaraData(gaya, P)
+  } finally {
+    setDetail(1)
+  }
+}
+function utaraData(gaya, P) {
+  const d = bodyData()
+  const anak = gaya.startsWith('anak')
+  const BULU = { uv: uvWarna('buluPutih'), slot: 0 }
+  const KULIT_SABUK = { uv: uvWarna('samakTua'), slot: 0 }
+  kepala(d, { kulit: P.kulit, besar: anak ? 1.12 : 1, alis: gaya.startsWith('pria') ? P.rambut : null })
+  rambut(d, UTARA_RAMBUT[gaya], P.rambut)
+  if (gaya === 'pria-a') jenggot(d, P.rambut, 'penuh')
+  if (gaya === 'pria-b') jenggot(d, P.rambut, 'kumis')
+  // kepang (opsional): dua kepang menjuntai di depan bahu, berujung pita sulaman
+  for (const s of [-1, 1]) {
+    const pts = [v3(s * 0.082, KEPALA.y - 0.02, -0.02), v3(s * 0.092, KEPALA.y - 0.07, 0.0), v3(s * 0.088, 0.33, 0.035), v3(s * 0.082, 0.285, 0.06)]
+    put(d, sweep(pts, [0.022, 0.02, 0.017, 0.012], 5, 1), 6, P.rambutPanjang)
+  }
+  // badan & jaket panjang (tebal)
+  badan(d, { baju: P.baju, celana: P.celana, kulit: P.kulit, lebar: 1.14, dalam: 0.82 })
+  rok(d, P.baju, 0.07, 1.16)
+  // bulu putih: kerah, ujung jaket
+  put(d, ring(0, 0.322, BADAN_Z - 0.004, 0.072, 0.024, 12, 0.88, 5), 3, BULU)
+  put(d, ring(0, 0.075, BADAN_Z, 0.128, 0.02, 14, 0.8, 4), 3, BULU)
+  // sulaman: pita dada, pita di atas ujung jaket, lajur depan dari kerah ke ujung jaket
+  put(d, band(0, 0.262, BADAN_Z, 0.104, 0.02, 12, 0.84), 3, P.hias)
+  put(d, band(0, 0.1, BADAN_Z, 0.124, 0.02, 14, 0.81), 3, P.hias)
+  put(d, sheet((u, v) => v3((u - 0.5) * 0.024, 0.315 - 0.235 * v, BADAN_Z + 0.082 + 0.012 * v + 0.026 * Math.sin(Math.PI * v) * 0.6), 1, 4, 0.004), 3, P.hias)
+  sabuk(d, KULIT_SABUK, null, 0.2, 1.18)
+  lengan(d, { baju: P.baju, tangan: P.sepatu, manset: BULU, tebal: 1.15 })
+  kaki(d, { celana: P.celana, sepatu: P.sepatu, tebal: 1.12 })
+  // tepi bulu di atas sepatu bot
+  for (const j of [1, 2]) put(d, cylinder((j === 1 ? 1 : -1) * 0.068 * 0.98, 0.075, -0.014, 0.047, 0.05, 0.026, 7, true), BERSENDI ? SENDI.betis[j] : j, BULU)
+  // --- topi bulu bundar (helm): mahkota berwarna + lingkar bulu tebal (+ pompom anak)
+  const ty = UBUN - 0.04
+  put(d, lathe([[0.097, ty], [0.096, ty + 0.03], [0.086, ty + 0.06], [0.05, ty + 0.08], [0, ty + 0.083]], 12, 1, 0.96).translate(0, 0, -0.006), 6, P.helm)
+  put(d, ring(0, ty + 0.004, -0.006, 0.1, 0.022, 14, 0.96, 5), 6, P.buluTopi)
+  if (anak) put(d, ellipsoid([0, ty + 0.1, -0.006], [0.032, 0.032, 0.032], 7, 5), 6, P.jambul)
+  else for (const s of [-1, 1]) put(d, ellipsoid([s * 0.1, KEPALA.y - 0.02, -0.01], [0.022, 0.045, 0.04], 6, 5), 6, P.buluTopi)
+  // --- tudung berbulu (mahkota): tudung menutup kepala + lingkar bulu membingkai muka
+  {
+    const c = [0, KEPALA.y + 0.01, -0.016]
+    const open = 0.82
+    put(d, new THREE.SphereGeometry(1, 12, 8, Math.PI / 2 + open, Math.PI * 2 - open * 2, 0, Math.PI * 0.82).scale(0.122, 0.122, 0.12).translate(...c), 6, P.tudung)
+    put(d, new THREE.TorusGeometry(0.098, 0.022, 5, 14).scale(1, 1.15, 1).translate(0, KEPALA.y + 0.004, 0.058), 6, P.buluTudung)
+    put(d, lathe([[0.132, 0.27], [0.12, 0.3], [0.09, 0.325], [0.06, 0.338]], 12, 1, 0.84).translate(0, 0, BADAN_Z), 3, P.tudung)
+  }
+  // --- syal (zirah): lilitan di leher + ujung menjuntai di depan
+  put(d, ring(0, 0.338, BADAN_Z + 0.002, 0.066, 0.022, 12, 0.88, 5), 3, P.syal)
+  put(d, sheet((u, v) => v3(0.035 + 0.03 * u - 0.006 * v, 0.33 - 0.12 * v, BADAN_Z + 0.09 + 0.012 * v), 1, 2, 0.006), 3, P.syal)
+  // --- jubah bulu tetua (jubah), tabung panah & pisau berburu, celemek
+  // jubah: kain di punggung + kerah & lis bawah bulu (slot buluJubah: ikut tersembunyi bersama jubah)
+  jubah(d, P.jubah, { panjang: 0.85, lebar: 1.1 })
+  put(d, ring(0, 0.33, BADAN_Z - 0.012, 0.088, 0.028, 12, 0.86, 5), 3, P.buluJubah)
+  {
+    const len = 0.255 * 0.85
+    put(d, sheet((u, v) => v3((u - 0.5) * 0.19 * 1.1 * 1.65 * (1 + 0.04 * v), 0.325 - len + 0.03 - 0.03 * v, BADAN_Z - 0.128 - 0.025 * Math.sin(Math.PI * u) * 1.5 - 0.004), 4, 1, 0.01), 3, P.buluJubah)
+  }
+  tabungPanah(d, { tabung: P.tabung, lis: P.tabung, bulu: [P.bulu, P.bulu], n: 3 })
+  put(d, capsule(v3(-0.104, 0.19, BADAN_Z + 0.03), v3(-0.112, 0.1, BADAN_Z + 0.0), 0.014, 0.011, 5, 1), 3, P.sarung)
+  put(d, capsule(v3(-0.103, 0.195, BADAN_Z + 0.032), v3(-0.098, 0.24, BADAN_Z + 0.05), 0.009, 0.009, 4, 1), 3, P.gagang)
+  celemek(d, P.celemek)
+  return d
+}
+
 // semua rupa: kunci → pembuat data badan
 export const RUPA = {
   rakyat,
