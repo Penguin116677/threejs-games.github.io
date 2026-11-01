@@ -1562,6 +1562,41 @@ for (const [name, opts, query] of cases) {
       }
     }
 
+    // Aula Gletser (v0.21.0, dari gambar konsep pengguna): dari kaki tanjakan berjalan naik ke puncak
+    // tebing bersalju; air terjun mengalir, kolam & berkas cahaya digambar dan shadernya bergerak;
+    // ≥ 3 lengkung es; kabut gua biru kehijauan (suasana gua ini), bukan biru gelap bawaan
+    {
+      const K = await page.evaluate(() => window.__pulau.frost.konsep)
+      const T = K?.tebing
+      let up = null
+      if (T) {
+        await placeAndLook(T.ramp.x, T.ramp.z, T.top.x, T.top.z)
+        await waitFrames(page, 5)
+        up = await walk([T.top, { x: T.x, z: T.z }], 900)
+        await waitFrames(page, 60)
+      }
+      const fx = () => page.evaluate(() => {
+        const { player, frost, scene } = window.__pulau
+        const p = player.position
+        const get = n => scene.getObjectByName(n)
+        const fall = get('air-terjun-mengalir')
+        const c = scene.fog.color
+        return {
+          y: +p.y.toFixed(2), cave: frost.cave.inside(p.x, p.z, p.y), shown: !!get('air-gua')?.visible,
+          fall: !!fall, pool: !!get('kolam-gua'), shaft: !!get('berkas-cahaya'), t: fall ? +fall.material.uniforms.uTime.value.toFixed(2) : null,
+          fog: [c.r, c.g, c.b].map(v => +v.toFixed(3)),
+        }
+      })
+      const a = await fx()
+      await waitFrames(page, 20)
+      const b = await fx()
+      await page.screenshot({ path: `${out}/${name}-aula-gletser.png` })
+      const lk = K?.lengkung?.length ?? 0
+      if (!T || !up || up.d > 2 || Math.abs(b.y - T.y) > 0.4 || !b.cave || !b.shown || !b.fall || !b.pool || !b.shaft || !(b.t > a.t) || lk < 3 || !(b.fog[1] > b.fog[0] * 1.4))
+        fail(`Aula Gletser: ${JSON.stringify({ T, up, a, b, lk })}`)
+      else ok(`Aula Gletser (konsep): naik tanjakan ke puncak tebing bersalju (y ${b.y} m); air terjun mengalir + kolam + berkas cahaya bergerak (waktu shader ${a.t} → ${b.t} s); ${lk} lengkung es; kabut biru kehijauan ${b.fog.join('/')}`)
+    }
+
     // peti harta di Ruang Harta: sekali saja, +150 koin
     const chest = await page.evaluate(() => window.__pulau.frost.chest)
     await placeAndLook(chest.x + 1.8, chest.z + 1.2, chest.x, chest.z)
