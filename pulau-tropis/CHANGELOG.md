@@ -1,5 +1,29 @@
 # CHANGELOG — Pulau Tropis
 
+## [0.21.0] — 2026-11-01 — Aula Gletser dari gambar konsep (permintaan pengguna)
+### Diubah
+- **Aula Gletser (Gua Gletser Utara) dibangun ulang mengikuti gambar konsep pengguna** (permintaan:
+  *"Buatkan konsep goa seperti ini untuk satu goa yang ada"*). Gambarnya hanya dipakai sebagai acuan
+  suasana — tidak disertakan di game; semua bentuk & warna dibuat di kode:
+  - **Air terjun yang mengalir** (bukan beku) jatuh dari dinding es ke **kolam berair** biru kehijauan:
+    tirai air bergaris yang bergerak, buih & kabut percikan di kakinya, riak di permukaan kolam; pemain
+    yang mengarungi kolam membuat riak.
+  - **Deretan tiga lengkung es** tebal dan bergelombang melintang jalan ke ruang berikutnya, dengan kristal
+    biru bercahaya di kaki-kakinya dan jurai es di puncaknya.
+  - **Tebing bersalju** menghadap kolam yang bisa dinaiki lewat tanjakan di belakangnya (tempat berdiri
+    memandang aula, seperti sosok di gambar).
+  - **Bongkah salju pipih** di kolam, dua **batu berukir** bercahaya di kiri-kanan kaki air terjun,
+    **berkas cahaya** yang turun dari atas ke kolam.
+  - **Suasana biru kehijauan** khusus gua ini (kabut & cahaya), sedikit lebih terang daripada gua alam lain;
+    gua lain tetap biru gelap. Tiap gua kini bisa punya suasananya sendiri.
+  - Lorong dari Aula Gletser ke Ruang Air Terjun Beku sedikit dilebarkan (14 m) supaya muat deretan
+    lengkung es; danau beku diganti kolam berair.
+### Diperbaiki (ditemukan saat menguji Aula Gletser, sebelum rilis)
+- **Aula Gletser terbuka ke laut**: aula itu dekat pantai utara dan batu penutupnya ikut dipudarkan di tepi
+  pantai, sehingga sisi lautnya tidak beratap — dari dalam terlihat langit, laut, dan pohon pinus di luar.
+  Kini batu di samping aula (rongga bulat) gua baru tidak dipudarkan pantai: dari laut tampak sebagai tebing
+  pantai. Lorong ke mulut gua dan gua-gua lain tetap seperti v0.20.0 (dibandingkan titik demi titik).
+
 ## [0.20.0] — 2026-10-31 — Lima gua besar di Frostfall (permintaan pengguna)
 ### Ditambah
 - **Lima gua besar baru di pulau es** (permintaan: *"Tambahkan 5 goa besar di pulau es"*), masing-masing

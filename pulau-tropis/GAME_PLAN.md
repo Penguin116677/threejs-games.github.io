@@ -166,3 +166,6 @@ besar Milestone 3 yang belum ada sebelumnya: **sungai, air terjun, gua, dan reru
 ditinggalkan), plus jalur eksplorasi & landmark pegunungan; juga cuaca (salju turun) dari Milestone 5.
 Di v0.20.0 (permintaan pengguna) Frostfall mendapat lima gua besar bertema dengan harta karun — lanjutan
 Milestone 3 (gua & jalur eksplorasi) dengan sedikit Milestone 4 (hadiah menjelajah).
+Di v0.21.0 (permintaan pengguna) Aula Gletser di Gua Gletser Utara dibangun ulang mengikuti gambar konsep:
+air terjun mengalir ke kolam, deretan lengkung es, tebing bersalju yang bisa dinaiki, suasana biru
+kehijauan.

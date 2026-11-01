@@ -512,3 +512,19 @@ masuk, makin ke dalam makin gelap, salju berhenti, kamera tidak menembus langit-
    melayang, dan catat FPS di ruang terbesar (Katedral Taring, Gua Seribu Tiang).
 
 Laporkan: gua mana yang terlalu gelap / sulit ditemukan, tempat tersangkut, dan FPS di tiap gua.
+
+## Daftar uji manual — v0.21.0 (Aula Gletser dari gambar konsep)
+Masuk **Gua Gletser Utara** (pantai utara, lihat v0.20.0 no. 2) sampai Aula Gletser.
+1. Suasana biru kehijauan (berbeda dari gua lain yang biru gelap); air terjun **mengalir** dari dinding ke
+   kolam — garis-garis airnya bergerak turun, ada buih & kabut di kakinya, permukaan kolam beriak.
+2. Tidak ada langit, laut, atau pohon yang terlihat dari dalam aula (sisi aula yang menghadap laut tertutup).
+3. Masuk ke kolam → berjalan di air dangkal, riak muncul di sekitar kaki.
+4. Cari tanjakan di belakang **tebing bersalju** → naik ke puncaknya → pandang aula dan air terjun dari atas.
+   Turun lagi lewat tanjakan atau melompat.
+5. Ikuti jalan ke ruang berikutnya melewati **tiga lengkung es** (kristal bercahaya di kakinya) → tabrak
+   kaki lengkung (tertahan), lalu lanjut ke Ruang Air Terjun Beku dan peti.
+6. Dua batu berukir bercahaya di samping air terjun, bongkah salju di kolam, berkas cahaya dari atas.
+7. Dari laut di depan pantai utara: sisi aula kini tampak sebagai tebing pantai.
+8. Catat FPS di Aula Gletser sambil memandang air terjun.
+
+Laporkan: bagian mana yang kurang mirip dengan gambar konsep, dan FPS di aula.

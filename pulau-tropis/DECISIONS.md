@@ -914,3 +914,19 @@ tandai sebagai "diganti" bila berubah.
     sekarang setiap tambahan harus tetap offline, berlisensi aman untuk rilis komersial, dan tanpa merek pihak
     lain; bila sebuah permintaan bertentangan dengan itu (mis. aset berhak cipta, layanan daring), hal itu
     dikatakan dulu sebelum dikerjakan. Daftar persiapan rilis ada di GAME_PLAN ("Target rilis").
+87. **Aula Gletser mengikuti gambar konsep pengguna; air mengalir hanya visual** (v0.21.0, permintaan
+    pengguna: *"Buatkan konsep goa seperti ini untuk satu goa yang ada"*).
+    - Dipilih **Gua Gletser Utara**: temanya sudah gua es biru dengan air terjun, dan aulanya cukup besar
+      untuk kolam, tebing, dan deretan lengkung. Gambar konsep hanya acuan suasana — tidak disalin dan tidak
+      disertakan di repository (DECISIONS #86: aset harus milik sendiri / CC0); semua bentuk dibuat di kode.
+    - **Air terjun & kolam = efek visual** (shader bergaris yang bergerak, riak, kabut percikan), bukan
+      simulasi air: kolamnya dangkal (±0,85 m) dan pemain mengarunginya berjalan, tanpa berenang. Murah di
+      HP dan hanya digambar bila kamera ≤ 140 m dari kolam.
+    - Tebing bersalju & tanjakan memakai pijakan `surfaces` (seperti lantai bangunan), lengkung es memakai
+      penghalang di kakinya; letaknya dihitung dari lantai aula yang rata di tiap kualitas (grid kasar
+      membuat dinding lebih landai), dan isi konsep memakai acak sendiri sehingga isi gua lain tidak bergeser.
+    - **Suasana per gua** (`suasana` di `CAVES`: kabut, langit, tanah, terang) — warna gua berbaur ke suasana
+      gua tempat pemain berada; gua tanpa `suasana` tetap biru gelap.
+    - Batu penutup di samping aula (rongga bulat) gua baru **tidak dipudarkan di tepi pantai** (dalam 6–18 m
+      dari tepinya). Tanpa itu Aula Gletser yang dekat pantai utara terbuka ke laut. Pemudaran pantai v0.20.0
+      tetap berlaku untuk lorong ke mulut gua (mulut Gua Laut Beku & pantai Gua Gletser tidak berubah).
