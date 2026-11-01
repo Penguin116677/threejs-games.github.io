@@ -930,3 +930,6 @@ tandai sebagai "diganti" bila berubah.
     - Batu penutup di samping aula (rongga bulat) gua baru **tidak dipudarkan di tepi pantai** (dalam 6–18 m
       dari tepinya). Tanpa itu Aula Gletser yang dekat pantai utara terbuka ke laut. Pemudaran pantai v0.20.0
       tetap berlaku untuk lorong ke mulut gua (mulut Gua Laut Beku & pantai Gua Gletser tidak berubah).
+      Aturan ini berlaku untuk semua aula gua baru, jadi lereng di atas aula Tambang Tua sisi pantai barat ikut
+      naik ≤ 4,3 m (±70 titik pada kisi 2,5 m, hanya permukaan luar bukit) — dibiarkan: atapnya jadi lebih tebal, bukan
+      berlubang.

@@ -22,7 +22,10 @@
 - **Aula Gletser terbuka ke laut**: aula itu dekat pantai utara dan batu penutupnya ikut dipudarkan di tepi
   pantai, sehingga sisi lautnya tidak beratap — dari dalam terlihat langit, laut, dan pohon pinus di luar.
   Kini batu di samping aula (rongga bulat) gua baru tidak dipudarkan pantai: dari laut tampak sebagai tebing
-  pantai. Lorong ke mulut gua dan gua-gua lain tetap seperti v0.20.0 (dibandingkan titik demi titik).
+  pantai. Dibandingkan titik demi titik dengan v0.20.0 (ketiga kualitas): tanah di luar gua, lorong ke mulut
+  gua, Katedral Taring, Gua Seribu Tiang, dan Gua Laut Beku sama persis; satu-satunya perubahan di luar Aula
+  Gletser adalah lereng bukit di atas aula Tambang Tua sisi pantai barat yang naik paling banyak 4,3 m (atap
+  lebih tebal — lantai & isi tambang tidak berubah).
 
 ## [0.20.0] — 2026-10-31 — Lima gua besar di Frostfall (permintaan pengguna)
 ### Ditambah
