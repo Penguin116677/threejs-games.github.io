@@ -1,4 +1,5 @@
 import { createMemory, jawab, sapaan, terimaMakanan, TOPIK } from '../world/percakapan.js'
+import { TOPIK_UTARA } from '../world/percakapan-utara.js'
 import { BARANG, NAMA_KIOS } from '../world/aeloria/ekonomi.js'
 import { PASUKAN } from '../world/aeloria/kehidupan.js'
 
@@ -42,7 +43,7 @@ const SIFAT = ['rajin', 'riang', 'ramah', 'rakus', 'pemalas', 'petualang', 'pemb
 // (kamera pengikut), camera (THREE.PerspectiveCamera), input, bag, shop, bubbles, places(npc) → daftar
 // tempat untuk petunjuk arah, seberang(x0, z0, x1, z1), wantedByElves() → pemain buron di Aeloria,
 // feast() → sedang pesta, boatBuilt() → punya perahu
-export function createChat({ life, villagers, player, cam, camera, input, bag, shop, bubbles, places, seberang, wantedByElves, feast, boatBuilt }) {
+export function createChat({ life, villagers, warga = null, player, cam, camera, input, bag, shop, bubbles, places, seberang, wantedByElves, feast, boatBuilt }) {
   const el = {
     panel: $('obrolan'), nama: $('obrolan-nama'), peran: $('obrolan-peran'), log: $('obrolan-log'),
     topik: $('obrolan-topik'), form: $('obrolan-form'), teks: $('obrolan-teks'),
@@ -83,6 +84,19 @@ export function createChat({ life, villagers, player, cam, camera, input, bag, s
     }
   }
 
+  // penduduk Frostfall (v0.22.0): data hidupnya dari warga.describe (keluarga, kegiatan, acara, …)
+  function utaraNpc(a) {
+    const d = warga.describe(a)
+    const n = d.kebutuhan
+    const suasana = n.dingin > 0.6 ? 'kedinginan' : n.lelah > 0.7 ? 'lelah' : d.acara ? 'gembira' : n.sepi > 0.7 ? 'kesepian' : 'tenang'
+    return {
+      id: `u${a.id}`, bangsa: 'utara', nama: d.nama, gender: d.wanita ? 'wanita' : 'pria', kerja: d.umur < 13 ? 'anak' : d.kerja,
+      peran: `${d.pekerjaan.charAt(0).toUpperCase() + d.pekerjaan.slice(1)} · ${d.namaDesa}`, kegiatan: `sedang ${d.kegiatan}`, act: d.act, suasana, sifat: d.sifat,
+      butuh: { lapar: Math.round(n.lapar * 100), lelah: Math.round(n.lelah * 100), bosan: Math.round(n.bosan * 100), sepi: Math.round(n.sepi * 100), latih: 0 },
+      umur: d.umur, x: a.x, z: a.z, utara: d,
+    }
+  }
+
   // NPC terdekat yang bisa diajak bicara: { kind, ref, n, d } atau null
   function nearest(p) {
     let best = null
@@ -92,6 +106,12 @@ export function createChat({ life, villagers, player, cam, camera, input, bag, s
         const d = Math.hypot(a.x - p.x, a.z - p.z)
         if (!best || d < best.d) best = { kind: 'elf', ref: a, d }
       }
+    if (warga && p.x > 300)
+      for (const a of warga.around(p.x, p.z, RANGE)) {
+        if (a.party || a.act === 'tidur') continue
+        const d = Math.hypot(a.x - p.x, a.z - p.z)
+        if (!best || d < best.d) best = { kind: 'utara', ref: a, d }
+      }
     if (villagers && p.x < -120)
       villagers.agents.forEach((a, n) => {
         if (a.hidden || a.scripted || a.role === 'penjaga') return
@@ -100,8 +120,8 @@ export function createChat({ life, villagers, player, cam, camera, input, bag, s
       })
     return best
   }
-  const npcOf = t => (t.kind === 'elf' ? elfNpc(t.ref) : wargaNpc(t.ref, t.n))
-  const headOf = t => (t.kind === 'elf' ? { x: t.ref.x, y: t.ref.y + 1.75 * t.ref.scale, z: t.ref.z } : { x: t.ref.x, y: (t.ref.y ?? player.position.y) + 1.6, z: t.ref.z })
+  const npcOf = t => (t.kind === 'elf' ? elfNpc(t.ref) : t.kind === 'utara' ? utaraNpc(t.ref) : wargaNpc(t.ref, t.n))
+  const headOf = t => (t.kind === 'elf' || t.kind === 'utara' ? { x: t.ref.x, y: (t.ref.y ?? player.position.y) + 1.75 * t.ref.scale, z: t.ref.z } : { x: t.ref.x, y: (t.ref.y ?? player.position.y) + 1.6, z: t.ref.z })
 
   // ---------------------------------------------------------------- konteks pemain untuk jawaban
   function context(npc) {
@@ -110,6 +130,8 @@ export function createChat({ life, villagers, player, cam, camera, input, bag, s
     return {
       tempat: places(npc), seberang, buron: npc.bangsa === 'elf' && wantedByElves(), pesta: feast(), koin: bag.koin,
       hp: player.hp, makanan, kayu: bag.jumlah('kayu'), punyaPancing: !!bag.punya.pancing, punyaPerahu: boatBuilt(),
+      // penduduk Frostfall: kenal tetangga yang disebut namanya
+      kenal: npc.bangsa === 'utara' && cur && cur.kind === 'utara' ? nama => warga.kenal(cur.ref, nama) : null,
     }
   }
 
@@ -141,8 +163,9 @@ export function createChat({ life, villagers, player, cam, camera, input, bag, s
     const chips = []
     if (npc.kerja === 'pedagang' && cur.ref.atWork && shop.stallOf(cur.ref)) chips.push({ id: 'kios', teks: 'Lihat daganganmu' })
     if (ctx.makanan.length) chips.push({ id: 'beri', teks: `Beri ${ctx.makanan[0].nama.toLowerCase()}` })
-    const fresh = TOPIK.filter(t => !mem.topik.has(t.id))
-    const used = TOPIK.filter(t => mem.topik.has(t.id))
+    const topik = npc.bangsa === 'utara' ? TOPIK_UTARA : TOPIK
+    const fresh = topik.filter(t => !mem.topik.has(t.id))
+    const used = topik.filter(t => mem.topik.has(t.id))
     chips.push(...fresh.slice(0, 6))
     const near = ctx.tempat.slice().sort((a, b) => Math.hypot(a.x - npc.x, a.z - npc.z) - Math.hypot(b.x - npc.x, b.z - npc.z))
     const askPlace = near.find(t => Math.hypot(t.x - npc.x, t.z - npc.z) > 60)
@@ -159,6 +182,8 @@ export function createChat({ life, villagers, player, cam, camera, input, bag, s
     gestureT = name === 'talk' ? 2.2 : 1.6
     if (cur.kind === 'elf') {
       if (cur.held) life.mode(cur.ref, 'bicara', name, true)
+    } else if (cur.kind === 'utara') {
+      if (cur.held) warga.mode(cur.ref, name)
     } else if (cur.ref.anim === 'sit') cur.ref.talk = 'sit' // yang duduk (raja, pemangku) tetap duduk
     else cur.ref.talk = { talk: 'interact', nod: 'wave', bow: 'wave', wave: 'wave', cheer: 'wave', shake: 'no' }[name] || 'idle'
   }
@@ -167,7 +192,7 @@ export function createChat({ life, villagers, player, cam, camera, input, bag, s
     // selama panel terbuka ucapannya cukup di riwayat (gelembung hanya menduplikasi & tertutup panel)
     if (r.selesai) {
       const c = cur
-      bubbles.say(() => headOf(c), r.teks.length > 90 ? `${r.teks.slice(0, 87)}…` : r.teks, Math.min(6500, 1800 + r.teks.length * 45), c.kind === 'elf' ? `elf${c.ref.id}` : `v${c.n}`)
+      bubbles.say(() => headOf(c), r.teks.length > 90 ? `${r.teks.slice(0, 87)}…` : r.teks, Math.min(6500, 1800 + r.teks.length * 45), c.kind === 'elf' ? `elf${c.ref.id}` : c.kind === 'utara' ? `warga${c.ref.id}` : `v${c.n}`)
     }
     gesture(r.gerak || 'talk')
     if (r.tawar === 'kios' && cur.npc.kerja === 'pedagang') cur.mem.tawarKios = true
@@ -193,7 +218,8 @@ export function createChat({ life, villagers, player, cam, camera, input, bag, s
       life.grab(target.ref, 'bicara')
       life.mode(target.ref, 'bicara', 'idle')
       cur.held = true
-    } else if (target.kind === 'warga') target.ref.talk = target.ref.anim === 'sit' ? 'sit' : 'idle'
+    } else if (target.kind === 'utara') cur.held = warga.grab(target.ref)
+    else if (target.kind === 'warga') target.ref.talk = target.ref.anim === 'sit' ? 'sit' : 'idle'
     player.stop()
     player.face(target.ref.x, target.ref.z)
     input.setEnabled(false)
@@ -218,7 +244,8 @@ export function createChat({ life, villagers, player, cam, camera, input, bag, s
     if (!cur) return
     if (cur.kind === 'elf') {
       if (cur.held && cur.ref.phase === 'tempur' && cur.ref.act === 'bicara') life.free(cur.ref)
-    } else cur.ref.talk = null
+    } else if (cur.kind === 'utara') warga.free(cur.ref)
+    else cur.ref.talk = null
     cur = null
     pending = null
     typing = null
@@ -329,26 +356,28 @@ export function createChat({ life, villagers, player, cam, camera, input, bag, s
         if (cur) {
           // kegiatan & kebutuhan elf terus berubah selama mengobrol: baca ulang sebelum menjawab
           if (cur.kind === 'elf') cur.npc = elfNpc(cur.ref)
+          else if (cur.kind === 'utara') cur.npc = utaraNpc(cur.ref)
           say(jawab(cur.npc, cur.mem, context(cur.npc), inp))
         }
       }
       if (cur) {
         const a = cur.ref
         const p = player.position
-        const gone = cur.kind === 'elf' ? a.hidden || a.down || (cur.held && (a.phase !== 'tempur' || a.act !== 'bicara')) || (!cur.held && SIBUK.has(a.act)) : a.hidden
+        const gone = cur.kind === 'elf' ? a.hidden || a.down || (cur.held && (a.phase !== 'tempur' || a.act !== 'bicara')) || (!cur.held && SIBUK.has(a.act))
+          : cur.kind === 'utara' ? a.hidden || (cur.held && !a.talk) : a.hidden
         if (!active || player.defeated || gone || Math.hypot(a.x - p.x, a.z - p.z) > LEAVE) {
           close()
           return
         }
         // NPC menghadap pemain; gerak sekali kembali ke diam
-        if (cur.kind === 'elf' && cur.held) a.heading = turnTo(a.heading, Math.atan2(p.x - a.x, p.z - a.z), Math.min(1, dt * 6))
+        if ((cur.kind === 'elf' || cur.kind === 'utara') && cur.held) a.heading = turnTo(a.heading, Math.atan2(p.x - a.x, p.z - a.z), Math.min(1, dt * 6))
         if (gestureT > 0 && (gestureT -= dt) <= 0) gesture('idle')
         return
       }
       if ((checkT -= dt) > 0) return
       checkT = 0.2
       const t = active && !player.defeated && !player.swimming && !player.riding ? nearest(player.position) : null
-      near = t ? { target: t, nama: t.kind === 'elf' ? t.ref.name : wargaNpc(t.ref, t.n).nama } : null
+      near = t ? { target: t, nama: t.kind === 'elf' ? t.ref.name : t.kind === 'utara' ? t.ref.o.nama : wargaNpc(t.ref, t.n).nama } : null
       if (approach && !player.hasPath) {
         const a = approach
         approach = null

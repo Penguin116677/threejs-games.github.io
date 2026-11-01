@@ -15,6 +15,8 @@
 //   punyaPancing, punyaPerahu }
 // ingatan (per NPC, dibuat createMemory): keakraban & hal-hal yang sudah dibicarakan
 
+import { jawabUtara, sapaUtara } from './percakapan-utara.js'
+
 const ACAK = Math.random
 
 // ------------------------------------------------------------------ pengenal maksud
@@ -39,26 +41,40 @@ const NIAT = [
   ['hinaan', ['bodoh', 'goblok', 'tolol', 'jelek', 'payah', 'benci', 'bau', 'jahat', 'pengecut', 'bego', 'dungu', 'sialan', 'brengsek', 'lemah', 'cupu', 'norak']],
   ['pujian', ['hebat', 'keren', 'cantik', 'ganteng', 'tampan', 'bagus', 'pintar', 'baik hati', 'kuat', 'luar biasa', 'mantap', 'indah', 'manis', 'lucu sekali', 'menawan']],
   ['beri', ['beri makan', 'kasih makan', 'mau makan', 'ini makanan', 'untukmu', 'buatmu', 'hadiah', 'kuberi', 'aku beri', 'saya beri', 'ambil ini']],
+  // v0.22.0: jam, ajakan, cinta (dijawab penduduk Frostfall; NPC lain memakai jawaban terdekat)
+  ['waktu', ['jam berapa', 'pukul berapa', 'sekarang jam', 'jam sekarang', 'waktu sekarang', 'hari ke berapa', 'hari apa']],
+  ['ajak', ['ikut aku', 'ikutlah', 'temani aku', 'ayo ikut', 'mau ikut', 'ayo ke', 'ayo main', 'mari kita', 'ayo kita', 'ajak', 'mau main', 'main yuk', 'yuk main']],
+  ['cinta', ['cinta', 'pacar', 'pacaran', 'menikah', 'nikah', 'kekasih', 'jodoh', 'naksir']],
   ['nama', ['nama', 'siapa kamu', 'kamu siapa', 'siapa namamu', 'kenalan', 'kenalkan', 'siapakah kamu', 'siapa dirimu', 'boleh kenal']],
   ['kabar', ['apa kabar', 'kabar', 'bagaimana kabar', 'sehat', 'baik baik saja', 'how are you', 'apa kbr']],
   ['kegiatan', ['sedang apa', 'mau ke mana', 'hendak ke mana', 'ke mana', 'sibuk', 'lagi ngapain', 'sedang ngapain', 'kegiatan']],
   ['pekerjaan', ['pekerjaan', 'kerja', 'bekerja', 'profesi', 'tugas', 'jabatan', 'pangkat', 'pasukan', 'mata pencaharian']],
+  ['tidur', ['tidur', 'bangun', 'mimpi', 'begadang']],
+  ['suka', ['kamu suka', 'suka apa', 'hobi', 'kesukaan', 'favorit', 'gemar', 'paling suka', 'kegemaran']],
   ['perasaan', ['perasaan', 'merasa', 'senang', 'sedih', 'bahagia', 'capek', 'capai', 'lelah', 'bosan', 'kesepian', 'ngantuk', 'suasana hati', 'mood']],
   ['umur', ['umur', 'usia', 'berapa tahun', 'tua', 'lahir']],
-  ['keluarga', ['keluarga', 'anak', 'istri', 'suami', 'ibu', 'ayah', 'orang tua', 'saudara', 'kakak', 'adik', 'rumah', 'tinggal di']],
-  ['kerajaan', ['kerajaan', 'raja', 'ratu', 'istana', 'benteng', 'keraton', 'pemimpin', 'penguasa', 'negeri', 'rakyat', 'aeloria', 'kencana']],
+  ['teman', ['teman', 'sahabat', 'kawan', 'tetangga']],
+  ['rumah', ['rumah', 'tinggal di', 'tinggal', 'kampung', 'asalmu', 'dari mana', 'orang mana', 'asal']],
+  ['keluarga', ['keluarga', 'anak', 'istri', 'suami', 'ibu', 'ayah', 'orang tua', 'saudara', 'kakak', 'adik']],
+  ['gua', ['gua', 'goa', 'tambang', 'gletser', 'katedral', 'peti harta']],
+  ['kerajaan', ['kerajaan', 'raja', 'ratu', 'istana', 'benteng', 'keraton', 'pemimpin', 'penguasa', 'negeri', 'rakyat', 'aeloria', 'kencana', 'kastel', 'singgasana', 'frostfall']],
   ['orc', ['orc', 'monster', 'musuh', 'bahaya', 'perang', 'serbuan', 'menyerang', 'serang', 'perkemahan']],
   ['laut', ['perahu', 'kapal', 'sampan', 'jukung', 'berlayar', 'menyeberang', 'nyebrang', 'seberang', 'laut', 'renang', 'berenang', 'dermaga', 'pelabuhan', 'jembatan', 'selat']],
+  ['berburu', ['berburu', 'buru', 'pemburu', 'rusa', 'memanah', 'buruan', 'perburuan']],
   ['ikan', ['ikan', 'mancing', 'memancing', 'pancing', 'pancingan', 'umpan', 'nelayan', 'kakap', 'tongkol', 'kerapu']],
   ['kayu', ['kayu', 'pohon', 'tebang', 'menebang', 'papan', 'balok']],
   ['senjata', ['senjata', 'pedang', 'tombak', 'perisai', 'zirah', 'baju besi', 'helm', 'pandai besi', 'tempa', 'busur', 'panah', 'latihan']],
+  ['baju', ['baju', 'pakaian', 'jaket', 'topi', 'syal', 'mantel', 'sepatu', 'tudung', 'sulaman', 'busana', 'bulu']],
+  ['hewan', ['hewan', 'binatang', 'serigala', 'beruang', 'anjing', 'kucing', 'burung', 'rubah', 'kelinci']],
   ['makanan', ['makan', 'makanan', 'lapar', 'roti', 'minum', 'minuman', 'haus', 'masak', 'enak', 'lezat', 'sate', 'buah']],
   ['belanja', ['beli', 'jual', 'harga', 'toko', 'kios', 'belanja', 'dagang', 'dagangan', 'pasar', 'koin', 'uang', 'murah', 'mahal', 'berapa harga']],
+  ['acara', ['acara', 'perayaan', 'festival', 'syukuran', 'ulang tahun', 'ultah', 'jamuan', 'kumpul', 'nanti malam', 'malam ini', 'keramaian']],
   ['musik', ['musik', 'lagu', 'nyanyi', 'bernyanyi', 'menyanyi', 'tari', 'menari', 'pesta', 'joget', 'dansa', 'kecapi']],
   ['cerita', ['cerita', 'dongeng', 'kisah', 'legenda', 'sejarah', 'zaman dulu', 'hikayat', 'rahasia']],
   ['lelucon', ['lelucon', 'lucu', 'lawak', 'lawakan', 'humor', 'tertawa', 'candaan', 'bercanda', 'tebak tebakan']],
   ['nasihat', ['saran', 'nasihat', 'tips', 'bantu', 'bantuan', 'tolong', 'petunjuk', 'harus apa', 'bagaimana cara', 'caranya', 'gimana cara']],
   ['pemain', ['siapa aku', 'kenal aku', 'tahu aku', 'aku siapa', 'tentang aku', 'menurutmu aku', 'pendapatmu tentang aku', 'aku ini']],
+  ['salju', ['salju', 'beku', 'membeku', 'musim dingin', 'badai salju']],
   ['cuaca', ['cuaca', 'hujan', 'panas', 'cerah', 'angin', 'matahari', 'langit', 'dingin']],
   ['salam', ['halo', 'pagi', 'siang', 'sore', 'malam', 'selamat', 'assalamualaikum', 'salam', 'permisi', 'punten', 'sampurasun', 'om swastiastu', 'kulonuwun', 'yo', 'sugeng']],
   ['kenapa', ['kenapa', 'mengapa', 'apa sebab', 'kok bisa']],
@@ -134,6 +150,7 @@ const anak = npc => npc.kerja === 'anak'
 function sebut(npc, mem) {
   if (mem.namaPemain) return mem.namaPemain
   if (anak(npc)) return 'Kak'
+  if (npc.bangsa === 'utara') return mem.suka >= 3 ? 'kawan' : 'pengembara'
   if (!elf(npc)) return 'Kisanak'
   return mem.suka >= 3 ? 'sahabat' : 'pengembara'
 }
@@ -447,6 +464,9 @@ function lain(npc, mem) {
   return { teks: byTrait[u] || pilih(mem, 'lain', ['Hmm, aku kurang paham maksudmu. Tanyakan saja soal tempat, kerajaan, orc, perahu, atau ikan.', 'Maaf, aku tidak mengerti. Coba tanyakan dengan cara lain.']), gerak: 'shake' }
 }
 
+// alat untuk percakapan-utara.js (tanpa impor melingkar)
+const ALAT = { pilih, normalisasi, tokens, tempatJawab, kenali }
+
 // ------------------------------------------------------------------ jawab
 // masukan: { teks } (kalimat bebas) atau { topik } (id dari TOPIK). Hasil: { teks, gerak, selesai?,
 // tawar? ('beri' = tawarkan memberi makanan, 'kios' = buka kios, 'cerita' = minta cerita lagi) }
@@ -459,10 +479,20 @@ export function jawab(npc, mem, ctx, masukan) {
     mem.marah--
     return { teks: pilih(mem, 'kesal', ['Aku tidak mau bicara denganmu.', 'Pergi sana!', 'Minta maaf dulu, baru kita bicara.']), gerak: 'shake', selesai: mem.marah <= 0 ? false : mem.suka < -4 }
   }
+  // penduduk Frostfall: otak percakapannya sendiri (percakapan-utara.js); maksud yang tidak
+  // ditanganinya (memberi makanan, terima kasih, maaf, hinaan, …) memakai jawaban umum di bawah
+  if (npc.bangsa === 'utara' && !((niat === 'ya' || niat === 'tidak') && mem.tawar)) {
+    const r = jawabUtara(npc, mem, ctx, k, masukan.teks || '', ALAT)
+    if (r) {
+      mem.tawar = r.tawar === 'cerita' ? 'cerita' : null
+      return r
+    }
+  }
   // "ya" / "tidak" menjawab tawaran sebelumnya
   if ((niat === 'ya' || niat === 'tidak') && mem.tawar) {
     const tw = mem.tawar
     mem.tawar = null
+    if (niat === 'ya' && tw === 'cerita' && npc.bangsa === 'utara') return jawabUtara(npc, mem, ctx, { niat: 'cerita' }, '', ALAT)
     if (niat === 'ya' && tw === 'cerita') return cerita(npc, mem)
     if (niat === 'ya' && tw === 'nama') return perkenalan(npc, mem)
     if (niat === 'tidak') return { teks: 'Baiklah, tidak apa-apa.', gerak: 'nod' }
@@ -532,6 +562,16 @@ export function jawab(npc, mem, ctx, masukan) {
     case 'ya': r = { teks: pilih(mem, 'ya', ['Baiklah!', 'Hmm, begitu ya.', 'Oke, oke.']), gerak: 'nod' }; break
     case 'tidak': r = { teks: pilih(mem, 'tidak', ['Hmm, baiklah kalau begitu.', 'Tidak apa-apa.']), gerak: 'shake' }; break
     case 'tanya': r = lain(npc, mem); break
+    // maksud baru v0.22.0 untuk NPC selain penduduk Frostfall: jawaban terdekat yang sudah ada
+    case 'rumah':
+    case 'teman':
+    case 'cinta': r = keluarga(npc, mem); break
+    case 'tidur':
+    case 'suka': r = perasaan(npc, mem); break
+    case 'acara': r = musik(npc, mem, ctx); break
+    case 'berburu': r = senjata(npc, mem); break
+    case 'salju': r = cuaca(npc); break
+    case 'ajak': r = { teks: pilih(mem, 'ya', ['Baiklah!', 'Hmm, begitu ya.', 'Oke, oke.']), gerak: 'nod' }; break
     default: r = lain(npc, mem)
   }
   mem.tawar = r.tawar === 'cerita' ? 'cerita' : r.teks.includes('siapa namamu') || r.teks.includes('siapa?') ? null : mem.tawar
@@ -541,6 +581,7 @@ export function jawab(npc, mem, ctx, masukan) {
 // sapaan pembuka saat obrolan dimulai
 export function sapaan(npc, mem, ctx) {
   mem.kali++
+  if (npc.bangsa === 'utara') return sapaUtara(npc, mem, ctx, ALAT)
   return salam(npc, mem, ctx)
 }
 

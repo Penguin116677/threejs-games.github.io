@@ -1251,6 +1251,7 @@ export function createWarga({ ground, plan, folk, rusa, quality, colliders = nul
     }
     return o.teman.includes(b.o.id) ? 'temanku' : 'tetanggaku'
   }
+  const kepala = agents.find(b => b.o.kerja === 'kepala') || null
   function describe(a) {
     const { o } = a
     const fam = keluarga[o.keluarga]
@@ -1261,11 +1262,11 @@ export function createWarga({ ground, plan, folk, rusa, quality, colliders = nul
     return {
       nama: o.nama, namaLengkap: `${o.nama} ${o.namaKeluarga}`, keluarga: o.namaKeluarga, umur: o.umur, wanita: o.wanita, peran: o.peran,
       kerja: o.kerja, pekerjaan: PEKERJAAN[o.kerja], desa: o.desa, namaDesa: DESA[o.desa].nama,
-      kegiatan: act ? KEGIATAN[act] || act : a.then ? 'sedang dalam perjalanan' : 'berjalan-jalan', act: act || 'jalan', acara: ev ? ev.nama : null,
+      kegiatan: act ? KEGIATAN[act] || act : a.then ? 'dalam perjalanan' : 'berjalan-jalan', act: act || 'jalan', acara: ev ? ev.nama : null,
       sifat: o.sifat, kebutuhan: a.need, anggota: members, teman: o.teman.map(byId).map(b => b.o.nama),
       jam: jam(), hari: hariOf(T), waktu: fmtJam(jam()), malam: malamOf(jam()), acaraHariIni: today, catatan: a.diary.slice(),
       bangun: fmtJam(o.bangun), tidur: fmtJam(o.tidur), tangkapan: a.catch, perburuan: { ...hunts }, ikan: catches.nelayan + catches.desa,
-      rupa: o.rupa, penduduk: agents.length, pasangan: o.pasangan !== null ? byId(o.pasangan).o.nama : null, shift: o.shift || null,
+      rupa: o.rupa, penduduk: agents.length, kepalaDesa: kepala ? `${kepala.o.nama} ${kepala.o.namaKeluarga}` : null, pasangan: o.pasangan !== null ? byId(o.pasangan).o.nama : null, shift: o.shift || null,
     }
   }
   // penduduk bernama `nama` (huruf kecil) yang dikenal a: keluarga dulu, lalu sekampung, lalu siapa saja
@@ -1276,7 +1277,7 @@ export function createWarga({ ground, plan, folk, rusa, quality, colliders = nul
     return {
       nama: b.o.nama, namaLengkap: `${b.o.nama} ${b.o.namaKeluarga}`, umur: b.o.umur, wanita: b.o.wanita, pekerjaan: PEKERJAAN[b.o.kerja], kerja: b.o.kerja,
       desa: DESA[b.o.desa].pendek, sekampung: b.o.desa === a.o.desa, hubungan: relation(a, b),
-      kegiatan: b.hidden ? (b.act === 'tidur' ? KEGIATAN.tidur : 'di rumahnya') : KEGIATAN[b.act] || 'sedang berjalan', jarak: Math.hypot(b.x - a.x, b.z - a.z),
+      kegiatan: b.hidden ? (b.act === 'tidur' ? KEGIATAN.tidur : 'di rumahnya') : KEGIATAN[b.act] || 'berjalan', jarak: Math.hypot(b.x - a.x, b.z - a.z),
       x: b.x, z: b.z,
     }
   }
