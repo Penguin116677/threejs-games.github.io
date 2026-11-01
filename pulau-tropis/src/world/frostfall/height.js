@@ -56,6 +56,9 @@ export const CAVE_BOX = CAVE_SYSTEMS.reduce((b, s) => ({
   x0: Math.min(b.x0, s.box.x0), x1: Math.max(b.x1, s.box.x1), z0: Math.min(b.z0, s.box.z0), z1: Math.max(b.z1, s.box.z1),
 }), { x0: Infinity, x1: -Infinity, z0: Infinity, z1: -Infinity })
 
+// coverD: jarak (m) ke tepi aula (rongga bulat) gua baru terdekat dari panggilan caveCover terakhir
+let coverD = Infinity
+
 // ridged multifractal (Musgrave): igir tajam yang bercabang, lembah di antaranya; ±0..1,2
 function multiRidge(x, z, seed) {
   let sum = 0
@@ -109,8 +112,12 @@ function natural(x, z) {
   // gunung boleh sampai ke pantai (tebing ke laut), dataran rendah tidak
   h += inland * low + smoothstep(1.0, 0.74, t) * m
   h += (fbm(x * 0.08, z * 0.08, 2, 67) - 0.5) * 0.6 * inland
-  // batu penutup gua memudar di tepi pantai (mulut gua laut, tanpa pulau batu di depannya)
-  return { h: Math.max(h, caveCover(x, z) - 80 * smoothstep(0.93, 1.0, t)), t }
+  // batu penutup gua memudar di tepi pantai (mulut gua laut, tanpa pulau batu di depannya) — kecuali
+  // dinding tepat di samping aula (rongga bulat): tanpa itu aula yang dekat pantai (Aula Gletser)
+  // beratap terlalu rendah di sisi lautnya dan terbuka seperti jendela ke laut. Lorong ke mulut gua
+  // tetap seperti v0.20.0.
+  const cover = caveCover(x, z)
+  return { h: Math.max(h, cover - 80 * smoothstep(0.93, 1.0, t) * smoothstep(6, 18, coverD)), t }
 }
 
 // Batu di atas gua: di atas setiap rongga (kecuali tangga rahasia) tanah alami setidaknya 24 m di
@@ -119,6 +126,7 @@ function natural(x, z) {
 // terbuka seperti celah di kaki tebing.
 function caveCover(x, z) {
   let best = -Infinity
+  coverD = Infinity
   for (const sys of CAVE_SYSTEMS) best = Math.max(best, systemCover(sys, x, z))
   return best
 }
@@ -137,6 +145,7 @@ function systemCover(sys, x, z) {
       top = Math.max(c.ya, c.yb) + 24
     }
     if (d < 40) best = Math.max(best, top - 30 * smoothstep(4, 36, d) - (sys.halus ? 60 * smoothstep(22, 38, d) : 0))
+    if (sys.halus && c.kind === 'bulat') coverD = Math.min(coverD, d)
   }
   if (best === -Infinity) return best
   // berbatu seperti lereng sekitarnya (bukan kubah mulus)
