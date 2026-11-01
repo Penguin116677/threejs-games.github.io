@@ -933,3 +933,35 @@ tandai sebagai "diganti" bila berubah.
       Aturan ini berlaku untuk semua aula gua baru, jadi lereng di atas aula Tambang Tua sisi pantai barat ikut
       naik ≤ 4,3 m (±70 titik pada kisi 2,5 m, hanya permukaan luar bukit) — dibiarkan: atapnya jadi lebih tebal, bukan
       berlubang.
+88. **Penduduk Frostfall: tepat 300 orang dalam 59 keluarga, hidup menurut jam Frostfall** (v0.22.0,
+    permintaan pengguna: *"Tambahkan sekitar 300 penduduk yang hidup di pulau salju…"*).
+    - 59 rumah = 19 rumah Desa Emberwick yang sudah ada + **dua kampung baru** (20 rumah) di dataran barat,
+      supaya setiap keluarga punya rumah sendiri (rata-rata ±5 orang per rumah). Kampung nelayan di pantai
+      barat & kampung pemburu di tepi hutan memberi tempat yang wajar untuk memancing dan berburu. Tanah
+      hanya diratakan di dua pad itu (dibandingkan titik demi titik dengan v0.21.0).
+    - **Jam Frostfall: sehari = 20 menit nyata** (1 jam = 50 detik), mulai jam 08.00 setiap kali game dimuat
+      (tidak disimpan). Cukup pendek supaya pemain sempat melihat orang bangun, bekerja, berpesta, dan tidur
+      dalam satu kali bermain; durasi kegiatan diukur dalam detik nyata yang wajar (memancing ±2–3 menit
+      nyata), bukan menit game, supaya orang tidak terus-menerus berjalan.
+    - Simulasinya ringan: 300 orang diperbarui tiap bingkai (jalan, kebutuhan) tetapi keputusan diambil
+      hanya saat kegiatan selesai; berjalan menyusuri jaringan jalan (jalan & setapak Frostfall + lorong
+      kampung + lorong belakang Emberwick) atau lurus bila garisnya bebas penghalang (termasuk batang pohon);
+      orang di dalam rumah tidak digambar. Penggambaran memakai sistem elf.js (warna per orang lewat slot,
+      model penuh untuk yang terdekat, model jauh untuk sisanya, batas per kualitas: Rendah 18/70, Sedang
+      36/140, Tinggi 64/260).
+    - Rusa kutub = satu InstancedMesh dengan kaki & kepala yang digerakkan shader (tanpa rangka), 21 ekor.
+    - Penduduk tidak bisa diserang (pukulan pemain menembusnya) dan tidak bermusuhan dengan pemain; mereka
+      menghalangi pemain secara fisik (pemain didorong keluar dari badan mereka).
+89. **Malam hanya di Frostfall** (v0.22.0). "Bangun dan tidur di rumah" butuh siang–malam, tetapi siklus
+    siang–malam untuk seluruh dunia (Milestone 5) belum dikerjakan. Jadi malam mengikuti jam Frostfall dan
+    berbaur bersama "dinginnya" (memudar di selat seperti salju): di Frostfall langit, kabut, cahaya langit &
+    matahari, dan awan menggelap biru tua; di Pulau Tropis, Kencana, dan Aeloria tetap siang. Dari Frostfall
+    di malam hari, laut & pulau di barat ikut tampak gelap (cahaya dunia satu untuk semua).
+90. **Obrolan penduduk tetap offline & berbasis aturan, bukan AI online** (v0.22.0). Permintaan "selalu punya
+    jawaban sesuai apa yang player obrolkan" paling mudah dipenuhi model bahasa online, tetapi itu bertentangan
+    dengan tujuan rilis (#86: jalan offline, tanpa layanan pihak ketiga, tanpa biaya / kunci API) — sudah
+    disampaikan ke pengguna sebelum dikerjakan. Gantinya (percakapan-utara.js): jawaban dari data hidup orang
+    itu (keluarga, kegiatan, catatan harian, acara, jam, baju, tetangga) + pengetahuan Frostfall + jawaban
+    cadangan yang selalu menyinggung isi kalimat (kata tanya, pernyataan, pendapat, ya/tidak, kata asing
+    ditanyakan balik & diingat). Batasnya: tidak benar-benar "mengerti" kalimat yang rumit; kalimat panjang
+    dengan beberapa maksud hanya dijawab satu maksud; ingatan obrolan hilang bila halaman dimuat ulang.

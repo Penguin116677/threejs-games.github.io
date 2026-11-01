@@ -513,6 +513,34 @@ masuk, makin ke dalam makin gelap, salju berhenti, kamera tidak menembus langit-
 
 Laporkan: gua mana yang terlalu gelap / sulit ditemukan, tempat tersangkut, dan FPS di tiap gua.
 
+## Daftar uji manual — v0.22.0 (penduduk Frostfall)
+Seberangi selat ke Frostfall (Dermaga Frostfall, pantai barat). Jam Frostfall mulai 08.00 saat game dimuat;
+sehari = 20 menit, jadi malam (±20.00–04.30) datang ±10 menit setelah game dibuka.
+1. **Desa Emberwick** pagi–siang: alun-alun ramai — orang menghangatkan badan di api unggun, mengobrol
+   berdua, pedagang di kios, pandai besi menempa di belakang kios besi, anak-anak berlarian. Baju setiap
+   orang berbeda warnanya (jaket bulu, kerah bulu putih, topi bulu / tudung / syal).
+2. **Kampung Teluk Salju** (utara Dermaga Frostfall): nelayan memancing dari dermaga kecil & tepi pantai,
+   mengantar ikan ke rak jemur; pondok pengasapan berasap. **Kampung Rusa Putih** (selatan sungai, tepi
+   hutan): penyamak di rangka kulit, penebang di tepi hutan.
+3. **Berburu**: pagi ±08.00–09.30 pemburu berkumpul di lapangan Rusa Putih lalu berjalan ke hutan. Ikuti
+   mereka (dari jauh — rusa kabur bila kau berlari mendekat) → mereka berlutut mengintai, memanah, lalu
+   **dua orang memikul rusanya** pulang ke pondok pengasapan.
+4. **Sore**: perang bola salju anak-anak (±15.00), syukuran / ulang tahun di depan rumah sebuah keluarga
+   (±16.00), dongeng tetua di api unggun.
+5. **Senja–malam**: langit menggelap biru, orang pulang makan malam (±18.00), lalu **Pesta Api Unggun** di
+   alun-alun Emberwick (±19.00–22.30: menari mengelilingi api, kecapi, duduk makan & minum) dan kumpul /
+   jamuan / malam ikan bakar di kampung. Lewat ±23.00 hampir semua orang tidur di rumahnya — kampung sepi,
+   hanya penjaga menara.
+6. **Mengobrol** (dekati seseorang → tombol **Bicara** / G): coba topik siap pilih, lalu ketik bebas, misalnya
+   "siapa namamu?", "ceritakan keluargamu", "di mana istrimu?", "ada acara apa hari ini?", "jam berapa
+   sekarang?", "bajumu bagus", "kamu suka apa?", "apakah kamu bisa berburu?", "aku lapar", sebut nama
+   tetangganya, atau kata yang aneh (lalu jelaskan artinya, tanyakan lagi nanti).
+7. Penduduk yang kau lewati sesekali menyapa ("Selamat pagi, pengembara!") atau berseru sesuai kegiatannya.
+8. Catat FPS di alun-alun Emberwick siang & saat pesta malam, dan di kedua kampung.
+
+Laporkan: apakah kehidupan penduduk terasa wajar, jawaban obrolan yang tidak nyambung (tulis kalimatmu),
+malam terlalu gelap atau tidak, dan FPS.
+
 ## Daftar uji manual — v0.21.0 (Aula Gletser dari gambar konsep)
 Masuk **Gua Gletser Utara** (pantai utara, lihat v0.20.0 no. 2) sampai Aula Gletser.
 1. Suasana biru kehijauan (berbeda dari gua lain yang biru gelap); air terjun **mengalir** dari dinding ke

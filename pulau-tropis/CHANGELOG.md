@@ -1,5 +1,55 @@
 # CHANGELOG — Pulau Tropis
 
+## [0.22.0] — 2026-11-01 — Penduduk Frostfall (permintaan pengguna)
+### Ditambahkan
+- **300 penduduk Frostfall** (permintaan: *"Tambahkan sekitar 300 penduduk yang hidup di pulau salju, …
+  bisa di ajak ngobrol oleh player dan selalu punya jawabannya sesuai dengan apa yang player obrolkan"*):
+  tepat 300 orang dalam **59 keluarga** — ayah, ibu, anak-anak, kadang kakek / nenek — masing-masing
+  tinggal di **rumahnya sendiri**. Tiap orang punya nama & nama keluarga, umur, sifat (rajin, riang, ramah,
+  rakus, pemalas, petualang, pemberani, pemarah), teman, pekerjaan sesuai kampungnya, jam bangun & tidur.
+- **Dua kampung baru** di dataran barat Frostfall (Desa Emberwick tetap): **Kampung Teluk Salju** (nelayan,
+  pantai barat: dermaga kecil, sampan, rak ikan, pondok pengasapan) dan **Kampung Rusa Putih** (pemburu, tepi
+  Hutan Pinus Salju: rangka penjemur kulit, kereta luncur, tunggul tebangan), masing-masing 20 rumah kayu,
+  api unggun bersama dengan bangku, meja jamuan, sumur. Lubang pancing di es Sungai Beku. Keduanya ada di peta
+  dan spanduk wilayah.
+- **Jam Frostfall** (sehari = 20 menit nyata, mulai jam 08.00 saat game dimuat) & **malam** di Frostfall:
+  langit, kabut, cahaya, dan awan menggelap biru tua; jendela rumah, api unggun, dan lentera tetap menyala.
+  Penduduk **bangun, sarapan, makan malam bersama keluarga, dan tidur di rumahnya** (tidak terlihat saat di
+  dalam rumah); penjaga menara bergantian siang & malam.
+- **Berkegiatan menurut pikirannya sendiri** — pilihan tiap saat ditimbang dari kebutuhan (lapar, lelah,
+  bosan, kesepian, **kedinginan**), sifat, jam, dan acara: nelayan memancing di dermaga / pantai / lubang es
+  lalu mengantar ikan ke rak jemur & pondok asap, pemburu, penyamak kulit, penebang & pembelah kayu, pedagang
+  di pasar Emberwick, pandai besi, juru masak & pemilik kedai panjang, penjaga menara; mengobrol dengan
+  teman, menghangatkan badan & duduk di api unggun, menyekop salju di depan rumah, menimba air, berbelanja,
+  makan di kedai panjang; anak-anak bermain kejar-kejaran & menemani orang tuanya bekerja; tetua berjalan
+  dengan tongkat dan mendongeng.
+- **Acara yang diadakan penduduk sendiri**: Pesta Api Unggun setiap malam di alun-alun Emberwick (menari
+  mengelilingi api, kecapi, makan & minum), Malam Ikan Bakar di Teluk Salju (bila tangkapan hari itu banyak),
+  Jamuan Hasil Buruan di Rusa Putih (bila perburuan berhasil), Ulang Tahun / Syukuran di depan rumah sebuah
+  keluarga (keluarga & teman-temannya datang), Perang Bola Salju anak-anak, Dongeng Tetua di api unggun.
+- **Perburuan rusa kutub**: tiga kawanan rusa kutub merumput di padang-padang Hutan Pinus Salju dan kabur bila
+  didekati sambil berlari; pemburu Rusa Putih berangkat berkelompok, mengintai pelan-pelan, memanah, lalu
+  **memikul rusanya pulang berdua** ke pondok pengasapan (rusa muncul lagi di kawanannya sehari kemudian).
+- **Baju khas orang Utara**: jaket panjang tebal sampai lutut dengan kerah, manset & ujung berbulu putih,
+  sulaman berwarna di dada & ujung jaket, sarung tangan & sepatu bot bulu; topi bulu bundar (anak-anak:
+  berpompom), tudung berbulu, syal, jubah bulu tetua, kepang, tabung panah pemburu, celemek — warna & bagian
+  berbeda tiap orang.
+- **Mengobrol dengan penduduk Frostfall** (tombol Bicara / G, topik siap pilih atau ketik bebas) — offline,
+  tanpa layanan luar. Jawabannya dari **hidup orang itu sendiri**: keluarganya & apa yang sedang mereka lakukan,
+  pekerjaan, kegiatan sekarang, apa yang dilakukannya tadi & rencananya, acara di kampung hari ini, jam
+  Frostfall, baju yang dipakainya, tetangga yang disebut namanya. Kalimat yang maksudnya tidak dikenali tetap
+  dijawab sesuai isinya: pernyataan pemain ("aku lapar / sedih / dari Pulau Tropis"), minta pendapat,
+  pertanyaan ya/tidak, kata tanya, tawa, bahasa Inggris sederhana; kata asing ditanyakan balik, lalu
+  **penjelasan pemain diingat** dan dipakai lagi. Penduduk juga menyapa pemain yang lewat dan berseru sesuai
+  kegiatannya (gelembung).
+### Diubah
+- Hutan Pinus Salju: subjudul "tempat berburu rusa kutub"; tiga padang kecil tanpa pohon tempat rusa merumput.
+- Pemudaran tanah: hanya di dua pad kampung (tanah lain sama persis dengan v0.21.0, dibandingkan titik demi
+  titik).
+- `createElfFolk` (elf.js) bisa menggambar rupa lain (orang Utara) — elf Aeloria tetap sama. Maksud baru di
+  otak percakapan (jam, acara, berburu, salju, baju, rumah, teman, tidur, kesukaan, menikah, ajakan, gua,
+  hewan): elf & warga Kencana memakai jawaban terdekat yang sudah ada.
+
 ## [0.21.0] — 2026-11-01 — Aula Gletser dari gambar konsep (permintaan pengguna)
 ### Diubah
 - **Aula Gletser (Gua Gletser Utara) dibangun ulang mengikuti gambar konsep pengguna** (permintaan:

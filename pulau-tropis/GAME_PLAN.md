@@ -169,3 +169,8 @@ Milestone 3 (gua & jalur eksplorasi) dengan sedikit Milestone 4 (hadiah menjelaj
 Di v0.21.0 (permintaan pengguna) Aula Gletser di Gua Gletser Utara dibangun ulang mengikuti gambar konsep:
 air terjun mengalir ke kolam, deretan lengkung es, tebing bersalju yang bisa dinaiki, suasana biru
 kehijauan.
+Di v0.22.0 (permintaan pengguna) Frostfall berpenghuni: **300 penduduk dalam 59 keluarga** di Desa Emberwick
+dan dua kampung baru (Kampung Teluk Salju — nelayan, Kampung Rusa Putih — pemburu), hidup menurut jam
+Frostfall (sehari = 20 menit; malam hanya di Frostfall): bangun & tidur di rumahnya, bekerja, berburu rusa
+kutub, memancing, mengadakan pesta & acara keluarga, bisa diajak mengobrol (offline, berbasis aturan) —
+lanjutan Milestone 3 (penduduk) dengan sebagian Milestone 4 (obrolan) & 5 (malam).
