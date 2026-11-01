@@ -103,6 +103,19 @@ dengan seed tetap, jadi bentuk pulau selalu sama setiap kali dibuka.
 - Semua aset lain (pulau, pohon, rumput, air, langit, bangunan kerajaan, perahu, ikon UI) dibuat
   prosedural di kode.
 
+## Target rilis (keputusan pengguna, 2026-11-01)
+Tujuan akhirnya game ini **bisa dirilis di Google Play** — tetapi **belum sekarang**: pengguna masih akan
+menambah dan menguji banyak hal. Selama pengembangan, setiap tambahan dijaga agar tidak menghalangi rilis:
+- aset hanya buatan sendiri (di kode) atau berlisensi yang mengizinkan rilis komersial (mis. CC0), sumbernya
+  dicatat (`public/models/LISENSI.txt`); tanpa nama, tokoh, atau merek milik pihak lain;
+- tetap bisa dimainkan **offline** (tanpa server / layanan internet);
+- kontrol sentuh & layar HP tegak / mendatar tetap menjadi patokan utama, dan performa diuji di HP sungguhan.
+Persiapan saat rilis nanti (belum dikerjakan): bungkus dengan Capacitor (file game di dalam aplikasi),
+target API level yang diwajibkan Google saat itu (Agustus 2026: API 36), mode rilis tanpa label
+pengembangan & FPS, tombol Kembali Android, ikon & layar pembuka, kebijakan privasi, formulir Keamanan Data,
+kuesioner rating usia (ada pertarungan pedang & jurus Penggal), materi toko, dan uji tertutup minimal 12
+penguji selama 14 hari (akun developer pribadi baru).
+
 ## Rencana milestone
 1. **Fondasi game** — Vite + Three.js, terrain pulau, pantai, laut, langit, bisa dibuka di browser HP.
 2. **Karakter & eksplorasi** — karakter pemain, kamera (v0.6.0: kamera strategi dari atas; v0.14.0:

@@ -907,3 +907,10 @@ tandai sebagai "diganti" bila berubah.
     - Lebar lorong minimum kini dalam langkah grid (bawaan 3 seperti DECISIONS #83) dan bisa diminta lebih
       per lorong (`minSteps`): lorong diagonal 45° di Gua Gletser Utara terjepit dinding bergelombang di
       grid Rendah dan memakai 3,6 langkah.
+86. **Rilis Google Play ditunda; game dijaga tetap "siap rilis"** (2026-11-01, keputusan pengguna: *"Jangan
+    dulu di rilis karena masih banyak hal yang mau saya tambahkan dan uji … yang paling penting nantinya game
+    ini bisa di rilis"*). Pemeriksaan v0.20.0: aset karakter Kenney CC0, sisanya dibuat di kode; Three.js MIT;
+    tanpa panggilan internet; build ±1,4 MB — tidak ada penghalang lisensi / teknis yang ditemukan. Mulai
+    sekarang setiap tambahan harus tetap offline, berlisensi aman untuk rilis komersial, dan tanpa merek pihak
+    lain; bila sebuah permintaan bertentangan dengan itu (mis. aset berhak cipta, layanan daring), hal itu
+    dikatakan dulu sebelum dikerjakan. Daftar persiapan rilis ada di GAME_PLAN ("Target rilis").
