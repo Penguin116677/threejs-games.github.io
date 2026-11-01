@@ -39,6 +39,9 @@ export function planFrostfall(ground) {
     shops: [],
     chest: null,
     chests: [], // peti harta tiap gua { id, x, y, z, rot, koin, key, pesan, gua }
+    waterfalls: [], // air terjun yang mengalir (Aula Gletser) { x, y, z, rot, h, w }
+    pools: [], // permukaan air kolam di dalam gua { x, z, rx, rz, y }
+    shafts: [], // berkas cahaya dari celah atap { x, y, z, h, r, tilt, rot }
     caves: CAVES,
     trapdoor: null,
   }
@@ -426,6 +429,131 @@ export function planFrostfall(ground) {
       const d = at(1, 0)
       return u + v <= 1 ? a + (d - a) * u + (b - a) * v : c + (b - c) * (1 - u) + (d - c) * (1 - v)
     }
+    // Aula Gletser mengikuti gambar konsep pengguna (v0.21.0) — acak sendiri (rng 2121)
+    const konsepAula = (cv, { floorAt, gapAt, crystal, route }) => {
+      const rk = rng(2121)
+      const kb = (a, b) => a + (b - a) * rk()
+      const KS = cv.konsep
+      const pool = cv.lakes[0]
+      const A = KS.aula
+      // permukaan air kolam (lebih lebar dari dasar rata kolam: tepinya yang landai juga tergenang)
+      P.pools.push({ x: pool.x, z: pool.z, rx: pool.rx * 1.42, rz: pool.rz * 1.42, y: pool.air })
+      // air terjun: di dinding aula di belakang kolam, menghadap ke tengah aula
+      const dl = Math.hypot(pool.x - A.x, pool.z - A.z)
+      const ux = (pool.x - A.x) / dl
+      const uz = (pool.z - A.z) / dl
+      let tw = 0
+      for (let t = 0; t < 30; t += 0.5) {
+        const x = pool.x + ux * t
+        const z = pool.z + uz * t
+        if (floorAt(x, z) === null || yAt(x, z) > A.y + 1.2) break
+        tw = t
+      }
+      // 2 m di depan kaki dinding (dinding gua melandai menjauh ke atas); tingginya dari atap di atas kolam
+      const wx = pool.x + ux * (tw - 2)
+      const wz = pool.z + uz * (tw - 2)
+      const wh = Math.min(18, gapAt(pool.x, pool.z) - 4)
+      const rot = Math.atan2(-ux, -uz)
+      P.waterfalls.push({ x: wx, y: pool.air - 0.15, z: wz, rot, h: wh, w: 6.5 })
+      box(wx + ux * 0.4, wz + uz * 0.4, 7, 1.2, rot, 'es')
+      light(wx - ux * 2, pool.air + 3, wz - uz * 2, '#9fe9ff', 26, 16, 0)
+      // berkas cahaya dari celah atap jatuh di kolam, sedikit miring
+      P.shafts.push({ x: pool.x - ux * 2, y: pool.air, z: pool.z - uz * 2, h: Math.min(34, gapAt(pool.x, pool.z) + 2), r: 3.2, tilt: 0.22, rot: rot + 0.9 })
+      // bongkah salju pipih terapung di kolam (tidak di kaki air terjun)
+      for (let i = 0, n = 0; i < 40 && n < 4; i++) {
+        const a = rk() * Math.PI * 2
+        const d = 0.25 + rk() * 0.5
+        const x = pool.x + Math.cos(a) * pool.rx * d
+        const z = pool.z + Math.sin(a) * pool.rz * d
+        const r = kb(1.2, 2.2)
+        if (Math.hypot(x - wx, z - wz) < 6 + r || P.build.some(b => b.type === 'bongkah-salju' && Math.hypot(b.x - x, b.z - z) < b.r + r + 1.2)) continue
+        add({ type: 'bongkah-salju', x, y: pool.air + 0.1, z, rot: kb(0, 6), r, seed: i + 5 })
+        circle(x, z, r * 0.85, 'es')
+        n++
+      }
+      // batu berukir di kiri-kanan kaki air terjun
+      for (const sgn of [-1, 1]) {
+        const x = wx - ux * 3.5 + uz * sgn * 7.5
+        const z = wz - uz * 3.5 - ux * sgn * 7.5
+        if (floorAt(x, z) === null || yAt(x, z) > A.y + 1) continue
+        add({ type: 'batu-rune', x, y: yAt(x, z) - 0.1, z, rot: Math.atan2(A.x - x, A.z - z), seed: sgn + 3 })
+        circle(x, z, 0.95, 'batu')
+        light(x, yAt(x, z) + 2, z, '#66c8ff', 10, 7, 0)
+      }
+      // tebing bersalju menghadap kolam; tanjakan di belakangnya. Pijakan: puncak + tanjakan
+      const T = KS.tebing
+      const W = 6
+      const Dd = 5
+      const H = 2.6
+      const RW = 2.4
+      const RL = 7
+      // menghadap kolam; bila sudut tebing atau ujung tanjakan jatuh di lereng dinding (grid kasar), putar
+      // sedikit sampai semuanya di lantai aula yang rata
+      const flat = (x, z) => floorAt(x, z) !== null && Math.abs(yAt(x, z) - A.y) < 0.9
+      let trot = Math.atan2(pool.x - T.x, pool.z - T.z)
+      for (const dr of [0, 0.4, -0.4, 0.8, -0.8, 1.2, -1.2]) {
+        const tb0 = { x: T.x, z: T.z, rot: trot + dr }
+        const pts = [[-W / 2, -Dd / 2], [W / 2, -Dd / 2], [W / 2, Dd / 2], [-W / 2, Dd / 2], [-W / 2 + RW / 2 + 0.3, -Dd / 2 - RL], [-W / 2 + 0.3, -Dd / 2 - RL], [-W / 2 + RW + 0.3, -Dd / 2 - RL]]
+        if (pts.every(([lx, lz]) => {
+          const q = local(tb0, lx, lz)
+          return flat(q.x, q.z)
+        })) {
+          trot += dr
+          break
+        }
+      }
+      const tb = { x: T.x, z: T.z, rot: trot }
+      let ty = -Infinity
+      for (const [lx, lz] of [[-W / 2, -Dd / 2], [W / 2, -Dd / 2], [W / 2, Dd / 2], [-W / 2, Dd / 2], [0, 0]]) {
+        const q = local(tb, lx, lz)
+        ty = Math.max(ty, yAt(q.x, q.z))
+      }
+      add({ type: 'tebing', x: T.x, y: ty, z: T.z, rot: trot, w: W, d: Dd, h: H, rw: RW, rl: RL })
+      P.surfaces.push({ x: T.x, z: T.z, hx: W / 2, hz: Dd / 2, rot: trot, y0: ty + H, y1: ty + H, ledge: true })
+      const rc0 = local(tb, -W / 2 + RW / 2 + 0.3, -Dd / 2 - RL / 2)
+      const far = local(tb, -W / 2 + RW / 2 + 0.3, -Dd / 2 - RL)
+      P.surfaces.push({ x: rc0.x, z: rc0.z, hx: RW / 2, hz: RL / 2, rot: trot, y0: yAt(far.x, far.z), y1: ty + H, ledge: true })
+      P.konsep = { tebing: { x: T.x, z: T.z, y: ty + H, ramp: far, top: local(tb, -W / 2 + RW / 2 + 0.3, -Dd / 2 + 0.8), rot: trot }, waterfall: { x: wx, z: wz }, pool: P.pools[P.pools.length - 1] }
+      // lengkung es berderet melintang jalan ke ruang berikutnya; kristal bercahaya di kakinya
+      P.konsep.lengkung = []
+      for (const [k, a] of KS.lengkung.entries()) {
+        const seg = polyInfo(route, a.x, a.z)
+        const p0 = route[seg.i]
+        const p1 = route[seg.i + 1]
+        const L = Math.hypot(p1.x - p0.x, p1.z - p0.z)
+        const ax = (p1.x - p0.x) / L
+        const az = (p1.z - p0.z) / L
+        const y = yAt(a.x, a.z)
+        const side = sgn => {
+          let r = 1
+          for (; r < 9; r += 0.25) {
+            const px = a.x + az * sgn * r
+            const pz = a.z - ax * sgn * r
+            if (floorAt(px, pz) === null || Math.abs(yAt(px, pz) - y) > 0.9) break
+          }
+          return r
+        }
+        // dipusatkan di tengah lantai rata yang sebenarnya (dinding bergelombang bisa menggesernya)
+        const sr = Math.min(side(1), 8.5)
+        const sl = Math.min(side(-1), 8.5)
+        const half = (sr + sl) / 2 - 0.9
+        if (half < 2.4) continue
+        const mid = (sr - sl) / 2
+        const cx = a.x + az * mid
+        const cz = a.z - ax * mid
+        const t = 1.4 + rk() * 0.4
+        const h = Math.min(gapAt(cx, cz) - 1.5, half * 1.5 + 5)
+        add({ type: 'lengkung-es', x: cx, y: y - 0.2, z: cz, rot: Math.atan2(ax, az), span: half * 2, h, t, seed: k + 1 })
+        P.konsep.lengkung.push({ x: cx, z: cz, span: half * 2, h })
+        for (const sgn of [-1, 1]) {
+          const lx = cx + az * sgn * half
+          const lz = cz - ax * sgn * half
+          circle(lx, lz, t * 1.15, 'es')
+          crystal(lx + az * sgn * 1.4 + ax * 0.8, lz - ax * sgn * 1.4 + az * 0.8, 7, kb(1.6, 2.1), false)
+        }
+      }
+    }
+
     for (const cv of CAVES) {
       if (cv.tema === 'kristal') continue
       const sys = CAVE_SYSTEMS.find(sy => sy.cave === cv)
@@ -590,7 +718,13 @@ export function planFrostfall(ground) {
       }
 
       if (cv.tema === 'gletser') {
-        // tiang es di kedua ruang besar; yang langit-langitnya rendah menjadi tiang sampai atap
+        // tiang es di kedua ruang besar; yang langit-langitnya rendah menjadi tiang sampai atap. Tiang yang
+        // jatuh di tempat isi Aula Gletser (kolam, tebing, lengkung) tidak dipasang — acaknya tetap dipakai,
+        // jadi letak isi gua lain tidak bergeser
+        const KS = cv.konsep
+        const pool = cv.lakes[0]
+        const diKonsep = (x, z, r) => Math.hypot((x - pool.x) / (pool.rx * 1.45), (z - pool.z) / (pool.rz * 1.45)) < 1 + r / pool.rx ||
+          Math.hypot(x - KS.tebing.x, z - KS.tebing.z) < 11 + r || KS.lengkung.some(a => Math.hypot(x - a.x, z - a.z) < 8 + r)
         for (const c of bulat) {
           const want = Math.round(c.r / 3.4)
           let n = 0
@@ -601,10 +735,13 @@ export function planFrostfall(ground) {
             const z = c.z + Math.sin(a) * d
             const r = rb(0.9, 1.7)
             if (!insideBy(x, z, r + 1) || !clear(x, z, r)) continue
-            pillar(x, z, r, rb(7, 14), i + 31)
+            const tinggi = rb(7, 14)
+            if (diKonsep(x, z, r)) rb(0, 6)
+            else pillar(x, z, r, tinggi, i + 31)
             n++
           }
         }
+        konsepAula(cv, { floorAt, gapAt, crystal, route: cv.route })
         // air terjun beku di dinding timur Ruang Air Terjun Beku, menghadap ke tengah ruang
         const c = bulat[bulat.length - 1]
         let tw = 0

@@ -744,3 +744,97 @@ export function altar() {
   for (const s of [-1, 1]) P.cyl(0.32, 0.4, 2.6, 6, FC.batuTua, K.BATU, { x: s * 2.4, z: -0.6 })
   return P
 }
+
+// --------------------------------------------------------------------------- Aula Gletser (v0.21.0)
+// Mengikuti gambar konsep pengguna (hanya suasananya — gambarnya tidak dipakai): lengkung es tebal yang
+// berderet, tebing bersalju untuk memandang, batu berukir bercahaya, bongkah salju di kolam.
+
+// lengkung es organik selebar span (kaki di x = ±span/2), setinggi h, setebal t: ruas-ruas meruncing
+// mengikuti busur, menggembung di kaki, jurai es di bawah puncaknya; bentang = sumbu x lokal
+export function lengkungEs(span, h, t = 1.6, seed = 1) {
+  const P = new Parts()
+  const rr = rnd(seed * 17 + 9)
+  const n = 14
+  const pt = k => {
+    const a = Math.PI * (k / n)
+    return [-Math.cos(a) * span / 2, Math.sin(a) * h]
+  }
+  for (let k = 0; k < n; k++) {
+    const [x0, y0] = pt(k)
+    const [x1, y1] = pt(k + 1)
+    const len = Math.hypot(x1 - x0, y1 - y0)
+    // tebal di kaki, ramping di puncak, sedikit berbenjol
+    const m = Math.abs(k + 0.5 - n / 2) / (n / 2)
+    const r0 = t * (0.55 + 0.6 * m * m) * (0.9 + rr() * 0.25)
+    const r1 = r0 * (0.86 + rr() * 0.2)
+    P.cyl(r1, r0, len * 1.15, 7, k % 3 ? FC.es : FC.esTua, K.ES, { x: x0, y: y0 - 0.1, z: (rr() - 0.5) * 0.4, rz: Math.atan2(-(x1 - x0), y1 - y0) })
+  }
+  // kaki: bongkah es lebar di lantai
+  for (const s of [-1, 1]) {
+    P.add(new THREE.IcosahedronGeometry(t * 1.5, 0), FC.esTua, K.ES, { x: s * span / 2, y: 0.2, sy: 0.6 })
+    P.cyl(t * 0.9, t * 1.35, h * 0.3, 7, FC.es, K.ES, { x: s * span / 2 })
+  }
+  // jurai es di bawah puncak lengkung
+  for (let i = 0; i < 7; i++) {
+    const x = (rr() - 0.5) * span * 0.55
+    const top = Math.sqrt(Math.max(0, 1 - (2 * x / span) ** 2)) * h - t * 0.5
+    const l = 0.8 + rr() * 2.2
+    P.cyl(0.12 + rr() * 0.12, 0, l, 5, FC.es, K.ES, { x, y: top - l, z: (rr() - 0.5) * 0.6 })
+  }
+  return P
+}
+
+// tebing batu bersalju w × d setinggi h (alasnya terbenam 1 m), tanjakan salju (lebar rw, panjang rl) di
+// belakangnya (−z lokal) naik ke puncak; depan (+z) menghadap pemandangan
+export function tebingSalju(w, d, h, rw, rl) {
+  const P = new Parts()
+  const rr = rnd(53)
+  P.box(w, h + 1, d, '#5d6470', K.POLOS, { y: -1 })
+  for (let i = 0; i < 6; i++) P.add(new THREE.IcosahedronGeometry(1.2 + rr() * 0.8, 0), i % 2 ? '#6b717c' : '#525863', K.POLOS, { x: (rr() - 0.5) * w, y: h * (0.3 + rr() * 0.4), z: d / 2 - 0.3 + rr() * 0.6, sy: 0.8 })
+  P.box(w + 0.3, 0.35, d + 0.3, FC.salju, K.SALJU, { y: h - 0.2 })
+  P.box(w * 0.7, 0.2, d * 0.6, FC.salju, K.SALJU, { x: (rr() - 0.5) * 0.6, y: h + 0.1 })
+  // jurai es menggantung di bibir depan (cyl berpangkal di alasnya: ujung runcing di bawah)
+  for (let x = -w / 2 + 0.4; x < w / 2; x += 0.5 + rr() * 0.5) {
+    const r = 0.1 + rr() * 0.08
+    const len = 0.5 + rr() * 1.4
+    P.cyl(r, 0, len, 5, FC.es, K.ES, { x, y: h - 0.3 - len, z: d / 2 + 0.1 })
+  }
+  // tanjakan salju yang dipadatkan di atas baji batu (dari lantai di belakang sampai puncak)
+  const ang = Math.atan2(h, rl)
+  const rx = -w / 2 + rw / 2 + 0.3
+  P.box(rw, 0.5, Math.hypot(h, rl), FC.salju, K.SALJU, { x: rx, y: h / 2 - 0.45, z: -d / 2 - rl / 2, rx: -ang })
+  const xa = rx - rw / 2 - 0.2
+  const xb = rx + rw / 2 + 0.2
+  const z0 = -d / 2 - rl
+  const z1 = -d / 2
+  const A = [xa, -0.3, z0]
+  const Bp = [xb, -0.3, z0]
+  const C = [xa, -0.3, z1]
+  const D = [xb, -0.3, z1]
+  const E = [xa, h - 0.4, z1]
+  const Fp = [xb, h - 0.4, z1]
+  P.faces([[A, C, E], [Bp, Fp, D], [A, Fp, Bp], [A, E, Fp]], '#5d6470', K.POLOS)
+  return P
+}
+
+// batu tegak berukir lingkaran rune yang bercahaya biru (peninggalan kuno di dekat air terjun)
+export function batuRune(seed = 1) {
+  const P = new Parts()
+  const rr = rnd(seed * 29 + 4)
+  const h = 2.4 + rr() * 1.2
+  P.box(1.5, h, 0.8, '#4f5560', K.BATU, { ry: (rr() - 0.5) * 0.3, rz: (rr() - 0.5) * 0.12 })
+  P.cyl(0.55, 0.55, 0.06, 16, FC.kristal, K.KRISTAL, { y: h * 0.62, z: 0.42, rx: Math.PI / 2 })
+  P.cyl(0.3, 0.3, 0.07, 12, '#2c3138', K.POLOS, { y: h * 0.62, z: 0.44, rx: Math.PI / 2 })
+  for (let i = 0; i < 3; i++) P.box(0.9 - i * 0.2, 0.06, 0.05, FC.kristal, K.KRISTAL, { y: h * 0.3 - i * 0.22, z: 0.42 })
+  P.box(1.7, 0.3, 1.0, FC.salju, K.SALJU, { y: h - 0.1 })
+  return P
+}
+
+// bongkah salju pipih yang terapung di kolam (jari-jari ±r)
+export function bongkahSalju(r = 1.6, seed = 1) {
+  const P = new Parts()
+  const rr = rnd(seed * 7 + 11)
+  P.add(new THREE.CylinderGeometry(r, r * 1.1, 0.5, 7).translate(0, -0.25, 0), FC.esTua, K.ES, { ry: rr() * 6, sx: 1 + rr() * 0.4 })
+  P.add(new THREE.CylinderGeometry(r * 0.95, r, 0.22, 7).translate(0, 0.1, 0), FC.salju, K.SALJU, { ry: rr() * 6, sx: 1 + rr() * 0.3 })
+  return P
+}

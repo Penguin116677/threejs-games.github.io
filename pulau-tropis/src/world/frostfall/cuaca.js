@@ -165,6 +165,11 @@ export function createWeather({ scene, env, quality, water, smoke = [], lights =
     sunI: 1.95,
   }
   const cave = { fog: new THREE.Color('#0d1a2b'), hemiSky: new THREE.Color('#5d86b8'), hemiGround: new THREE.Color('#1d3350'), hemiI: 0.42, sunI: 0.12 }
+  // suasana gua (CAVES[].suasana: kabut, langit, tanah, terang); bawaan = biru gelap di atas. Warna gua
+  // berbaur ke suasana gua tempat pemain berada (±1 detik)
+  const caveBase = { fog: cave.fog.clone(), hemiSky: cave.hemiSky.clone(), hemiGround: cave.hemiGround.clone(), hemiI: cave.hemiI }
+  const toneTarget = { fog: new THREE.Color(), hemiSky: new THREE.Color(), hemiGround: new THREE.Color(), hemiI: cave.hemiI }
+  let tone = undefined
   const indoor = { hemiI: 1.0, sunI: 0.5, hemiSky: new THREE.Color('#f0dcc4'), hemiGround: new THREE.Color('#6a5644') }
   const state = { frost: 0, cave: 0, covered: 0, indoor: 0 }
   const approach = (cur, target, rate, dt) => cur + (target - cur) * (1 - Math.exp(-rate * dt))
@@ -185,7 +190,19 @@ export function createWeather({ scene, env, quality, water, smoke = [], lights =
     // target: { x, y, z } posisi pemain; inCave: 0..1 (kegelapan gua), covered: 0/1 (di bawah atap gua:
     // tanpa salju & sinar matahari — tambang yang diterangi lentera tidak gelap, tapi tetap beratap);
     // indoorK: 0..1 (di dalam aula / kedai); far: jarak pandang kamera; camera: kamera
-    update(dt, time, { target, inCave, covered = 0, indoorK, far, camera }) {
+    update(dt, time, { target, inCave, covered = 0, caveTone = null, indoorK, far, camera }) {
+      if (caveTone !== tone) {
+        tone = caveTone
+        toneTarget.fog.set(tone ? tone.kabut : caveBase.fog)
+        toneTarget.hemiSky.set(tone ? tone.langit : caveBase.hemiSky)
+        toneTarget.hemiGround.set(tone ? tone.tanah : caveBase.hemiGround)
+        toneTarget.hemiI = tone ? tone.terang : caveBase.hemiI
+      }
+      const tk = Math.min(1, dt * 1.5)
+      cave.fog.lerp(toneTarget.fog, tk)
+      cave.hemiSky.lerp(toneTarget.hemiSky, tk)
+      cave.hemiGround.lerp(toneTarget.hemiGround, tk)
+      cave.hemiI += (toneTarget.hemiI - cave.hemiI) * tk
       state.frost = approach(state.frost, coldAt(target.x, target.z), 1.5, dt)
       state.cave = approach(state.cave, inCave, 2.2, dt)
       state.covered = approach(state.covered, covered, 2.2, dt)

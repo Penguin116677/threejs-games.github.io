@@ -35,7 +35,7 @@ import { planFrostfall } from './world/frostfall/plan.js'
 import { createFrostMask } from './world/frostfall/mask.js'
 import { createFrostfall } from './world/frostfall/kingdom.js'
 import { createWeather } from './world/frostfall/cuaca.js'
-import { setCaveGrid } from './world/frostfall/height.js'
+import { setCaveGrid, caveAt } from './world/frostfall/height.js'
 import { createWorldMap, createRegionBanner } from './ui/peta.js'
 import { createBubbles, createHealthBar } from './ui/tanya.js'
 import { createShop } from './ui/toko.js'
@@ -1085,6 +1085,7 @@ async function start() {
   const clock = new THREE.Clock()
   let frames = 0
   let fpsTime = 0
+  let poolRippleT = 0 // jeda riak saat berjalan di kolam gua
   // saran turunkan kualitas bila FPS rata-rata rendah setelah beberapa detik
   let sampleTime = 0
   let sampleFrames = 0
@@ -1167,7 +1168,14 @@ async function start() {
       const fp = mode === 'main' ? player.position : controls.target
       const covered = frost.cave.inside(fp.x, fp.z, fp.y) ? 1 : 0
       const caveK = covered ? frost.cave.darkness(fp.x, fp.z) : 0
-      weather.update(dt, t, { target: fp, inCave: caveK, covered, indoorK: roomAt(fp.x, fp.z, fp.y) ? 1 : 0, far: mode === 'main' ? camera.far : null, camera })
+      const caveTone = covered ? (caveAt(fp.x, fp.z)?.suasana ?? null) : null
+      // berjalan di kolam gua: riak di permukaan airnya
+      const pool = frost.poolAt(fp.x, fp.z)
+      if (pool && fp.y < pool.y - 0.05 && player.speed > 0.6 && (poolRippleT -= dt) <= 0) {
+        poolRippleT = 0.32
+        ripples.spawn(fp.x, fp.z, 1.3, 0.5, pool.y)
+      }
+      weather.update(dt, t, { target: fp, inCave: caveK, covered, caveTone, indoorK: roomAt(fp.x, fp.z, fp.y) ? 1 : 0, far: mode === 'main' ? camera.far : null, camera })
       frost.update(dt, camera)
     }
     env.update(t, camera, mode === 'main' ? player.position : controls.target)

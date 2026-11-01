@@ -252,6 +252,7 @@ export const ROOF_MIN = 5
 //   route  : jalan dari luar mulut sampai peti — dijaga bebas dari tiang & dipakai uji otomatis
 //   tema   : isi gua (plan.js): kristal · tambang · gletser · katedral · laut · tiang
 //   gelap  : seberapa gelap bagian dalamnya (bawaan 1)
+//   suasana: warna kabut / cahaya di dalamnya { kabut, langit, tanah, terang } (bawaan: biru gelap)
 export const CAVES = [
   {
     id: 'kristal', name: 'Gua Es Kristal', short: 'Gua Es', sub: 'Gua beku di dalam gunung · kristal bercahaya', tema: 'kristal',
@@ -281,11 +282,17 @@ export const CAVES = [
     shapes: [
       { kind: 'lorong', a: { x: 1055, z: -451 }, b: { x: 1090, z: -402 }, ya: 1.4, yb: 9, w: 11 },
       { kind: 'bulat', x: 1100, z: -386, r: 26, y: 9 }, // Aula Gletser
-      { kind: 'lorong', a: { x: 1118, z: -373 }, b: { x: 1150, z: -340 }, ya: 9, yb: 11.5, w: 10, minSteps: 3.6 }, // diagonal
+      { kind: 'lorong', a: { x: 1118, z: -373 }, b: { x: 1150, z: -340 }, ya: 9, yb: 11.5, w: 14, minSteps: 3.6 }, // diagonal; lebar untuk deretan lengkung es
       { kind: 'bulat', x: 1160, z: -332, r: 18, y: 11.5 }, // Ruang Air Terjun Beku
     ],
     mouths: [{ x: 1052, z: -456, r: 13, w: 11, h: 7 }],
-    lakes: [{ x: 1094, z: -394, rx: 10, rz: 7, y: 8.4 }], label: { x: 1100, z: -418 },
+    // Aula Gletser mengikuti gambar konsep pengguna (v0.21.0): kolam berair (air: tinggi permukaan air)
+    // tempat jatuhnya air terjun yang mengalir, deretan lengkung es ke arah lorong berikutnya, tebing
+    // bersalju untuk memandang, suasana biru-toska yang lebih terang
+    lakes: [{ x: 1112, z: -397, rx: 8.5, rz: 7.5, y: 7.6, air: 8.45 }], label: { x: 1100, z: -418 },
+    gelap: 0.72,
+    suasana: { kabut: '#1b6577', langit: '#8ae4f2', tanah: '#0f3a47', terang: 0.95 },
+    konsep: { aula: { x: 1100, z: -386, y: 9 }, lengkung: [{ x: 1110, z: -376 }, { x: 1124, z: -366 }, { x: 1133, z: -357.5 }], tebing: { x: 1092, z: -380 } },
     chest: { x: 1160, z: -340, koin: 90, key: 'pulau-tropis:peti-gua-gletser', pesan: 'Peti yang membeku di dalam gletser!' },
     route: [{ x: 1040, z: -449 }, { x: 1055, z: -451 }, { x: 1090, z: -402 }, { x: 1108, z: -378 }, { x: 1118, z: -373 }, { x: 1150, z: -340 }, { x: 1155, z: -335 }],
   },

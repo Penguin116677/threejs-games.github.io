@@ -200,6 +200,10 @@ function partsFor(b) {
     case 'kereta-tambang': return F.keretaTambang()
     case 'bangkai-kapal': return F.bangkaiKapal(b.len)
     case 'altar': return F.altar()
+    case 'lengkung-es': return F.lengkungEs(b.span, b.h, b.t, b.seed)
+    case 'tebing': return F.tebingSalju(b.w, b.d, b.h, b.rw, b.rl)
+    case 'batu-rune': return F.batuRune(b.seed)
+    case 'bongkah-salju': return F.bongkahSalju(b.r, b.seed)
     case 'lantai': return F.lantaiAula(b.w, b.d)
     case 'anglo': {
       const P = new B.Parts()
@@ -229,6 +233,187 @@ function partsFor(b) {
       return B.jembatan(b.len, b.w, deck, floor, { stone: false, piers })
     }
     default: throw new Error(`jenis bangunan Frostfall tidak dikenal: ${b.type}`)
+  }
+}
+
+// ------------------------------------------------------------------- air yang bergerak di dalam gua
+// Aula Gletser (v0.21.0): air terjun yang mengalir, kabut percikan di kakinya, permukaan kolam, dan
+// berkas cahaya dari celah atap. Semuanya bahan shader kecil (tanpa tekstur gambar dari luar).
+const FOG_VERT_PARS = '#include <fog_pars_vertex>'
+const waterfallVertex = /* glsl */`
+varying vec2 vUv;
+${FOG_VERT_PARS}
+void main() {
+  vUv = uv;
+  vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
+  gl_Position = projectionMatrix * mvPosition;
+  #include <fog_vertex>
+}`
+const waterfallFragment = /* glsl */`
+uniform sampler2D uNoise;
+uniform float uTime;
+varying vec2 vUv;
+#include <fog_pars_fragment>
+void main() {
+  // garis-garis air yang jatuh: noise diregangkan memanjang, bergeser ke bawah, dua lapis
+  float s1 = texture2D(uNoise, vec2(vUv.x * 1.7, vUv.y * 0.22 + uTime * 0.42)).r;
+  float s2 = texture2D(uNoise, vec2(vUv.x * 2.9 + 0.37, vUv.y * 0.35 + uTime * 0.71)).g;
+  float s = smoothstep(0.35, 0.85, max(s1, s2 * 0.95));
+  float a = (0.45 + 0.55 * s) * smoothstep(0.0, 0.1, vUv.x) * smoothstep(1.0, 0.9, vUv.x) * smoothstep(1.0, 0.8, vUv.y);
+  vec3 col = mix(vec3(0.55, 0.82, 0.92), vec3(0.97, 1.0, 1.0), s);
+  // buih putih di kaki air terjun
+  col = mix(col, vec3(1.0), smoothstep(0.12, 0.0, vUv.y) * 0.7);
+  gl_FragColor = vec4(col, a * 0.92);
+  #include <fog_fragment>
+}`
+const poolVertex = /* glsl */`
+varying vec3 vW;
+${FOG_VERT_PARS}
+void main() {
+  vec4 w = modelMatrix * vec4(position, 1.0);
+  vW = w.xyz;
+  vec4 mvPosition = viewMatrix * w;
+  gl_Position = projectionMatrix * mvPosition;
+  #include <fog_vertex>
+}`
+const poolFragment = /* glsl */`
+uniform sampler2D uNoise;
+uniform float uTime;
+uniform vec3 uFall;
+varying vec3 vW;
+#include <fog_pars_fragment>
+void main() {
+  float n = texture2D(uNoise, vW.xz * 0.07 + vec2(uTime * 0.02, uTime * 0.013)).r * 0.6 + texture2D(uNoise, vW.xz * 0.19 - vec2(uTime * 0.035, 0.0)).g * 0.4;
+  vec3 v = normalize(cameraPosition - vW);
+  float fres = pow(1.0 - clamp(v.y, 0.0, 1.0), 3.0);
+  vec3 col = mix(vec3(0.02, 0.16, 0.21), vec3(0.1, 0.42, 0.5), n);
+  col += vec3(0.5, 0.85, 0.95) * fres * 0.55;
+  col += vec3(0.9, 1.0, 1.0) * smoothstep(0.76, 0.93, n) * 0.22;
+  // riak putih di dekat kaki air terjun
+  float d = length(vW.xz - uFall.xz);
+  float ring = smoothstep(0.55, 1.0, sin(d * 2.2 - uTime * 3.2) * 0.5 + 0.5) * smoothstep(9.0, 2.0, d);
+  col = mix(col, vec3(0.92, 1.0, 1.0), ring * 0.35);
+  gl_FragColor = vec4(col, 0.8 + fres * 0.15);
+  #include <fog_fragment>
+}`
+const shaftVertex = /* glsl */`
+varying vec2 vUv;
+void main() {
+  vUv = uv;
+  gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+}`
+const shaftFragment = /* glsl */`
+uniform float uTime;
+varying vec2 vUv;
+void main() {
+  float a = smoothstep(0.0, 0.18, vUv.y) * smoothstep(1.0, 0.55, vUv.y);
+  a *= 0.75 + 0.25 * sin(uTime * 0.7 + vUv.x * 18.0) * sin(uTime * 0.31 + vUv.x * 7.0);
+  gl_FragColor = vec4(vec3(0.62, 0.9, 1.0) * a * 0.16, 1.0);
+}`
+
+// kabut percikan: titik lembut melingkar (tekstur kecil dibuat di kode)
+function mistTexture() {
+  const n = 32
+  const data = new Uint8Array(n * n * 4)
+  for (let j = 0; j < n; j++)
+    for (let i = 0; i < n; i++) {
+      const d = Math.hypot(i - n / 2 + 0.5, j - n / 2 + 0.5) / (n / 2)
+      const k = (j * n + i) * 4
+      data[k] = data[k + 1] = data[k + 2] = 255
+      data[k + 3] = Math.round(255 * Math.max(0, 1 - d) ** 2)
+    }
+  const tex = new THREE.DataTexture(data, n, n)
+  tex.needsUpdate = true
+  return tex
+}
+
+function createWaterFx(plan, noiseTexture) {
+  const group = new THREE.Group()
+  group.name = 'air-gua'
+  const timed = []
+  const mists = []
+  const fogUniforms = () => THREE.UniformsUtils.clone(THREE.UniformsLib.fog)
+  for (const f of plan.waterfalls) {
+    // tirai air: sedikit melengkung keluar di tengah, alas di permukaan kolam
+    const geo = new THREE.PlaneGeometry(f.w, f.h, 6, 14)
+    const pos = geo.attributes.position
+    for (let i = 0; i < pos.count; i++) {
+      const v = (pos.getY(i) + f.h / 2) / f.h
+      pos.setY(i, pos.getY(i) + f.h / 2)
+      pos.setZ(i, Math.sin(Math.PI * v) * 0.9 + (1 - v) * 0.6)
+    }
+    geo.computeVertexNormals()
+    const mat = new THREE.ShaderMaterial({
+      uniforms: { ...fogUniforms(), uNoise: { value: noiseTexture }, uTime: { value: 0 } },
+      vertexShader: waterfallVertex, fragmentShader: waterfallFragment,
+      transparent: true, depthWrite: false, side: THREE.DoubleSide, fog: true,
+    })
+    const mesh = new THREE.Mesh(geo, mat)
+    mesh.name = 'air-terjun-mengalir'
+    mesh.position.set(f.x, f.y, f.z)
+    mesh.rotation.y = f.rot
+    mesh.renderOrder = 4
+    group.add(mesh)
+    timed.push(mat)
+    // kabut percikan di kakinya
+    const mistMat = new THREE.SpriteMaterial({ map: mistTexture(), color: '#dff8ff', transparent: true, depthWrite: false, opacity: 0.4 })
+    for (let i = 0; i < 6; i++) {
+      const sp = new THREE.Sprite(mistMat.clone())
+      sp.renderOrder = 5
+      group.add(sp)
+      mists.push({ sp, f, phase: i / 6, side: (i % 3) - 1 })
+    }
+  }
+  for (const p of plan.pools) {
+    const fall = plan.waterfalls[0]
+    const mat = new THREE.ShaderMaterial({
+      uniforms: { ...fogUniforms(), uNoise: { value: noiseTexture }, uTime: { value: 0 }, uFall: { value: new THREE.Vector3(fall ? fall.x : p.x, 0, fall ? fall.z : p.z) } },
+      vertexShader: poolVertex, fragmentShader: poolFragment, transparent: true, depthWrite: false, fog: true,
+    })
+    const mesh = new THREE.Mesh(new THREE.CircleGeometry(1, 40).rotateX(-Math.PI / 2), mat)
+    mesh.name = 'kolam-gua'
+    mesh.scale.set(p.rx, 1, p.rz)
+    mesh.position.set(p.x, p.y, p.z)
+    mesh.renderOrder = 3
+    group.add(mesh)
+    timed.push(mat)
+  }
+  for (const b of plan.shafts) {
+    const geo = new THREE.CylinderGeometry(b.r * 0.55, b.r, b.h, 18, 1, true).translate(0, b.h / 2, 0)
+    const mat = new THREE.ShaderMaterial({
+      uniforms: { uTime: { value: 0 } }, vertexShader: shaftVertex, fragmentShader: shaftFragment,
+      transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide,
+    })
+    const mesh = new THREE.Mesh(geo, mat)
+    mesh.name = 'berkas-cahaya'
+    mesh.position.set(b.x, b.y, b.z)
+    mesh.rotation.set(0, b.rot, b.tilt, 'YXZ')
+    mesh.renderOrder = 6
+    group.add(mesh)
+    timed.push(mat)
+  }
+  // hanya digambar bila kamera dekat (di dalam gunung tidak terlihat dari luar)
+  const center = new THREE.Vector3()
+  if (plan.pools.length) center.set(plan.pools[0].x, plan.pools[0].y, plan.pools[0].z)
+  let time = 0
+  return {
+    object: group,
+    update(dt, camera) {
+      group.visible = plan.pools.length > 0 && camera.position.distanceTo(center) < 140
+      if (!group.visible) return
+      time += dt
+      for (const m of timed) m.uniforms.uTime.value = time
+      for (const m of mists) {
+        const k = (time * 0.35 + m.phase) % 1
+        const { f } = m
+        const s = Math.sin(f.rot)
+        const c = Math.cos(f.rot)
+        const off = m.side * f.w * 0.3
+        m.sp.position.set(f.x + c * off + s * (1.2 + k * 1.5), f.y + 0.4 + k * 3.2, f.z - s * off + c * (1.2 + k * 1.5))
+        m.sp.scale.setScalar(2.2 + k * 4.5)
+        m.sp.material.opacity = 0.42 * Math.sin(Math.PI * k)
+      }
+    },
   }
 }
 
@@ -272,6 +457,8 @@ export function createFrostfall({ ground, plan, mask, grid, quality, noiseTextur
   // ------------------------------------------------------------------- gua
   const cave = createCave({ ground, terrainMaterial, noiseTexture, shadows })
   group.add(cave.object)
+  const water = createWaterFx(plan, noiseTexture)
+  group.add(water.object)
 
   // ------------------------------------------------------------------- pinus, batu, gelondong
   const d = quality.treeDensity
@@ -384,6 +571,13 @@ export function createFrostfall({ ground, plan, mask, grid, quality, noiseTextur
     trapdoor: plan.trapdoor,
     chest: plan.chest,
     chests: plan.chests,
+    waterfalls: plan.waterfalls,
+    pools: plan.pools,
+    konsep: plan.konsep ?? null,
+    // kolam gua di (x, z) (permukaan air di atas dasar kolam), atau null
+    poolAt(x, z) {
+      return plan.pools.find(p => Math.hypot((x - p.x) / p.rx, (z - p.z) / p.rz) < 1) ?? null
+    },
     get trapdoorOpen() {
       return slabTarget === 1
     },
@@ -396,6 +590,7 @@ export function createFrostfall({ ground, plan, mask, grid, quality, noiseTextur
       if (l) l.target = 1
     },
     update(dt, camera) {
+      water.update(dt, camera)
       pineGroup.userData.update(camera, quality.level === 'tinggi' ? 230 : quality.level === 'sedang' ? 150 : 100)
       rockGroup.userData.update(camera, Infinity)
       logGroup.userData.update(camera, Infinity)

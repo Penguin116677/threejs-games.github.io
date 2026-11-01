@@ -24,14 +24,15 @@ export function createRipples() {
 
   return {
     object: group,
-    // riak baru di (x, z); size = jari-jari akhir (m), strength = kecerahan awal 0..1
-    spawn(x, z, size = 1.4, strength = 0.55) {
+    // riak baru di (x, z); size = jari-jari akhir (m), strength = kecerahan awal 0..1, y = permukaan air
+    // (bawaan: laut; kolam di dalam gua lebih tinggi)
+    spawn(x, z, size = 1.4, strength = 0.55, y = ISLAND.seaLevel) {
       const r = rings[next]
       next = (next + 1) % POOL
       r.t = 0
       r.size = size
       r.strength = strength
-      r.mesh.position.set(x, ISLAND.seaLevel + 0.03, z)
+      r.mesh.position.set(x, y + 0.03, z)
       r.mesh.visible = true
     },
     update(dt) {
