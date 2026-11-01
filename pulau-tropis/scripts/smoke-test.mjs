@@ -1597,6 +1597,124 @@ for (const [name, opts, query] of cases) {
       else ok(`Aula Gletser (konsep): naik tanjakan ke puncak tebing bersalju (y ${b.y} m); air terjun mengalir + kolam + berkas cahaya bergerak (waktu shader ${a.t} → ${b.t} s); ${lk} lengkung es; kabut biru kehijauan ${b.fog.join('/')}`)
     }
 
+    // ===== Penduduk Frostfall (v0.22.0): 300 orang dalam 59 keluarga; jam Frostfall (malam tidur di
+    // rumah, siang berkegiatan); pemburu berangkat → mengintai → memanah → memikul rusa pulang; nelayan
+    // memancing; pesta api unggun malam di alun-alun Emberwick; mengobrol (nama, keluarga, jam, kata asing
+    // ditanyakan balik lalu diingat)
+    if (await page.evaluate(() => !!window.__pulau.warga)) {
+      const wst = await page.evaluate(() => {
+        const w = window.__pulau.warga
+        const fam = new Set(w.agents.map(a => a.o.keluarga))
+        const homes = new Set(w.agents.map(a => a.o.rumah))
+        w.setTime(2.5)
+        w.skip(20, 0.25)
+        const night = w.stats()
+        w.setTime(10)
+        w.skip(90, 0.25)
+        const day = w.stats()
+        return { n: w.agents.length, fam: fam.size, homes: homes.size, night: { rumah: night.diRumah, tidur: night.kegiatan.tidur || 0 }, day: { luar: day.diLuar, keg: Object.keys(day.kegiatan).length, jam: day.jam } }
+      })
+      if (wst.n !== 300 || wst.fam !== 59 || wst.homes !== 59 || wst.night.rumah < 285 || wst.day.luar < 200 || wst.day.keg < 8) fail(`penduduk Frostfall: ${JSON.stringify(wst)}`)
+      else ok(`penduduk Frostfall: ${wst.n} orang, ${wst.fam} keluarga di ${wst.homes} rumah; jam 02.30 → ${wst.night.rumah} di rumah (${wst.night.tidur} tidur); jam ${wst.day.jam} → ${wst.day.luar} di luar, ${wst.day.keg} macam kegiatan`)
+
+      // perburuan & penangkapan ikan (simulasi dipercepat; paling lama dua hari Frostfall)
+      const hunt = await page.evaluate(() => {
+        const w = window.__pulau.warga
+        w.setTime(7.4)
+        const seen = new Set()
+        let fishing = 0
+        for (let i = 0; i < 1300; i++) {
+          w.skip(2, 0.25)
+          for (const p of w.perburuan) if (p.stage !== 'selesai') seen.add(p.stage)
+          fishing = Math.max(fishing, w.agents.filter(a => a.act === 'mancing' || a.act === 'mancingEs').length)
+          if (w.stats().buru.rusa > 0 && !w.perburuan.some(p => p.stage !== 'selesai')) break
+        }
+        const st = w.stats()
+        return { seen: [...seen], rusa: st.buru.rusa, ikan: st.ikan.nelayan + st.ikan.desa, fishing, jam: st.jam, hari: st.hari, simpan: st.rusa.hilang || 0 }
+      })
+      if (hunt.rusa < 1 || !['kumpul', 'berangkat', 'intai', 'ambil', 'pulang'].every(s => hunt.seen.includes(s)) || hunt.fishing < 5 || hunt.ikan < 1) fail(`perburuan & ikan: ${JSON.stringify(hunt)}`)
+      else ok(`pemburu Rusa Putih: ${hunt.seen.join(' → ')} — ${hunt.rusa} rusa dipikul ke pondok pengasapan (hari ${hunt.hari} jam ${hunt.jam}); ${hunt.fishing} orang memancing sekaligus, ${hunt.ikan} ikan ditangkap`)
+
+      // pesta api unggun malam di alun-alun Emberwick (malam: langit & cahaya menggelap)
+      await page.evaluate(() => {
+        const w = window.__pulau.warga
+        w.setTime(19.9)
+        w.skip(30, 0.25)
+      })
+      await placeAndLook(694, -31, 686, -47)
+      await page.evaluate(() => {
+        window.__pulau.cam.state.dist = 11
+      })
+      await waitFrames(page, 90)
+      const party = await page.evaluate(() => {
+        const w = window.__pulau.warga
+        const e = w.acara.find(x => x.jenis === 'pesta')
+        const st = w.stats()
+        return { jam: st.jam, peserta: e ? e.peserta.size : 0, menari: st.kegiatan.menari || 0, musik: st.kegiatan.musik || 0, malam: +window.__pulau.weather.state.night.toFixed(2), hemi: +window.__pulau.env.hemi.intensity.toFixed(2) }
+      })
+      await page.screenshot({ path: `${out}/${name}-pesta-salju.png` })
+      if (party.peserta < 15 || party.menari < 3 || party.malam < 0.6 || party.hemi > 0.9) fail(`pesta api unggun: ${JSON.stringify(party)}`)
+      else ok(`pesta api unggun Emberwick jam ${party.jam}: ${party.peserta} orang datang, ${party.menari} menari, ${party.musik} memainkan kecapi; malam ${party.malam} (cahaya langit ${party.hemi})`)
+
+      // mengobrol dengan penduduk (G): nama, keluarga, jam, kata asing → ditanyakan balik → diingat
+      await page.evaluate(() => {
+        const w = window.__pulau.warga
+        w.setTime(10.5)
+        w.skip(60, 0.25)
+      })
+      const target = await page.evaluate(() => {
+        const { warga, player, cam } = window.__pulau
+        const a = warga.around(694, -42, 60).find(k => !k.hidden && !k.party && k.act !== 'jalan' && k.o.umur >= 18 && k.act !== 'menari')
+          || warga.around(694, -42, 90).find(k => !k.hidden && !k.party && k.o.umur >= 18)
+        if (!a) return null
+        const x = a.x + 1.4
+        const z = a.z + 1.0
+        const h = Math.atan2(a.x - x, a.z - z)
+        player.placeAt(x, z, h)
+        player.stop()
+        cam.lookFrom(h + Math.PI)
+        const d = warga.describe(a)
+        return { id: a.id, nama: d.nama, keluarga: d.anggota.map(m => m.nama) }
+      })
+      await waitFrames(page, 10)
+      await page.keyboard.press('KeyG')
+      await waitFrames(page, 3)
+      const opened = await page.evaluate(() => ({ panel: !document.getElementById('obrolan').hidden, cur: window.__pulau.chat.current }))
+      // yang benar-benar diajak bicara (G memilih penduduk terdekat)
+      const who = await page.evaluate(() => {
+        const c = window.__pulau.chat.current
+        if (!c || c.kind !== 'utara') return null
+        const { warga } = window.__pulau
+        const d = warga.describe(warga.agents[Number(c.id.slice(1))])
+        return { id: Number(c.id.slice(1)), nama: d.nama, keluarga: d.anggota.map(m => m.nama) }
+      })
+      const ask = async q => {
+        await page.evaluate(() => {
+          window.__n0 = document.querySelectorAll('#obrolan-log .ob-baris.npc:not(.mengetik)').length
+        })
+        await page.fill('#obrolan-teks', q)
+        await page.press('#obrolan-teks', 'Enter')
+        return waitUntil(page, () => {
+          const l = [...document.querySelectorAll('#obrolan-log .ob-baris.npc:not(.mengetik)')]
+          return l.length > window.__n0 && l[l.length - 1].textContent
+        }, 160, 3)
+      }
+      const r1 = await ask('siapa namamu?')
+      const r2 = await ask('ceritakan keluargamu')
+      const r3 = await ask('jam berapa sekarang?')
+      const r4 = await ask('xylofon')
+      const r5 = await ask('alat musik yang dipukul pakai stik')
+      const r6 = await ask('kamu tahu xylofon?')
+      await page.screenshot({ path: `${out}/${name}-obrolan-salju.png` })
+      await page.press('#obrolan-teks', 'Escape')
+      await waitFrames(page, 3)
+      const closed = await page.evaluate(id => ({ panel: document.getElementById('obrolan').hidden, act: window.__pulau.warga.agents[id].act, talk: window.__pulau.warga.agents[id].talk }), who ? who.id : 0)
+      const famOk = !who || !who.keluarga.length || who.keluarga.some(n => (r2 || '').includes(n))
+      if (!target || !who || !opened.panel || opened.cur?.kind !== 'utara' || !(r1 || '').includes(who.nama) || !famOk || !/jam \d\d\.\d\d/.test(r3 || '') || !/xylofon/i.test(r4 || '') || !/xylofon itu alat musik/i.test(r5 || '') || !/alat musik/.test(r6 || '') || !closed.panel || closed.talk)
+        fail(`obrolan penduduk Frostfall: ${JSON.stringify({ target, who, opened, r1, r2, r3, r4, r5, r6, closed })}`)
+      else ok(`obrolan dengan ${who.nama} (G): nama → "${r1}"; keluarga → "${r2.slice(0, 90)}…"; jam → "${r3.slice(0, 40)}…"; "xylofon" ditanyakan balik lalu diingat → "${r6}"; Escape menutup, ia kembali berkegiatan`)
+    }
+
     // peti harta di Ruang Harta: sekali saja, +150 koin
     const chest = await page.evaluate(() => window.__pulau.frost.chest)
     await placeAndLook(chest.x + 1.8, chest.z + 1.2, chest.x, chest.z)
