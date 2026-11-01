@@ -28,14 +28,17 @@ import { createRecruits } from './world/kencana/rekrut.js'
 import { createPatrolBoats } from './world/kencana/perahu-patroli.js'
 import { planAeloria } from './world/aeloria/plan.js'
 import { createAeloria } from './world/aeloria/kingdom.js'
-import { createElfFolk } from './world/aeloria/elf.js'
+import { createElfFolk, UTARA_RUPA } from './world/aeloria/elf.js'
 import { createLife, ELF_CAPS } from './world/aeloria/kehidupan.js'
 import { createElfSecurity } from './world/aeloria/keamanan.js'
 import { planFrostfall } from './world/frostfall/plan.js'
 import { createFrostMask } from './world/frostfall/mask.js'
 import { createFrostfall } from './world/frostfall/kingdom.js'
 import { createWeather } from './world/frostfall/cuaca.js'
+import { createWarga, WARGA_CAPS } from './world/frostfall/warga.js'
+import { createReindeer } from './world/frostfall/rusa.js'
 import { setCaveGrid, caveAt } from './world/frostfall/height.js'
+import { VILLAGE as FROST_VILLAGE, CASTLE as FROST_CASTLE, HIGH_VALLEY, WATERFALL as FROST_WATERFALL, CAVES as FROST_CAVES_ALL, HAMLETS, HERDS } from './world/frostfall/layout.js'
 import { createWorldMap, createRegionBanner } from './ui/peta.js'
 import { createBubbles, createHealthBar } from './ui/tanya.js'
 import { createShop } from './ui/toko.js'
@@ -308,6 +311,21 @@ async function start() {
     } catch (err) {
       console.warn('Rakyat Aeloria gagal dibuat:', err)
     }
+  // penduduk Frostfall (v0.22.0): ±300 orang Utara yang hidup menurut jam Frostfall (rumah, kerja,
+  // acara, tidur) + kawanan rusa kutub di hutan; rangka & cara gambar sama dengan elf (rupa lain)
+  setStatus('Membangunkan penduduk Frostfall…')
+  await nextFrame()
+  let warga = null
+  if (rigGltf)
+    try {
+      const wargaFolk = createElfFolk({ rigGltf, quality, caps: WARGA_CAPS[quality.level] ?? WARGA_CAPS.sedang, rupa: UTARA_RUPA })
+      scene.add(wargaFolk.object)
+      const rusa = createReindeer({ ground })
+      scene.add(rusa.object)
+      warga = createWarga({ ground, plan: frostPlan, folk: wargaFolk, rusa, quality, colliders: frost.colliders })
+    } catch (err) {
+      console.warn('Penduduk Frostfall gagal dibuat:', err)
+    }
   // bala tentara di Tegal Wira (Pulau Wira): rangka prajurit (kuda & senjata dibuat di kode)
   setStatus('Membariskan 25.000 prajurit…')
   await nextFrame()
@@ -519,8 +537,28 @@ async function start() {
     place('Dermaga Barat', ['dermaga barat'], dockBarat.base),
     place('Dermaga Utara', ['dermaga utara'], dockUtara.base),
   ]
+  // Frostfall (v0.22.0): penduduk tahu desa, kampung, kastel, gua, hutan perburuan
+  const frostDock = frostPlan.docks.find(d => d.id === 'frostfall')
+  const kedaiFrost = frostPlan.warga.tables.find(t => t.id === 'kedai')
+  const PLACES_FROST = [
+    place('Desa Emberwick', ['emberwick', 'desa emberwick', 'desa'], mid(FROST_VILLAGE)),
+    place('alun-alun Emberwick', ['alun alun', 'alun', 'api unggun', 'pesta'], { x: 694, z: -42 }),
+    place('pasar Emberwick', ['pasar', 'kios'], { x: 694, z: -42 }, 'Pedagangnya hanya melayani warga desa.'),
+    place('kedai panjang Emberwick', ['kedai', 'kedai panjang', 'balai desa', 'warung'], kedaiFrost),
+    place('menara jaga', ['menara', 'menara jaga'], { x: 752, z: -90 }),
+    ...HAMLETS.map(h => place(h.name, [h.short.toLowerCase(), h.name.toLowerCase(), h.id === 'nelayan' ? 'kampung nelayan' : 'kampung pemburu'], { x: (h.x0 + h.x1) / 2, z: (h.z0 + h.z1) / 2 })),
+    place('Kastel Frostfall', ['kastel', 'istana', 'kastil'], mid(FROST_CASTLE), 'Kastel itu sudah lama kosong.'),
+    place('Lembah Atas', ['lembah atas', 'lembah'], mid(HIGH_VALLEY)),
+    place('Air Terjun Beku', ['air terjun', 'air terjun beku'], FROST_WATERFALL),
+    place('Hutan Pinus Salju', ['hutan', 'hutan pinus', 'tempat berburu', 'rusa'], { x: HERDS[1].x, z: HERDS[1].z }, 'Kawanan rusa kutub merumput di padang-padang di dalamnya.'),
+    place('Dermaga Frostfall', ['dermaga', 'dermaga frostfall', 'pelabuhan'], frostDock ? frostDock.base : { x: 470, z: 30 }),
+    ...FROST_CAVES_ALL.map(c => {
+      const m = c.mouths[0] || c.route[0]
+      return place(c.name, [c.short.toLowerCase(), c.name.toLowerCase(), ...(c.id === 'kristal' ? ['gua es', 'gua'] : [])], m, 'Bawa nyali — di dalamnya gelap.')
+    }),
+  ]
   function placesFor(npc) {
-    const list = [...(npc.bangsa === 'elf' ? PLACES_ELF : PLACES_KENCANA), ...PLACES_UMUM]
+    const list = [...(npc.bangsa === 'elf' ? PLACES_ELF : npc.bangsa === 'utara' ? PLACES_FROST : PLACES_KENCANA), ...PLACES_UMUM]
     if (boat.built) list.push(place('perahumu', ['perahuku', 'perahu saya', 'perahu aku', 'perahumu'], boat.position))
     const camp = enemies?.camps.slice().sort((a, b) => Math.hypot(a.x - npc.x, a.z - npc.z) - Math.hypot(b.x - npc.x, b.z - npc.z))[0]
     if (camp) list.push(place('perkemahan orc terdekat', ['orc', 'perkemahan orc', 'kemah orc', 'sarang orc'], camp, 'Hati-hati, orc di sana banyak!'))
@@ -538,7 +576,7 @@ async function start() {
     return false
   }
   const chat = createChat({
-    life, villagers, player, cam, camera, input, bag, shop, bubbles, places: placesFor, seberang,
+    life, villagers, warga, player, cam, camera, input, bag, shop, bubbles, places: placesFor, seberang,
     wantedByElves: () => !!elfSec?.wanted, feast: () => !!life?.feast, boatBuilt: () => boat.built,
   })
   // yang diikuti kamera (posisinya saja — arah kamera hanya diputar pemain): kepala pemain (lebih
@@ -869,6 +907,8 @@ async function start() {
 
   // gelembung ucapan, nyawa pemain
   life?.setBubbles(bubbles)
+  warga?.setBubbles(bubbles)
+  warga?.setPlayer(player)
   const health = createHealthBar($('nyawa'), $('luka'))
   // pendatang: turun dari kapal penyeberangan di ujung Dermaga Timur, ditanyai penjaga di luar
   // gapuranya, lalu ke pasar
@@ -1112,6 +1152,7 @@ async function start() {
       soldiers?.pushOut(player.position)
       patrol?.pushOut(player.position)
       life?.pushOut(player.position)
+      warga?.pushOut(player.position)
       if (!player.hasPath) markers.hideTarget()
       cam.update(dt, camTarget, inp)
       if (!hintGone && (player.speed > 0.5 || (hintTime += dt) > 15)) hideHint()
@@ -1138,6 +1179,7 @@ async function start() {
     villagers?.update(dt, camera, mode === 'main' ? player.position : controls.target, player.position, mode === 'main' ? 110 : 260)
     army?.update(dt, camera, mode === 'main' ? player.position : controls.target)
     life?.update(dt, camera, mode === 'main' ? player.position : controls.target, mode === 'main' ? 110 : 260)
+    warga?.update(dt, camera, mode === 'main' ? player.position : controls.target, mode === 'main' ? 150 : 300)
     elfSec?.update(dt)
     security?.update(dt)
     recruits?.update(dt)
@@ -1175,7 +1217,7 @@ async function start() {
         poolRippleT = 0.32
         ripples.spawn(fp.x, fp.z, 1.3, 0.5, pool.y)
       }
-      weather.update(dt, t, { target: fp, inCave: caveK, covered, caveTone, indoorK: roomAt(fp.x, fp.z, fp.y) ? 1 : 0, far: mode === 'main' ? camera.far : null, camera })
+      weather.update(dt, t, { target: fp, inCave: caveK, covered, caveTone, indoorK: roomAt(fp.x, fp.z, fp.y) ? 1 : 0, far: mode === 'main' ? camera.far : null, camera, night: warga ? warga.malam : 0 })
       frost.update(dt, camera)
     }
     env.update(t, camera, mode === 'main' ? player.position : controls.target)
@@ -1214,7 +1256,7 @@ async function start() {
   // akses untuk debugging / pengujian otomatis
   window.__pulau = {
     renderer, scene, camera, controls, ground, shore, quality, trees, rocks, grass, water, env, kencana, region, plan, villagers, army, worldMap, banner, aeloria, elfPlan, elfMask, life,
-    frost, frostPlan, frostMask, weather, openSecret, openChest,
+    frost, frostPlan, frostMask, weather, openSecret, openChest, warga,
     player, cam, input, colliders, nav, markers, effects, enemies, soldiers, security, patrol, recruits, bubbles, pickGround, setMode, getMode: () => mode, bag, gear, shop, elfSec, elfCard,
     boat, fishing, ripples, recipes, craftBoat, boardBoat, leaveBoat, chat, placesFor,
     frames: () => frameCount, debug,

@@ -4,7 +4,7 @@ import { TOWER } from './buildings.js'
 import { cavePassage, caveFloorIn, frostSurface, CAVE_SYSTEMS } from './height.js'
 import {
   VILLAGE, SQUARE, CASTLE, CASTLE_YARD, HALL, THRONE, TRAPDOOR, CAVE, LAKE, TREASURE, CAVE_MOUTH, WATERFALL, RIVER, ROADS, TRAILS,
-  GORGE, BRIDGES, DOCKS, CAMPS, HIGH_VALLEY, CAVES, HAMLETS, PIER, polyInfo,
+  GORGE, BRIDGES, DOCKS, CAMPS, HIGH_VALLEY, CAVES, HAMLETS, PIER, HERDS, polyInfo,
 } from './layout.js'
 
 // Rencana rinci Kerajaan Frostfall: letak setiap bangunan, penghalang (sebagian berbatas tinggi:
@@ -1049,8 +1049,16 @@ export function planFrostfall(ground) {
       spot('mancing', 'nelayan', x, PIER.z - PIER.w / 2 + 0.45, FACE.utara, { y: PIER.deck })
       spot('mancing', 'nelayan', x, PIER.z + PIER.w / 2 - 0.45, FACE.selatan, { y: PIER.deck })
     }
+    // sisi Dermaga Frostfall (di selatan kampung): nelayan memancing dari kedua sisinya
+    const df = docks.find(d => d.id === 'frostfall')
+    if (df)
+      for (const t of [0.25, 0.55, 0.85]) {
+        const x = df.s0 + (df.s1 - df.s0) * t
+        spot('mancing', 'nelayan', x, df.at - df.width / 2 + 0.45, FACE.utara, { y: 1.75 })
+        spot('mancing', 'nelayan', x, df.at + df.width / 2 - 0.45, FACE.selatan, { y: 1.75 })
+      }
     // tepi air di pantai (menghadap barat)
-    for (const z of [-88, -76, -42, -30]) {
+    for (const z of [-98, -88, -76, -64, -42, -30, -18]) {
       let x = 446
       while (x > 430 && yAt(x - 1, z) > 0.12) x -= 0.5
       spot('mancing', 'nelayan', x, z, FACE.barat)
@@ -1097,6 +1105,8 @@ export function planFrostfall(ground) {
     if (x > VILLAGE.x0 - 8 - r && x < VILLAGE.x1 + 8 + r && z > VILLAGE.z0 - 8 - r && z < VILLAGE.z1 + 8 + r) return true
     for (const k of HAMLETS) if (x > k.x0 - 12 - r && x < k.x1 + 12 + r && z > k.z0 - 12 - r && z < k.z1 + 12 + r) return true
     if (x > 440 - r && x < 470 + r && z > -100 - r && z < -15 + r) return true
+    // padang rumput salju tempat kawanan rusa kutub merumput
+    for (const h of HERDS) if (Math.hypot(x - h.x, z - h.z) < 24 + r) return true
     if (x > CASTLE.x0 - 10 - r && x < CASTLE.x1 + 10 + r && z > CASTLE.z0 - 10 - r && z < CASTLE.z1 + 10 + r) return true
     if (x > CASTLE_YARD.x0 - 6 - r && x < CASTLE_YARD.x1 + r && z > CASTLE_YARD.z0 - 6 - r && z < CASTLE_YARD.z1 + 6 + r) return true
     if (Math.hypot(x - CAVE_MOUTH.x, z - CAVE_MOUTH.z + 6) < 16 + r) return true

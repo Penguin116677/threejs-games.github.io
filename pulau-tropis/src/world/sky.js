@@ -16,6 +16,8 @@ uniform vec3 uZenith;
 uniform vec3 uHorizon;
 uniform vec3 uSunDir;
 uniform vec3 uSunColor;
+uniform vec3 uCloud;
+uniform float uSunGlow;
 uniform sampler2D uNoise;
 uniform float uTime;
 varying vec3 vDir;
@@ -24,7 +26,7 @@ void main() {
   float up = max(d.y, 0.0);
   vec3 col = mix(uHorizon, uZenith, pow(up, 0.5));
   float s = max(dot(d, uSunDir), 0.0);
-  col += uSunColor * (pow(s, 12.0) * 0.22 + pow(s, 120.0) * 0.4);
+  col += uSunColor * (pow(s, 12.0) * 0.22 + pow(s, 120.0) * 0.4) * uSunGlow;
 
   // awan: diproyeksikan ke "langit-langit" datar, bergerak pelan
   if (d.y > 0.0) {
@@ -34,11 +36,12 @@ void main() {
       + texture2D(uNoise, uv * 7.3 + 0.67).r * 0.1;
     float cover = smoothstep(0.5, 0.74, n) * smoothstep(0.0, 0.16, d.y);
     vec3 cloud = mix(vec3(0.72, 0.78, 0.86), vec3(1.0), smoothstep(0.5, 0.82, n));
-    cloud += uSunColor * pow(s, 6.0) * 0.25; // tepi awan bercahaya ke arah matahari
+    cloud *= uCloud; // malam Frostfall: awan kelabu kebiruan
+    cloud += uSunColor * pow(s, 6.0) * 0.25 * uSunGlow; // tepi awan bercahaya ke arah matahari
     col = mix(col, cloud, cover * 0.92);
   }
   // cakram matahari (di atas awan tipis)
-  col += uSunColor * pow(s, 1800.0) * 4.0;
+  col += uSunColor * pow(s, 1800.0) * 4.0 * uSunGlow;
   // di bawah cakrawala: warna kabut (menyatu dengan laut di kejauhan)
   col = mix(col, uHorizon, smoothstep(0.0, -0.05, d.y));
   gl_FragColor = vec4(col, 1.0);
@@ -60,6 +63,8 @@ export function createEnvironment(scene, { noiseTexture, quality }) {
     uHorizon: { value: horizon },
     uSunDir: { value: sunDir },
     uSunColor: { value: new THREE.Color('#fff0c8') },
+    uCloud: { value: new THREE.Color(1, 1, 1) },
+    uSunGlow: { value: 1 },
     uNoise: { value: noiseTexture },
     uTime: { value: 0 },
   }
@@ -136,6 +141,14 @@ export function createEnvironment(scene, { noiseTexture, quality }) {
     fog: scene.fog,
     sun,
     hemi,
+    // warna awan & terang cahaya matahari di langit (malam Frostfall: cuaca.js)
+    cloud: skyUniforms.uCloud.value,
+    get sunGlow() {
+      return skyUniforms.uSunGlow.value
+    },
+    set sunGlow(v) {
+      skyUniforms.uSunGlow.value = v
+    },
     update(time, camera, target) {
       skyUniforms.uTime.value = time
       updateShadow(camera, target)

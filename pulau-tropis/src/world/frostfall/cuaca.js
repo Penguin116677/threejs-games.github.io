@@ -164,6 +164,19 @@ export function createWeather({ scene, env, quality, water, smoke = [], lights =
     sun: new THREE.Color('#ffe6c8'),
     sunI: 1.95,
   }
+  // malam di Frostfall (v0.22.0, jam warga.js): langit & kabut biru tua, cahaya bulan kebiruan redup —
+  // jendela rumah, api unggun, dan lentera tetap menyala hangat
+  const night = {
+    fog: new THREE.Color('#1c2740'),
+    horizon: new THREE.Color('#25324f'),
+    zenith: new THREE.Color('#0a1226'),
+    hemiSky: new THREE.Color('#6a7fae'),
+    hemiGround: new THREE.Color('#1f2638'),
+    hemiI: 0.62,
+    sun: new THREE.Color('#9fb4ff'),
+    sunI: 0.42,
+    cloud: new THREE.Color('#3b4868'),
+  }
   const cave = { fog: new THREE.Color('#0d1a2b'), hemiSky: new THREE.Color('#5d86b8'), hemiGround: new THREE.Color('#1d3350'), hemiI: 0.42, sunI: 0.12 }
   // suasana gua (CAVES[].suasana: kabut, langit, tanah, terang); bawaan = biru gelap di atas. Warna gua
   // berbaur ke suasana gua tempat pemain berada (±1 detik)
@@ -171,7 +184,7 @@ export function createWeather({ scene, env, quality, water, smoke = [], lights =
   const toneTarget = { fog: new THREE.Color(), hemiSky: new THREE.Color(), hemiGround: new THREE.Color(), hemiI: cave.hemiI }
   let tone = undefined
   const indoor = { hemiI: 1.0, sunI: 0.5, hemiSky: new THREE.Color('#f0dcc4'), hemiGround: new THREE.Color('#6a5644') }
-  const state = { frost: 0, cave: 0, covered: 0, indoor: 0 }
+  const state = { frost: 0, cave: 0, covered: 0, indoor: 0, night: 0 }
   const approach = (cur, target, rate, dt) => cur + (target - cur) * (1 - Math.exp(-rate * dt))
 
   // seberapa "dingin" titik (x, z): 0 di Pulau Tropis, 1 di Frostfall (memudar di selat)
@@ -190,7 +203,7 @@ export function createWeather({ scene, env, quality, water, smoke = [], lights =
     // target: { x, y, z } posisi pemain; inCave: 0..1 (kegelapan gua), covered: 0/1 (di bawah atap gua:
     // tanpa salju & sinar matahari — tambang yang diterangi lentera tidak gelap, tapi tetap beratap);
     // indoorK: 0..1 (di dalam aula / kedai); far: jarak pandang kamera; camera: kamera
-    update(dt, time, { target, inCave, covered = 0, caveTone = null, indoorK, far, camera }) {
+    update(dt, time, { target, inCave, covered = 0, caveTone = null, indoorK, far, camera, night: nightK = 0 }) {
       if (caveTone !== tone) {
         tone = caveTone
         toneTarget.fog.set(tone ? tone.kabut : caveBase.fog)
@@ -207,13 +220,20 @@ export function createWeather({ scene, env, quality, water, smoke = [], lights =
       state.cave = approach(state.cave, inCave, 2.2, dt)
       state.covered = approach(state.covered, covered, 2.2, dt)
       state.indoor = approach(state.indoor, indoorK, 3, dt)
+      state.night = approach(state.night, nightK, 0.8, dt)
       const f = state.frost
+      // malam hanya di Frostfall (memudar di selat bersama dinginnya)
+      const nk = state.night * f
       const c = state.cave
       const ind = state.indoor
       // kabut & langit
-      env.fog.color.copy(base.fog).lerp(cold.fog, f).lerp(cave.fog, c)
-      env.horizon.copy(base.horizon).lerp(cold.horizon, f).lerp(cave.fog, c)
-      env.zenith.copy(base.zenith).lerp(cold.zenith, f).lerp(cave.fog, c)
+      env.fog.color.copy(base.fog).lerp(cold.fog, f).lerp(night.fog, nk).lerp(cave.fog, c)
+      env.horizon.copy(base.horizon).lerp(cold.horizon, f).lerp(night.horizon, nk).lerp(cave.fog, c)
+      env.zenith.copy(base.zenith).lerp(cold.zenith, f).lerp(night.zenith, nk).lerp(cave.fog, c)
+      if (env.cloud) {
+        env.cloud.setRGB(1, 1, 1).lerp(night.cloud, nk)
+        env.sunGlow = 1 - 0.85 * nk
+      }
       if (scene.background?.isColor) scene.background.copy(env.horizon)
       const near = far * (0.3 - 0.16 * f)
       const farF = far * (0.95 - 0.22 * f)
@@ -225,13 +245,15 @@ export function createWeather({ scene, env, quality, water, smoke = [], lights =
         u.uFogFar.value = 2400 + (env.fog.far - 2400) * Math.max(f, c)
       }
       // cahaya
-      env.hemi.color.copy(base.hemiSky).lerp(cold.hemiSky, f).lerp(indoor.hemiSky, ind * 0.5).lerp(cave.hemiSky, c)
-      env.hemi.groundColor.copy(base.hemiGround).lerp(cold.hemiGround, f).lerp(indoor.hemiGround, ind * 0.5).lerp(cave.hemiGround, c)
+      env.hemi.color.copy(base.hemiSky).lerp(cold.hemiSky, f).lerp(night.hemiSky, nk).lerp(indoor.hemiSky, ind * 0.5).lerp(cave.hemiSky, c)
+      env.hemi.groundColor.copy(base.hemiGround).lerp(cold.hemiGround, f).lerp(night.hemiGround, nk).lerp(indoor.hemiGround, ind * 0.5).lerp(cave.hemiGround, c)
       let hemiI = base.hemiI + (cold.hemiI - base.hemiI) * f
+      hemiI += (night.hemiI - hemiI) * nk
       hemiI += (indoor.hemiI - hemiI) * ind
       env.hemi.intensity = hemiI + (cave.hemiI - hemiI) * c
-      env.sun.color.copy(base.sun).lerp(cold.sun, f)
+      env.sun.color.copy(base.sun).lerp(cold.sun, f).lerp(night.sun, nk)
       let sunI = base.sunI + (cold.sunI - base.sunI) * f
+      sunI += (night.sunI - sunI) * nk
       sunI += (indoor.sunI - sunI) * ind
       env.sun.intensity = sunI + (cave.sunI - sunI) * Math.max(c, 0.75 * state.covered)
       // salju turun (tidak di dalam gua / ruangan)
