@@ -1,9 +1,9 @@
 # PROJECT_STATUS — Pulau Tropis
 
-**Milestone aktif:** 3 — Pembangunan dunia (v0.20.0: **lima gua besar** di Frostfall — Tambang Tua Emberwick, Gua Gletser Utara, Katedral Taring, Gua Laut Beku, Gua Seribu Tiang — masing-masing dengan peti harta; atap gua kini bisa diinjak; v0.19.0: wilayah baru Kerajaan Frostfall — menunggu umpan balik dari HP).
+**Milestone aktif:** 3 — Pembangunan dunia (v0.21.0: **Aula Gletser** dibangun ulang dari gambar konsep pengguna — air terjun mengalir ke kolam, lengkung es, tebing bersalju, suasana biru kehijauan; v0.20.0: **lima gua besar** di Frostfall — Tambang Tua Emberwick, Gua Gletser Utara, Katedral Taring, Gua Laut Beku, Gua Seribu Tiang — masing-masing dengan peti harta; atap gua kini bisa diinjak; v0.19.0: wilayah baru Kerajaan Frostfall — menunggu umpan balik dari HP).
 Pengembangan jurus dihentikan sementara atas permintaan pengguna.
-**Versi:** 0.20.0
-**Terakhir diperbarui:** 2026-10-31
+**Versi:** 0.21.0
+**Terakhir diperbarui:** 2026-11-01
 
 ## Kondisi awal repository (sebelum Milestone 1)
 - Repository `threejs-games.github.io` berisi koleksi contoh Three.js lama (folder `examples/`,
@@ -100,6 +100,41 @@ Sebagian sudah dikerjakan lebih awal (bayangan, tanah per-piksel, awan, kaustik 
 | File model hanya rangka + animasi (unduhan model 892 KB → 108 KB) | ✅ selesai (v0.16.0) |
 | Partikel lanjutan, suara, animasi vegetasi lanjutan, siang–malam | ⏳ belum |
 | Dicoba di HP Android sungguhan | ⏳ menunggu laporan pengguna |
+
+## Yang sudah diperiksa (v0.21.0 — Aula Gletser dari gambar konsep)
+- **Pemeriksaan kode**: ESLint (konfigurasi repo) 0 error / 0 warning pada setiap commit.
+- **Build**: `vite build` berhasil (JS 1,28 MB / 410 KB gzip, +5 KB gzip dari v0.20.0; CSS 16,5 KB).
+- **Pemeriksaan di Node** (fungsi tinggi & mesh tanah yang sebenarnya, ketiga kualitas):
+  - bentuk tanah dibandingkan titik demi titik dengan v0.20.0 (kisi 2,5 m, tiga lebar lorong): di luar gua
+    164.222 titik, 0 berbeda; Katedral Taring, Gua Seribu Tiang, Gua Laut Beku 0 berbeda. Yang berubah hanya
+    Aula Gletser & lorongnya (sisi laut aula ditutup, lorong ke Ruang Air Terjun Beku dilebarkan) dan lereng di
+    atas aula Tambang Tua sisi pantai barat (±70 titik, naik ≤ 4,3 m — atap lebih tebal, lantai sama);
+  - Aula Gletser tidak punya sel terbuka (tanpa atap) selain mulut gua — sebelum perbaikan sisi lautnya
+    terbuka ke langit;
+  - isi konsep di Rendah, Sedang, Tinggi: air terjun setinggi 18 m dari dinding ke kolam, puncak tebing
+    ±11,8 m, kaki tanjakan di lantai aula, 3 lengkung es; bongkah salju 1 (Rendah) / 3 (Sedang, Tinggi);
+  - pencarian jalan dari luar mulut sampai peti di keenam gua tetap tersambung (tiga kualitas), jalan darat ke
+    mulut gua tetap tersambung, setiap peti tetap di lantai datar.
+- **Smoke test otomatis** (versi build, per profil berurutan) — **311 cek lulus, 2 gagal** (v0.20.0: 309
+  cek): HP Rendah 53 (±26 menit), HP mendatar 53 (±48 menit), komputer 96 (±3 j 44 m) — semuanya lulus;
+  HP tegak 109 dari 111. Cek baru di semua profil: **Aula Gletser (konsep)** — naik tanjakan sampai puncak
+  tebing bersalju (y 11,7–11,8 m), air terjun, kolam & berkas cahaya tampil dan waktu shadernya bergerak,
+  3 lengkung es, kabut biru kehijauan; HP Rendah juga berjalan melewati deretan lengkung sampai peti Gletser.
+  - **2 cek lama yang gagal (HP tegak)**: prajurit Kencana terjun & berenang mengejar, dan perahu patroli
+    (v0.17.0). Dalam putaran itu tidak ada prajurit yang terjun, perahu berangkat lebih awal (15 tombak,
+    6 kena) dan pemain tampaknya kalah lalu dibuang ke pantai. Kode Kencana tidak diubah di v0.21.0, dan cek yang sama **lulus di
+    profil komputer** pada putaran yang sama. Diulang sendiri 6 kali (game dimuat ulang tiap kali, HP tegak):
+    **v0.21.0 3/3 lulus, v0.20.0 3/3 lulus**. Dugaan: regu peronda diacak tiap pemuatan dan uji-uji sebelumnya
+    (serbuan orc, pendatang) menggeser prajurit — kadang tidak ada yang cukup dekat untuk terjun. Belum
+    dibuktikan; lihat Masalah yang diketahui.
+- **Uji di browser** (Chromium, render software, layar Pixel 7 tiruan, Sedang): foto aula dari mulut, dari
+  puncak tebing, kolam, deretan lengkung, dan kaki air terjun; aula tertutup (tidak tampak langit / pinus),
+  jurai es tebing menggantung ke bawah; dari laut, sisi aula tampak sebagai tebing pantai; tanpa galat konsol.
+- **Performa & memori** (render software, bukan ukuran HP; tabel di bagian Performa): tempat-tempat lama
+  −10…+12% waktu per bingkai (satu putaran per versi, derau ±10%); **di Aula Gletser +28% (Sedang, 501 →
+  639 ms) dan +37% (Rendah, 235 → 321 ms)** dengan segitiga hampir sama — biayanya dari permukaan tembus
+  pandang (tirai air terjun, kolam, berkas cahaya, kabut percikan) yang menutupi banyak piksel. Masih lebih
+  ringan daripada Aula Tambang (845 ms) dan titik mulai (1.070 ms).
 
 ## Yang sudah diperiksa (v0.20.0 — lima gua besar di Frostfall)
 - **Pemeriksaan kode**: ESLint (konfigurasi repo) 0 error / 0 warning pada setiap commit.
@@ -724,6 +759,10 @@ Sebagian sudah dikerjakan lebih awal (bayangan, tanah per-piksel, awan, kaustik 
   laut dalam → kembali ke pantai + pesan, mendaki lereng (+24 m dalam 120 frame).
 
 ## Yang BELUM diperiksa
+- **Aula Gletser di HP sungguhan** (v0.21.0): FPS di depan air terjun (permukaan tembus pandang: +28–37%
+  waktu per bingkai di render software), apakah suasana biru kehijauan & kabut sudah mirip gambar konsep,
+  apakah tanjakan ke tebing bersalju mudah ditemukan & dinaiki dengan joystick, dan apakah kolam dangkal yang
+  diarungi (tanpa berenang) terasa wajar.
 - **Lima gua baru di HP sungguhan** (v0.20.0): FPS di ruang terbesar (Katedral Taring, Gua Seribu Tiang:
   banyak tiang), apakah gua terlalu gelap, apakah mulut gua mudah ditemukan dari jalan setapak / pantai, dan
   berjalan di atas bukit / gunung yang menaungi gua (atap kini bisa diinjak) dengan joystick.
@@ -808,6 +847,34 @@ Sebagian sudah dikerjakan lebih awal (bayangan, tanah per-piksel, awan, kaustik 
 - Apakah URL hosting (githack / GitHub Pages) terbuka di HP — tidak bisa diakses dari lingkungan pengembangan.
 
 ## Performa (segitiga per frame termasuk bayangan, dari smoke test)
+v0.21.0 (Aula Gletser dari gambar konsep), layar HP tegak (Pixel 7), versi build, render software; v0.20.0
+diukur bergantian di mesin yang sama, satu putaran per versi. Segitiga (ribu) / draw call dan waktu per
+bingkai (ms):
+| Tempat | Sedang v0.20.0 | Sedang v0.21.0 | Rendah v0.20.0 | Rendah v0.21.0 |
+|---|---|---|---|---|
+| Titik mulai | 457 rb / 71 · 1.151 ms | 457 rb / 71 · 1.070 ms (−7%) | 342 rb / 63 · 571 ms | 342 rb / 63 · 553 ms (−3%) |
+| Pasar Kotaraja | 328 rb / 49 · 698 ms | 327 rb / 48 · 656 ms (−6%) | 248 rb / 41 · 316 ms | 250 rb / 42 · 349 ms (+10%) |
+| Depan barisan Tegal Wira | 449 rb / 30 · 1.728 ms | 449 rb / 30 · 1.554 ms (−10%) | 318 rb / 37 · 1.108 ms | 318 rb / 37 · 999 ms (−10%) |
+| Pasar Aeloria | 558 rb / 96 · 918 ms | 557 rb / 96 · 834 ms (−9%) | 480 rb / 96 · 558 ms | 474 rb / 96 · 506 ms (−9%) |
+| Dermaga Fajar, memandang Frostfall | 291 rb / 68 · 773 ms | 291 rb / 68 · 692 ms (−10%) | 207 rb / 54 · 386 ms | 207 rb / 54 · 362 ms (−6%) |
+| Frostfall: Desa Emberwick | 260 rb / 71 · 712 ms | 260 rb / 71 · 675 ms (−5%) | 205 rb / 55 · 327 ms | 205 rb / 55 · 323 ms (−1%) |
+| Frostfall: halaman kastel | 172 rb / 49 · 719 ms | 173 rb / 48 · 756 ms (+5%) | 130 rb / 40 · 373 ms | 133 rb / 39 · 399 ms (+7%) |
+| Frostfall: hutan pinus | 251 rb / 52 · 606 ms | 251 rb / 52 · 637 ms (+5%) | 171 rb / 43 · 333 ms | 171 rb / 43 · 316 ms (−5%) |
+| Frostfall: Lembah Atas | 207 rb / 55 · 582 ms | 210 rb / 54 · 617 ms (+6%) | 137 rb / 40 · 302 ms | 140 rb / 40 · 342 ms (+13%) |
+| Frostfall: Gua Es Kristal | 184 rb / 47 · 610 ms | 187 rb / 47 · 649 ms (+6%) | 124 rb / 35 · 345 ms | 127 rb / 35 · 323 ms (−6%) |
+| Gua baru: Aula Tambang | 292 rb / 63 · 751 ms | 292 rb / 63 · 845 ms (+13%) | 140 rb / 33 · 389 ms | 140 rb / 33 · 397 ms (+2%) |
+| Gua baru: Katedral Taring | 138 rb / 36 · 531 ms | 138 rb / 36 · 565 ms (+6%) | 97 rb / 27 · 300 ms | 97 rb / 27 · 263 ms (−12%) |
+| Gua baru: Gua Seribu Tiang | 130 rb / 30 · 533 ms | 130 rb / 30 · 542 ms (+2%) | 89 rb / 22 · 290 ms | 89 rb / 22 · 308 ms (+6%) |
+| Gua baru: laguna Gua Laut Beku | 230 rb / 74 · 593 ms | 230 rb / 74 · 634 ms (+7%) | 148 rb / 60 · 349 ms | 148 rb / 60 · 322 ms (−8%) |
+| **Aula Gletser (air terjun)** | 137 rb / 29 · 501 ms | 138 rb / 36 · 639 ms (**+28%**) | 93 rb / 19 · 235 ms | 96 rb / 28 · 321 ms (**+37%**) |
+- Tempat lama: segitiga sama, waktu −10…+13% = derau antar-putaran (v0.21.0 diukur lebih dulu di tiap
+  kualitas). Aula Gletser: +7 / +9 draw call (air terjun, kolam, berkas cahaya, lengkung, tebing, batu
+  berukir) dan permukaan tembus pandang yang menutupi banyak piksel — render software sangat peka terhadap
+  itu; di GPU HP biasanya lebih ringan, tetapi belum diukur.
+- Memori heap JS setelah mengunjungi semua tempat: Sedang 215 → 215 MB, Rendah 185 → 186 MB; geometri
+  Sedang 262 → 266, Rendah 208 → 212; tekstur 64 → 65.
+- Waktu siap: Sedang 6,5 → 5,9 detik, Rendah 5,0 → 5,3 detik (derau; isi konsep dibuat bersama isi gua).
+
 v0.20.0 (lima gua besar), layar HP tegak (Pixel 7), versi build, render software; v0.19.0 diukur bergantian
 di mesin yang sama, satu putaran per versi. Segitiga (ribu) / draw call dan waktu per bingkai (ms):
 | Tempat | Sedang v0.19.0 | Sedang v0.20.0 | Rendah v0.19.0 | Rendah v0.20.0 |
@@ -1026,6 +1093,19 @@ v0.3.0: Rendah ±300 rb, Sedang ±400 rb, Tinggi ±850 rb. Tambahan v0.4.0 beras
 yang lebih rapat (untuk ombak) dan buah kelapa. v0.2.0 (HP): ±230 ribu.
 
 ## Masalah yang diketahui
+- (v0.21.0) **Air di Aula Gletser hanya efek visual**: kolamnya dangkal (±0,85 m) dan diarungi sambil
+  berjalan (tidak berenang); air terjun tidak bisa dimasuki / didaki dan tidak
+  mendorong pemain.
+- (v0.21.0) Di kualitas Rendah hanya ada 1 bongkah salju di kolam (Sedang / Tinggi: 3) — aula Rendah lebih
+  sempit karena grid tanah yang kasar, jadi bongkah yang tidak muat dilewati.
+- (v0.21.0) Tebing bersalju tanpa pagar (seperti gambar konsep): pemain bisa melangkah dari tepinya dan jatuh
+  ±2,6 m ke lantai / kolam (game belum punya luka jatuh).
+- (v0.21.0) **Uji otomatis pengejaran di laut kadang gagal** (cek "prajurit berenang mengejar" & "perahu
+  patroli", HP tegak): 1 dari 1 putaran penuh v0.21.0 gagal, 6 dari 6 pengulangan tersendiri lulus (v0.20.0
+  & v0.21.0). Bila terjadi di game: prajurit tidak terjun mengejar dan perahu patroli langsung berangkat.
+  Penyebab pastinya belum ditemukan.
+- (v0.21.0) Sisi laut Aula Gletser kini tebing pantai yang tidak bisa didaki dari laut; lereng di atas aula
+  Tambang Tua sisi pantai barat sedikit lebih tinggi (≤ 4,3 m) karena aturan atap yang sama.
 - (v0.20.0) **Gua Laut Beku hanya bisa dicapai lewat laut** (disengaja): pantai timur Frostfall berupa
   tebing, jadi perlu berenang jauh mengitari pulau atau memakai perahu.
 - (v0.20.0) Langit-langit Katedral Taring adalah permukaan Puncak Taring Es — ±200 m di atas lantai, tidak
