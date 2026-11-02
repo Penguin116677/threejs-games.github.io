@@ -1,8 +1,8 @@
 # PROJECT_STATUS — Pulau Tropis
 
-**Milestone aktif:** 3 — Pembangunan dunia (v0.22.0: **300 penduduk Frostfall** — 59 keluarga di Desa Emberwick dan dua kampung baru, Teluk Salju (nelayan) & Rusa Putih (pemburu); jam & malam Frostfall; bangun, makan, bekerja, berburu rusa kutub, memancing, pesta & acara, tidur di rumah; baju bulu khas; bisa diajak mengobrol (offline) — menunggu umpan balik dari HP; v0.21.0: **Aula Gletser** dibangun ulang dari gambar konsep pengguna — air terjun mengalir ke kolam, lengkung es, tebing bersalju, suasana biru kehijauan; v0.20.0: **lima gua besar** di Frostfall — Tambang Tua Emberwick, Gua Gletser Utara, Katedral Taring, Gua Laut Beku, Gua Seribu Tiang — masing-masing dengan peti harta; atap gua kini bisa diinjak; v0.19.0: wilayah baru Kerajaan Frostfall — menunggu umpan balik dari HP).
+**Milestone aktif:** 3 — Pembangunan dunia (v0.23.0: **pagar tinggi** gelondong runcing mengelilingi ketiga desa Frostfall, dengan 9 gerbang — menunggu umpan balik dari HP; v0.22.0: **300 penduduk Frostfall** — 59 keluarga di Desa Emberwick dan dua kampung baru, Teluk Salju (nelayan) & Rusa Putih (pemburu); jam & malam Frostfall; bangun, makan, bekerja, berburu rusa kutub, memancing, pesta & acara, tidur di rumah; baju bulu khas; bisa diajak mengobrol (offline) — menunggu umpan balik dari HP; v0.21.0: **Aula Gletser** dibangun ulang dari gambar konsep pengguna — air terjun mengalir ke kolam, lengkung es, tebing bersalju, suasana biru kehijauan; v0.20.0: **lima gua besar** di Frostfall — Tambang Tua Emberwick, Gua Gletser Utara, Katedral Taring, Gua Laut Beku, Gua Seribu Tiang — masing-masing dengan peti harta; atap gua kini bisa diinjak; v0.19.0: wilayah baru Kerajaan Frostfall — menunggu umpan balik dari HP).
 Pengembangan jurus dihentikan sementara atas permintaan pengguna.
-**Versi:** 0.22.0
+**Versi:** 0.23.0
 **Terakhir diperbarui:** 2026-11-02
 
 ## Kondisi awal repository (sebelum Milestone 1)
@@ -87,6 +87,7 @@ Pengembangan jurus dihentikan sementara atas permintaan pengguna.
 | Dua kampung baru di Frostfall (Teluk Salju — nelayan, Rusa Putih — pemburu); 300 penduduk dalam 59 keluarga, masing-masing di rumahnya sendiri, berbaju bulu khas | ✅ selesai (v0.22.0, permintaan pengguna) |
 | Jam & malam Frostfall; penduduk bangun, sarapan & makan malam bersama keluarga, bekerja, berburu rusa kutub, memancing, mengadakan pesta & acara, tidur di rumah | ✅ selesai (v0.22.0) |
 | Mengobrol dengan penduduk Frostfall — jawaban dari hidupnya sendiri (offline, berbasis aturan; kata asing ditanyakan balik lalu diingat) | ✅ selesai (v0.22.0) |
+| Pagar tinggi (±4 m, gelondong runcing) mengelilingi Desa Emberwick, Kampung Teluk Salju & Kampung Rusa Putih; 9 gerbang di setiap jalan keluar; pemain & penduduk hanya keluar-masuk lewat gerbang | ✅ selesai (v0.23.0, permintaan pengguna) |
 | Sungai & air terjun, gua, reruntuhan | ✅ sungai, air terjun & gua di Frostfall (v0.19.0–v0.21.0); reruntuhan ⏳ belum |
 | Dicoba di HP Android sungguhan | ⏳ menunggu laporan pengguna |
 
@@ -105,6 +106,42 @@ Sebagian sudah dikerjakan lebih awal (bayangan, tanah per-piksel, awan, kaustik 
 | Partikel lanjutan, suara, animasi vegetasi lanjutan | ⏳ belum |
 | Siang–malam | ✅ sebagian — hanya di Frostfall (v0.22.0); pulau-pulau lain selalu siang |
 | Dicoba di HP Android sungguhan | ⏳ menunggu laporan pengguna |
+
+## Yang sudah diperiksa (v0.23.0 — pagar tinggi desa Frostfall)
+- **Pemeriksaan kode**: ESLint (konfigurasi repo) 0 error / 0 warning pada setiap commit.
+- **Build**: `vite build` berhasil (JS 1,40 MB / 453 KB gzip, +1,7 KB gzip dari v0.22.0; CSS sama).
+- **Pemeriksaan di Node** (rencana Frostfall & simulasi penduduk yang sebenarnya, tanpa menggambar):
+  - 3 pagar: 22 bagian lurus, 1.083 m, 9 gerbang (Emberwick 5, Teluk Salju 2, Rusa Putih 2); tidak ada jalan /
+    setapak yang memotong pagar selain di gerbang; tempat kegiatan penduduk & pintu rumah tidak tertutup pagar
+    (yang terdekat: tali jemuran 2,8 m dari pagar);
+  - di sudut yang tanahnya tidak rata (tenggara Emberwick naik ±2,4 m ke tepi sungai, sudut Teluk Salju
+    turun 0,15 m) pagar dipotong per ±2,5 m dan tiap potongan berdiri di tanahnya — tidak melayang, tidak terkubur;
+  - **simulasi 6 hari Frostfall: 0 kali penduduk menembus pagar.** Percobaan pertama 473 kali — ada setapak
+    kampung yang tidak tersambung ke jaringan jalan desa, jadi penduduk berjalan lurus; diperbaiki dengan
+    jalur penghubung di gerbang dan pencarian titik jalan terdekat yang tidak terhalang. Penduduk yang
+    berdiri / mengobrol tidak lagi menempel di pagar (terdekat 1,0 m, sebelumnya 0,07 m);
+  - kehidupan penduduk dibandingkan dengan v0.22.0 (6 hari, sama-sama): berburu 1 kali sehari di keduanya,
+    ikan setara, malam di rumah 288–297 (v0.22: 290–297), siang di luar 276–285 (271–282), rusa diburu 6 (6).
+- **Smoke test otomatis** (versi build, sama persis dengan `dist/`): **HP Rendah 59 dari 59, HP tegak 117 dari
+  117 — LULUS**. HP mendatar & komputer tidak dijalankan untuk v0.23.0 (lihat Yang BELUM diperiksa). Cek baru:
+  - **pagar tinggi**: 3 desa, 1.083 m pagar, 9 gerbang; pemain berjalan dari dalam desa ke pagar barat tertahan
+    di x 621,7 (pagar x 621); dari luar sudut miring Rusa Putih tertahan di (764,2; 170,9); lewat gerbang barat
+    Emberwick sampai keluar (610,6; −37);
+  - **penduduk & pagar**: sehari Frostfall disimulasikan di halaman (±440 ribu langkah berjalan), 0 langkah
+    menembus salah satu dari 22 bagian pagar;
+  - cek "bangunan berdiri tepat di tanah" kini juga memeriksa potongan pagar, tiang sudut & gerbang.
+- **Uji di browser** (Chromium, render software, layar Pixel 7 tiruan): foto pagar dari luar & dalam ketiga
+  desa, kelima gerbang Emberwick, sudut miring Rusa Putih, pagar bertingkat di tenggara Emberwick, palang &
+  salju sisi dalam; berdiri di dalam desa dengan kamera di luar pagar → pagar di depan kamera berlubang (tembus
+  pandang) dan pemain terlihat; di Peta, pagar tampak sebagai garis tipis kemerahan yang samar. Tanpa galat konsol.
+  Dari foto: gelondong semula bergaris papan mendatar (pola kayu rumah) → diganti permukaan polos berwarna kayu;
+  pucuk pinus menembus pagar → jalur 4,5 m di kedua sisi pagar dikosongkan dari pohon.
+- **Performa & memori** (render software, bukan ukuran HP; tabel di bagian Performa): di desa segitiga +5…+36 ribu,
+  draw call ±1; waktu per bingkai −4…+15% (Sedang) dan +4…+14% (Rendah) — sama besarnya dengan selisih di tempat
+  yang tidak berubah sama sekali (dalam gua Rendah +13%, halaman kastel Sedang −13%), jadi biaya pagar tidak
+  terukur di atas derau. Memori heap JS Sedang 235 → 240 MB, Rendah 205 → 215 MB; geometri sama.
+- **Ditemukan saat memeriksa Peta, bukan dari pagar**: label & penanda "Kamu" bergeser dari gambar peta (lihat
+  Masalah yang diketahui) — sudah begitu di v0.22.0 (foto peta smoke test v0.22.0 sama).
 
 ## Yang sudah diperiksa (v0.22.0 — 300 penduduk Frostfall)
 - **Pemeriksaan kode**: ESLint (konfigurasi repo) 0 error / 0 warning pada setiap commit.
@@ -824,6 +861,10 @@ Sebagian sudah dikerjakan lebih awal (bayangan, tanah per-piksel, awan, kaustik 
   laut dalam → kembali ke pantai + pesan, mendaki lereng (+24 m dalam 120 frame).
 
 ## Yang BELUM diperiksa
+- **Pagar desa di HP sungguhan** (v0.23.0): FPS saat memandang pagar; apakah gerbang mudah ditemukan dengan
+  joystick, apakah pagar terasa terlalu tinggi / rendah, apakah tembus pandang di dekat pagar nyaman.
+- **Smoke test HP mendatar & komputer untuk v0.23.0** — tidak dijalankan (HP Rendah & HP tegak lulus; kedua
+  profil itu lulus pada v0.22.0, dan v0.23.0 hanya menambah pagar Frostfall + jalur penduduk ke gerbang).
 - **Penduduk Frostfall di HP sungguhan** (v0.22.0): FPS di kampung — di render software +17…+45% waktu per
   bingkai (Teluk Salju & Rusa Putih paling berat), terutama di kualitas Rendah; panas & baterai setelah lama di
   Frostfall (simulasi 300 orang berjalan terus, juga saat pemain di pulau lain).
@@ -920,6 +961,34 @@ Sebagian sudah dikerjakan lebih awal (bayangan, tanah per-piksel, awan, kaustik 
 - Apakah URL hosting (githack / GitHub Pages) terbuka di HP — tidak bisa diakses dari lingkungan pengembangan.
 
 ## Performa (segitiga per frame termasuk bayangan, dari smoke test)
+v0.23.0 (pagar desa Frostfall), layar HP tegak (Pixel 7), versi build, render software; v0.22.0 diukur
+bergantian di mesin yang sama, satu putaran per versi per kualitas. Segitiga (ribu) / draw call dan waktu per bingkai (ms):
+| Tempat | Sedang v0.22.0 | Sedang v0.23.0 | Rendah v0.22.0 | Rendah v0.23.0 |
+|---|---|---|---|---|
+| Titik mulai | 465 rb / 72 · 1.183 ms | 465 rb / 72 · 1.100 ms (−7%) | 351 rb / 64 · 579 ms | 351 rb / 64 · 573 ms (−1%) |
+| Pasar Kotaraja | 337 rb / 49 · 693 ms | 337 rb / 50 · 659 ms (−5%) | 261 rb / 44 · 322 ms | 259 rb / 43 · 354 ms (+10%) |
+| Depan barisan Tegal Wira | 458 rb / 31 · 1.824 ms | 458 rb / 31 · 1.699 ms (−7%) | 327 rb / 38 · 1.092 ms | 327 rb / 38 · 1.084 ms (−1%) |
+| Pasar Aeloria | 564 rb / 97 · 883 ms | 565 rb / 97 · 845 ms (−4%) | 484 rb / 97 · 550 ms | 483 rb / 97 · 533 ms (−3%) |
+| Dermaga Fajar, memandang Frostfall | 390 rb / 74 · 856 ms | 426 rb / 75 · 823 ms (−4%) | 262 rb / 58 · 394 ms | 290 rb / 58 · 421 ms (+7%) |
+| Frostfall: Desa Emberwick | 415 rb / 87 · 855 ms | 430 rb / 88 · 817 ms (−4%) | 339 rb / 71 · 421 ms | 357 rb / 70 · 442 ms (+5%) |
+| Frostfall: halaman kastel | 182 rb / 50 · 865 ms | 182 rb / 50 · 755 ms (−13%) | 142 rb / 40 · 393 ms | 142 rb / 40 · 421 ms (+7%) |
+| Frostfall: hutan pinus | 253 rb / 53 · 693 ms | 254 rb / 53 · 628 ms (−9%) | 176 rb / 45 · 316 ms | 176 rb / 45 · 312 ms (−1%) |
+| Frostfall: Lembah Atas | 219 rb / 55 · 668 ms | 219 rb / 55 · 608 ms (−9%) | 149 rb / 41 · 298 ms | 149 rb / 41 · 331 ms (+11%) |
+| Frostfall: dalam gua | 197 rb / 49 · 686 ms | 197 rb / 49 · 685 ms (±0%) | 136 rb / 37 · 301 ms | 136 rb / 37 · 341 ms (+13%) |
+| Penduduk: alun-alun Emberwick (10.30) | 348 rb / 66 · 750 ms | 359 rb / 65 · 720 ms (−4%) | 260 rb / 61 · 364 ms | 288 rb / 60 · 392 ms (+8%) |
+| Penduduk: pesta api unggun (20.30) | 378 rb / 68 · 789 ms | 405 rb / 70 · 815 ms (+3%) | 288 rb / 62 · 383 ms | 301 rb / 62 · 435 ms (+14%) |
+| Penduduk: Kampung Teluk Salju (10.30) | 345 rb / 62 · 731 ms | 350 rb / 63 · 731 ms (±0%) | 257 rb / 56 · 374 ms | 275 rb / 54 · 390 ms (+4%) |
+| Penduduk: Kampung Rusa Putih (10.30) | 460 rb / 93 · 809 ms | 480 rb / 94 · 927 ms (+15%) | 296 rb / 74 · 408 ms | 307 rb / 74 · 441 ms (+8%) |
+| Gua baru: Aula Tambang | 302 rb / 65 · 804 ms | 302 rb / 65 · 827 ms (+3%) | 149 rb / 32 · 365 ms | 149 rb / 32 · 392 ms (+7%) |
+| Gua baru: Katedral Taring | 147 rb / 37 · 566 ms | 147 rb / 37 · 555 ms (−2%) | 106 rb / 29 · 295 ms | 106 rb / 29 · 275 ms (−7%) |
+| Gua baru: Gua Seribu Tiang | 140 rb / 31 · 570 ms | 140 rb / 31 · 550 ms (−4%) | 98 rb / 23 · 292 ms | 98 rb / 23 · 287 ms (−2%) |
+| Gua baru: laguna Gua Laut Beku | 282 rb / 79 · 685 ms | 300 rb / 80 · 696 ms (+2%) | 157 rb / 62 · 347 ms | 157 rb / 62 · 357 ms (+3%) |
+| Aula Gletser (air terjun) | 147 rb / 37 · 618 ms | 147 rb / 37 · 643 ms (+4%) | 104 rb / 29 · 358 ms | 104 rb / 29 · 335 ms (−6%) |
+- Pagar: segitiga +5…+36 ribu di tempat yang memandang desa, draw call ±1 (pagar digabung ke potongan bangunan
+  yang sudah ada). Selisih waktu per bingkai sama besarnya dengan derau di tempat yang sama sekali tidak berubah.
+- Memori heap JS setelah mengunjungi semua tempat: Sedang 235 → 240 MB, Rendah 205 → 215 MB; geometri & tekstur
+  sama. Waktu siap: Sedang 7,1 → 6,8 detik, Rendah 5,5 → 5,6 detik.
+
 v0.22.0 (300 penduduk Frostfall), layar HP tegak (Pixel 7), versi build (sebelum perbaikan obrolan — tidak
 mengubah gambar), render software; v0.21.0 diukur bergantian di mesin yang sama, satu putaran per versi
 (v0.22.0 lebih dulu). Tempat "Penduduk:" baru: di Frostfall jam diatur ke 10.30 (pesta: 20.30); v0.21.0 di
@@ -1200,6 +1269,13 @@ v0.3.0: Rendah ±300 rb, Sedang ±400 rb, Tinggi ±850 rb. Tambahan v0.4.0 beras
 yang lebih rapat (untuk ombak) dan buah kelapa. v0.2.0 (HP): ±230 ribu.
 
 ## Masalah yang diketahui
+- (sejak v0.19.0, ditemukan saat uji v0.23.0) **Peta tertarik ke bawah**: kanvas Peta masih berbanding 1750 : 2000
+  (dunia sebelum Frostfall), padahal dunia kini 2625 : 2000 m. Gambar dasarnya ditarik ±1,5× ke bawah, sedangkan
+  label nama & penanda "Kamu" memakai skala yang benar — makin ke selatan makin jauh dari gambarnya (mis. label
+  "Teluk Salju" & "Emberwick" jatuh di laut di utara kampungnya). Perbaikannya kecil (rasio kanvas di
+  `style.css`), belum dikerjakan karena permintaan v0.23.0 hanya pagar.
+- (v0.23.0) Pagar tidak bisa dipanjat / dilompati / dirusak; gerbang selalu terbuka (tanpa daun pintu).
+- (v0.23.0) Di Peta pagar hanya garis tipis samar (lebar pagar 1,2 m, 1 piksel peta = 2 m).
 - (v0.22.0) **Jawaban obrolan berbasis aturan, bukan AI** (sengaja: offline, tanpa layanan luar — DECISIONS
   #90): selalu ada jawaban, tetapi kalimat yang tidak dikenali dijawab umum atau ditanyakan balik. "Mau ke
   mana?" dijawab dengan kegiatannya sekarang & rencananya, bukan tujuan jalannya. Ingatan obrolan (nama

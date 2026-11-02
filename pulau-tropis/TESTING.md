@@ -514,8 +514,10 @@ masuk, makin ke dalam makin gelap, salju berhenti, kamera tidak menembus langit-
 Laporkan: gua mana yang terlalu gelap / sulit ditemukan, tempat tersangkut, dan FPS di tiap gua.
 
 ## Daftar uji manual — v0.23.0 (pagar tinggi desa Frostfall)
-Seberangi selat ke Frostfall (Dermaga Frostfall). Buka **Peta**: garis tipis gelap di sekeliling ketiga desa
-adalah pagarnya.
+Seberangi selat ke Frostfall (Dermaga Frostfall). Di **Peta**, pagar tampak sebagai garis tipis kemerahan yang samar
+di sekeliling kedua kampung (bercelah di gerbang); di Emberwick hampir tak terlihat karena desanya sudah
+berwarna kemerahan. Catatan: label nama & penanda "Kamu" di Peta bergeser dari gambarnya (masalah lama sejak
+v0.19.0, lihat PROJECT_STATUS — Masalah yang diketahui), jadi cari kampungnya dari gambar, bukan dari labelnya.
 1. **Kampung Teluk Salju** (utara Dermaga Frostfall): dari pantai, lihat pagar gelondong runcing ±4 m
    (lebih tinggi dari pemain, setinggi atap rendah rumah). Masuk lewat **gerbang barat** (di antara rak ikan)
    atau **gerbang selatan** (lorong ke jalan pantai). Coba menabrak pagar — pemain tertahan.
