@@ -1,5 +1,44 @@
 # CHANGELOG — Pulau Tropis
 
+## [0.24.0] — 2026-11-02 — Naga Es, penjaga Gua Gletser (permintaan pengguna)
+### Ditambahkan
+- **Naga Es** (permintaan: *"Buatkan naga es yang di gambar ini menjadi penjaga dari goa gletser, … penjaga goa
+  itu dari orang orang yang mau mengambil harta karun di dalam goa itu, bentuk, skill dari naga sesuaikan dengan
+  gambar"*), dibuat dari lembar desain "Cryo Dragon" kiriman pengguna: badan bersisik putih-biru dengan celah
+  sisik yang berpendar biru, deretan duri kristal es dari leher sampai ujung ekor (terbesar di bahu), gugus
+  kristal di bahu, pinggul & siku kaki depan, mahkota kristal di belakang kepala, mata biru bercahaya, cakar
+  putih, dan sayap bermembran es berurat dengan retakan bercahaya. Ukurannya ±21 m dari moncong ke ujung
+  ekor, kepala ±8 m di atas tanah, rentang sayap ±29 m (sedikit lebih kecil dari lembar desain 25 / 12 / 40 m
+  supaya muat bertarung di ruang gua).
+- Ia **tidur meringkuk melingkari peti harta** di ruang terdalam Gua Gletser Utara (Ruang Air Terjun Beku).
+  Selama naga hidup, peti itu **terbungkus segel es** (tombol "Tersegel es — kalahkan Naga Es").
+- **Penyusup yang masuk ke ruang itu membangunkannya**: bangkit, berdiri di kaki belakang, dan **mengaum**
+  (gelombang kejut mendorong pemain). Bilah nyawa **"Naga Es · Penjaga Gua Gletser"** tampil di atas layar.
+- **Jurus** (sesuai urutan animasi & skill di lembar desain: diam/bernapas, berjalan, berlari, terbang naik,
+  terbang, mendarat, mengaum, Hembusan Es, Ledakan Es):
+  - **Hembusan Es** — menghimpun napas (mulut & duri menyala), lalu menyemburkan kerucut es sejauh ±20 m yang
+    menyapu pelan mengikuti pemain; kabut beku di lantai tempat semburan jatuh.
+  - **Ledakan Es** — berdiri mengaum, lalu lingkaran es bercahaya muncul di bawah pemain & di sekitarnya; ±1,3
+    detik kemudian kristal es raksasa menyembur dari tiap lingkaran.
+  - **Terbang** — hembusan angin sayap saat naik, melayang berputar di bawah langit-langit gua sambil
+    menyembur dari udara, lalu **mendarat menghentak** di dekat pemain (gelombang + cincin kristal).
+  - **Gigitan** bila pemain dekat di depan moncong, **Sapuan Ekor** bila pemain di belakang.
+  - Ia berjalan / berlari mendekat dan berbalik menghadap pemain. Nyawa ≤ 50%: mengaum lagi, lebih cepat,
+    lebih sering menyerang, dan Ledakan Es-nya lebih banyak.
+- Pemain bisa melawannya: pukulan & jurus melukainya (naga yang sedang tidur terkena **dua kali lipat**);
+  **Penggal** mengenainya sebagai luka berat (naga tidak bisa dipenggal). Badannya menahan pemain (tidak bisa
+  ditembus).
+- **Kalah oleh naga** → pemain bangun di luar mulut Gua Gletser; naga pulang ke sarangnya dan tidur lagi.
+  **Kabur** (keluar dari aula / gua) → naga berhenti mengejar, kembali tidur, dan pulih.
+- **Naga kalah** → roboh, segel es peti pecah, **150 koin** (kemenangan pertama, tersimpan di browser;
+  berikutnya 40 koin), dan peti Gua Gletser bisa dibuka. Beberapa menit kemudian, saat pemain jauh, sang naga
+  pulih dan tidur lagi di sarangnya.
+- Penduduk Frostfall bercerita tentang Naga Es bila ditanya (kata "naga").
+### Diubah
+- Tiang es acak di Ruang Air Terjun Beku tidak dipasang lagi (ruang itu kini sarang naga; isi gua lain tetap
+  sama persis).
+- Jawaban lama penduduk "Naga? Itu cuma ada di dongeng tetua." diganti cerita tentang Naga Es.
+
 ## [0.23.0] — 2026-11-02 — Pagar tinggi di sekeliling desa-desa Frostfall (permintaan pengguna)
 ### Ditambahkan
 - **Pagar tinggi** (permintaan: *"Tambahkan pagar tinggi yang mengelilingi tiap desa di pulau salju, hanya

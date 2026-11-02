@@ -79,7 +79,8 @@ menjadi anak buah yang menang (pemain yang kalah menyerahkan upeti). Lihat DECIS
   Katedral Taring (di bawah Puncak Taring Es), Gua Laut Beku (tebing pantai timur, lewat laut), dan Gua
   Seribu Tiang (punggung tenggara) — masing-masing dengan peti harta. Sejak v0.22.0 berpenghuni 300
   orang di Desa Emberwick, Kampung Teluk Salju & Kampung Rusa Putih (tanpa prajurit); sejak v0.23.0
-  ketiga desa itu dikelilingi pagar kayu tinggi dengan gerbang di setiap jalan keluar.
+  ketiga desa itu dikelilingi pagar kayu tinggi dengan gerbang di setiap jalan keluar; sejak v0.24.0 ruang
+  terdalam Gua Gletser Utara dijaga **Naga Es** (boss: tidur di atas peti bersegel es).
 - Keempat sisi Pulau Tropis kini terpakai (barat, utara, timur; selatan = laut lepas). Batas dunia,
   terrain, laut, dan peta jalan tetap umum (DECISIONS #33, #40, #78) bila wilayah lain ditambahkan.
 
@@ -178,3 +179,7 @@ lanjutan Milestone 3 (penduduk) dengan sebagian Milestone 4 (obrolan) & 5 (malam
 Di v0.23.0 (permintaan pengguna: "hanya menambahkan pagar saja") ketiga desa Frostfall dikelilingi **pagar
 tinggi** dari gelondong kayu runcing (±4 m, 1.083 m keliling) dengan 9 gerbang terbuka di setiap jalan,
 lorong, dan setapak yang keluar desa; penduduk & pemain keluar-masuk lewat gerbang.
+Di v0.24.0 (permintaan pengguna, dari lembar desain "Cryo Dragon") Gua Gletser Utara dijaga **Naga Es**: tidur
+melingkari peti bersegel es, bangun bila penyusup masuk, lalu bertarung (Gigitan, Sapuan Ekor, Hembusan Es,
+Ledakan Es, terbang & mendarat menghentak, mengaum) — musuh boss pertama, bagian Milestone 3/4 (dunia &
+pertarungan).

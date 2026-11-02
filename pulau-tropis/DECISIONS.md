@@ -975,3 +975,13 @@ tandai sebagai "diganti" bila berubah.
     tepi desa kini memutar lewat gerbang (dicek: 0 langkah menembus pagar selama 6 hari simulasi). Biaya
     gambar: ±12 segitiga per gelondong (penampang belah ketupat, bukan tabung), digabung ke petak bangunan
     yang ada (tanpa draw call tersendiri).
+92. **Naga Es: model & animasi prosedural, ruang gua yang ada, sedikit lebih kecil dari lembar desain** (v0.24.0).
+    Lembar desain pengguna hanya gambar, jadi naganya dibangun dari kode (SkinnedMesh 41 tulang, ±9.600
+    segitiga, 2 bahan = 2 draw call; animasi dihitung tiap bingkai dari parameter pose, tanpa file animasi) —
+    tetap offline & aset sendiri (#86). Sarangnya ruang terdalam Gua Gletser yang sudah ada (Ø ±36 m, atap
+    ≥ 24 m), bukan ruang baru: mengubah bentuk gua akan menggeser isi gua lain (pengacak isi gua dipakai
+    bersama). Supaya naga bisa bertarung & terbang di ruang itu: ukurannya ±21 / 8 / 29 m (desain 25 / 12 /
+    40 m), tiang es acak di ruang itu dilepas (acaknya tetap dipakai), dan titik tengah badannya tetap di
+    lingkaran 8 m di tengah ruang. Peti tetap di tempatnya; naga tidur melingkarinya. Nyawa 240 (orc 6,
+    prajurit 8–10) supaya pertarungan ±2–3 menit dengan pukulan 1–3 per serangan. Hadiah: segel peti pecah +
+    koin; naga pulih sendiri saat pemain jauh (penjaga, bukan musuh yang hilang selamanya).

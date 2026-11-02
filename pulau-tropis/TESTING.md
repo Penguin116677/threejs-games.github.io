@@ -536,6 +536,34 @@ v0.19.0, lihat PROJECT_STATUS — Masalah yang diketahui), jadi cari kampungnya 
 Laporkan: gerbang yang terasa kurang (ingin keluar-masuk di tempat lain), pagar yang terasa terlalu tinggi /
 rendah, dan FPS.
 
+
+## Daftar uji manual — v0.24.0 (Naga Es, penjaga Gua Gletser)
+Seberangi selat ke Frostfall, lalu ke **Gua Gletser Utara** di pantai utara (Peta: "Gua Gletser"). Lewati
+Aula Gletser (air terjun & kolam), terus menyusuri deretan lengkung es ke **Ruang Air Terjun Beku**. Isi dulu
+nyawa (makanan / ramuan di Tas) dan pakai perlengkapan terbaik.
+1. Dari lorong lengkung es, sebelum masuk ruang: **Naga Es tidur meringkuk** di samping peti (mata redup, badan
+   naik-turun bernapas); peti di sampingnya terbungkus **bongkah es**.
+2. Melangkah masuk (±26 m dari tengah ruang) → naga **bangun**, berdiri dan **mengaum** (layar berguncang,
+   pemain terdorong). Di atas layar muncul bilah **"Naga Es · Penjaga Gua Gletser"**. Di dekat peti tombolnya
+   **"Tersegel es"** (ditekan: pesan, peti tidak terbuka).
+3. Perhatikan & hindari jurusnya:
+   - **Hembusan Es**: mulut & duri menyala dulu (tanda), lalu semburan es dari mulut — lari ke samping.
+   - **Ledakan Es**: naga berdiri mengaum, **lingkaran biru** muncul di lantai (satu di bawahmu) → keluar dari
+     lingkaran sebelum kristal menyembur.
+   - **Terbang**: angin sayap mendorongmu, naga melayang & menyembur dari atas, lalu **mendarat menghentak**
+     (bayangannya di lantai menunjukkan tempat jatuhnya).
+   - **Gigitan** (di depan moncong) & **Sapuan Ekor** (di belakangnya).
+4. Lawan: Pukul (kombo) dan keempat jurus — bilahnya berkurang; **Penggal** mengenainya (luka berat, tidak
+   terpenggal). Saat nyawanya ≤ separuh ia mengaum lagi dan menyerang lebih cepat.
+5. Kabur keluar lewat lengkung es / aula → naga berhenti mengejar dan kembali tidur (bilah hilang).
+6. Bila kalah: layar meredup, kamu bangun **di luar mulut Gua Gletser**.
+7. Bila menang: naga roboh, **segel es pecah**, +150 koin; buka peti → +90 koin.
+8. Tanyakan "naga" ke penduduk Frostfall → mereka bercerita tentang Naga Es.
+9. Catat **FPS** saat bertarung (terutama saat Hembusan Es & Ledakan Es), apakah kamera cukup jauh untuk melihat
+   naga, dan apakah pertarungannya **terlalu sulit / terlalu mudah**.
+
+Laporkan: rupa naga dibanding lembar desain, jurus yang terasa tidak adil / sulit dilihat, FPS, dan lama
+pertarungan.
 ## Daftar uji manual — v0.22.0 (penduduk Frostfall)
 Seberangi selat ke Frostfall (Dermaga Frostfall, pantai barat). Jam Frostfall mulai 08.00 saat game dimuat;
 sehari = 20 menit, jadi malam (±20.00–04.30) datang ±10 menit setelah game dibuka.
