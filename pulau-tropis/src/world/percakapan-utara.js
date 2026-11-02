@@ -60,6 +60,7 @@ const KAMUS = [
   [['dermaga', 'pelabuhan'], () => 'Dermaga Frostfall di pantai barat, berhadapan dengan Pulau Tropis. Nelayan Teluk Salju juga punya dermaga kecil sendiri.', 0],
   [['sampan', 'perahu', 'kapal'], () => 'Nelayan Teluk Salju punya sampan kayu. Di musim dingin sampan dibalik di pantai supaya tidak penuh salju.', 0],
   [['kereta luncur', 'luncur'], () => 'Kereta luncur dipakai mengangkut kayu dan hasil buruan di atas salju. Anak-anak juga suka meluncur dengannya.', 1],
+  [['naga es', 'naga', 'dragon'], () => 'Naga Es! Ia tidur meringkuk di ruang terdalam Gua Gletser Utara, menjaga peti harta yang terbungkus segel es. Siapa pun yang masuk dibangunkannya — napasnya membekukan, dan ia bisa terbang di dalam gua. Kakekku bilang segel itu baru pecah kalau sang naga dikalahkan.', -1],
   [['serigala'], () => 'Serigala? Konon ada di pegunungan utara, tapi sudah lama tidak ada yang melihatnya. Yang ada di hutan cuma rusa kutub.', -1],
   [['beruang'], () => 'Beruang tidur sepanjang musim dingin, kata kakekku. Aku sendiri belum pernah melihatnya — syukurlah.', -1],
   [['bulan', 'bintang'], H => (H.d.malam > 0.5 ? 'Lihat ke atas — awan malam di Frostfall tebal, tapi kadang bintang mengintip.' : 'Malam di Frostfall panjang dan biru. Kalau awan tersibak, bintangnya terang sekali.'), 1],
@@ -78,7 +79,6 @@ const KAMUS = [
   [['sekolah', 'belajar', 'buku', 'membaca', 'menulis'], H => (H.anak ? 'Tetua mengajari kami membaca huruf di kedai panjang kalau hari terlalu dingin untuk bermain.' : 'Anak-anak belajar dari tetua: membaca jejak, mengasap ikan, dan dongeng-dongeng lama.'), 0],
   [['doa', 'dewa', 'agama', 'tuhan'], () => 'Kami bersyukur tiap musim — untuk ikan, rusa, dan kayu yang cukup. Syukuran keluarga selalu dimulai dengan doa bersama.', 1],
   [['hantu', 'arwah'], () => 'Hiii… katanya di Kastel Frostfall yang kosong kadang terdengar suara langkah. Aku tidak mau ke sana malam-malam!', -1],
-  [['naga'], () => 'Naga? Itu cuma ada di dongeng tetua. …Iya, kan?', 0],
   [['penyihir', 'sihir', 'peri'], () => 'Tidak ada penyihir di Frostfall. Yang ada cuma kristal es di gua yang berpendar sendiri — itu pun sudah cukup ajaib.', 0],
   [['elf', 'aeloria'], () => 'Elf tinggal di Aeloria, jauh di barat laut. Kata pedagang yang pernah ke sana, telinga mereka runcing dan mereka tidak pernah kedinginan.', 0],
   [['kencana', 'manusia kencana'], () => 'Kerajaan Kencana di barat jauh — negeri panas yang penuh prajurit. Orang sana tidak tahu rasanya salju!', 0],
@@ -327,7 +327,7 @@ function gua(H) {
     teks: A.pilih(mem, 'gua', [
       'Frostfall punya enam gua besar: Gua Es Kristal di Lembah Atas, Tambang Tua di utara Emberwick, Gua Gletser di pantai utara, Katedral Taring, Gua Laut Beku, dan Gua Seribu Tiang. Konon tiap gua menyimpan peti harta.',
       'Tambang Tua di utara desa dulu tambang kristal kakek-kakek kami. Sekarang kosong — tapi lenteranya masih menyala, aneh, kan?',
-      'Di Gua Gletser Utara ada air terjun yang tidak membeku, jatuh ke kolam biru kehijauan. Indah sekali, kata yang pernah ke sana.',
+      'Di Gua Gletser Utara ada air terjun yang tidak membeku, jatuh ke kolam biru kehijauan. Indah sekali, kata yang pernah ke sana. Tapi jangan masuk ke ruang terdalamnya — di sana Naga Es tidur di atas peti harta.',
     ]),
     gerak: 'talk',
   }
