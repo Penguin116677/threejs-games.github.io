@@ -35,7 +35,7 @@ export const KEGIATAN = {
   ngobrol: 'mengobrol', main: 'bermain kejar-kejaran', bolaSalju: 'perang bola salju', dongeng: 'mendengarkan dongeng',
   mendongeng: 'mendongeng untuk anak-anak', buru: 'berburu rusa kutub', menari: 'menari di sekeliling api unggun',
   musik: 'memainkan kecapi', pesta: 'berpesta', jamuan: 'makan bersama di jamuan', kumpul: 'datang ke acara keluarga',
-  jalan: 'berjalan-jalan', ikut: 'menemani orang tuanya bekerja', antar: 'mengantar hasil tangkapan', bicara: 'mengobrol denganmu',
+  jalan: 'berjalan-jalan', lihat: 'melihat-lihat sekeliling kampung', ikut: 'menemani orang tuanya bekerja', antar: 'mengantar hasil tangkapan', bicara: 'mengobrol denganmu',
 }
 
 // ------------------------------------------------------------------ antrean prioritas kecil
@@ -1257,14 +1257,17 @@ export function createWarga({ ground, plan, folk, rusa, quality, colliders = nul
   function describe(a) {
     const { o } = a
     const fam = keluarga[o.keluarga]
-    const act = a.act === 'jalan' ? null : a.act
+    // sedang diajak bicara pemain: ceritakan kegiatan sebelum disapa (bukan "mengobrol denganmu")
+    const now = a.talk && a.sebelum ? a.sebelum.act : a.act
+    const act = now === 'jalan' ? null : now
+    const pergi = a.talk && a.sebelum ? a.sebelum.pergi : !!a.then
     const ev = a.event !== null && a.event !== undefined ? events.find(e => e.id === a.event) : null
     const members = fam.anggota.filter(id => id !== o.id).map(byId).map(b => ({ nama: b.o.nama, hubungan: relation(a, b), umur: b.o.umur, kegiatan: b.hidden ? (b.act === 'tidur' ? KEGIATAN.tidur : 'di rumah') : KEGIATAN[b.act] || 'berjalan' }))
     const today = eventsToday().map(e => ({ nama: e.nama, desa: DESA[e.desa].pendek, mulai: fmtJam(e.mulai), selesai: fmtJam(e.selesai), host: e.host !== null && e.host !== undefined ? byId(e.host).o.nama : null, jenis: e.jenis, sedang: inRange(jam(), e.mulai, e.selesai), lewat: !inRange(jam(), e.mulai, e.selesai) && jam() > e.selesai }))
     return {
       nama: o.nama, namaLengkap: `${o.nama} ${o.namaKeluarga}`, keluarga: o.namaKeluarga, umur: o.umur, wanita: o.wanita, peran: o.peran,
       kerja: o.kerja, pekerjaan: PEKERJAAN[o.kerja], desa: o.desa, namaDesa: DESA[o.desa].nama,
-      kegiatan: act ? KEGIATAN[act] || act : a.then ? 'dalam perjalanan' : 'berjalan-jalan', act: act || 'jalan', acara: ev ? ev.nama : null,
+      kegiatan: act ? (act === 'lihat' && o.kerja === 'kepala' ? 'berkeliling melihat warga' : KEGIATAN[act] || act) : pergi ? 'dalam perjalanan' : 'berjalan-jalan', act: act || 'jalan', acara: ev ? ev.nama : null,
       sifat: o.sifat, kebutuhan: a.need, anggota: members, teman: o.teman.map(byId).map(b => b.o.nama),
       jam: jam(), hari: hariOf(T), waktu: fmtJam(jam()), malam: malamOf(jam()), acaraHariIni: today, catatan: a.diary.slice(),
       bangun: fmtJam(o.bangun), tidur: fmtJam(o.tidur), tangkapan: a.catch, perburuan: { ...hunts }, ikan: catches.nelayan + catches.desa,
@@ -1326,6 +1329,7 @@ export function createWarga({ ground, plan, folk, rusa, quality, colliders = nul
     // obrolan: tahan orangnya (berhenti, menghadap pemain) / lepaskan
     grab(a) {
       if (a.party) return false
+      if (!a.talk) a.sebelum = { act: a.act, pergi: !!a.then }
       a.talk = true
       releaseSpot(a)
       a.path = null
@@ -1343,6 +1347,7 @@ export function createWarga({ ground, plan, folk, rusa, quality, colliders = nul
     free(a) {
       if (!a.talk) return
       a.talk = false
+      a.sebelum = null
       a.until = T
       decide(a)
     },

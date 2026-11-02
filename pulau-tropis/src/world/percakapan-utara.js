@@ -666,7 +666,11 @@ function kerabat(H) {
 function tadi(H) {
   const { d } = H
   const hari = d.catatan.filter(c => c.hari === d.hari)
-  if (!hari.length) return { teks: 'Hari ini belum banyak yang terjadi — aku baru saja mulai.', gerak: 'talk' }
+  if (!hari.length) {
+    // belum ada yang dicatat hari ini (mis. sudah bangun saat game dimuat): ceritakan kegiatannya sekarang
+    if (d.act !== 'jalan') return { teks: `Sejak tadi aku ${kegiatanKu(d)}. Belum ada yang istimewa hari ini.`, gerak: 'talk' }
+    return { teks: 'Hari ini belum banyak yang terjadi — aku baru saja mulai.', gerak: 'talk' }
+  }
   return { teks: `Hari ini aku ${daftar(hari.slice(-4).map(c => c.teks))}.`, gerak: 'talk' }
 }
 const RUTIN = {
