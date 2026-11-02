@@ -532,8 +532,8 @@ sehari = 20 menit, jadi malam (±20.00–04.30) datang ±10 menit setelah game d
    jamuan / malam ikan bakar di kampung. Lewat ±23.00 hampir semua orang tidur di rumahnya — kampung sepi,
    hanya penjaga menara.
 6. **Mengobrol** (dekati seseorang → tombol **Bicara** / G): coba topik siap pilih, lalu ketik bebas, misalnya
-   "siapa namamu?", "ceritakan keluargamu", "di mana istrimu?", "ada acara apa hari ini?", "jam berapa
-   sekarang?", "bajumu bagus", "kamu suka apa?", "apakah kamu bisa berburu?", "aku lapar", sebut nama
+   "siapa namamu?", "ceritakan keluargamu", "di mana istrimu?", "lagi ngapain?" (dijawab dengan kegiatannya
+   sebelum kau sapa), "tadi ngapain?", "ada acara apa hari ini?", "jam berapa sekarang?", "bajumu bagus", "kamu suka apa?", "apakah kamu bisa berburu?", "aku lapar", sebut nama
    tetangganya, atau kata yang aneh (lalu jelaskan artinya, tanyakan lagi nanti).
 7. Penduduk yang kau lewati sesekali menyapa ("Selamat pagi, pengembara!") atau berseru sesuai kegiatannya.
 8. Catat FPS di alun-alun Emberwick siang & saat pesta malam, dan di kedua kampung.
