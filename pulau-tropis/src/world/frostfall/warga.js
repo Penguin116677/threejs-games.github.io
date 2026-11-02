@@ -233,6 +233,11 @@ export function createWarga({ ground, plan, folk, rusa, quality, colliders = nul
     }
     cands.sort((a, b) => Math.hypot(a.x - x, a.z - z) - Math.hypot(b.x - x, b.z - z))
     for (const n of cands.slice(0, 6)) if (clearLine(x, z, n.x, n.z)) return n
+    // semua yang terdekat terhalang (mis. di balik pagar desa, v0.23.0): cari lebih jauh — sampai 90 m —
+    // simpul yang bisa dicapai lurus, supaya tidak berjalan menembus pagar
+    const far = nodes.filter(n => !cands.slice(0, 6).includes(n) && Math.hypot(n.x - x, n.z - z) < 90)
+      .sort((a, b) => Math.hypot(a.x - x, a.z - z) - Math.hypot(b.x - x, b.z - z))
+    for (const n of far.slice(0, 40)) if (clearLine(x, z, n.x, n.z)) return n
     return cands[0]
   }
   // rute Dijkstra antar simpul (disimpan per simpul asal)
@@ -979,7 +984,9 @@ export function createWarga({ ground, plan, folk, rusa, quality, colliders = nul
     const n = nearNode(mx, mz)
     const meet = { x: n.x, z: n.z }
     const dur = mins(45, 100)
-    const ang = rand() * Math.PI * 2
+    // berdiri berhadapan di kedua sisi titik temu — tidak di dalam penghalang (mis. pagar desa)
+    let ang = rand() * Math.PI * 2
+    for (let k = 0; k < 6 && (isBlocked(meet.x + Math.sin(ang) * 0.8, meet.z + Math.cos(ang) * 0.8) || isBlocked(meet.x - Math.sin(ang) * 0.8, meet.z - Math.cos(ang) * 0.8)); k++) ang += Math.PI / 6
     const pa = { x: meet.x + Math.sin(ang) * 0.8, z: meet.z + Math.cos(ang) * 0.8 }
     const pb = { x: meet.x - Math.sin(ang) * 0.8, z: meet.z - Math.cos(ang) * 0.8 }
     walkTo(a, pa.x, pa.z, () => doAct(a, 'ngobrol', { clip: 'talk', face: faceTo(a, pb.x, pb.z), dur }))
@@ -995,7 +1002,14 @@ export function createWarga({ ground, plan, folk, rusa, quality, colliders = nul
     const { home } = a
     const near = nodes.filter(nd => Math.hypot(nd.x - home.x, nd.z - home.z) < (kepala ? 90 : 55))
     const target = near.length ? pick(near) : nearNode(home.x, home.z)
-    walkTo(a, target.x + between(-1, 1), target.z + between(-1, 1), () => {
+    let tx = target.x + between(-1, 1)
+    let tz = target.z + between(-1, 1)
+    if (isBlocked(tx, tz)) {
+      // geseran acak jatuh di penghalang (mis. pagar desa): berdiri tepat di simpulnya
+      tx = target.x
+      tz = target.z
+    }
+    walkTo(a, tx, tz, () => {
       doAct(a, 'lihat', { clip: kepala ? 'talk' : 'idle', props: a.o.umur >= 66 ? ['tongkat'] : [], dur: mins(25, 60) })
       a.need.bosan = Math.max(0, a.need.bosan - 0.3)
     })
