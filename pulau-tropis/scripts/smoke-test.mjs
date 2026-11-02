@@ -1546,6 +1546,8 @@ for (const [name, opts, query] of cases) {
       const walkCaves = name !== 'hp-landscape'
       const caves = await page.evaluate(() => window.__pulau.frostPlan.caves.filter(c => c.tema !== 'kristal').map(c => ({ id: c.id, name: c.name, route: c.route })))
       const chests = await page.evaluate(() => window.__pulau.frost.chests)
+      // Naga Es (v0.24.0) ditenangkan selama uji gua umum; dia diuji tersendiri di bawah
+      await page.evaluate(() => window.__pulau.naga?.debug.tenang(true))
       for (const cv of caves) {
         const r = cv.route
         const end = r[r.length - 1]
@@ -1574,8 +1576,13 @@ for (const [name, opts, query] of cases) {
         const btn = await page.evaluate(() => !document.getElementById('btn-peti').hidden)
         if (btn) await page.click('#btn-peti')
         await waitFrames(page, 20)
-        const k1 = await page.evaluate(() => ({ koin: window.__pulau.bag.koin, again: !document.getElementById('btn-peti').hidden }))
-        if (!btn || k1.koin - k0 !== ch.koin || k1.again) fail(`peti ${cv.name}: ${JSON.stringify({ btn, k0, k1, koin: ch.koin })}`)
+        const k1 = await page.evaluate(() => ({ koin: window.__pulau.bag.koin, again: !document.getElementById('btn-peti').hidden, label: document.getElementById('btn-peti').textContent }))
+        const sealed = await page.evaluate(id => !!window.__pulau.naga && window.__pulau.naga.sealed && window.__pulau.naga.chestId === id, cv.id)
+        if (sealed)
+          // peti yang dijaga Naga Es: tersegel es — tombolnya ada, tetapi tidak membuka peti
+          if (!btn || k1.koin !== k0 || !k1.again || !/Tersegel/.test(k1.label)) fail(`peti ${cv.name} (dijaga naga): ${JSON.stringify({ btn, k0, k1 })}`)
+          else ok(`peti ${cv.name}: tersegel es Naga Es — tombol "${k1.label.trim()}", tidak terbuka, koin tetap`)
+        else if (!btn || k1.koin - k0 !== ch.koin || k1.again) fail(`peti ${cv.name}: ${JSON.stringify({ btn, k0, k1, koin: ch.koin })}`)
         else ok(`peti ${cv.name}: Buka peti → +${ch.koin} koin, tidak bisa dibuka lagi`)
         if (k1.koin > k0) await page.evaluate(k => window.__pulau.bag.bayar(k), k1.koin - k0) // koin kembali seperti semula
       }
@@ -1614,6 +1621,147 @@ for (const [name, opts, query] of cases) {
       if (!T || !up || up.d > 2 || Math.abs(b.y - T.y) > 0.4 || !b.cave || !b.shown || !b.fall || !b.pool || !b.shaft || !(b.t > a.t) || lk < 3 || !(b.fog[1] > b.fog[0] * 1.4))
         fail(`Aula Gletser: ${JSON.stringify({ T, up, a, b, lk })}`)
       else ok(`Aula Gletser (konsep): naik tanjakan ke puncak tebing bersalju (y ${b.y} m); air terjun mengalir + kolam + berkas cahaya bergerak (waktu shader ${a.t} → ${b.t} s); ${lk} lengkung es; kabut biru kehijauan ${b.fog.join('/')}`)
+    }
+
+    // ===== Naga Es penjaga Gua Gletser (v0.24.0): tidur melingkari peti tersegel; penyusup di ruang
+    // terdalam membangunkannya (mengaum, bilah nyawa); jurus Hembusan Es, Ledakan Es, Gigitan, Sapuan Ekor,
+    // Terbang (naik → melayang → mendarat menghentak) melukai pemain; pukulan pemain mengurangi nyawanya;
+    // pemain yang kalah bangun di luar mulut gua; naga kalah → segel pecah, hadiah koin, peti bisa dibuka
+    if (await page.evaluate(() => !!window.__pulau.naga)) {
+      const N = await page.evaluate(() => window.__pulau.frostPlan.naga)
+      const ns = () => page.evaluate(() => {
+        const { naga, player } = window.__pulau
+        return { state: naga.state, act: naga.act, hp: Math.round(naga.hp), sealed: naga.sealed, fly: +naga.debug.cur.flyY.toFixed(1), php: Math.round(player.hp), bar: !document.getElementById('naga-bar').hidden }
+      })
+      const until = async(fn, arg, max) => {
+        for (let i = 0; i < max; i += 5) {
+          if (await page.evaluate(fn, arg)) return i
+          await waitFrames(page, 5)
+        }
+        return -1
+      }
+      const heal = () => page.evaluate(() => window.__pulau.player.heal(100))
+      const nearDragon = side => page.evaluate(sd => {
+        const { naga, player } = window.__pulau
+        const c = naga.targetPos()
+        const a = naga.debug.cur.heading + sd
+        const x = c.x + Math.sin(a) * 3.2
+        const z = c.z + Math.cos(a) * 3.2
+        player.placeAt(x, z, Math.atan2(c.x - x, c.z - z))
+        player.stop()
+      }, side)
+      // tidur melingkari peti, peti tersegel
+      const s0 = await page.evaluate(() => {
+        const { naga, frost } = window.__pulau
+        const ch = frost.chests.find(c => c.id === naga.chestId)
+        const p = naga.position
+        return { state: naga.state, sealed: naga.sealed, tris: naga.stats.triangles, bones: naga.stats.bones, toChest: +Math.hypot(p.x - ch.x, p.z - ch.z).toFixed(1) }
+      })
+      if (s0.state !== 'tidur' || !s0.sealed || s0.bones !== 41 || s0.toChest > 7) fail(`Naga Es tidur: ${JSON.stringify(s0)}`)
+      else ok(`Naga Es: tidur ${s0.toChest} m dari peti tersegel, ${s0.bones} tulang, ${s0.tris} segitiga`)
+      // bangun saat penyusup masuk ke ruang terdalam
+      await page.evaluate(() => window.__pulau.naga.debug.tenang(false))
+      await placeAndLook(N.door.x - 2, N.door.z - 6, N.x, N.z)
+      const wake = await until(() => window.__pulau.naga.state === 'bangun', null, 200)
+      const roarAt = await until(() => window.__pulau.naga.act === 'aum', null, 300)
+      await waitFrames(page, 10)
+      await page.screenshot({ path: `${out}/${name}-naga-aum.png` })
+      const fight = await until(() => window.__pulau.naga.state === 'tarung', null, 500)
+      const s1 = await ns()
+      if (wake < 0 || roarAt < 0 || fight < 0 || !s1.bar) fail(`Naga Es bangun: ${JSON.stringify({ wake, roarAt, fight, s1 })}`)
+      else ok(`Naga Es bangun saat penyusup masuk (${wake} bingkai), mengaum, lalu bertarung; bilah nyawa tampil`)
+      // jurus — pemain berdiri di depan naga; nyawa pemain harus berkurang
+      const res = {}
+      for (const [jurus, side] of [['hembus', 0], ['ledak', 0], ['gigit', 0], ['ekor', Math.PI], ['terbang', 0]]) {
+        await heal()
+        await until(() => !window.__pulau.naga.act, null, 300)
+        await page.evaluate(() => window.__pulau.naga.debug.tenang(true))
+        // posisi: hembus/ledak/terbang 9 m di depan, gigit 3 m di depan moncong, ekor di belakang
+        await page.evaluate(([j, sd]) => {
+          const { naga, player } = window.__pulau
+          const c = naga.position
+          const h = naga.debug.cur.heading + sd
+          const d = j === 'gigit' ? 8.4 : j === 'ekor' ? 7.5 : 11
+          const x = c.x + Math.sin(h) * d
+          const z = c.z + Math.cos(h) * d
+          player.placeAt(x, z, Math.atan2(c.x - x, c.z - z))
+          player.stop()
+        }, [jurus, side])
+        await waitFrames(page, 3)
+        const h0 = (await ns()).php
+        await page.evaluate(j => window.__pulau.naga.debug.paksa(j), jurus)
+        let peak = { fly: 0, part: 0, spikes: false }
+        for (let i = 0; i < 160; i += 4) {
+          await waitFrames(page, 4)
+          const q = await page.evaluate(() => ({ act: window.__pulau.naga.act, fly: window.__pulau.naga.debug.cur.flyY, part: window.__pulau.naga.debug.particles(), spikes: window.__pulau.naga.debug.spikes() }))
+          peak = { fly: Math.max(peak.fly, q.fly), part: Math.max(peak.part, q.part), spikes: peak.spikes || q.spikes }
+          if (jurus === 'hembus' && i === 40) await page.screenshot({ path: `${out}/${name}-naga-hembus.png` })
+          if (jurus === 'terbang' && i === 48) await page.screenshot({ path: `${out}/${name}-naga-terbang.png` })
+          if (q.act !== jurus) break
+        }
+        const after = await ns()
+        res[jurus] = { luka: h0 - after.php, terbang: +peak.fly.toFixed(1), partikel: peak.part, kristal: peak.spikes, akhir: after.fly }
+        await page.evaluate(() => window.__pulau.naga.debug.tenang(false))
+      }
+      const bad = Object.entries(res).filter(([j, r]) => r.luka <= 0 || (j === 'hembus' && r.partikel < 40) || (j === 'ledak' && !r.kristal) || (j === 'terbang' && (r.terbang < 6 || r.akhir > 0.5)))
+      if (bad.length) fail(`jurus Naga Es: ${JSON.stringify(res)}`)
+      else ok(`jurus Naga Es melukai pemain: Hembusan Es −${res.hembus.luka} (${res.hembus.partikel} partikel), Ledakan Es −${res.ledak.luka}, Gigitan −${res.gigit.luka}, Sapuan Ekor −${res.ekor.luka}, Terbang (${res.terbang.terbang} m, mendarat menghentak) −${res.terbang.luka}`)
+      // pukulan pemain mengurangi nyawa naga
+      await heal()
+      await page.evaluate(() => window.__pulau.naga.debug.tenang(true))
+      await until(() => !window.__pulau.naga.act, null, 300)
+      const hp0 = (await ns()).hp
+      for (let i = 0; i < 5; i++) {
+        await nearDragon(Math.PI / 2)
+        await page.keyboard.press('KeyF')
+        await waitFrames(page, 14)
+      }
+      const hp1 = (await ns()).hp
+      if (!(hp1 < hp0)) fail(`memukul Naga Es: nyawa ${hp0} → ${hp1}`)
+      else ok(`memukul Naga Es: nyawanya ${hp0} → ${hp1}`)
+      // pemain kalah → bangun di luar mulut Gua Gletser, naga pulang ke sarang
+      await page.evaluate(() => window.__pulau.naga.debug.tenang(false))
+      await page.evaluate(() => window.__pulau.player.damage(500, window.__pulau.naga.position))
+      await waitFrames(page, 10)
+      await until(() => !window.__pulau.player.defeated, null, 400)
+      await waitFrames(page, 10)
+      const back = await page.evaluate(ex => {
+        const { player, naga } = window.__pulau
+        return { d: +Math.hypot(player.position.x - ex.x, player.position.z - ex.z).toFixed(1), state: naga.state, msg: document.getElementById('pesan')?.textContent || '' }
+      }, N.exit)
+      const home = await until(() => ['tidur', 'rebah'].includes(window.__pulau.naga.state), null, 900)
+      if (back.d > 4 || home < 0) fail(`kalah oleh Naga Es: ${JSON.stringify({ back, home })}`)
+      else ok(`kalah oleh Naga Es: bangun di luar mulut Gua Gletser (${back.d} m dari titik keluar); naga pulang & tidur lagi`)
+      // naga kalah → segel pecah, hadiah koin, peti terbuka
+      await heal()
+      await placeAndLook(N.door.x - 2, N.door.z - 6, N.x, N.z)
+      await until(() => window.__pulau.naga.state === 'tarung', null, 600)
+      await page.evaluate(() => window.__pulau.naga.debug.tenang(true))
+      await until(() => !window.__pulau.naga.act, null, 300)
+      const kA = await page.evaluate(() => window.__pulau.bag.koin)
+      await page.evaluate(() => window.__pulau.naga.debug.setHp(1))
+      for (let i = 0; i < 6 && (await ns()).state !== 'kalah'; i++) {
+        await nearDragon(Math.PI / 2)
+        await page.keyboard.press('KeyF')
+        await waitFrames(page, 14)
+      }
+      await waitFrames(page, 40)
+      const kB = await page.evaluate(() => window.__pulau.bag.koin)
+      const s2 = await ns()
+      await placeAndLook(N.door.x - 2, N.door.z - 6, N.x, N.z)
+      await waitFrames(page, 20)
+      await page.screenshot({ path: `${out}/${name}-naga-kalah.png` })
+      const ch = await page.evaluate(id => window.__pulau.frost.chests.find(c => c.id === id), N.chest)
+      await placeAndLook(ch.x + Math.sin(ch.rot) * 1.9, ch.z + Math.cos(ch.rot) * 1.9, ch.x, ch.z)
+      await waitFrames(page, 10)
+      const btn = await page.evaluate(() => ({ shown: !document.getElementById('btn-peti').hidden, label: document.getElementById('btn-peti').textContent.trim() }))
+      if (btn.shown) await page.click('#btn-peti')
+      await waitFrames(page, 20)
+      const kC = await page.evaluate(() => window.__pulau.bag.koin)
+      if (s2.state !== 'kalah' || s2.sealed || s2.bar || kB - kA !== 150 || !btn.shown || /Tersegel/.test(btn.label) || kC - kB !== ch.koin)
+        fail(`Naga Es kalah: ${JSON.stringify({ s2, kA, kB, kC, btn })}`)
+      else ok(`Naga Es kalah: roboh, segel es pecah, +${kB - kA} koin; peti Gua Gletser terbuka → +${kC - kB} koin`)
+      if (kC > kA) await page.evaluate(k => window.__pulau.bag.bayar(k), kC - kA)
     }
 
     // ===== Penduduk Frostfall (v0.22.0): 300 orang dalam 59 keluarga; jam Frostfall (malam tidur di
