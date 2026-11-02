@@ -411,7 +411,8 @@ export function createNaga({ plan, chest, ground, noiseTexture }) {
     const dist = Math.hypot(p.x - c.x, p.z - c.z)
     const ang = wrapAngle(Math.atan2(p.x - st.x, p.z - st.z) - st.heading)
     const snout = Math.hypot(p.x - mouth.x, p.z - mouth.z)
-    return { dist, ang, snout, fromCenter: Math.hypot(p.x - A.x, p.z - A.z) }
+    const root = Math.hypot(p.x - st.x, p.z - st.z)
+    return { dist, ang, snout, root, fromCenter: Math.hypot(p.x - A.x, p.z - A.z) }
   }
 
   // --- melukai pemain (jarak & tinggi dicek oleh pemanggil)
@@ -444,7 +445,7 @@ export function createNaga({ plan, chest, ground, noiseTexture }) {
       start('ekor', { side: Math.sign(rel.ang) || 1 })
       return
     }
-    if (rel.snout < SK.gigit.reach && abs < 0.75 && st.cd.gigit <= 0) {
+    if (rel.root < 10.5 && rel.root > 4 && abs < 0.6 && st.cd.gigit <= 0) {
       start('gigit')
       return
     }
@@ -457,7 +458,7 @@ export function createNaga({ plan, chest, ground, noiseTexture }) {
       return
     }
     if (abs > 0.4) start('belok', { dur: 1.2 })
-    else if (rel.snout > 4) start('dekati', { dur: 2.2 })
+    else if (rel.root > 9) start('dekati', { dur: 2.2 })
     else st.idle = 0.35
   }
 
@@ -477,13 +478,13 @@ export function createNaga({ plan, chest, ground, noiseTexture }) {
         break
       }
       case 'dekati': {
-        turnToward(p, dt, SPEED.putar * k)
+        const err = turnToward(p, dt, SPEED.putar * k)
         const run = st.enraged || rel.dist > 14
         const v = (run ? SPEED.lari : SPEED.jalan) * k
-        advance(v, dt)
+        advance(v * Math.max(0.2, Math.cos(err)), dt)
         st.gait = run ? 2 : 1
         tgt.neckLift = 0.1
-        if (rel.snout < 3.6 || a.t > a.dur) a.done = true
+        if (rel.root < 8.5 || a.t > a.dur) a.done = true
         break
       }
       case 'gigit': {
@@ -495,14 +496,18 @@ export function createNaga({ plan, chest, ground, noiseTexture }) {
           tgt.headPitch = -0.2
           tgt.jaw = 0.8
           tgt.crouch = 0.25
-        } else if (a.t < w + 0.3) {
-          tgt.neckLift = -0.75
-          tgt.headPitch = 0.3
-          tgt.jaw = a.t < w + 0.18 ? 1 : 0
-          tgt.crouch = 0.45
-          if (!a.struck && a.t > w + 0.14) {
+        } else if (a.t < w + 0.35) {
+          // menyambar ke lantai sambil menerjang ±1,5 m: moncong turun sampai ±1 m di atas tanah
+          tgt.neckLift = -1.5
+          tgt.headPitch = 0.7
+          tgt.jaw = a.t < w + 0.2 ? 1 : 0
+          tgt.crouch = 0.6
+          advance(5, dt)
+          if (!a.struck && a.t > w + 0.18) {
             a.struck = true
-            if (Math.hypot(p.x - mouth.x, p.z - mouth.z) < 3.3 && Math.abs(playerY(player) + 0.9 - mouth.y) < 3.2) hurt(player, SK.gigit.dmg, mouth, 5)
+            const sx = st.x + Math.sin(st.heading) * 6.5
+            const sz = st.z + Math.cos(st.heading) * 6.5
+            if (Math.hypot(p.x - sx, p.z - sz) < 3.4 && playerY(player) < ground.heightAt(sx, sz) + 3) hurt(player, SK.gigit.dmg, { x: sx, z: sz }, 5)
             event('gigit')
           }
         } else {
@@ -849,7 +854,11 @@ export function createNaga({ plan, chest, ground, noiseTexture }) {
       st.deadT += dt0
       if (st.deadT > 240 && far > 70) revive()
     }
-    if (!visible) return
+    if (!visible) {
+      // tak terlihat (pemain jauh, mis. bangun di luar gua setelah kalah): langsung kembali tidur di sarang
+      if (st.state !== 'tidur' && st.state !== 'kalah') goHome()
+      return
+    }
     const dt = Math.min(dt0, 0.1)
     elapsed += dt
     st.t += dt
@@ -929,9 +938,14 @@ export function createNaga({ plan, chest, ground, noiseTexture }) {
           break
         }
         if (d > 0.6) {
-          turnToward(home, dt, SPEED.putar)
-          advance(Math.min(SPEED.jalan, d * 1.5), dt)
+          // maju hanya sejauh sudah menghadap tujuannya (tidak berputar-putar mengelilingi titik tujuan)
+          const err = turnToward(home, dt, SPEED.putar)
+          advance(Math.min(SPEED.jalan, d * 1.5 + 0.5) * Math.max(0, Math.cos(err)), dt)
           st.gait = 1
+          if (d < 1.2) {
+            st.x += (home.x - st.x) * Math.min(1, dt * 2)
+            st.z += (home.z - st.z) * Math.min(1, dt * 2)
+          }
         } else {
           const want = wrapAngle(plan.rot - st.heading)
           st.heading = wrapAngle(st.heading + clamp(want, -dt, dt))
@@ -1044,6 +1058,21 @@ export function createNaga({ plan, chest, ground, noiseTexture }) {
       seal.group.visible = false
     }
     event('kalah', { segel: wasSealed })
+  }
+  function goHome() {
+    st.x = plan.x
+    st.z = plan.z
+    st.heading = plan.rot
+    st.flyY = 0
+    st.hp = NAGA_HP
+    st.enraged = false
+    st.roaredRage = false
+    breathGlow = 0
+    resetTargets()
+    Object.assign(cur, { sleep: 1, spread: 0 })
+    tgt.sleep = 1
+    tgt.spread = 0
+    setState('tidur')
   }
   function revive() {
     st.hp = NAGA_HP
