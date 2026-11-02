@@ -4,7 +4,7 @@ import { TOWER } from './buildings.js'
 import { cavePassage, caveFloorIn, frostSurface, CAVE_SYSTEMS } from './height.js'
 import {
   VILLAGE, SQUARE, CASTLE, CASTLE_YARD, HALL, THRONE, TRAPDOOR, CAVE, LAKE, TREASURE, CAVE_MOUTH, WATERFALL, RIVER, ROADS, TRAILS,
-  GORGE, BRIDGES, DOCKS, CAMPS, HIGH_VALLEY, CAVES, HAMLETS, PIER, HERDS, polyInfo,
+  GORGE, BRIDGES, DOCKS, CAMPS, HIGH_VALLEY, CAVES, HAMLETS, PIER, HERDS, FENCES, polyInfo, segmentInfo,
 } from './layout.js'
 
 // Rencana rinci Kerajaan Frostfall: letak setiap bangunan, penghalang (sebagian berbatas tinggi:
@@ -1100,10 +1100,77 @@ export function planFrostfall(ground) {
     spot('tebang', 'pemburu', x, z + 1.2, Math.PI)
   }
 
+  // ===================================================================== pagar tinggi desa (v0.23.0)
+  // tiap sisi keliling dipotong di gerbangnya; sisi dalam (palang) menghadap tengah desa. Penghalang
+  // garis lurus setebal 0,7 m (miring: 1 m, supaya tetap menutup kisi penghalang penduduk tanpa celah)
+  P.fences = []
+  for (const F of FENCES) {
+    const cx = F.loop.reduce((s, p) => s + p.x, 0) / F.loop.length
+    const cz = F.loop.reduce((s, p) => s + p.z, 0) / F.loop.length
+    const fence = { id: F.id, pieces: [], gates: [] }
+    F.loop.forEach((a, i) => {
+      const b = F.loop[(i + 1) % F.loop.length]
+      const len = Math.hypot(b.x - a.x, b.z - a.z)
+      const ux = (b.x - a.x) / len
+      const uz = (b.z - a.z) / len
+      const rot = Math.atan2(ux, uz)
+      const at = t => ({ x: a.x + ux * t, z: a.z + uz * t })
+      const straight = Math.abs(ux) < 1e-6 || Math.abs(uz) < 1e-6
+      const cuts = F.gates
+        .filter(g => segmentInfo(g.x, g.z, a.x, a.z, b.x, b.z).d < 0.01)
+        .map(g => {
+          const t = (g.x - a.x) * ux + (g.z - a.z) * uz
+          return { g, t0: t - g.w / 2, t1: t + g.w / 2 }
+        })
+        .sort((p, q) => p.t0 - q.t0)
+      let s = 0
+      for (const c of [...cuts, { t0: len, t1: len }]) {
+        if (c.t0 - s > 0.5) {
+          const p0 = at(s)
+          const p1 = at(c.t0)
+          const m = { x: (p0.x + p1.x) / 2, z: (p0.z + p1.z) / 2 }
+          const plen = c.t0 - s
+          const inside = Math.sign(uz * (cx - m.x) - ux * (cz - m.z)) || 1
+          // tampilan: di tanah yang tidak rata (tepi pad, tebing sungai) dipecah per ±2,5 m, tiap
+          // potongan berdiri di titik terendah tanahnya (pagar bertingkat mengikuti lereng)
+          const ys = []
+          for (let t = 0; t <= plen + 1e-6; t += 0.5) ys.push(yAt(p0.x + ux * t, p0.z + uz * t))
+          const flat = Math.max(...ys) - Math.min(...ys) < 0.12
+          const nk = flat ? 1 : Math.max(1, Math.round(plen / 2.5))
+          for (let k = 0; k < nk; k++) {
+            const t0 = (plen * k) / nk
+            const t1 = (plen * (k + 1)) / nk
+            const lo = Math.min(...ys.slice(Math.floor(t0 / 0.5), Math.ceil(t1 / 0.5) + 1))
+            const c = at(s + (t0 + t1) / 2)
+            add({ type: 'pagar-tinggi', x: c.x, y: flat ? F.y : lo + 0.04, z: c.z, rot, len: t1 - t0, inside, seed: fence.pieces.length * 31 + k + 1 })
+          }
+          box(m.x, m.z, straight ? 0.7 : 1.0, plen, rot, 'kayu')
+          block(m.x, m.z, 1.2, plen, rot)
+          fence.pieces.push({ ax: p0.x, az: p0.z, bx: p1.x, bz: p1.z })
+        }
+        const { g } = c
+        if (g) {
+          const gy = Math.min(yAt(g.x + ux * g.w / 2, g.z + uz * g.w / 2), yAt(g.x - ux * g.w / 2, g.z - uz * g.w / 2))
+          add({ type: 'gerbang-pagar', x: g.x, y: Math.min(F.y, gy + 0.04), z: g.z, rot, w: g.w, seed: fence.gates.length + 1 })
+          for (const sg of [-1, 1]) circle(g.x + ux * sg * g.w / 2, g.z + uz * sg * g.w / 2, 0.42, 'kayu')
+          fence.gates.push({ x: g.x, z: g.z, w: g.w, rot })
+          if (g.jalur) P.warga.lanes.push(g.jalur)
+        }
+        s = c.t1
+      }
+      // tiang sudut
+      add({ type: 'tiang-pagar', x: a.x, y: Math.abs(yAt(a.x, a.z) - F.y) < 0.12 ? F.y : yAt(a.x, a.z), z: a.z, rot: 0 })
+      circle(a.x, a.z, 0.36, 'kayu')
+    })
+    P.fences.push(fence)
+  }
+
   // ===================================================================== kawasan tanpa pohon
   P.clear = (x, z, r = 0) => {
     if (x > VILLAGE.x0 - 8 - r && x < VILLAGE.x1 + 8 + r && z > VILLAGE.z0 - 8 - r && z < VILLAGE.z1 + 8 + r) return true
     for (const k of HAMLETS) if (x > k.x0 - 12 - r && x < k.x1 + 12 + r && z > k.z0 - 12 - r && z < k.z1 + 12 + r) return true
+    // jalur bebas pohon di luar pagar tinggi (mahkota pinus tidak menembus pagar)
+    for (const f of P.fences) for (const q of f.pieces) if (segmentInfo(x, z, q.ax, q.az, q.bx, q.bz).d < 4.5 + r) return true
     if (x > 440 - r && x < 470 + r && z > -100 - r && z < -15 + r) return true
     // padang rumput salju tempat kawanan rusa kutub merumput
     for (const h of HERDS) if (Math.hypot(x - h.x, z - h.z) < 24 + r) return true

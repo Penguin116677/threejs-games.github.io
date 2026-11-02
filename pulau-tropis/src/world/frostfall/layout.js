@@ -230,6 +230,47 @@ export const HAMLETS = [
     paths: [[{ x: 766, z: 136.5 }, { x: 740, z: 136.5 }], [{ x: 809, z: 174 }, { x: 796, z: 206 }]],
   },
 ]
+// ------------------------------------------------------------------ pagar tinggi desa (v0.23.0)
+// Pagar kayu gelondong runcing (±4 m) mengelilingi tiap desa, di atas pad rata desanya (4–5 m di luar
+// kawasan desa). loop = sudut-sudut keliling (tertutup); gates = gerbang terbuka { x, z, w } tepat di
+// sisi keliling, di setiap jalan / lorong / setapak yang keluar dari desa; jalur = sambungan jaringan
+// jalan penduduk (tidak dicat) yang melewati gerbang itu, bila jalan di kedua sisinya belum tersambung
+// (dulu penduduk berjalan lurus saja di situ — kini akan menabrak pagar). Garis lurus sejajar sumbu
+// sengaja di x / z ganjil: tepat di tengah sel kisi penghalang penduduk (2 m, warga.js), jadi
+// penduduk tidak pernah "menembus" pagar. Sudut barat daya Rusa Putih dipotong miring supaya setapak
+// hutan tidak menyerempet pagar.
+export const FENCES = [
+  {
+    id: 'desa', y: VILLAGE.y,
+    loop: [{ x: 621, z: -105 }, { x: 765, z: -105 }, { x: 765, z: 17 }, { x: 621, z: 17 }],
+    gates: [
+      { x: 621, z: -37, w: 14 }, // barat: jalan pantai (api unggun gerbang barat di luarnya)
+      { x: 765, z: -40, w: 12, jalur: [{ x: 760, z: -40 }, { x: 768, z: -40 }] }, // timur: setapak Lembah Atas
+      { x: 765, z: -68, w: 12, jalur: [{ x: 756, z: -65.5 }, { x: 760, z: -62 }] }, // timur: jalan gunung ke kastel
+      { x: 694, z: -105, w: 12 }, // utara: setapak Tambang Tua
+      { x: 701, z: 17, w: 12, jalur: [{ x: 694, z: 10 }, { x: 700, z: 12 }] }, // selatan: setapak hutan & Jembatan Desa
+    ],
+  },
+  {
+    id: 'nelayan', y: 3.2,
+    loop: [{ x: 463, z: -101 }, { x: 541, z: -101 }, { x: 541, z: -15 }, { x: 463, z: -15 }],
+    gates: [
+      { x: 504, z: -15, w: 12 }, // selatan: lorong ke jalan pantai
+      // barat: ke pantai, perahu & dermaga kecil (jalur: di belakang baris rumah utara, ke lorong tengah)
+      { x: 463, z: -56, w: 10, jalur: [{ x: 462, z: -56 }, { x: 467, z: -62 }, { x: 504, z: -63 }] },
+    ],
+  },
+  {
+    id: 'pemburu', y: 16.2,
+    loop: [{ x: 761, z: 95 }, { x: 845, z: 95 }, { x: 845, z: 179 }, { x: 771, z: 179 }, { x: 761, z: 165 }],
+    gates: [
+      // barat: lorong ke setapak hutan (jalur: di belakang baris rumah utara, ke lorong tengah)
+      { x: 761, z: 136.5, w: 10, jalur: [{ x: 766, z: 136.5 }, { x: 770, z: 131 }, { x: 809, z: 130 }] },
+      { x: 806, z: 179, w: 12 }, // selatan: ke hutan perburuan
+    ],
+  },
+]
+
 // dermaga kecil nelayan Teluk Salju (dari pantai ke laut, ke barat): lantai setinggi deck
 export const PIER = { x0: 420, x1: 450, z: -56, w: 2.6, deck: 1.3 }
 // kawanan rusa kutub di hutan perburuan: pusat & jari-jari wilayah jelajah

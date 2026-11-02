@@ -308,6 +308,99 @@ export function pagarSalju(len) {
   return P
 }
 
+// pagar tinggi desa (v0.23.0) sepanjang z lokal: deretan gelondong runcing ±4 m (penampang belah
+// ketupat: dua bidang miring di tiap sisi tampak membulat kena cahaya; ujung runcing kayu muda yang baru
+// diserut), dua palang di sisi dalam desa (inside = ±1 pada x lokal) dengan salju di palang atas, dan
+// timbunan salju di kaki kedua sisinya. ±12 segitiga per gelondong (tiap 0,5 m)
+export function pagarTinggi(len, inside = 1, seed = 1) {
+  const P = new Parts()
+  const r = rnd(seed * 131 + 17)
+  const n = Math.max(1, Math.round(len / 0.5))
+  const wl = len / n
+  const T = 0.19 // jarak punggung gelondong dari garis pagar
+  const BASE = -0.35 // terbenam sedikit di tanah
+  const WOOD = [FC.kayu, FC.kayuTua, '#5a3d28', '#7a5639']
+  const body = []
+  const bodyN = []
+  const tip = []
+  const tipN = []
+  // segitiga a-b-c dengan normal datar yang menghadap ke arah `out`
+  const tri = (pos, nor, a, b, c, out) => {
+    const ux = b[0] - a[0]
+    const uy = b[1] - a[1]
+    const uz = b[2] - a[2]
+    const vx = c[0] - a[0]
+    const vy = c[1] - a[1]
+    const vz = c[2] - a[2]
+    let nx = uy * vz - uz * vy
+    let ny = uz * vx - ux * vz
+    let nz = ux * vy - uy * vx
+    const flip = nx * out[0] + ny * out[1] + nz * out[2] < 0
+    const l = Math.hypot(nx, ny, nz) * (flip ? -1 : 1)
+    nx /= l
+    ny /= l
+    nz /= l
+    for (const p of flip ? [a, c, b] : [a, b, c]) {
+      pos.push(p[0], p[1], p[2])
+      nor.push(nx, ny, nz)
+    }
+  }
+  for (let i = 0; i < n; i++) {
+    const z0 = -len / 2 + i * wl
+    const z1 = z0 + wl
+    const zc = (z0 + z1) / 2
+    const h = 3.45 + r() * 0.5
+    const top = h + 0.4 + r() * 0.2
+    body.length = bodyN.length = tip.length = tipN.length = 0
+    const apex = [0, top, zc]
+    // empat bidang: depan-kiri, depan-kanan, belakang-kanan, belakang-kiri
+    for (const [px, pz, qx, qz] of [[0, z0, T, zc], [T, zc, 0, z1], [0, z1, -T, zc], [-T, zc, 0, z0]]) {
+      const out = [(px + qx) / 2, 0, (pz + qz) / 2 - zc]
+      tri(body, bodyN, [px, BASE, pz], [qx, BASE, qz], [qx, h, qz], out)
+      tri(body, bodyN, [px, BASE, pz], [qx, h, qz], [px, h, pz], out)
+      tri(tip, tipN, [px, h, pz], [qx, h, qz], apex, [out[0], 0.5, out[2]])
+    }
+    P.addRaw(body, bodyN, WOOD[Math.floor(r() * WOOD.length)], K.PLESTER, { shade: [0.78, 1.02] })
+    P.addRaw(tip, tipN, r() < 0.5 ? FC.kayuMuda : '#a07c55', K.POLOS, { shade: [0.95, 1.08] })
+  }
+  // palang di sisi dalam + salju di palang atas
+  const rx = inside * (T + 0.08)
+  for (const y of [1.0, 2.85]) P.box(0.16, 0.2, len, FC.kayuTua, K.KAYU, { x: rx, y })
+  P.box(0.2, 0.07, len, FC.salju, K.SALJU, { x: rx, y: 3.05 })
+  // timbunan salju di kaki pagar (kedua sisi)
+  P.box(1.15, 0.32, len, FC.salju, K.SALJU, { y: -0.1, shade: [0.92, 1.0] })
+  return P
+}
+
+// tiang sudut pagar tinggi: gelondong besar runcing
+export function tiangPagar() {
+  const P = new Parts()
+  P.cyl(0.28, 0.32, 4.75, 7, FC.kayuTua, K.KAYU, { y: -0.35 })
+  P.cyl(0, 0.28, 0.6, 7, FC.kayuMuda, K.POLOS, { y: 4.4 })
+  return P
+}
+
+// gerbang pagar tinggi selebar w (sepanjang z lokal): dua tiang besar, balok lintang bersalju dengan
+// es menggantung, tanpa daun pintu (selalu terbuka)
+export function gerbangPagar(w, seed = 1) {
+  const P = new Parts()
+  const r = rnd(seed * 53 + 5)
+  for (const s of [-1, 1]) {
+    const z = s * w / 2
+    P.cyl(0.32, 0.36, 5.75, 8, FC.kayuTua, K.KAYU, { y: -0.35, z })
+    P.cyl(0, 0.32, 0.6, 8, FC.kayuMuda, K.POLOS, { y: 5.4, z })
+    // penopang miring dari tiang ke balok lintang (condong ke tengah gerbang)
+    P.box(0.16, 1.5, 0.16, FC.kayu, K.KAYU, { y: 3.5, z: z - s * 0.3, rx: -s * 0.75 })
+  }
+  P.box(0.42, 0.42, w + 1.2, FC.kayu, K.KAYU, { y: 4.6 })
+  P.box(0.5, 0.12, w + 1.0, FC.salju, K.SALJU, { y: 5.02 })
+  for (let z = -w / 2 + 0.6; z < w / 2 - 0.4; z += 0.5 + r() * 0.6) {
+    const l = 0.25 + r() * 0.5
+    P.cyl(0.06, 0, l, 4, FC.es, K.ES, { y: 4.6 - l + 0.02, z })
+  }
+  return P
+}
+
 // --------------------------------------------------------------------------- kastel
 // tembok kastel batu sepanjang z lokal: kaki melebar, puncak bergerigi (merlon), salju di atasnya
 export function temboKastel(len, t, h) {
