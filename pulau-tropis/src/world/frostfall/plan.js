@@ -44,6 +44,7 @@ export function planFrostfall(ground) {
     shafts: [], // berkas cahaya dari celah atap { x, y, z, h, r, tilt, rot }
     caves: CAVES,
     trapdoor: null,
+    naga: null, // Naga Es penjaga Gua Gletser (v0.24.0): { x, z, rot, y, arena, room, door, exit, ... }
     // penduduk (v0.22.0, warga.js): rumah keluarga & tempat berkegiatan
     warga: {
       homes: [], // { id, desa, x, z, y, rot, w, d, door: { x, z } }
@@ -763,7 +764,8 @@ export function planFrostfall(ground) {
             const r = rb(0.9, 1.7)
             if (!insideBy(x, z, r + 1) || !clear(x, z, r)) continue
             const tinggi = rb(7, 14)
-            if (diKonsep(x, z, r)) rb(0, 6)
+            // ruang terakhir = sarang Naga Es (v0.24.0): tanpa tiang, supaya naga leluasa bertarung & terbang
+            if (diKonsep(x, z, r) || (cv.naga && c === bulat[bulat.length - 1])) rb(0, 6)
             else pillar(x, z, r, tinggi, i + 31)
             n++
           }
@@ -864,6 +866,18 @@ export function planFrostfall(ground) {
       add({ type: 'harta', x: ch.x, y, z: ch.z, rot })
       box(ch.x, ch.z, 1.7, 1.1, rot, 'kayu')
       P.chests.push({ id: cv.id, x: ch.x, y, z: ch.z, rot, koin: ch.koin, key: ch.key, pesan: ch.pesan, gua: cv.name })
+      // Naga Es penjaga (v0.24.0): tempat tidur, arena, ruang sarang, pintu ruang, dan titik bangun pemain
+      // yang dikalahkannya (di luar mulut gua, membelakangi gua)
+      if (cv.naga) {
+        const N = cv.naga
+        const room = bulat[bulat.length - 1]
+        const door = lorong[lorong.length - 1].b
+        const [o0, o1] = cv.route
+        P.naga = {
+          ...N, y: yAt(N.x, N.z), gua: cv.id, chest: cv.id, room: { x: room.x, z: room.z, r: room.r, y: room.y }, door: { x: door.x, z: door.z },
+          exit: { x: o0.x, z: o0.z, heading: Math.atan2(o0.x - o1.x, o0.z - o1.z) },
+        }
+      }
       light(ch.x, y + 2, ch.z, '#ffd27a', 16, 10, 0)
       const fx = Math.sin(rot)
       const fz = Math.cos(rot)
