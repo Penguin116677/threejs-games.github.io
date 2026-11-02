@@ -37,6 +37,7 @@ import { createFrostfall } from './world/frostfall/kingdom.js'
 import { createWeather } from './world/frostfall/cuaca.js'
 import { createWarga, WARGA_CAPS } from './world/frostfall/warga.js'
 import { createReindeer } from './world/frostfall/rusa.js'
+import { createNaga } from './world/frostfall/naga.js'
 import { setCaveGrid, caveAt } from './world/frostfall/height.js'
 import { VILLAGE as FROST_VILLAGE, CASTLE as FROST_CASTLE, HIGH_VALLEY, WATERFALL as FROST_WATERFALL, CAVES as FROST_CAVES_ALL, HAMLETS, HERDS } from './world/frostfall/layout.js'
 import { createWorldMap, createRegionBanner } from './ui/peta.js'
@@ -225,6 +226,11 @@ async function start() {
   await nextFrame()
   const frost = createFrostfall({ ground, plan: frostPlan, mask: frostMask, grid, quality, noiseTexture, terrainMaterial: terrain.userData.material })
   scene.add(frost.object)
+  // Naga Es penjaga Gua Gletser (v0.24.0): tidur melingkari peti di ruang terdalam
+  const naga = frostPlan.naga
+    ? createNaga({ plan: frostPlan.naga, chest: frostPlan.chests.find(c => c.id === frostPlan.naga.chest), ground, noiseTexture })
+    : null
+  if (naga) scene.add(naga.object)
   // lantai jembatan, dermaga, batur pendopo, tangga, menara jaga, lantai aula: bisa diinjak
   const allSurfaces = [...kencana.surfaces, ...aeloria.surfaces, ...frost.surfaces]
   ground.setSurfaces(allSurfaces)
@@ -443,6 +449,9 @@ async function start() {
         for (const a of soldiers.list) if (soldiers.alive(a) && canHit(a) && Math.hypot(a.x - x, a.z - z) <= range) cands.push({ id: `s${a.id}`, x: a.x, z: a.z })
       // elf Aeloria hanya bila sedang melawan pemain (yang damai tidak pernah jadi sasaran)
       if (elfSec) cands.push(...elfSec.targets(x, z, range))
+      // Naga Es (tidak bisa dipenggal: luka berat)
+      const nt = naga?.target(x, z, range)
+      if (nt) cands.push(nt)
       const near = cands.sort((a, b) => Math.hypot(a.x - x, a.z - z) - Math.hypot(b.x - x, b.z - z)).slice(0, max)
       // urutkan menjadi jalur terpendek (tetangga terdekat) mulai dari (x, z)
       const out = []
@@ -461,6 +470,7 @@ async function start() {
     position(id) {
       if (id[0] === 'o') return enemies ? enemies.position(Number(id.slice(1))) : null
       if (id[0] === 'e') return elfSec ? elfSec.position(id) : null
+      if (id[0] === 'n') return naga ? naga.targetPos() : null
       const a = soldierOf(id)
       return soldiers.alive(a) ? { x: a.x, z: a.z } : null
     },
@@ -668,6 +678,9 @@ async function start() {
     }
     if (chestOpened.has(ch.id)) frost.openChest(ch.id)
   }
+  // peti yang dijaga Naga Es tersegel es selama naga hidup (yang sudah dibuka dulu tidak perlu disegel)
+  if (naga && chestOpened.has(naga.chestId)) naga.unsealIfOpened()
+  const chestSealed = ch => !!naga && naga.sealed && ch.id === naga.chestId
   // peti yang belum dibuka di dekat pemain (2,8 m, setinggi kakinya)
   const chestNear = p => frost.chests.find(ch => !chestOpened.has(ch.id) && Math.hypot(p.x - ch.x, p.z - ch.z) < 2.8 && Math.abs(p.y - ch.y) < 1.5) ?? null
   function openSecret() {
@@ -683,6 +696,10 @@ async function start() {
   function openChest() {
     const ch = mode === 'main' ? chestNear(player.position) : null
     if (!ch) return
+    if (chestSealed(ch)) {
+      showMessage('Peti ini terbungkus segel es Naga Es — kalahkan penjaganya dulu!', 2600)
+      return
+    }
     chestOpened.add(ch.id)
     try {
       localStorage.setItem(ch.key, '1')
@@ -718,7 +735,8 @@ async function start() {
     const nearBottom = Math.hypot(p.x - td.bottom.x, p.z - td.bottom.z) < 5 && p.y < td.y - 0.6 && p.y > td.y - 5
     btnRahasia.set(free && !frost.trapdoorOpen && (nearTop || nearBottom), nearBottom ? 'Dorong lempeng' : 'Geser lempeng', nearBottom ? 'jalan keluar di atas' : 'lantai di sini berongga')
     const ch = chestNear(p)
-    btnPeti.set(free && !!ch, 'Buka peti', 'harta karun')
+    const sealed = !!ch && chestSealed(ch)
+    btnPeti.set(free && !!ch, sealed ? 'Tersegel es' : 'Buka peti', sealed ? 'kalahkan Naga Es' : 'harta karun')
     // jumlah anak buah di HUD (di bawah koin)
     const nBuah = recruits ? recruits.followers.length : 0
     if (nBuah !== shownBuah) {
@@ -774,6 +792,10 @@ async function start() {
         const at = elfSec.fell(id)
         if (at) cut.push(at)
       }
+      if (naga && ev.targets.includes('n0')) {
+        const at = naga.execute()
+        if (at) cut.push(at)
+      }
       effects.execute(cut, player.position)
       if (cut.length) cam.shake(0.22)
       return
@@ -800,6 +822,7 @@ async function start() {
       for (const a of guards) struck.push({ x: a.x, y: a.y, z: a.z })
       // elf Aeloria: memukul elf = membuat rusuh (kesatria melawan, warga kabur / ikut berkelahi)
       if (elfSec) struck.push(...elfSec.hit(shape, damage, ev.knock, ev.origin))
+      if (naga) struck.push(...naga.hit(shape, damage, ev.knock, ev.origin, ev.y))
       const hits = colliders.hitAll(ev.x, ev.z, ev.r, 5)
       chopWood(hits)
       effects.attack(ev, hits, struck)
@@ -910,6 +933,31 @@ async function start() {
   warga?.setBubbles(bubbles)
   warga?.setPlayer(player)
   const health = createHealthBar($('nyawa'), $('luka'))
+  // Naga Es: bilah nyawa, guncangan kamera, pesan, hadiah
+  const nagaBar = $('naga-bar')
+  const nagaFill = nagaBar.querySelector('.isi')
+  naga?.onEvent(ev => {
+    if (ev.type === 'bangun') showMessage('Naga Es terbangun! Penjaga Gua Gletser tidak membiarkan siapa pun menyentuh hartanya.', 4200)
+    else if (ev.type === 'aum') cam.shake(ev.kecil ? 0.14 : 0.35)
+    else if (ev.type === 'hentak') cam.shake(0.45)
+    else if (ev.type === 'ledak') cam.shake(0.22)
+    else if (ev.type === 'terbang') cam.shake(0.18)
+    else if (ev.type === 'pulang' && !ev.kalahPemain) showMessage('Naga Es berhenti mengejar dan kembali ke sarangnya…', 3200)
+    else if (ev.type === 'kalah') {
+      cam.shake(0.3)
+      // hadiah: 150 koin untuk kemenangan pertama (tersimpan), sesudahnya 40 koin
+      let first = true
+      try {
+        first = localStorage.getItem('pulau-tropis:naga-es') !== '1'
+        localStorage.setItem('pulau-tropis:naga-es', '1')
+      } catch {
+        // penyimpanan diblokir: dianggap kemenangan pertama
+      }
+      const koin = first ? 150 : 40
+      shop.reward(koin)
+      showMessage(`Naga Es roboh! ${ev.segel ? 'Segel es di peti harta pecah. ' : ''}Kamu mendapat ${koin} koin dari sarangnya.`, 4600)
+    }
+  })
   // pendatang: turun dari kapal penyeberangan di ujung Dermaga Timur, ditanyai penjaga di luar
   // gapuranya, lalu ke pasar
   const visit = {
@@ -1021,6 +1069,7 @@ async function start() {
   // dikalahkan kesatria Aeloria = diantar ke luar kerajaan: pantai utara Pulau Tropis (Dermaga Utara)
   const elfExit = { x: dockUtara.at + 3, z: dockUtara.base.z - dockUtara.dir * 12, heading: 0 }
   player.onDefeated(() => {
+    const byDragon = naga ? naga.playerDefeated() : false
     const byKingdom = security ? security.playerDefeated() : false
     const byElves = elfSec ? elfSec.playerDefeated() : false
     markers.hideTarget()
@@ -1032,16 +1081,18 @@ async function start() {
     }
     setTimeout(() => $('tirai').classList.add('gelap'), 1100)
     setTimeout(() => {
-      const p = byElves ? elfExit : byKingdom ? exitPoint : spawn
+      const p = byDragon ? naga.exit : byElves ? elfExit : byKingdom ? exitPoint : spawn
       player.placeAt(p.x, p.z, p.heading)
       player.revive()
       cam.lookFrom(player.heading + Math.PI)
       $('tirai').classList.remove('gelap')
-      showMessage(byElves
-        ? 'Kamu dikalahkan kesatria Aeloria dan diantar perahu ke luar kerajaan: pantai utara Pulau Tropis.'
-        : byKingdom
-          ? 'Kamu dikalahkan prajurit Kencana dan dibuang ke pantai barat Pulau Tropis, di luar wilayah kerajaan.'
-          : 'Kamu pingsan dikeroyok orc… dan terbangun di pantai.', 4200)
+      showMessage(byDragon
+        ? 'Kamu dikalahkan Naga Es… dan terbangun di luar mulut Gua Gletser. Sang naga kembali tidur di atas hartanya.'
+        : byElves
+          ? 'Kamu dikalahkan kesatria Aeloria dan diantar perahu ke luar kerajaan: pantai utara Pulau Tropis.'
+          : byKingdom
+            ? 'Kamu dikalahkan prajurit Kencana dan dibuang ke pantai barat Pulau Tropis, di luar wilayah kerajaan.'
+            : 'Kamu pingsan dikeroyok orc… dan terbangun di pantai.', 4200)
     }, 1600)
   })
 
@@ -1153,6 +1204,7 @@ async function start() {
       patrol?.pushOut(player.position)
       life?.pushOut(player.position)
       warga?.pushOut(player.position)
+      naga?.pushOut(player.position)
       if (!player.hasPath) markers.hideTarget()
       cam.update(dt, camTarget, inp)
       if (!hintGone && (player.speed > 0.5 || (hintTime += dt) > 15)) hideHint()
@@ -1219,6 +1271,18 @@ async function start() {
       }
       weather.update(dt, t, { target: fp, inCave: caveK, covered, caveTone, indoorK: roomAt(fp.x, fp.z, fp.y) ? 1 : 0, far: mode === 'main' ? camera.far : null, camera, night: warga ? warga.malam : 0 })
       frost.update(dt, camera)
+      if (naga) {
+        const pp = player.position
+        const inLair = caveAt(pp.x, pp.z)?.id === naga.chestId && frost.cave.inside(pp.x, pp.z, pp.y)
+        naga.update(dt, { player, inCave: inLair, pixelScale: renderer.domElement.height / (2 * Math.tan(THREE.MathUtils.degToRad(camera.fov) / 2)) })
+        const show = naga.fighting
+        if (nagaBar.hidden === show) nagaBar.hidden = !show
+        if (show) {
+          const w = `${((naga.hp / naga.maxHp) * 100).toFixed(1)}%`
+          if (nagaFill.style.width !== w) nagaFill.style.width = w
+          nagaBar.classList.toggle('marah', naga.hp < naga.maxHp * 0.5)
+        }
+      }
     }
     env.update(t, camera, mode === 'main' ? player.position : controls.target)
     waveTime.value = t
@@ -1256,7 +1320,7 @@ async function start() {
   // akses untuk debugging / pengujian otomatis
   window.__pulau = {
     renderer, scene, camera, controls, ground, shore, quality, trees, rocks, grass, water, env, kencana, region, plan, villagers, army, worldMap, banner, aeloria, elfPlan, elfMask, life,
-    frost, frostPlan, frostMask, weather, openSecret, openChest, warga,
+    frost, frostPlan, frostMask, weather, openSecret, openChest, warga, naga,
     player, cam, input, colliders, nav, markers, effects, enemies, soldiers, security, patrol, recruits, bubbles, pickGround, setMode, getMode: () => mode, bag, gear, shop, elfSec, elfCard,
     boat, fishing, ripples, recipes, craftBoat, boardBoat, leaveBoat, chat, placesFor,
     frames: () => frameCount, debug,

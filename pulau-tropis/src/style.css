@@ -522,6 +522,51 @@ body {
   font-variant-numeric: tabular-nums;
 }
 
+/* bilah nyawa Naga Es (v0.24.0): di tengah atas, di bawah baris HUD */
+#naga-bar {
+  position: absolute;
+  left: 50%;
+  top: calc(env(safe-area-inset-top, 0px) + 112px);
+  transform: translateX(-50%);
+  width: min(78vw, 420px);
+  pointer-events: none;
+  text-align: center;
+  text-shadow: 0 1px 3px rgba(0, 20, 40, 0.9);
+}
+
+#naga-bar .naga-nama {
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  color: #e4f6ff;
+  margin-bottom: 3px;
+}
+
+#naga-bar .naga-nama span {
+  font-weight: 600;
+  color: #9fd8f5;
+}
+
+#naga-bar .naga-isi {
+  height: 10px;
+  border-radius: 5px;
+  background: rgba(0, 18, 36, 0.65);
+  overflow: hidden;
+  box-shadow: inset 0 0 0 1px rgba(160, 225, 255, 0.55), 0 0 10px rgba(57, 182, 255, 0.45);
+}
+
+#naga-bar .isi {
+  height: 100%;
+  width: 100%;
+  background: linear-gradient(#8bd9ff, #0e7bff);
+  transition: width 0.2s;
+}
+
+#naga-bar.marah .isi {
+  background: linear-gradient(#b7e9ff, #39b6ff 40%, #0e7bff);
+  animation: kedip-nyawa 0.8s infinite alternate;
+}
+
 #nyawa.kritis .isi {
   animation: kedip-nyawa 0.6s infinite alternate;
 }

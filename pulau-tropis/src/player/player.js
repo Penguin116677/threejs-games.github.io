@@ -1028,7 +1028,8 @@ export function createPlayer({ ground, colliders, quality, asset }) {
     },
     // terkena serangan sebesar `amount` dari arah `from` ({ x, z }): terdorong menjauh. floor = nyawa
     // paling rendah oleh pukulan ini (> 0: tidak roboh — mis. kalah duel, lihat rekrut.js)
-    damage(amount, from, floor = 0) {
+    // push: kecepatan terpental menjauhi `from` (m/s; bawaan 3,5 — naga mendorong lebih keras)
+    damage(amount, from, floor = 0, push = 3.5) {
       if (defeated || frozen) return
       hp = Math.max(floor, hp - amount * (1 - defense))
       calmT = 0
@@ -1036,8 +1037,8 @@ export function createPlayer({ ground, colliders, quality, asset }) {
         const dx = pos.x - from.x
         const dz = pos.z - from.z
         const d = Math.hypot(dx, dz) || 1
-        vel.x += (dx / d) * 3.5
-        vel.z += (dz / d) * 3.5
+        vel.x += (dx / d) * push
+        vel.z += (dz / d) * push
       }
       onHurt(amount)
       if (hp <= 0) {
