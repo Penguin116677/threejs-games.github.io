@@ -1279,7 +1279,7 @@ for (const [name, opts, query] of cases) {
     const floating = await page.evaluate(() => {
       const { frostPlan, ground } = window.__pulau
       const onGround = ['rumah', 'kedai', 'kios', 'api', 'lentera', 'sumur', 'peti', 'gerobak', 'tenda', 'rak', 'luncur', 'kayu-bakar', 'pagar', 'menara', 'menara-kastel', 'anglo', 'harta', 'singgasana', 'aula',
-        'penyangga', 'kereta-tambang', 'altar', 'tiang-es', 'stalagmit', 'bangkai-kapal']
+        'penyangga', 'kereta-tambang', 'altar', 'tiang-es', 'stalagmit', 'bangkai-kapal', 'pagar-tinggi', 'gerbang-pagar', 'tiang-pagar']
       const foot = b => ground.supportAt(b.x, b.z, b.y + 0.3, 0.45)
       const bad = frostPlan.build.filter(b => onGround.includes(b.type) && Math.abs(b.y - foot(b)) > 0.6)
         .map(b => `${b.type}@${b.x.toFixed(0)},${b.z.toFixed(0)}: ${b.y.toFixed(1)} vs ${foot(b).toFixed(1)}`)
@@ -1349,6 +1349,25 @@ for (const [name, opts, query] of cases) {
     await page.screenshot({ path: `${out}/${name}-frostfall-desa.png` })
     if (village.frost < 0.9 || !village.snow || village.banner !== 'Desa Emberwick') fail(`desa Frostfall: ${JSON.stringify(village)}`)
     else ok(`Desa Emberwick: spanduk "${village.banner}", salju turun, iklim dingin ${village.frost}`)
+
+    // pagar tinggi desa (v0.23.0): tiga desa berpagar keliling dengan gerbang; pemain tertahan pagar
+    // (dari dalam & dari luar sudut miring Rusa Putih) tetapi lewat gerbang; penduduk tidak menembusnya
+    const fence = await page.evaluate(() => {
+      const { frostPlan } = window.__pulau
+      const n = t => frostPlan.build.filter(b => b.type === t).length
+      const f = frostPlan.fences || []
+      return { desa: f.map(q => q.id), potongan: f.reduce((s, q) => s + q.pieces.length, 0), gerbang: f.reduce((s, q) => s + q.gates.length, 0), m: Math.round(f.reduce((s, q) => s + q.pieces.reduce((t, p) => t + Math.hypot(p.bx - p.ax, p.bz - p.az), 0), 0)), n: { pagar: n('pagar-tinggi'), gerbang: n('gerbang-pagar'), tiang: n('tiang-pagar') } }
+    })
+    await placeAndLook(627, -80, 600, -80)
+    const fIn = await walk([{ x: 608, z: -80 }], 160)
+    await placeAndLook(632, -37, 600, -37)
+    const fGate = await walk([{ x: 610, z: -37 }], 220)
+    await page.screenshot({ path: `${out}/${name}-frostfall-gerbang.png` })
+    await placeAndLook(758, 176, 775, 165)
+    const fOut = await walk([{ x: 776, z: 162 }], 160)
+    if (fence.desa.join() !== 'desa,nelayan,pemburu' || fence.gerbang !== 9 || fence.n.gerbang !== 9 || fence.m < 1000 || fIn.x < 621.3 || fGate.d > 1.6 || fOut.x > 766)
+      fail(`pagar desa: ${JSON.stringify({ fence, fIn, fGate, fOut })}`)
+    else ok(`pagar tinggi: ${fence.desa.length} desa, ${fence.m} m pagar (${fence.n.pagar} bagian), ${fence.gerbang} gerbang; pemain tertahan dari dalam (x ${fIn.x.toFixed(2)}) & dari luar (${fOut.x.toFixed(1)}, ${fOut.z.toFixed(1)}), lewat gerbang barat sampai (${fGate.x.toFixed(1)}, ${fGate.z.toFixed(1)})`)
 
     if (full) {
       // jembatan desa: menyeberangi sungai beku di atas lantai jembatan
@@ -1614,6 +1633,37 @@ for (const [name, opts, query] of cases) {
         const day = w.stats()
         return { n: w.agents.length, fam: fam.size, homes: homes.size, night: { rumah: night.diRumah, tidur: night.kegiatan.tidur || 0 }, day: { luar: day.diLuar, keg: Object.keys(day.kegiatan).length, jam: day.jam } }
       })
+      const tembus = await page.evaluate(() => {
+        const { warga: w, frostPlan } = window.__pulau
+        const ps = (frostPlan.fences || []).flatMap(f => f.pieces)
+        const cr = (ax, az, bx, bz, p) => {
+          const d1 = (bx - ax) * (p.az - az) - (bz - az) * (p.ax - ax)
+          const d2 = (bx - ax) * (p.bz - az) - (bz - az) * (p.bx - ax)
+          const d3 = (p.bx - p.ax) * (az - p.az) - (p.bz - p.az) * (ax - p.ax)
+          const d4 = (p.bx - p.ax) * (bz - p.az) - (p.bz - p.az) * (bx - p.ax)
+          return d1 * d2 < 0 && d3 * d4 < 0
+        }
+        const prev = w.agents.map(a => ({ x: a.x, z: a.z, h: a.hidden }))
+        let n = 0
+        let moves = 0
+        for (let i = 0; i < 24 * 50 * 4; i++) {
+          w.skip(0.25, 0.25)
+          w.agents.forEach((a, k) => {
+            const p = prev[k]
+            if (!a.hidden && !p.h && (a.x !== p.x || a.z !== p.z)) {
+              moves++
+              for (const q of ps) if (cr(p.x, p.z, a.x, a.z, q)) n++
+            }
+            p.x = a.x
+            p.z = a.z
+            p.h = a.hidden
+          })
+        }
+        return { n, moves, pagar: ps.length }
+      })
+      if (!tembus.pagar || tembus.n) fail(`penduduk menembus pagar desa: ${JSON.stringify(tembus)}`)
+      else ok(`penduduk & pagar: sehari Frostfall, ${tembus.moves} langkah berjalan, 0 menembus ${tembus.pagar} bagian pagar (keluar-masuk lewat gerbang)`)
+
       if (wst.n !== 300 || wst.fam !== 59 || wst.homes !== 59 || wst.night.rumah < 285 || wst.day.luar < 200 || wst.day.keg < 8) fail(`penduduk Frostfall: ${JSON.stringify(wst)}`)
       else ok(`penduduk Frostfall: ${wst.n} orang, ${wst.fam} keluarga di ${wst.homes} rumah; jam 02.30 → ${wst.night.rumah} di rumah (${wst.night.tidur} tidur); jam ${wst.day.jam} → ${wst.day.luar} di luar, ${wst.day.keg} macam kegiatan`)
 
