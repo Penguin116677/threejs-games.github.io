@@ -1712,14 +1712,16 @@ for (const [name, opts, query] of cases) {
       const r4 = await ask('xylofon')
       const r5 = await ask('alat musik yang dipukul pakai stik')
       const r6 = await ask('kamu tahu xylofon?')
+      // ditanya kegiatannya selagi diajak bicara: menceritakan kegiatan sebelum disapa, bukan "mengobrol denganmu"
+      const r7 = await ask('lagi ngapain?')
       await page.screenshot({ path: `${out}/${name}-obrolan-salju.png` })
       await page.press('#obrolan-teks', 'Escape')
       await waitFrames(page, 3)
       const closed = await page.evaluate(id => ({ panel: document.getElementById('obrolan').hidden, act: window.__pulau.warga.agents[id].act, talk: window.__pulau.warga.agents[id].talk }), who ? who.id : 0)
       const famOk = !who || !who.keluarga.length || who.keluarga.some(n => (r2 || '').includes(n))
-      if (!target || !who || !opened.panel || opened.cur?.kind !== 'utara' || !(r1 || '').includes(who.nama) || !famOk || !/jam \d\d\.\d\d/.test(r3 || '') || !/xylofon/i.test(r4 || '') || !/xylofon itu alat musik/i.test(r5 || '') || !/alat musik/.test(r6 || '') || !closed.panel || closed.talk)
-        fail(`obrolan penduduk Frostfall: ${JSON.stringify({ target, who, opened, r1, r2, r3, r4, r5, r6, closed })}`)
-      else ok(`obrolan dengan ${who.nama} (G): nama → "${r1}"; keluarga → "${r2.slice(0, 90)}…"; jam → "${r3.slice(0, 40)}…"; "xylofon" ditanyakan balik lalu diingat → "${r6}"; Escape menutup, ia kembali berkegiatan`)
+      if (!target || !who || !opened.panel || opened.cur?.kind !== 'utara' || !(r1 || '').includes(who.nama) || !famOk || !/jam \d\d\.\d\d/.test(r3 || '') || !/xylofon/i.test(r4 || '') || !/xylofon itu alat musik/i.test(r5 || '') || !/alat musik/.test(r6 || '') || !/sedang/.test(r7 || '') || /mengobrol denganmu/.test(r7 || '') || !closed.panel || closed.talk)
+        fail(`obrolan penduduk Frostfall: ${JSON.stringify({ target, who, opened, r1, r2, r3, r4, r5, r6, r7, closed })}`)
+      else ok(`obrolan dengan ${who.nama} (G): nama → "${r1}"; keluarga → "${r2.slice(0, 90)}…"; jam → "${r3.slice(0, 40)}…"; kegiatan → "${r7.slice(0, 60)}…"; "xylofon" ditanyakan balik lalu diingat → "${r6}"; Escape menutup, ia kembali berkegiatan`)
     }
 
     // peti harta di Ruang Harta: sekali saja, +150 koin
