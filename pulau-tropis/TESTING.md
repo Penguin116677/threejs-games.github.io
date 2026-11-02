@@ -513,6 +513,27 @@ masuk, makin ke dalam makin gelap, salju berhenti, kamera tidak menembus langit-
 
 Laporkan: gua mana yang terlalu gelap / sulit ditemukan, tempat tersangkut, dan FPS di tiap gua.
 
+## Daftar uji manual — v0.23.0 (pagar tinggi desa Frostfall)
+Seberangi selat ke Frostfall (Dermaga Frostfall). Buka **Peta**: garis tipis gelap di sekeliling ketiga desa
+adalah pagarnya.
+1. **Kampung Teluk Salju** (utara Dermaga Frostfall): dari pantai, lihat pagar gelondong runcing ±4 m
+   (lebih tinggi dari pemain, setinggi atap rendah rumah). Masuk lewat **gerbang barat** (di antara rak ikan)
+   atau **gerbang selatan** (lorong ke jalan pantai). Coba menabrak pagar — pemain tertahan.
+2. **Desa Emberwick**: dari jalan pantai masuk lewat **gerbang barat** (api unggun di luar gerbang). Keliling di
+   dalam: lihat palang & salju di sisi dalam pagar. Keluar lewat gerbang **utara** (ke Tambang Tua),
+   **timur** (setapak Lembah Atas), **timur laut** (jalan ke kastel), dan **selatan** (ke Jembatan Desa).
+   Di sudut tenggara, pagar bertingkat mengikuti tanah yang naik ke tepi sungai.
+3. **Kampung Rusa Putih**: gerbang **barat** (dari setapak hutan) & **selatan** (ke hutan perburuan); sudut
+   barat dayanya miring di samping setapak hutan.
+4. Ikuti penduduk yang pergi memancing / berburu / ke pesta Emberwick: mereka keluar-masuk lewat gerbang,
+   tidak menembus pagar.
+5. Berdiri di dalam desa dekat pagar dengan kamera di luar pagar → pagar di antara kamera & pemain berlubang
+   (tembus pandang), pemain tetap terlihat.
+6. Catat FPS saat memandang pagar dari luar & di dalam desa.
+
+Laporkan: gerbang yang terasa kurang (ingin keluar-masuk di tempat lain), pagar yang terasa terlalu tinggi /
+rendah, dan FPS.
+
 ## Daftar uji manual — v0.22.0 (penduduk Frostfall)
 Seberangi selat ke Frostfall (Dermaga Frostfall, pantai barat). Jam Frostfall mulai 08.00 saat game dimuat;
 sehari = 20 menit, jadi malam (±20.00–04.30) datang ±10 menit setelah game dibuka.

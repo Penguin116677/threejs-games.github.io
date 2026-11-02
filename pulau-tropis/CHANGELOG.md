@@ -1,5 +1,26 @@
 # CHANGELOG — Pulau Tropis
 
+## [0.23.0] — 2026-11-02 — Pagar tinggi di sekeliling desa-desa Frostfall (permintaan pengguna)
+### Ditambahkan
+- **Pagar tinggi** (permintaan: *"Tambahkan pagar tinggi yang mengelilingi tiap desa di pulau salju, hanya
+  menambahkan pagar saja"*) di sekeliling **Desa Emberwick**, **Kampung Teluk Salju**, dan **Kampung Rusa
+  Putih**: deretan gelondong kayu berujung runcing setinggi ±4 m (ujungnya kayu muda yang baru diserut), dua
+  palang di sisi dalam dengan salju di palang atas, timbunan salju di kakinya, dan tiang besar di setiap sudut.
+  Panjang seluruhnya 1.083 m.
+- **9 gerbang terbuka** (tanpa daun pintu) di setiap jalan / lorong / setapak yang keluar desa: dua tiang besar,
+  balok lintang bersalju dengan es menggantung, dan penopang miring. Emberwick: barat (jalan pantai — api unggun
+  gerbang barat kini tepat di luar gerbang), timur (setapak Lembah Atas), timur laut (jalan gunung ke kastel),
+  utara (setapak Tambang Tua), selatan (setapak hutan & Jembatan Desa). Teluk Salju: selatan (ke jalan pantai)
+  & barat (ke pantai, perahu & dermaga kecil). Rusa Putih: barat (ke setapak hutan) & selatan (ke hutan
+  perburuan).
+### Diubah
+- Pagar menahan pemain dan penduduk; penduduk keluar-masuk desa lewat gerbang (jaringan jalan penduduk
+  disambung di beberapa gerbang, dan simpul jalan yang terhalang pagar dicari lebih jauh). Tempat berdiri
+  penduduk yang sedang melihat-lihat / mengobrol tidak lagi jatuh di dalam penghalang.
+- Sudut barat daya pagar Rusa Putih dipotong miring supaya setapak hutan tidak menyerempet pagar; di sudut
+  tenggara Emberwick (tanah naik ke tepi sungai) pagar bertingkat mengikuti lereng.
+- Tidak ada pohon pinus dalam jarak 4,5 m di luar pagar (mahkota pohon tidak menembus pagar).
+
 ## [0.22.0] — 2026-11-01 — Penduduk Frostfall (permintaan pengguna)
 ### Ditambahkan
 - **300 penduduk Frostfall** (permintaan: *"Tambahkan sekitar 300 penduduk yang hidup di pulau salju, …

@@ -77,8 +77,9 @@ menjadi anak buah yang menang (pemain yang kalah menyerahkan upeti). Lihat DECIS
   dan **Gua Es Kristal** (kristal bercahaya, danau bawah tanah, Ruang Harta). Sejak v0.20.0 ditambah
   **lima gua besar**: Tambang Tua Emberwick (bukit dekat desa), Gua Gletser Utara (pantai utara),
   Katedral Taring (di bawah Puncak Taring Es), Gua Laut Beku (tebing pantai timur, lewat laut), dan Gua
-  Seribu Tiang (punggung tenggara) — masing-masing dengan peti harta. Belum berpenghuni: tanpa
-  penduduk / prajurit (lihat PROJECT_STATUS, "Masalah yang diketahui").
+  Seribu Tiang (punggung tenggara) — masing-masing dengan peti harta. Sejak v0.22.0 berpenghuni 300
+  orang di Desa Emberwick, Kampung Teluk Salju & Kampung Rusa Putih (tanpa prajurit); sejak v0.23.0
+  ketiga desa itu dikelilingi pagar kayu tinggi dengan gerbang di setiap jalan keluar.
 - Keempat sisi Pulau Tropis kini terpakai (barat, utara, timur; selatan = laut lepas). Batas dunia,
   terrain, laut, dan peta jalan tetap umum (DECISIONS #33, #40, #78) bila wilayah lain ditambahkan.
 
@@ -174,3 +175,6 @@ dan dua kampung baru (Kampung Teluk Salju — nelayan, Kampung Rusa Putih — pe
 Frostfall (sehari = 20 menit; malam hanya di Frostfall): bangun & tidur di rumahnya, bekerja, berburu rusa
 kutub, memancing, mengadakan pesta & acara keluarga, bisa diajak mengobrol (offline, berbasis aturan) —
 lanjutan Milestone 3 (penduduk) dengan sebagian Milestone 4 (obrolan) & 5 (malam).
+Di v0.23.0 (permintaan pengguna: "hanya menambahkan pagar saja") ketiga desa Frostfall dikelilingi **pagar
+tinggi** dari gelondong kayu runcing (±4 m, 1.083 m keliling) dengan 9 gerbang terbuka di setiap jalan,
+lorong, dan setapak yang keluar desa; penduduk & pemain keluar-masuk lewat gerbang.

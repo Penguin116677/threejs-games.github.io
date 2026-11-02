@@ -965,3 +965,13 @@ tandai sebagai "diganti" bila berubah.
     cadangan yang selalu menyinggung isi kalimat (kata tanya, pernyataan, pendapat, ya/tidak, kata asing
     ditanyakan balik & diingat). Batasnya: tidak benar-benar "mengerti" kalimat yang rumit; kalimat panjang
     dengan beberapa maksud hanya dijawab satu maksud; ingatan obrolan hilang bila halaman dimuat ulang.
+91. **Pagar desa: gelondong runcing ±4 m dengan gerbang terbuka di setiap jalan keluar** (v0.23.0). Permintaan
+    "hanya menambahkan pagar saja" → tidak ada bangunan / isi lain yang ditambah atau dipindah; jalan dan
+    lorong tetap di tempatnya, jadi gerbang mengikuti jalan yang sudah ada (9 gerbang), tanpa daun pintu
+    (tidak perlu dibuka-tutup oleh pemain atau penduduk). Pagar berdiri 4–5 m di luar kawasan desa, di atas pad
+    rata desanya; satu sudut Rusa Putih dipotong miring karena setapak hutan lewat di situ. Penghalangnya
+    diletakkan di x / z ganjil (tengah sel kisi penghalang penduduk 2 m) dan yang miring dibuat lebih tebal,
+    supaya garis-bebas penduduk tidak pernah lolos di antara sel; penduduk yang dulu berjalan lurus melintasi
+    tepi desa kini memutar lewat gerbang (dicek: 0 langkah menembus pagar selama 6 hari simulasi). Biaya
+    gambar: ±12 segitiga per gelondong (penampang belah ketupat, bukan tabung), digabung ke petak bangunan
+    yang ada (tanpa draw call tersendiri).
