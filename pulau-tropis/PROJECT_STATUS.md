@@ -1,9 +1,9 @@
 # PROJECT_STATUS — Pulau Tropis
 
-**Milestone aktif:** 3 — Pembangunan dunia (v0.21.0: **Aula Gletser** dibangun ulang dari gambar konsep pengguna — air terjun mengalir ke kolam, lengkung es, tebing bersalju, suasana biru kehijauan; v0.20.0: **lima gua besar** di Frostfall — Tambang Tua Emberwick, Gua Gletser Utara, Katedral Taring, Gua Laut Beku, Gua Seribu Tiang — masing-masing dengan peti harta; atap gua kini bisa diinjak; v0.19.0: wilayah baru Kerajaan Frostfall — menunggu umpan balik dari HP).
+**Milestone aktif:** 3 — Pembangunan dunia (v0.22.0: **300 penduduk Frostfall** — 59 keluarga di Desa Emberwick dan dua kampung baru, Teluk Salju (nelayan) & Rusa Putih (pemburu); jam & malam Frostfall; bangun, makan, bekerja, berburu rusa kutub, memancing, pesta & acara, tidur di rumah; baju bulu khas; bisa diajak mengobrol (offline) — menunggu umpan balik dari HP; v0.21.0: **Aula Gletser** dibangun ulang dari gambar konsep pengguna — air terjun mengalir ke kolam, lengkung es, tebing bersalju, suasana biru kehijauan; v0.20.0: **lima gua besar** di Frostfall — Tambang Tua Emberwick, Gua Gletser Utara, Katedral Taring, Gua Laut Beku, Gua Seribu Tiang — masing-masing dengan peti harta; atap gua kini bisa diinjak; v0.19.0: wilayah baru Kerajaan Frostfall — menunggu umpan balik dari HP).
 Pengembangan jurus dihentikan sementara atas permintaan pengguna.
-**Versi:** 0.21.0
-**Terakhir diperbarui:** 2026-11-01
+**Versi:** 0.22.0
+**Terakhir diperbarui:** 2026-11-02
 
 ## Kondisi awal repository (sebelum Milestone 1)
 - Repository `threejs-games.github.io` berisi koleksi contoh Three.js lama (folder `examples/`,
@@ -83,7 +83,11 @@ Pengembangan jurus dihentikan sementara atas permintaan pengguna.
 | Kayu dari pohon, membuat pancing & perahu di Tas, perahu yang bisa dikemudikan — bagian Milestone 4 | ✅ selesai (v0.14.0) |
 | Memancing (5 jenis ikan menurut kedalaman), menjual ikan di Kios Ikan Bakar — bagian Milestone 4 | ✅ selesai (v0.14.0) |
 | Mengobrol dengan elf & warga Kencana (topik + ketik bebas, berbasis aturan) — bagian Milestone 4 | ✅ selesai (v0.14.0) |
-| Sungai & air terjun, gua, reruntuhan | ⏳ belum |
+| Kerajaan Frostfall: Desa Emberwick, Kastel Frostfall, hutan pinus, Sungai Beku & air terjun beku, gua es (v0.19.0); lima gua besar (v0.20.0); Aula Gletser (v0.21.0) | ✅ selesai (permintaan pengguna) |
+| Dua kampung baru di Frostfall (Teluk Salju — nelayan, Rusa Putih — pemburu); 300 penduduk dalam 59 keluarga, masing-masing di rumahnya sendiri, berbaju bulu khas | ✅ selesai (v0.22.0, permintaan pengguna) |
+| Jam & malam Frostfall; penduduk bangun, sarapan & makan malam bersama keluarga, bekerja, berburu rusa kutub, memancing, mengadakan pesta & acara, tidur di rumah | ✅ selesai (v0.22.0) |
+| Mengobrol dengan penduduk Frostfall — jawaban dari hidupnya sendiri (offline, berbasis aturan; kata asing ditanyakan balik lalu diingat) | ✅ selesai (v0.22.0) |
+| Sungai & air terjun, gua, reruntuhan | ✅ sungai, air terjun & gua di Frostfall (v0.19.0–v0.21.0); reruntuhan ⏳ belum |
 | Dicoba di HP Android sungguhan | ⏳ menunggu laporan pengguna |
 
 ## Milestone 5 (peningkatan visual) — status
@@ -98,8 +102,69 @@ Sebagian sudah dikerjakan lebih awal (bayangan, tanah per-piksel, awan, kaustik 
 | Kanan atas diringkas: Peta, Tas, ikon Pengaturan (berisi kualitas grafis); layar penuh otomatis di HP; tombol Lihat pulau dihapus | ✅ selesai (v0.15.1) |
 | Karakter pixel art chibi (kepala bulat bermata, badan membulat) menggantikan badan kotak Kenney: penduduk, raja, pedagang, penjaga, bala tentara + kuda, orc, elf, pemain | ✅ selesai (v0.16.0) |
 | File model hanya rangka + animasi (unduhan model 892 KB → 108 KB) | ✅ selesai (v0.16.0) |
-| Partikel lanjutan, suara, animasi vegetasi lanjutan, siang–malam | ⏳ belum |
+| Partikel lanjutan, suara, animasi vegetasi lanjutan | ⏳ belum |
+| Siang–malam | ✅ sebagian — hanya di Frostfall (v0.22.0); pulau-pulau lain selalu siang |
 | Dicoba di HP Android sungguhan | ⏳ menunggu laporan pengguna |
+
+## Yang sudah diperiksa (v0.22.0 — 300 penduduk Frostfall)
+- **Pemeriksaan kode**: ESLint (konfigurasi repo) 0 error / 0 warning pada setiap commit.
+- **Build**: `vite build` berhasil (JS 1,40 MB / 450 KB gzip, +44 KB gzip dari v0.21.0; CSS 16,5 KB).
+- **Pemeriksaan di Node** (tanah, rencana kampung, dan simulasi penduduk yang sebenarnya, tanpa menggambar):
+  - bentuk tanah dibandingkan titik demi titik dengan v0.21.0 di tiga jarak kisi (5 m, 3,9 m, 2,6 m): di luar
+    kedua pad kampung 200.143 titik, **0 berbeda**; yang berubah hanya pad Teluk Salju (naik ≤ 2,4 m, turun
+    ≤ 1,3 m) dan pad Rusa Putih (naik ≤ 3,3 m, turun ≤ 4 m);
+  - penduduk: tepat 300 orang, 59 keluarga, 59 rumah (Emberwick 102, Teluk Salju 97, Rusa Putih 101); tempat
+    kegiatan (bangku api unggun, kursi kedai, tempat memancing, lubang es, tunggul) & pintu rumah tidak
+    tertutup penghalang, rumah tidak bertumpuk, tanah di bawah rumah kampung rata;
+  - simulasi beberapa hari Frostfall: malam ±299 orang di rumah, siang ±270–280 di luar; perburuan berangkat
+    dan berhasil, ikan ditangkap, acara didatangi (pesta ±48, malam ikan bakar ±79, jamuan ±68 orang); satu
+    jam Frostfall paling lama 57–71 ms (±0,3 ms per langkah simulasi 0,25 detik);
+  - obrolan: ±50 kalimat (sapaan, nama, keluarga, kegiatan, jam, acara, berburu, baju, kesukaan, pernyataan,
+    ya/tidak, tawa, bahasa Inggris, ejekan, kata asing + penjelasannya) ke seorang nelayan, pemburu, dan anak —
+    setiap kalimat dijawab, dan jawabannya dibaca satu per satu; yang salah tangkap diperbaiki.
+- **Smoke test otomatis** (versi build, per profil berurutan) — putaran penuh pada build sebelum perbaikan obrolan (di bawah):
+  HP Rendah 56 ok + 1 gagal (kesalahan cek, lihat di bawah), HP mendatar 57, HP tegak 115 (termasuk
+  kejar-kejaran di laut), komputer 100 — semuanya **LULUS** kecuali cek yang salah itu. Pada **build final**
+  (sama persis dengan `dist/`): HP Rendah 57 dari 57 & HP mendatar 57 dari 57 — **LULUS**. HP tegak & komputer
+  tidak diulang pada build final: bedanya hanya jawaban obrolan penduduk Frostfall (`warga.js`,
+  `percakapan-utara.js`), dan cek obrolan itu sudah lulus di dua profil HP.
+  Cek baru di semua profil:
+  - **penduduk Frostfall**: 300 orang / 59 keluarga / 59 rumah; jam 02.30 → 299 di rumah (299 tidur); jam
+    11.48 → 264–282 di luar dengan 19–23 macam kegiatan;
+  - **pemburu Rusa Putih**: kumpul → berangkat → intai → ambil → pulang, rusa dipikul ke pondok pengasapan;
+    12–15 orang memancing sekaligus, 68–207 ikan ditangkap selama cek;
+  - **pesta api unggun** Emberwick malam (34–42 orang datang, 13–22 menari), langit & cahaya menggelap
+    (malam 1, cahaya langit 0,62);
+  - **mengobrol** lewat tombol G dengan orang yang dibuka: nama, keluarga, jam ("Sekarang jam 11.47…"), kegiatan
+    ("lagi ngapain?" → "Aku sedang duduk-duduk di dekat api unggun…", cek baru pada build final), kata
+    asing "xylofon" ditanyakan balik lalu diingat ("Katamu xylofon itu alat musik yang dipukul pakai stik"),
+    Escape menutup dan orangnya kembali berkegiatan.
+  - Di HP Rendah cek perburuan pertama kali **gagal karena kesalahan cek**: jumlah rusa yang dihitung
+    kumulatif, padahal permainan sudah berjalan beberapa hari Frostfall sebelum cek itu (rusa sudah 1), jadi
+    putarannya berhenti seketika. Cek kini menghitung dari titik awal; dicoba di Node dari hari ke-0, ke-3, dan
+    ke-4 — lulus; HP Rendah diulang dengan cek yang dibetulkan: 57 dari 57 lulus, lalu sekali lagi pada build final: 57 dari 57.
+  - Catatan: di uji, pesta dilihat jam 20.40 setelah jam dilompati ke 19.54 — tuan rumah (pemain kecapi) masih
+    berjalan dari rumahnya, jadi biasanya "0 memainkan kecapi" (sekali 2). Tanpa lompatan jam ia berangkat lebih awal dan sudah
+    memetik kecapi jam 19.36 (pesta mulai 19.00) — dicek di Node.
+- **Uji di browser** (Chromium, render software, layar Pixel 7 tiruan): foto kedua kampung (dermaga, pantai, lapangan,
+  lorong), penduduk berbaju bulu dari dekat, pagi / senja / malam, pesta, perang bola salju, kawanan rusa,
+  pemburu memikul rusa, dan kotak obrolan — dari foto-foto itu arah duduk & menghadap dibetulkan; tanpa galat
+  konsol. Halaman pratinjau
+  (versi lokal, build final): termuat 6,7 detik tanpa galat konsol / berkas hilang, 300 penduduk (Emberwick
+  102, Teluk Salju 97, Rusa Putih 101), spanduk ketiga kampung muncul, obrolan terbuka dengan G.
+  - **Dari mencoba obrolan di pratinjau ketemu 3 kesalahan, dibetulkan sebelum rilis**: (1) "lagi ngapain?"
+    selalu dijawab "Aku sedang mengobrol denganmu" — kini kegiatannya sebelum disapa ("Aku sedang duduk-duduk
+    di dekat api unggun. Nanti siang aku pulang makan."); (2) kegiatan "melihat-lihat" tak punya teks
+    ("Aku sedang lihat.") — kini "melihat-lihat sekeliling kampung", kepala kampung "berkeliling melihat
+    warga"; dicek dengan skrip bahwa tak ada lagi kegiatan tanpa teks; (3) "tadi ngapain?" sebelum ada
+    kejadian tercatat hari itu dijawab "belum banyak yang terjadi" — kini menceritakan kegiatannya sejak tadi.
+    Uji obrolan di Node (153 jawaban) diulang; smoke test kini juga bertanya "lagi ngapain?".
+- **Performa & memori** (render software, bukan ukuran HP; tabel di bagian Performa): di kampung +17…+45% waktu per bingkai
+  (segitiga +95…+170 ribu dari 40 rumah baru, perlengkapan kampung, dan penduduk), Dermaga Fajar (memandang
+  Frostfall) +24% / +9%; Frostfall tanpa kampung (kastel, hutan, Lembah Atas, gua) −7…+9%; tempat lain −3…+11%
+  kecuali titik mulai Sedang +22% (Rendah −3% dengan selisih segitiga yang sama → derau). Di semua tempat
+  +8–11 ribu segitiga & +1 draw call: 21 rusa kutub selalu digambar (lihat Masalah yang diketahui). Memori heap
+  JS +17–19 MB. Simulasi 300 orang: ±0,3 ms per langkah 0,25 detik di Node (mesin uji; HP belum diukur).
 
 ## Yang sudah diperiksa (v0.21.0 — Aula Gletser dari gambar konsep)
 - **Pemeriksaan kode**: ESLint (konfigurasi repo) 0 error / 0 warning pada setiap commit.
@@ -759,6 +824,14 @@ Sebagian sudah dikerjakan lebih awal (bayangan, tanah per-piksel, awan, kaustik 
   laut dalam → kembali ke pantai + pesan, mendaki lereng (+24 m dalam 120 frame).
 
 ## Yang BELUM diperiksa
+- **Penduduk Frostfall di HP sungguhan** (v0.22.0): FPS di kampung — di render software +17…+45% waktu per
+  bingkai (Teluk Salju & Rusa Putih paling berat), terutama di kualitas Rendah; panas & baterai setelah lama di
+  Frostfall (simulasi 300 orang berjalan terus, juga saat pemain di pulau lain).
+- **Mutu obrolan dengan kalimat pemain sendiri** (v0.22.0): diuji ±50 kalimat ke tiga orang + cek otomatis;
+  kalimat lain bisa saja dijawab kurang pas. Juga apakah kotak obrolan nyaman di HP tegak.
+- **Malam Frostfall di layar HP** (v0.22.0): terlalu gelap / terlalu terang? Pemain & jalan masih terlihat?
+- **Rasa hidup penduduk** (v0.22.0): apakah terlalu banyak orang berjalan (±30–35% berjalan pada jam 10–11),
+  apakah sehari 20 menit terasa pas, apakah pesta / perburuan cukup mudah ditemukan.
 - **Aula Gletser di HP sungguhan** (v0.21.0): FPS di depan air terjun (permukaan tembus pandang: +28–37%
   waktu per bingkai di render software), apakah suasana biru kehijauan & kabut sudah mirip gambar konsep,
   apakah tanjakan ke tebing bersalju mudah ditemukan & dinaiki dengan joystick, dan apakah kolam dangkal yang
@@ -847,6 +920,40 @@ Sebagian sudah dikerjakan lebih awal (bayangan, tanah per-piksel, awan, kaustik 
 - Apakah URL hosting (githack / GitHub Pages) terbuka di HP — tidak bisa diakses dari lingkungan pengembangan.
 
 ## Performa (segitiga per frame termasuk bayangan, dari smoke test)
+v0.22.0 (300 penduduk Frostfall), layar HP tegak (Pixel 7), versi build (sebelum perbaikan obrolan — tidak
+mengubah gambar), render software; v0.21.0 diukur bergantian di mesin yang sama, satu putaran per versi
+(v0.22.0 lebih dulu). Tempat "Penduduk:" baru: di Frostfall jam diatur ke 10.30 (pesta: 20.30); v0.21.0 di
+tempat yang sama belum punya kampung / penduduk. Segitiga (ribu) / draw call dan waktu per bingkai (ms):
+| Tempat | Sedang v0.21.0 | Sedang v0.22.0 | Rendah v0.21.0 | Rendah v0.22.0 |
+|---|---|---|---|---|
+| Titik mulai | 457 rb / 71 · 941 ms | 465 rb / 72 · 1.149 ms (+22%) | 342 rb / 63 · 544 ms | 351 rb / 64 · 529 ms (−3%) |
+| Pasar Kotaraja | 333 rb / 50 · 637 ms | 337 rb / 50 · 677 ms (+6%) | 248 rb / 41 · 315 ms | 260 rb / 44 · 322 ms (+2%) |
+| Depan barisan Tegal Wira | 449 rb / 30 · 1.653 ms | 458 rb / 31 · 1.747 ms (+6%) | 318 rb / 37 · 1.055 ms | 327 rb / 38 · 1.033 ms (−2%) |
+| Pasar Aeloria | 558 rb / 96 · 830 ms | 569 rb / 97 · 919 ms (+11%) | 477 rb / 96 · 513 ms | 484 rb / 97 · 522 ms (+2%) |
+| Dermaga Fajar, memandang Frostfall | 291 rb / 68 · 689 ms | 390 rb / 74 · 851 ms (+24%) | 207 rb / 54 · 347 ms | 262 rb / 58 · 377 ms (+9%) |
+| Frostfall: Desa Emberwick | 260 rb / 71 · 636 ms | 417 rb / 87 · 875 ms (+38%) | 205 rb / 55 · 323 ms | 342 rb / 72 · 392 ms (+21%) |
+| Frostfall: halaman kastel | 173 rb / 48 · 711 ms | 182 rb / 50 · 710 ms (±0%) | 133 rb / 39 · 361 ms | 142 rb / 40 · 394 ms (+9%) |
+| Frostfall: hutan pinus | 251 rb / 52 · 594 ms | 253 rb / 53 · 594 ms (±0%) | 171 rb / 43 · 297 ms | 176 rb / 45 · 297 ms (±0%) |
+| Frostfall: Lembah Atas | 210 rb / 54 · 563 ms | 219 rb / 55 · 599 ms (+6%) | 140 rb / 40 · 321 ms | 149 rb / 41 · 298 ms (−7%) |
+| Frostfall: dalam gua | 187 rb / 47 · 594 ms | 197 rb / 49 · 597 ms (+1%) | 127 rb / 35 · 293 ms | 136 rb / 37 · 291 ms (−1%) |
+| **Penduduk: alun-alun Emberwick (10.30)** | 246 rb / 52 · 530 ms | 341 rb / 62 · 624 ms (+18%) | 185 rb / 48 · 280 ms | 268 rb / 60 · 355 ms (+27%) |
+| **Penduduk: pesta api unggun (20.30)** | 250 rb / 53 · 586 ms | 381 rb / 69 · 702 ms (+20%) | 176 rb / 45 · 314 ms | 293 rb / 60 · 367 ms (+17%) |
+| **Penduduk: Kampung Teluk Salju (10.30)** | 187 rb / 46 · 471 ms | 354 rb / 62 · 683 ms (**+45%**) | 131 rb / 39 · 259 ms | 266 rb / 54 · 375 ms (**+45%**) |
+| **Penduduk: Kampung Rusa Putih (10.30)** | 317 rb / 76 · 641 ms | 465 rb / 93 · 774 ms (+21%) | 175 rb / 58 · 303 ms | 299 rb / 74 · 433 ms (**+43%**) |
+| Gua baru: Aula Tambang | 292 rb / 63 · 745 ms | 302 rb / 65 · 721 ms (−3%) | 140 rb / 33 · 341 ms | 149 rb / 32 · 364 ms (+7%) |
+| Gua baru: Katedral Taring | 138 rb / 36 · 532 ms | 147 rb / 37 · 534 ms (±0%) | 97 rb / 27 · 274 ms | 106 rb / 29 · 276 ms (+1%) |
+| Gua baru: Gua Seribu Tiang | 130 rb / 30 · 476 ms | 140 rb / 31 · 511 ms (+7%) | 89 rb / 22 · 284 ms | 98 rb / 23 · 297 ms (+5%) |
+| Gua baru: laguna Gua Laut Beku | 230 rb / 74 · 587 ms | 282 rb / 79 · 659 ms (+12%) | 148 rb / 60 · 351 ms | 157 rb / 62 · 366 ms (+4%) |
+| Aula Gletser (air terjun) | 138 rb / 36 · 601 ms | 147 rb / 37 · 568 ms (−5%) | 96 rb / 28 · 331 ms | 104 rb / 29 · 310 ms (−6%) |
+- Kampung: segitiga +95…+170 ribu dan +10…+17 draw call dari 20 + 20 rumah baru, perlengkapan kampung (sampan,
+  rak ikan, pondok asap, rangka kulit, bangku, meja) dan penduduk (Sedang: 36 orang 3D + 140 orang jauh; Rendah
+  18 + 70). Dari Dermaga Fajar kini terlihat Kampung Teluk Salju di seberang.
+- Semua tempat: +8–11 ribu segitiga & +1 draw call = 21 rusa kutub × 408 segitiga yang selalu digambar, juga
+  jauh dari Frostfall (tanpa bayangan). Bisa dipangkas nanti (sembunyikan bila pemain jauh dari kawanan).
+- Memori heap JS setelah mengunjungi semua tempat: Sedang 216 → 235 MB, Rendah 188 → 205 MB; geometri
+  Sedang 269 → 313, Rendah 214 → 257; tekstur 65 → 66.
+- Waktu siap: Sedang 6,0 → 6,5 detik, Rendah 4,7 → 4,7 detik (300 penduduk & jalurnya dibuat saat memuat).
+
 v0.21.0 (Aula Gletser dari gambar konsep), layar HP tegak (Pixel 7), versi build, render software; v0.20.0
 diukur bergantian di mesin yang sama, satu putaran per versi. Segitiga (ribu) / draw call dan waktu per
 bingkai (ms):
@@ -1093,6 +1200,18 @@ v0.3.0: Rendah ±300 rb, Sedang ±400 rb, Tinggi ±850 rb. Tambahan v0.4.0 beras
 yang lebih rapat (untuk ombak) dan buah kelapa. v0.2.0 (HP): ±230 ribu.
 
 ## Masalah yang diketahui
+- (v0.22.0) **Jawaban obrolan berbasis aturan, bukan AI** (sengaja: offline, tanpa layanan luar — DECISIONS
+  #90): selalu ada jawaban, tetapi kalimat yang tidak dikenali dijawab umum atau ditanyakan balik. "Mau ke
+  mana?" dijawab dengan kegiatannya sekarang & rencananya, bukan tujuan jalannya. Ingatan obrolan (nama
+  pemain, kata yang dijelaskan) hilang saat game ditutup.
+- (v0.22.0) Jam Frostfall selalu mulai dari 08.00 saat game dimuat (belum disimpan); malam hanya di Frostfall
+  — pulau-pulau lain selalu siang, dan gelapnya memudar saat meninggalkan Frostfall.
+- (v0.22.0) Pemain belum bisa ikut berburu rusa (rusa hanya kabur bila didekati sambil berlari); panah pemburu
+  & bola salju anak-anak tidak tampak melayang.
+- (v0.22.0) Penduduk tidak bisa diserang / dipukul, dan bisa saling menembus bila berpapasan rapat.
+- (v0.22.0) Pasar Emberwick hanya melayani warga desa (pemain belum bisa membeli di sana).
+- (v0.22.0) 21 rusa kutub selalu digambar di mana pun pemain berada (+1 draw call, ±8,6 ribu segitiga) —
+  murah, tetapi sia-sia jauh dari Frostfall.
 - (v0.21.0) **Air di Aula Gletser hanya efek visual**: kolamnya dangkal (±0,85 m) dan diarungi sambil
   berjalan (tidak berenang); air terjun tidak bisa dimasuki / didaki dan tidak
   mendorong pemain.
@@ -1102,7 +1221,7 @@ yang lebih rapat (untuk ombak) dan buah kelapa. v0.2.0 (HP): ±230 ribu.
   ±2,6 m ke lantai / kolam (game belum punya luka jatuh).
 - (v0.21.0) **Uji otomatis pengejaran di laut kadang gagal** (cek "prajurit berenang mengejar" & "perahu
   patroli", HP tegak): 1 dari 1 putaran penuh v0.21.0 gagal, 6 dari 6 pengulangan tersendiri lulus (v0.20.0
-  & v0.21.0). Bila terjadi di game: prajurit tidak terjun mengejar dan perahu patroli langsung berangkat.
+  & v0.21.0); putaran penuh v0.22.0 lulus di HP tegak & komputer. Bila terjadi di game: prajurit tidak terjun mengejar dan perahu patroli langsung berangkat.
   Penyebab pastinya belum ditemukan.
 - (v0.21.0) Sisi laut Aula Gletser kini tebing pantai yang tidak bisa didaki dari laut; lereng di atas aula
   Tambang Tua sisi pantai barat sedikit lebih tinggi (≤ 4,3 m) karena aturan atap yang sama.
