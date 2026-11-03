@@ -537,6 +537,31 @@ Laporkan: gerbang yang terasa kurang (ingin keluar-masuk di tempat lain), pagar 
 rendah, dan FPS.
 
 
+## Daftar uji manual — v0.25.0 (efek suara)
+Pakai earphone / speaker HP; volume media HP dinaikkan. Suara mulai setelah layar disentuh pertama kali.
+1. **Pengaturan** (roda gigi) → bagian **Suara**: tombol "Suara hidup / Suara mati" dan penggeser volume. Muat
+   ulang halaman → pilihannya masih sama.
+2. Berjalan & berlari di **pasir pantai**, **rumput**, **jalan batu Kotaraja / Aeloria**, **dermaga kayu**, **salju
+   Frostfall**, **lantai gua**: bunyi langkahnya berbeda & seirama langkah kaki. Lompat & mendarat; terjun ke laut
+   dan berenang (kayuhan); panjat dermaga dari air.
+3. **Pukul** (tebas / tinju / tendang) dan keempat **jurus**: desing tiap ayunan, gemuruh Hentak, bunyi kena di
+   orc, prajurit (logam), pohon (kayu + "+1 kayu"), batu.
+4. **Terluka / roboh**: rintih saat kena, bunyi roboh, layar meredup lalu bangun lagi.
+5. **Toko & Tas** di Pasar Aeloria: beli (koin), makan, minum ramuan, pakai perlengkapan, buat pancing / perahu.
+   **Mancing**: lempar, pelampung jatuh, ikan menyambar (bunyi + getar), tarik → dapat ikan.
+6. **Perahu**: naik, dayung seirama laju, riak air, turun.
+7. **Suasana**: ombak di pantai (makin pelan ke pedalaman), serangga & burung di hutan tropis, camar di pantai,
+   angin di puncak gunung & Frostfall, keramaian Pasar Kotaraja / Aeloria / alun-alun Emberwick, api unggun,
+   tungku pandai besi Aeloria, perkemahan Tegal Wira (zirah & kuda), malam Frostfall (burung hantu), air terjun
+   di Aula Gletser, tetesan & gema di gua.
+8. **Orang**: gelembung ucapan prajurit / elf / warga bersuara gumam; warga Frostfall yang menempa, membelah kayu,
+   menari, bermain kecapi, bermain bola salju terdengar saat didekati.
+9. **Naga Es**: dengkur dari pintu sarang; geram + aum saat bangun; langkah berat; Hembusan Es (tarikan napas lalu
+   desis es); Ledakan Es (dengung lingkaran lalu kristal pecah); kepak sayap; hentakan mendarat; roboh & segel
+   pecah.
+10. Catat apakah ada bunyi yang **terlalu keras / mengganggu / terlalu sering**, dan apakah FPS turun setelah suara
+    hidup (bandingkan dengan Suara mati).
+
 ## Daftar uji manual — v0.24.1 (Naga Es lebih kecil & lebih halus)
 Ke Ruang Air Terjun Beku di Gua Gletser Utara seperti daftar v0.24.0 di bawah.
 1. Naga tidur **lebih kecil** (±14 m, kepala ±5 m): peti bersegel es ada di lekuk antara badan & ekornya.

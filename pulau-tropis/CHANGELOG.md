@@ -1,5 +1,41 @@
 # CHANGELOG — Pulau Tropis
 
+## [0.25.0] — 2026-11-03 — Efek suara di setiap adegan (permintaan pengguna)
+### Ditambahkan
+- **Efek suara** (permintaan: *"menambahkan sound effect yang pass di setiap adegan yang ada, semua aktifitas
+  dan gerakan harus di sertai dengan sound effect yang pass dan cocok"*). Semua bunyi **dibuat dari kode**
+  (Web Audio: nada, derau tersaring, amplop) — tanpa file suara, tetap offline, aset sendiri, unduhan hanya
+  bertambah ±15 KB (gzip). ±115 bunyi, berposisi (makin jauh makin pelan, kiri / kanan menurut arah kamera), bergema
+  di gua & ruangan.
+- **Gerak pemain**: langkah menurut permukaan & seirama langkahnya (pasir, rumput, jalan batu, papan kayu
+  dermaga / jembatan, salju, es, lantai batu gua, air dangkal), lompat, mendarat (makin tinggi makin keras),
+  tercebur, kayuhan renang, memanjat, dayung perahu seirama lajunya, naik / turun perahu.
+- **Tempur**: desing tebasan, tinju, tendangan; jurus Cincang (10 desing), Hentak (lompat + hantaman tanah
+  bergemuruh), Putar, Penggal (desing bidik + sabetan beruntun); bunyi kena pada orc, prajurit berzirah
+  (denting logam), elf, batang pohon, batu; rintihan saat terluka, roboh, tirai pingsan, bangun lagi.
+- **Barang & kegiatan**: koin, kayu didapat, membeli, menjual, ditolak (koin kurang), makan, minum ramuan,
+  memakai perlengkapan, membuat pancing / perahu (palu), peti harta dibuka (engsel berderit + koin), peti
+  bersegel es, lempeng rahasia bergeser; memancing (lempar kail, pelampung jatuh, ikan menyambar, tarik, dapat
+  ikan, ikan lepas).
+- **Antarmuka**: tombol aksi, peta (kertas), tas, panel dibuka / ditutup, pesan, dan bunyi khas tiap negeri saat
+  nama wilayah muncul (Pulau Tropis, Kencana bergaya bonang, Aeloria harpa, Frostfall lonceng, gua).
+- **Orang**: setiap gelembung ucapan bersuara gumam (prajurit rendah, elf lebih tinggi, anak-anak tinggi);
+  orang di dekat pemain terdengar langkahnya dan kegiatannya — pandai besi menempa, membelah kayu, menyekop salju,
+  menimba sumur, memasak, berlatih pedang / panah / boneka, menari & bertepuk, memainkan kecapi, mengobrol,
+  anak-anak tertawa & perang bola salju, memancing.
+- **Musuh**: orc menggeram saat waspada, mengayun gada, roboh; prajurit menyerang, berdenting saat kena, roboh,
+  terjun & berenang; tombak dilempar dari perahu patroli & menancap; terompet duel, menang / kalah duel;
+  perkelahian elf.
+- **Naga Es**: dengkur napas saat tidur, geram saat bangun, aum (besar & kecil), langkah berat, gigitan, sapuan
+  ekor, menghimpun napas, Hembusan Es, dengung lingkaran Ledakan Es & kristal pecah, kepak sayap, hentakan
+  mendarat, kena pukul, roboh, segel es pecah.
+- **Suasana**: debur ombak (makin keras di pantai), angin (kencang di tempat tinggi & Frostfall), serangga &
+  kicau burung di daratan tropis, camar di pantai, burung hantu di malam Frostfall, dengung & tetesan gua
+  (bergema), air terjun yang mengalir, api unggun yang menyala, keramaian pasar & alun-alun (Frostfall hanya
+  siang), tungku pandai besi Aeloria, perkemahan bala tentara (denting zirah, ringkik kuda), riak air di
+  perahu & saat berenang.
+- **Pengaturan → Suara**: tombol hidup / mati dan penggeser volume (tersimpan di browser). Suara mulai saat
+  layar pertama kali disentuh (aturan browser HP) dan berhenti saat game ditinggalkan / tab disembunyikan.
 ## [0.24.1] — 2026-11-03 — Naga Es lebih kecil & bergerak lebih halus (permintaan pengguna)
 ### Diubah
 - **Naga Es diperkecil** (permintaan: *"Naganya terlalu besar, buatkan dia agak lebih kecil agar dia bisa bergerak

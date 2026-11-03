@@ -995,3 +995,11 @@ tandai sebagai "diganti" bila berubah.
     Diukur dengan simulasi 60 Hz per jurus (percepatan titik kepala / dada / ujung ekor / sayap, dinormalkan
     ke ukuran): percepatan maksimum turun 3–10×, percepatan sudut belok 54 → 4 rad/s². Gigitan & Sapuan Ekor
     sengaja tetap cepat (pengali kekakuan sesaat), hentakan mendarat tetap menghentak.
+94. **Efek suara disintesis dengan Web Audio, bukan file rekaman** (v0.25.0). Tujuan rilis: offline, aset
+    sendiri / CC0, ringan untuk HP (#86). ±115 bunyi sebagai rekaman akan menambah megabyte unduhan dan
+    butuh sumber berlisensi jelas; bunyi yang dirangkai dari osilator, derau tersaring & amplop hanya ±15 KB
+    kode (gzip), bisa divariasikan tiap kali main (tidak terdengar berulang persis), dan nadanya bisa menyesuaikan
+    (langkah per permukaan, suara orang per pembicara). Batasnya: bunyi seperti "gambar sederhana" — jelas &
+    pas, tetapi tidak senyata rekaman (terutama suara orang: gumam bersuku kata, bukan kata-kata). Supaya
+    ringan: paling banyak 24 bunyi sekaligus, suasana = ±9 sumber derau berulang yang kerasnya diatur, satu
+    gema konvolusi, perhitungan suasana ±7× per detik; suara berhenti saat tab disembunyikan.
