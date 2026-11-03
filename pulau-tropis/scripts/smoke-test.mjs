@@ -2322,6 +2322,40 @@ for (const [name, opts, query] of cases) {
     if (!back) fail('orc yang roboh tidak muncul lagi')
     else ok('orc yang roboh muncul lagi di perkemahan (kepala utuh lagi)')
 
+    // jurus 5 Ranah Tebas (v0.26.0): ranah terbuka, waktu dunia berhenti, kamera melihat ke bawah,
+    // musuh di dalam ranah terkunci satu per satu, lalu semuanya tertebas & roboh
+    await nearOrc(page, 0, 2)
+    await waitFrames(page, 5)
+    await page.evaluate(() => window.__pulau.suara.debug.reset())
+    await page.tap('#btn-ranah')
+    const rn = { phases: [], world: 1, camH: 0, locked: 0, persen: 0, kelabu: false }
+    for (let i = 0; i < 600; i++) {
+      const s = await page.evaluate(() => {
+        const P = window.__pulau
+        return { phase: P.player.attackPhase, move: P.player.attackMove, world: P.player.worldScale, camH: P.camera.position.y - P.player.position.y, fx: P.ranahFx.debug, kelabu: document.body.classList.contains('ranah-kelabu') }
+      })
+      if (s.move === 'ranah' && s.phase && rn.phases[rn.phases.length - 1] !== s.phase) rn.phases.push(s.phase)
+      if (s.phase === 'isi') {
+        rn.world = Math.min(rn.world, s.world)
+        rn.camH = Math.max(rn.camH, s.camH)
+        rn.locked = Math.max(rn.locked, s.fx.locked)
+        rn.persen = Math.max(rn.persen, Number(s.fx.persen))
+        rn.kelabu = rn.kelabu || s.kelabu
+      }
+      if (!s.move && i > 5) break
+      await waitFrames(page, 1)
+    }
+    await waitFrames(page, 10)
+    const rDown = (await orcStats(page)).filter(o => o.state !== 'hidup').length
+    const rSnd = await page.evaluate(() => ({ ...window.__pulau.suara.debug.counts }))
+    const want = ['buka', 'isi', 'puncak', 'kilat', 'diam', 'pulih']
+    if (want.some(w => !rn.phases.includes(w))) fail(`jurus Ranah Tebas: tahap ${rn.phases.join(' → ')}`)
+    else if (rn.world > 0.05 || rn.camH < 12 || !rn.kelabu || rn.persen < 95) fail(`jurus Ranah Tebas: waktu dunia ${rn.world}, kamera ${rn.camH.toFixed(1)} m, layar pudar ${rn.kelabu}, persen ${rn.persen}`)
+    else if (rn.locked < 3 || rDown < rn.locked) fail(`jurus Ranah Tebas: ${rn.locked} terkunci, ${rDown} orc roboh`)
+    else if (!rSnd['ranah-buka'] || !rSnd['ranah-tebas'] || !rSnd['ranah-ledak']) fail(`jurus Ranah Tebas: suara ${JSON.stringify(rSnd)}`)
+    else ok(`jurus Ranah Tebas: ${rn.phases.join(' → ')}; waktu dunia ×${rn.world}, kamera ${rn.camH.toFixed(0)} m di atas, ${rn.locked} orc terkunci → ${rDown} roboh`)
+    await page.screenshot({ path: `${out}/${name}-ranah.png` })
+
     // Penggal tanpa musuh di dekatnya → pesan, jeda pakai tidak terpakai
     await teleport(page, 150, -60, [0, 0])
     await page.evaluate(() => {

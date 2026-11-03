@@ -537,6 +537,19 @@ Laporkan: gerbang yang terasa kurang (ingin keluar-masuk di tempat lain), pagar 
 rendah, dan FPS.
 
 
+## Daftar uji manual — v0.26.0 (jurus Ranah Tebas)
+Ke salah satu perkemahan orc di Pulau Tropis (Peta), berdiri di tengah kelompok orc.
+1. Ketuk tombol **Ranah** (merah tua, di sela tombol Pukul dan busur jurus; keyboard: **5**): lingkaran ranah
+   melebar dari kaki, dunia berhenti (orc, ombak, pohon diam).
+2. Kamera naik melihat lurus ke bawah; layar pudar bertepi merah; angka **% 0 → % 100** di atas; cincin merah
+   di tepi ranah terisi searah jarum jam; orc terkunci satu per satu (penanda merah) dan jalur merah melengkung
+   ke tiap orc.
+3. Di **100 %**: sorotan dekat dari bawah + garis-garis tebasan merah; lalu pemain melesat menebas tiap orc
+   (jejak merah-jingga, percik merah); semua orc roboh bersamaan, tulisan "RANAH TEBAS" muncul, koin bertambah.
+4. Tombol Ranah menunjukkan jeda 24 detik. Tanpa orc di dekatmu → pesan "Tidak ada musuh…", jeda tidak terpakai.
+5. Coba juga pada prajurit Kencana, elf yang menyerangmu, dan Naga Es (di gua: kamera atas tetap di dalam gua).
+6. Catat: apakah urutannya terasa seperti di video, apakah layar & kamera nyaman di HP, dan FPS selama jurus.
+
 ## Daftar uji manual — v0.25.0 (efek suara)
 Pakai earphone / speaker HP; volume media HP dinaikkan. Suara mulai setelah layar disentuh pertama kali.
 1. **Pengaturan** (roda gigi) → bagian **Suara**: tombol "Suara hidup / Suara mati" dan penggeser volume. Muat

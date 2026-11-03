@@ -1,5 +1,26 @@
 # CHANGELOG — Pulau Tropis
 
+## [0.26.0] — 2026-11-03 — Jurus ke-5: Ranah Tebas (permintaan pengguna)
+### Ditambahkan
+- **Ranah Tebas** (permintaan: *"buatkan aku satu skill yang sama seperti di vidio ini"*), dibuat menurut video
+  kiriman pengguna. Tombol **Ranah** (di sela tombol Pukul dan busur jurus; layar mendatar: di ujung baris
+  jurus), tombol **5** / **Y** di keyboard; jeda pakai 24 detik; butuh musuh dalam ±12 m.
+  1. **Ranah terbuka** — lingkaran ranah melebar dari kaki pemain, **waktu dunia nyaris berhenti** (musuh,
+     orang, naga, perahu, salju, ombak, pohon diam di tempat).
+  2. **Ranah terisi** — kamera naik **melihat lurus ke bawah**; kubah ranah tembus pandang, layar memudar
+     kelabu dengan tepi merah, angka **% 0 → % 100** di atas layar dan **cincin merah** di tepi ranah yang
+     terisi searah jarum jam; cakram merah di bawah pemain. Selama terisi, sampai **8 musuh** di dalam ranah
+     **terkunci satu per satu** (penanda merah di atas kepalanya) dan **jalur merah melengkung** terlukis dari
+     pemain ke tiap sasaran.
+  3. **100 %** — ranah memerah, kamera **menyorot dekat dari bawah**, garis-garis tebasan merah melintang layar.
+  4. **Melesat** — kamera kembali di belakang pemain; pemain melesat dari sasaran ke sasaran meninggalkan jejak
+     merah-jingga, setiap yang dilewati tertebas (percik merah).
+  5. **Ledakan tebasan** — sesaat kemudian semua yang terkunci roboh bersamaan; nama jurus "RANAH TEBAS"
+     muncul sesaat; waktu kembali berjalan.
+  - Mengenai orc (roboh + koin), prajurit Kencana (roboh; lawan duel hanya luka berat), elf yang sedang melawan,
+    dan Naga Es (luka berat, tidak langsung kalah). Di gua kamera atas tetap di bawah atap.
+  - Suara tiap tahap: dentum waktu berhenti, dengung yang meninggi selama terisi, bunyi kunci tiap sasaran,
+    denting 100 %, desau melesat, sabetan tiap sasaran, dentum ledakan; suara dunia diredam selama waktu berhenti.
 ## [0.25.0] — 2026-11-03 — Efek suara di setiap adegan (permintaan pengguna)
 ### Ditambahkan
 - **Efek suara** (permintaan: *"menambahkan sound effect yang pass di setiap adegan yang ada, semua aktifitas

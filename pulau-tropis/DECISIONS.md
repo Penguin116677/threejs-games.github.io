@@ -1003,3 +1003,10 @@ tandai sebagai "diganti" bila berubah.
     pas, tetapi tidak senyata rekaman (terutama suara orang: gumam bersuku kata, bukan kata-kata). Supaya
     ringan: paling banyak 24 bunyi sekaligus, suasana = ±9 sumber derau berulang yang kerasnya diatur, satu
     gema konvolusi, perhitungan suasana ±7× per detik; suara berhenti saat tab disembunyikan.
+95. **Ranah Tebas: "waktu berhenti" = pengali waktu dunia, bukan jeda permainan** (v0.26.0). Video kiriman
+    pengguna menunjukkan dunia membeku sementara pemain & tampilan jurus tetap bergerak. Satu angka
+    (`player.worldScale`: 0,03 saat ranah terisi, 0,22 saat melesat) mengalikan dt semua yang hidup di dunia
+    (musuh, orang, prajurit, naga, perahu patroli, cuaca, air, pohon); pemain, kamera, efek jurus & antarmuka
+    memakai waktu nyata — jadi tidak ada sistem yang perlu tahu tentang jurus ini. Layar pudar memakai filter
+    CSS `saturate` pada kanvas (murah, sementara ±3 detik) — bukan `grayscale` penuh, supaya penanda & jalur
+    merah tetap merah. Nama, ikon & angka jurus dibuat sendiri (bukan dari game di video).

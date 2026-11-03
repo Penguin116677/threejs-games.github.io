@@ -127,7 +127,7 @@ penguji selama 14 hari (akun developer pribadi baru).
    pulau kecil, jalur eksplorasi, landmark.
 4. **Interaksi gameplay** — interaksi objek, item, inventory, NPC & dialog, quest sederhana.
 5. **Peningkatan visual** — material/tekstur, bayangan, animasi vegetasi, partikel, suara (efek suara di
-   setiap adegan — v0.25.0, dibuat dari kode).
+   setiap adegan — v0.25.0, dibuat dari kode). Jurus ke-5 Ranah Tebas (v0.26.0, dari video pengguna).
 6. **Sistem game** — UI, peta mini, kesehatan/stamina (bila perlu), siang-malam, simpan progres.
 7. **Optimasi & pengujian** — bug, kontrol sentuh, collision, performa, ukuran layar/orientasi.
 
