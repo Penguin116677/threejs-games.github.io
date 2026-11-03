@@ -1100,7 +1100,14 @@ export function createPlayer({ ground, colliders, quality, asset }) {
     get attackPhase() {
       return combat.phase
     },
-    // sisa jeda pakai jurus (detik): { cincang, hentak, putar, penggal }
+    // Ranah Tebas: keadaan (ranah.js) & pengali waktu dunia (main.js)
+    get ranah() {
+      return combat.ranah
+    },
+    get worldScale() {
+      return combat.worldScale
+    },
+    // sisa jeda pakai jurus (detik): { cincang, hentak, putar, penggal, ranah }
     get cooldowns() {
       return combat.cooldown
     },

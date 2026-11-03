@@ -1253,10 +1253,10 @@ export function createNaga({ plan, chest, ground, noiseTexture }) {
       const c = chestPos()
       return st.state === 'kalah' ? null : { x: c.x, z: c.z }
     },
-    execute() {
+    execute(amount = 24) {
       if (st.state === 'kalah') return null
       const c = chestPos()
-      damageBy(24)
+      damageBy(amount)
       return { x: c.x, y: c.y, z: c.z }
     },
     // pemain roboh saat bertarung dengan naga? (main.js: bangun di luar mulut gua)

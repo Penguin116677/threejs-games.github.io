@@ -17,7 +17,7 @@ const JOY_DEAD = 0.12 // zona mati di tengah: getaran ibu jari tidak menggerakka
 const JOY_ZONE = { x: 0.45, y: 0.3 }
 const SKILL_KEYS = {
   Digit1: 'cincang', KeyQ: 'cincang', Digit2: 'hentak', KeyE: 'hentak',
-  Digit3: 'putar', KeyR: 'putar', Digit4: 'penggal', KeyT: 'penggal',
+  Digit3: 'putar', KeyR: 'putar', Digit4: 'penggal', KeyT: 'penggal', Digit5: 'ranah', KeyY: 'ranah',
 }
 
 // joystick = elemen dasar joystick (berisi knob); skillButtons: { cincang, hentak, putar, penggal }

@@ -7,6 +7,9 @@
 //   3. Putar   — 3 cincangan lalu berputar satu kali, mengenai semua di sekeliling.
 //   4. Penggal — membidik leher maks. 5 musuh terdekat, lalu melesat melewati semuanya dan
 //                memenggal mereka sekaligus dalam satu gerakan (butuh musuh dalam ±14 m).
+//   5. Ranah Tebas (v0.26.0) — membuka ranah melingkar ±12 m: waktu dunia nyaris berhenti, ranah
+//                terisi 0 → 100 % sambil mengunci sampai 8 musuh di dalamnya satu per satu, lalu
+//                melesat menebas setiap yang terkunci dan semuanya roboh dalam satu ledakan tebasan.
 // Selama menyerang prajurit tidak berjalan (jalur ketukan dibatalkan) dan tidak bisa melompat.
 // Tombol yang ditekan saat masih menyerang disimpan, lalu dijalankan begitu gerakan selesai.
 // Modul ini hanya mengatur waktu & gerak; yang terkena (musuh, batang pohon, batu) diurus pemanggil
@@ -24,7 +27,7 @@ export const COMBO = ['tebas', 'tinju', 'tendang']
 const COMBO_WINDOW = 0.7 // detik setelah pukulan selesai: tekan lagi = gerakan kombo berikutnya
 
 // jurus (urutan tombol 1–4) → jeda pakai (detik)
-export const SKILLS = { cincang: 6, hentak: 7, putar: 5, penggal: 15 }
+export const SKILLS = { cincang: 6, hentak: 7, putar: 5, penggal: 15, ranah: 24 }
 export const ATTACK_CLIPS = ['attack-melee-right', 'attack-melee-left', 'attack-kick-right']
 
 // satu cincangan: ayunan tebasan dipercepat, mulai setelah awalan ayunan
@@ -33,6 +36,9 @@ const CINCANG = 10 // jumlah cincangan jurus Cincang
 const SPIN = { chops: 3, time: 0.55, hit: 0.3, radius: 2.4, damage: 2, knock: 6 } // jurus Putar
 const PLUNGE = { up: 9.5, forward: 2.2, radius: 3.3, plant: 0.75, damage: 3, knock: 7, stuck: 0.35, recover: 0.35 } // Hentak
 const EXEC = { range: 14, max: 5, aim: 0.55, seg: 0.08, pause: 0.35, recover: 0.3, past: 1.6 } // Penggal
+// Ranah Tebas: jari-jari ranah (m), sasaran maks., lama tiap tahap (detik nyata), waktu dunia saat ranah
+// terbuka (pengali dt musuh / orang / naga) & saat melesat
+export const RANAH = { r: 12, max: 8, buka: 0.45, isi: 2.1, puncak: 0.6, seg: 0.14, diam: 0.4, recover: 0.5, beku: 0.03, lambat: 0.22 }
 const RECOVER = 0.15 // jeda sesudah rangkaian cincangan
 const FALLBACK = 0.45 // lama pukulan karakter cadangan (tanpa animasi)
 
@@ -49,7 +55,7 @@ export function createCombat(body) {
   let comboIndex = 0
   let comboTimer = 0
   let queued = null // 'pukul' atau nama jurus yang ditekan saat masih menyerang
-  const cooldown = { cincang: 0, hentak: 0, putar: 0, penggal: 0 }
+  const cooldown = { cincang: 0, hentak: 0, putar: 0, penggal: 0, ranah: 0 }
   let onEvent = () => {}
   // sasaran Penggal (diisi pemanggil): pickTargets(x, z, jangkauan, maks) → [{ id, x, z }],
   // position(id) → { x, z } | null, standable(x, z) → bool
@@ -105,6 +111,15 @@ export function createCombat(body) {
         move = { name: 'hentak', phase: 'naik', t: 0 }
         body.pose('attack-melee-right', 0.16) // pedang terangkat tinggi
         emit('ayun', { swing: 'hentak-naik' })
+      } else if (action === 'ranah') {
+        const targets = arena.pickTargets(body.pos.x, body.pos.z, RANAH.r, RANAH.max)
+        if (!targets.length) {
+          onEvent({ type: 'gagal', move: 'ranah', reason: 'musuh' })
+          return false
+        }
+        move = { name: 'ranah', phase: 'buka', t: 0, ids: targets.map(t => t.id), locked: 0, center: { x: body.pos.x, z: body.pos.z } }
+        body.pose('attack-melee-right', 0.14) // kuda-kuda: pedang ditarik ke belakang
+        emit('ranah', { fase: 'buka', targets: move.ids, r: RANAH.r })
       } else {
         const targets = arena.pickTargets(body.pos.x, body.pos.z, EXEC.range, EXEC.max)
         if (!targets.length) {
@@ -172,6 +187,87 @@ export function createCombat(body) {
     return pts
   }
 
+  // Ranah Tebas: buka → isi (mengunci sasaran) → puncak → kilat (melesat dari sasaran ke sasaran,
+  // menebas tiap yang dilewati) → diam → ledakan tebasan (semua yang terkunci roboh) → pulih
+  function updateRanah() {
+    const { phase } = move
+    if (phase === 'buka') {
+      if (move.t >= RANAH.buka) {
+        Object.assign(move, { phase: 'isi', t: 0 })
+        emit('ranah', { fase: 'isi' })
+      }
+    } else if (phase === 'isi') {
+      // sasaran terkunci satu per satu selama ranah terisi
+      const n = move.ids.length
+      while (move.locked < n && move.t / RANAH.isi >= ((move.locked + 1) / (n + 1)) * 0.96) {
+        emit('ranah', { fase: 'kunci', id: move.ids[move.locked], i: move.locked })
+        move.locked++
+      }
+      if (move.t >= RANAH.isi) {
+        Object.assign(move, { phase: 'puncak', t: 0 })
+        body.pose('attack-melee-right', 0.2)
+        emit('ranah', { fase: 'penuh' })
+      }
+    } else if (phase === 'puncak') {
+      if (move.t >= RANAH.puncak) {
+        // jalur: dari tempat berdiri melewati setiap sasaran yang masih ada, urut seperti dikunci
+        const pts = [{ x: body.pos.x, z: body.pos.z }]
+        const hitIds = [null]
+        for (const id of move.ids) {
+          const p = arena.position(id)
+          if (!p) continue
+          pts.push({ x: p.x, z: p.z })
+          hitIds.push(id)
+        }
+        // berhenti sedikit melewati sasaran terakhir (di tanah yang bisa diinjak)
+        if (pts.length >= 2) {
+          const a = pts[pts.length - 2]
+          const b = pts[pts.length - 1]
+          const len = Math.hypot(b.x - a.x, b.z - a.z) || 1
+          for (const d of [EXEC.past, 1, 0.6]) {
+            const x = b.x + ((b.x - a.x) / len) * d
+            const z = b.z + ((b.z - a.z) / len) * d
+            if (arena.standable(x, z)) {
+              pts.push({ x, z })
+              hitIds.push(null)
+              break
+            }
+          }
+        }
+        Object.assign(move, { phase: 'kilat', t: 0, path: pts, hitIds, reached: 0 })
+        emit('ranah', { fase: 'kilat', path: pts })
+      }
+    } else if (phase === 'kilat') {
+      const pts = move.path
+      const u = Math.min(move.t / RANAH.seg, pts.length - 1)
+      const i = Math.min(Math.floor(u), pts.length - 2)
+      if (i >= 0 && pts.length > 1) {
+        const a = pts[i]
+        const b = pts[i + 1]
+        const k = u - i
+        body.teleport(a.x + (b.x - a.x) * k, a.z + (b.z - a.z) * k)
+        body.heading = Math.atan2(b.x - a.x, b.z - a.z)
+        // tiap sasaran yang dilewati langsung tertebas
+        while (move.reached < Math.floor(u)) {
+          move.reached++
+          const id = move.hitIds[move.reached]
+          const p = pts[move.reached]
+          if (id) emit('ranah', { fase: 'tebas', id, x: p.x, z: p.z, n: move.reached })
+          body.playClip('attack-melee-right', CHOP.speed, CHOP.from)
+        }
+      }
+      if (u >= pts.length - 1) {
+        body.pose('attack-melee-right', 0.33) // sabetan selesai, pedang terulur
+        Object.assign(move, { phase: 'diam', t: 0 })
+      }
+    } else if (phase === 'diam' && move.t >= RANAH.diam) {
+      // jeda sesaat… lalu semua yang terkunci roboh bersamaan
+      emit('ranah', { fase: 'ledak', targets: move.hitIds.filter(Boolean) })
+      body.release()
+      Object.assign(move, { phase: 'pulih', t: 0 })
+    }
+  }
+
   function updateMove(dt) {
     move.t += dt
     const { name, phase } = move
@@ -180,7 +276,11 @@ export function createCombat(body) {
       return
     }
     if (phase === 'pulih') {
-      if (move.t >= (name === 'hentak' ? PLUNGE.recover : name === 'penggal' ? EXEC.recover : RECOVER)) end()
+      if (move.t >= (name === 'hentak' ? PLUNGE.recover : name === 'penggal' ? EXEC.recover : name === 'ranah' ? RANAH.recover : RECOVER)) end()
+      return
+    }
+    if (name === 'ranah') {
+      updateRanah()
       return
     }
     if (name === 'putar') {
@@ -269,6 +369,20 @@ export function createCombat(body) {
     get phase() {
       return move ? move.phase || null : null
     },
+    // keadaan Ranah Tebas (tampilan & kamera, ranah.js): { phase, t, pct, ids, locked, center } atau null
+    get ranah() {
+      if (!move || move.name !== 'ranah') return null
+      return { phase: move.phase, t: move.t, pct: move.phase === 'buka' ? 0 : move.phase === 'isi' ? Math.min(1, move.t / RANAH.isi) : 1, ids: move.ids, locked: move.locked, center: move.center }
+    },
+    // pengali waktu dunia (musuh, orang, naga, cuaca): Ranah Tebas memperlambat / menghentikan waktu
+    get worldScale() {
+      if (!move || move.name !== 'ranah') return 1
+      const { phase, t } = move
+      if (phase === 'buka') return 1 + (RANAH.beku - 1) * Math.min(1, t / (RANAH.buka * 0.6))
+      if (phase === 'isi' || phase === 'puncak') return RANAH.beku
+      if (phase === 'kilat' || phase === 'diam') return RANAH.lambat
+      return RANAH.lambat + (1 - RANAH.lambat) * Math.min(1, t / RANAH.recover)
+    },
     onEvent(fn) {
       onEvent = fn
     },
@@ -285,7 +399,7 @@ export function createCombat(body) {
         const f = forward()
         return { vx: f.x * CHOP.advance, vz: f.z * CHOP.advance }
       }
-      return { vx: 0, vz: 0, instant: move.name === 'penggal' }
+      return { vx: 0, vz: 0, instant: move.name === 'penggal' || move.name === 'ranah' }
     },
     update(dt, input) {
       for (const k in cooldown) cooldown[k] = Math.max(0, cooldown[k] - dt)
