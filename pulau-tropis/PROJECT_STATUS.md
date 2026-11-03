@@ -1,8 +1,8 @@
 # PROJECT_STATUS — Pulau Tropis
 
-**Milestone aktif:** 3 — Pembangunan dunia (v0.24.1: Naga Es **lebih kecil** (±14 m, kepala ±5 m, sayap ±19 m) supaya leluasa di gua, dan **bergerak lebih halus** — menunggu umpan balik dari HP; v0.24.0: **Naga Es** dari lembar desain pengguna menjaga peti harta di ruang terdalam Gua Gletser — tidur melingkari peti bersegel es, bangun saat didekati, Hembusan Es, Ledakan Es, terbang & mendarat menghentak, gigitan, sapuan ekor; kalahkan untuk membuka peti — menunggu umpan balik dari HP; v0.23.0: **pagar tinggi** gelondong runcing mengelilingi ketiga desa Frostfall, dengan 9 gerbang — menunggu umpan balik dari HP; v0.22.0: **300 penduduk Frostfall** — 59 keluarga di Desa Emberwick dan dua kampung baru, Teluk Salju (nelayan) & Rusa Putih (pemburu); jam & malam Frostfall; bangun, makan, bekerja, berburu rusa kutub, memancing, pesta & acara, tidur di rumah; baju bulu khas; bisa diajak mengobrol (offline) — menunggu umpan balik dari HP; v0.21.0: **Aula Gletser** dibangun ulang dari gambar konsep pengguna — air terjun mengalir ke kolam, lengkung es, tebing bersalju, suasana biru kehijauan; v0.20.0: **lima gua besar** di Frostfall — Tambang Tua Emberwick, Gua Gletser Utara, Katedral Taring, Gua Laut Beku, Gua Seribu Tiang — masing-masing dengan peti harta; atap gua kini bisa diinjak; v0.19.0: wilayah baru Kerajaan Frostfall — menunggu umpan balik dari HP).
+**Milestone aktif:** 3 — Pembangunan dunia (v0.25.0: **efek suara di setiap adegan** — ±118 bunyi dibuat dari kode: gerak & langkah per permukaan, tempur & jurus, barang & kegiatan, perahu, mancing, antarmuka, suara orang, musuh, Naga Es, suasana tiap wilayah; Pengaturan → Suara — menunggu umpan balik dari HP; v0.24.1: Naga Es **lebih kecil** (±14 m, kepala ±5 m, sayap ±19 m) supaya leluasa di gua, dan **bergerak lebih halus** — menunggu umpan balik dari HP; v0.24.0: **Naga Es** dari lembar desain pengguna menjaga peti harta di ruang terdalam Gua Gletser — tidur melingkari peti bersegel es, bangun saat didekati, Hembusan Es, Ledakan Es, terbang & mendarat menghentak, gigitan, sapuan ekor; kalahkan untuk membuka peti — menunggu umpan balik dari HP; v0.23.0: **pagar tinggi** gelondong runcing mengelilingi ketiga desa Frostfall, dengan 9 gerbang — menunggu umpan balik dari HP; v0.22.0: **300 penduduk Frostfall** — 59 keluarga di Desa Emberwick dan dua kampung baru, Teluk Salju (nelayan) & Rusa Putih (pemburu); jam & malam Frostfall; bangun, makan, bekerja, berburu rusa kutub, memancing, pesta & acara, tidur di rumah; baju bulu khas; bisa diajak mengobrol (offline) — menunggu umpan balik dari HP; v0.21.0: **Aula Gletser** dibangun ulang dari gambar konsep pengguna — air terjun mengalir ke kolam, lengkung es, tebing bersalju, suasana biru kehijauan; v0.20.0: **lima gua besar** di Frostfall — Tambang Tua Emberwick, Gua Gletser Utara, Katedral Taring, Gua Laut Beku, Gua Seribu Tiang — masing-masing dengan peti harta; atap gua kini bisa diinjak; v0.19.0: wilayah baru Kerajaan Frostfall — menunggu umpan balik dari HP).
 Pengembangan jurus dihentikan sementara atas permintaan pengguna.
-**Versi:** 0.24.1
+**Versi:** 0.25.0
 **Terakhir diperbarui:** 2026-11-03
 
 ## Kondisi awal repository (sebelum Milestone 1)
@@ -104,9 +104,32 @@ Sebagian sudah dikerjakan lebih awal (bayangan, tanah per-piksel, awan, kaustik 
 | Kanan atas diringkas: Peta, Tas, ikon Pengaturan (berisi kualitas grafis); layar penuh otomatis di HP; tombol Lihat pulau dihapus | ✅ selesai (v0.15.1) |
 | Karakter pixel art chibi (kepala bulat bermata, badan membulat) menggantikan badan kotak Kenney: penduduk, raja, pedagang, penjaga, bala tentara + kuda, orc, elf, pemain | ✅ selesai (v0.16.0) |
 | File model hanya rangka + animasi (unduhan model 892 KB → 108 KB) | ✅ selesai (v0.16.0) |
-| Partikel lanjutan, suara, animasi vegetasi lanjutan | ⏳ belum |
+| Efek suara di setiap adegan & aktivitas (dibuat dari kode, berposisi, gema gua; Pengaturan → Suara) | ✅ selesai (v0.25.0, permintaan pengguna) |
+| Partikel lanjutan, animasi vegetasi lanjutan | ⏳ belum |
 | Siang–malam | ✅ sebagian — hanya di Frostfall (v0.22.0); pulau-pulau lain selalu siang |
 | Dicoba di HP Android sungguhan | ⏳ menunggu laporan pengguna |
+
+## Yang sudah diperiksa (v0.25.0 — efek suara)
+- **Pemeriksaan kode**: ESLint (konfigurasi repo) 0 error / 0 warning pada setiap commit.
+- **Build**: `vite build` berhasil (JS 1,45 → 1,50 MB, ±471 → ±486 KB gzip; tanpa file suara); `dist/` sama persis
+  dengan versi yang diuji.
+- **Analisis sinyal tiap resep** (dirender offline di Chromium): 118 dari 118 berbunyi, tidak ada yang bisu, NaN,
+  terpotong, atau melewati batas (puncak ≤ 1,0). Putaran pertama menemukan 11 masalah — suara terpotong sebelum
+  selesai (lama bunyi dihitung dari bagian terakhir, bukan yang terpanjang), aum naga / air terjun / ombak / Hentak
+  terlalu keras, tinju / tepuk / makan / peta / tas / kuda terlalu pelan — semuanya diperbaiki & diukur ulang.
+- **Uji di dalam game** (Chromium, suara dibuka dengan sentuhan): 20 kejadian dipicu & dicek bunyinya — jalan,
+  lompat & mendarat, kombo tebas-tinju-tendang, keempat jurus, peta, tas, pukul pohon (+kayu), berenang, bicara +
+  orc kena, mancing, salju Frostfall, Naga Es bangun / Hembusan Es / Ledakan Es / gigit / ekor / terbang & mendarat
+  — semua lulus, tanpa galat. Uji tambahan: rusa kutub mendengus & berderap, perahu perang orc bergenderang &
+  berdayung, pemain & NPC bersuara di obrolan — lulus. Dari uji: rintihan "sakit" berbunyi ±10× per detik saat
+  terkena Hembusan Es → dibatasi.
+- **Smoke test otomatis** (versi build): **HP Rendah 66 dari 66 — LULUS**, termasuk cek baru "efek suara Naga Es".
+  Cek baru "efek suara tempur" ada di bagian uji tempur yang hanya dijalankan profil HP tegak / komputer — tidak
+  dijalankan kali ini (bunyi tempur sudah dicek di uji di dalam game). HP tegak, HP mendatar & komputer tidak
+  dijalankan.
+- **Performa** (render software, kualitas Rendah, 2 putaran bergantian di build yang sama): suara hidup vs belum
+  dibuka — pantai 1.034 vs 994 ms (+4%), Pasar Aeloria 966 vs 908 ms (+6%), alun-alun Emberwick 685 vs 629 ms
+  (+9%), sarang Naga Es 612 vs 638 ms (−4%). Bunyi aktif bersamaan saat diukur: 0–2 (batas 24).
 
 ## Yang sudah diperiksa (v0.24.1 — Naga Es lebih kecil & lebih halus)
 - **Pemeriksaan kode**: ESLint (konfigurasi repo) 0 error / 0 warning pada setiap commit.
@@ -920,6 +943,10 @@ Sebagian sudah dikerjakan lebih awal (bayangan, tanah per-piksel, awan, kaustik 
   laut dalam → kembali ke pantai + pesan, mendaki lereng (+24 m dalam 120 frame).
 
 ## Yang BELUM diperiksa
+- **Efek suara di HP sungguhan** (v0.25.0): kekerasan tiap bunyi di speaker HP / earphone, bunyi yang terlalu
+  sering / mengganggu (mis. gumam di Pasar Aeloria yang ramai), jeda antara gerak & bunyi, dan biaya FPS (di render
+  software +0…9%). Belum pernah didengar telinga manusia — hanya diukur sinyalnya.
+- **Smoke test HP tegak, HP mendatar & komputer untuk v0.25.0** — tidak dijalankan.
 - **Naga Es v0.24.1 di HP sungguhan**: apakah geraknya sudah terasa halus di layar HP (FPS rendah membuat
   gerak apa pun tersendat), apakah ukuran barunya pas, dan apakah Gigitan / Sapuan Ekor kini terlalu mudah /
   sulit dihindari.
@@ -1400,6 +1427,9 @@ v0.3.0: Rendah ±300 rb, Sedang ±400 rb, Tinggi ±850 rb. Tambahan v0.4.0 beras
 yang lebih rapat (untuk ombak) dan buah kelapa. v0.2.0 (HP): ±230 ribu.
 
 ## Masalah yang diketahui
+- (v0.25.0) Suara orang berupa gumam bersuku kata (bukan kata-kata); bunyi dibuat dari kode, jadi lebih
+  sederhana daripada rekaman sungguhan.
+- (v0.25.0) Suara baru mulai setelah layar disentuh pertama kali (aturan browser HP).
 - (v0.24.1) Naga jauh lebih kecil dari lembar desain (±14 / 5 / 19 m, bukan 25 / 12 / 40 m) — permintaan
   pengguna, supaya leluasa bergerak di ruang gua.
 - (v0.24.1) **Uji otomatis "kalah duel" (Kencana) kadang berhenti** di HP tegak: tombol Ajak / Duel hilang tepat
