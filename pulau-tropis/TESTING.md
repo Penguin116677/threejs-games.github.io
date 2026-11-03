@@ -537,6 +537,19 @@ Laporkan: gerbang yang terasa kurang (ingin keluar-masuk di tempat lain), pagar 
 rendah, dan FPS.
 
 
+## Daftar uji manual — v0.24.1 (Naga Es lebih kecil & lebih halus)
+Ke Ruang Air Terjun Beku di Gua Gletser Utara seperti daftar v0.24.0 di bawah.
+1. Naga tidur **lebih kecil** (±14 m, kepala ±5 m): peti bersegel es ada di lekuk antara badan & ekornya.
+2. Bangunkan: ia bangkit perlahan (tidak meloncat ke pose berdiri), lalu mengaum dengan sayap terbentang.
+3. Berlarilah memutarinya: ia **berbelok dengan mulus** (mulai pelan, tidak berputar seketika), kepala menoleh
+   lebih dulu, **ekor menyusul berayun**. Saat mendekat ia berjalan / berlari dengan langkah yang pas dengan
+   lajunya (kaki tidak meluncur) dan mengerem sebelum sampai.
+4. Saat ia menunggu: badan menggeser berat, kepala menoleh pelan, ekor & sayap bergerak — tidak diam kaku.
+5. Terbang: kepakan bergelombang dari bahu ke ujung sayap, badan miring saat memutar, mendongak sebelum mendarat;
+   sayap tidak menembus dinding / atap ruang.
+6. Semua jurus v0.24.0 masih ada & masih bisa dihindari; catat apakah Gigitan / Sapuan Ekor kini terasa
+   terlalu mudah / sulit dihindari karena naganya lebih kecil, dan **FPS** saat bertarung.
+
 ## Daftar uji manual — v0.24.0 (Naga Es, penjaga Gua Gletser)
 Seberangi selat ke Frostfall, lalu ke **Gua Gletser Utara** di pantai utara (Peta: "Gua Gletser"). Lewati
 Aula Gletser (air terjun & kolam), terus menyusuri deretan lengkung es ke **Ruang Air Terjun Beku**. Isi dulu

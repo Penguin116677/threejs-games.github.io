@@ -985,3 +985,13 @@ tandai sebagai "diganti" bila berubah.
     lingkaran 8 m di tengah ruang. Peti tetap di tempatnya; naga tidur melingkarinya. Nyawa 240 (orc 6,
     prajurit 8–10) supaya pertarungan ±2–3 menit dengan pukulan 1–3 per serangan. Hadiah: segel peti pecah +
     koin; naga pulih sendiri saat pemain jauh (penjaga, bukan musuh yang hilang selamanya).
+93. **Naga Es dikecilkan lewat skala, bukan dibentuk ulang; gerak halus lewat pegas, bukan file animasi**
+    (v0.24.1, permintaan pengguna). Rangka & bentuk tetap dalam satuan model lama, seluruh SkinnedMesh
+    dikecilkan 0,65× (`UKURAN`): pose tidur / roboh yang sudah disetel angka per angka tetap benar, dan jangkauan
+    jurus serta titik tubuh ikut dari satu angka. Ruang sarang tidak diubah (alasan sama dengan #92). Gerak:
+    parameter pose dulu dihaluskan eksponensial orde satu — kecepatannya melompat tiap kali sasaran berganti
+    (terlihat menyentak / kaku) — kini pegas teredam kritis orde dua per parameter (Euler implisit, stabil pada
+    dt 0,1 s HP lambat); arah hadap & laju diberi percepatan; langkah kaki diturunkan dari laju sebenarnya.
+    Diukur dengan simulasi 60 Hz per jurus (percepatan titik kepala / dada / ujung ekor / sayap, dinormalkan
+    ke ukuran): percepatan maksimum turun 3–10×, percepatan sudut belok 54 → 4 rad/s². Gigitan & Sapuan Ekor
+    sengaja tetap cepat (pengali kekakuan sesaat), hentakan mendarat tetap menghentak.

@@ -1,5 +1,27 @@
 # CHANGELOG — Pulau Tropis
 
+## [0.24.1] — 2026-11-03 — Naga Es lebih kecil & bergerak lebih halus (permintaan pengguna)
+### Diubah
+- **Naga Es diperkecil** (permintaan: *"Naganya terlalu besar, buatkan dia agak lebih kecil agar dia bisa bergerak
+  lebih leluasa di dalam goa"*): ±14 m dari moncong ke ujung ekor (dulu ±21), kepala ±5 m di atas tanah (±8),
+  rentang sayap ±19 m (±29). Ruang geraknya di sarang diperluas (lingkaran 10 m, dulu 8 m), terbangnya lebih
+  rendah (±7 m) dan memutar lebih lebar; saat terbang sayapnya tidak lagi menembus dinding gua. Jangkauan
+  Gigitan, Sapuan Ekor & hentakan mendarat ikut mengecil; Gigitan kini mengenai tempat moncongnya benar-benar
+  menyambar. Ia tidur di tempat baru di ruang yang sama, peti tepat di lekuk antara badan & ekornya.
+- **Gerak lebih halus, tidak kaku** (permintaan: *"buatkan pergerakannya lebih halus lagi dan tidak terlihat
+  kaku"*):
+  - setiap gerakan (mengangkat leher, membuka sayap, berdiri, merunduk, tidur, bangun) kini mulai pelan,
+    mempercepat, lalu melambat sebelum berhenti — tidak lagi langsung menyentak ke arah baru;
+  - berbelok & melangkah berpercepatan: naga mulai berbelok / berjalan perlahan dan mengerem sebelum sampai,
+    tidak lagi berputar atau berhenti seketika;
+  - langkah kakinya mengikuti laju sebenarnya (kaki tidak meluncur), berubah mulus dari jalan ke lari dengan
+    langkah lebih panjang; badan, bahu & pinggul berayun berlawanan, leher mengangguk seirama langkah sementara
+    kepala tetap tenang;
+  - saat berbelok kepala & leher mendahului, ekor menyusul ruas demi ruas dan berayun;
+  - saat menunggu ia tidak lagi diam seperti patung: menggeser berat badan, menoleh pelan, ekor & sayap ikut
+    bernapas;
+  - kepakan sayap bergelombang dari bahu ke ujung sayap; saat terbang badannya miring ke arah belokan dan
+    mendongak mengerem sebelum mendarat.
 ## [0.24.0] — 2026-11-02 — Naga Es, penjaga Gua Gletser (permintaan pengguna)
 ### Ditambahkan
 - **Naga Es** (permintaan: *"Buatkan naga es yang di gambar ini menjadi penjaga dari goa gletser, … penjaga goa

@@ -182,4 +182,5 @@ lorong, dan setapak yang keluar desa; penduduk & pemain keluar-masuk lewat gerba
 Di v0.24.0 (permintaan pengguna, dari lembar desain "Cryo Dragon") Gua Gletser Utara dijaga **Naga Es**: tidur
 melingkari peti bersegel es, bangun bila penyusup masuk, lalu bertarung (Gigitan, Sapuan Ekor, Hembusan Es,
 Ledakan Es, terbang & mendarat menghentak, mengaum) — musuh boss pertama, bagian Milestone 3/4 (dunia &
-pertarungan).
+pertarungan). v0.24.1: naga diperkecil (±14 m, kepala ±5 m, sayap ±19 m) supaya leluasa di ruang gua, dan
+geraknya dihaluskan (pegas, percepatan, ayunan ekor & leher, gerak hidup saat diam).
