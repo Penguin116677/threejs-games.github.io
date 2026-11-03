@@ -1726,6 +1726,14 @@ for (const [name, opts, query] of cases) {
       const bad = Object.entries(res).filter(([j, r]) => r.luka <= 0 || (j === 'hembus' && r.partikel < 40) || (j === 'ledak' && !r.kristal) || (j === 'terbang' && (r.terbang < 6 || r.akhir > 0.5)))
       if (bad.length) fail(`jurus Naga Es: ${JSON.stringify(res)}`)
       else ok(`jurus Naga Es melukai pemain: Hembusan Es −${res.hembus.luka} (${res.hembus.partikel} partikel), Ledakan Es −${res.ledak.luka}, Gigitan −${res.gigit.luka}, Sapuan Ekor −${res.ekor.luka}, Terbang (${res.terbang.terbang} m, mendarat menghentak) −${res.terbang.luka}`)
+      // efek suara naga (v0.25.0)
+      {
+        const snd = await page.evaluate(() => ({ ...window.__pulau.suara.debug.counts }))
+        const need = ['naga-geram', 'naga-aum', 'naga-isi', 'naga-hembus', 'naga-tanda', 'es-pecah', 'naga-gigit', 'naga-ekor', 'naga-kepak', 'naga-hentak']
+        const miss = need.filter(k => !snd[k])
+        if (miss.length) fail(`efek suara Naga Es: tidak berbunyi ${miss.join(', ')}`)
+        else ok(`efek suara Naga Es: ${need.map(k => `${k} ${snd[k]}×`).join(', ')}`)
+      }
       // pukulan pemain mengurangi nyawa naga
       await heal()
       await page.evaluate(() => window.__pulau.naga.debug.tenang(true))
@@ -2219,6 +2227,13 @@ for (const [name, opts, query] of cases) {
     await attackDone(page)
     if (combo.join() !== 'tebas,tinju,tendang') fail(`kombo Pukul: ${combo.join(' → ')}`)
     else ok('kombo Pukul: tebas → tinju → tendang')
+    // efek suara (v0.25.0): ayunan & pukulan meminta bunyinya (dicatat walau suara belum dibuka sentuhan)
+    {
+      const snd = await page.evaluate(() => ({ ...window.__pulau.suara.debug.counts }))
+      const miss = ['tebas', 'tinju', 'tendang', 'kena-kayu', 'kayu'].filter(k => !snd[k])
+      if (miss.length) fail(`efek suara tempur: tidak berbunyi ${miss.join(', ')} (${JSON.stringify(snd)})`)
+      else ok(`efek suara tempur: tebas ${snd.tebas}×, tinju ${snd.tinju}×, tendang ${snd.tendang}×, kena batang ${snd['kena-kayu']}×, +kayu ${snd.kayu}×`)
+    }
 
     // jurus 1 Cincang: 10 cincangan ke orc di depan → orc roboh
     await nearOrc(page, 0, 1.3)
