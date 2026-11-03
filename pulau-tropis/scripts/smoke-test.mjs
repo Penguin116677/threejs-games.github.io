@@ -1645,8 +1645,8 @@ for (const [name, opts, query] of cases) {
         const { naga, player } = window.__pulau
         const c = naga.targetPos()
         const a = naga.debug.cur.heading + sd
-        const x = c.x + Math.sin(a) * 3.2
-        const z = c.z + Math.cos(a) * 3.2
+        const x = c.x + Math.sin(a) * 2.6
+        const z = c.z + Math.cos(a) * 2.6
         player.placeAt(x, z, Math.atan2(c.x - x, c.z - z))
         player.stop()
       }, side)
@@ -1676,12 +1676,13 @@ for (const [name, opts, query] of cases) {
         await heal()
         await until(() => !window.__pulau.naga.act, null, 300)
         await page.evaluate(() => window.__pulau.naga.debug.tenang(true))
-        // posisi: hembus/ledak/terbang 9 m di depan, gigit 3 m di depan moncong, ekor di belakang
+        // posisi (v0.24.1, naga ±14 m): hembus/ledak/terbang 9 m di depan, gigit tepat di tempat moncong
+        // menyambar, ekor di belakang
         await page.evaluate(([j, sd]) => {
           const { naga, player } = window.__pulau
           const c = naga.position
           const h = naga.debug.cur.heading + sd
-          const d = j === 'gigit' ? 8.4 : j === 'ekor' ? 7.5 : 11
+          const d = j === 'gigit' ? 5.5 : j === 'ekor' ? 5.5 : 9
           const x = c.x + Math.sin(h) * d
           const z = c.z + Math.cos(h) * d
           player.placeAt(x, z, Math.atan2(c.x - x, c.z - z))
