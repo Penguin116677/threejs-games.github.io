@@ -266,6 +266,13 @@ export function createEnemies({ ground, colliders, nav, asset, spawn, shipMesh =
         ship.waitT = 0
       } else {
         ship.heading += wrap(Math.atan2(dx, dz) - ship.heading) * Math.min(1, dt * 1.5)
+        // genderang perang & dayung orc selama berlayar
+        if ((ship.sndT = (ship.sndT ?? 0) - dt) <= 0) {
+          ship.sndT = 0.55
+          ship.beat = (ship.beat ?? 0) + 1
+          sfx('genderang', { x: ship.x, y: 1, z: ship.z }, { kuat: ship.beat % 2 ? 0.7 : 1 })
+          if (ship.beat % 2) sfx('dayung', { x: ship.x, y: 0, z: ship.z }, { kuat: 1.2 })
+        }
         const step = Math.min(Math.min(SHIP.speed, 0.6 + d * 0.5) * dt, d)
         ship.x += (dx / d) * step
         ship.z += (dz / d) * step

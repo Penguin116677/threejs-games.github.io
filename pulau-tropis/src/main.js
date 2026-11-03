@@ -350,12 +350,14 @@ async function start() {
   setStatus('Membangunkan penduduk Frostfall…')
   await nextFrame()
   let warga = null
+  let deer = null // rusa kutub (efek suara: langkah kaki kawanan)
   if (rigGltf)
     try {
       const wargaFolk = createElfFolk({ rigGltf, quality, caps: WARGA_CAPS[quality.level] ?? WARGA_CAPS.sedang, rupa: UTARA_RUPA })
       scene.add(wargaFolk.object)
       const rusa = createReindeer({ ground })
       scene.add(rusa.object)
+      ;({ deer } = rusa)
       warga = createWarga({ ground, plan: frostPlan, folk: wargaFolk, rusa, quality, colliders: frost.colliders })
     } catch (err) {
       console.warn('Penduduk Frostfall gagal dibuat:', err)
@@ -1026,7 +1028,7 @@ async function start() {
   }
   // efek suara (v0.25.0): suasana tiap wilayah & orang di sekitar, gerak pemain
   const ambience = createAmbience({
-    ground, frost, frostMask, weather, warga, life, villagers, soldiersArmy: soldiers?.list, frostPlan, naga,
+    ground, frost, frostMask, weather, warga, life, villagers, soldiersArmy: soldiers?.list, deer, frostPlan, naga,
     places: {
       paved: [region, elfMask],
       // keramaian: pasar & alun-alun (Frostfall: hanya siang)

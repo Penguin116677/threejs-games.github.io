@@ -1,4 +1,5 @@
 import * as THREE from 'three'
+import { suara } from '../audio/suara.js'
 
 // Kartu "isi pikiran" elf Aeloria: ketuk seorang elf untuk melihat nama, peran, kegiatannya
 // sekarang, suasana hati, sifat, dan kebutuhannya (lapar, lelah, bosan, kesepian, ingin berlatih).
@@ -37,8 +38,10 @@ export function createElfCard({ life, camera, canvas, markers, onTalk = null }) 
     markers.deselect()
   }
   el.addEventListener('click', e => {
-    if (e.target.closest('.ke-tutup')) hide()
-    else if (e.target.closest('.ke-bicara') && cur) {
+    if (e.target.closest('.ke-tutup')) {
+      suara.play('tutup')
+      hide()
+    } else if (e.target.closest('.ke-bicara') && cur) {
       const a = cur
       hide()
       onTalk(a)

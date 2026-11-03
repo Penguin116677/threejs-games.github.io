@@ -2,6 +2,7 @@ import { createMemory, jawab, sapaan, terimaMakanan, TOPIK } from '../world/perc
 import { TOPIK_UTARA } from '../world/percakapan-utara.js'
 import { BARANG, NAMA_KIOS } from '../world/aeloria/ekonomi.js'
 import { PASUKAN } from '../world/aeloria/kehidupan.js'
+import { suara } from '../audio/suara.js'
 
 // Mengobrol dengan NPC: tombol "Bicara" muncul di dekat elf Aeloria atau warga Kencana (bukan
 // prajurit penjaga); panelnya berisi riwayat obrolan, topik siap pilih, dan kolom ketik bebas.
@@ -285,6 +286,7 @@ export function createChat({ life, villagers, warga = null, player, cam, camera,
     if (!text || !cur) return
     el.teks.value = ''
     addLine('pemain', text)
+    suara.play('bicara', { at: player.position, nada: 165, suku: Math.max(2, Math.min(10, Math.round(text.length / 6))) })
     respond({ teks: text })
   })
   el.topik.addEventListener('click', e => {
@@ -298,6 +300,7 @@ export function createChat({ life, villagers, warga = null, player, cam, camera,
       return
     }
     addLine('pemain', c.id === 'beri' ? `(memberi ${context(cur.npc).makanan[0]?.nama.toLowerCase() || 'makanan'})` : c.teks)
+    suara.play(c.id === 'beri' ? 'makan' : 'bicara', { at: player.position, nada: 165, suku: Math.max(2, Math.min(10, Math.round(c.teks.length / 6))) })
     if (c.id === 'beri') giveFood()
     else respond({ topik: c.id, tempat: c.tempat })
   })

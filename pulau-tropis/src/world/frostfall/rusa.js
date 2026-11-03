@@ -1,6 +1,7 @@
 import * as THREE from 'three'
 import { rng } from '../../core/random.js'
 import { HERDS } from './layout.js'
+import { sfx } from '../../audio/suara.js'
 
 // Rusa kutub di Hutan Pinus Salju (v0.22.0): beberapa kawanan yang merumput, berjalan pelan di wilayah
 // jelajahnya, dan berlari menjauh bila pemain / pemburu mendekat. Pemburu Kampung Rusa Putih memanah
@@ -138,6 +139,8 @@ export function createReindeer({ ground }) {
     d.tz = h.z + Math.cos(a) * r
   }
   function flee(d, from) {
+    // mendengus kaget (sekali per rusa yang mulai kabur)
+    if (d.state !== 'kabur') sfx('rusa-dengus', d)
     d.state = 'kabur'
     d.until = between(4, 7)
     const a = Math.atan2(d.x - from.x, d.z - from.z) + between(-0.5, 0.5)
@@ -280,6 +283,7 @@ export function createReindeer({ ground }) {
     },
     // terkena panah: roboh; kawanannya kabur menjauh dari pemanah
     hit(d, from) {
+      sfx('kena-daging', d)
       d.state = 'roboh'
       d.move = 0
       for (const o of deer) if (o !== d && o.herd === d.herd && alive(o) && Math.hypot(o.x - d.x, o.z - d.z) < 30) flee(o, from)

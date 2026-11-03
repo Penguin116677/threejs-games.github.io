@@ -349,6 +349,7 @@ export function createRecruits({ soldiers, security, player, enemies = null, bag
           if (talk.yes) {
             soldiers.gesture(a, 'yes')
             say(a, pick(MAU), 2800)
+            suara.play('menang')
             join(a)
             const rest = talk.listeners
             talk = null
@@ -357,6 +358,7 @@ export function createRecruits({ soldiers, security, player, enemies = null, bag
           } else {
             soldiers.gesture(a, 'no')
             say(a, pick(TOLAK), 3000)
+            suara.play('ditolak')
             message('Dia menolak. Tantang duel? Yang kalah menjadi anak buah yang menang.', 3200)
           }
         } else if (talk.answered && talk.t > ANSWER + WAIT) {

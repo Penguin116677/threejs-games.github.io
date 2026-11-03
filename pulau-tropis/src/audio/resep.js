@@ -303,6 +303,7 @@ export const RESEP = {
     },
   },
   'hentak-tancap': {
+    vol: 0.8,
     range: 60,
     gema: 0.9,
     penting: true,
@@ -739,7 +740,7 @@ export const RESEP = {
   },
   // ---------------------------------------------------------------- Naga Es
   'naga-geram': { range: 80, gema: 0.9, penting: true, fn: (a, o, t) => growl(a, o, t, { f: 50, f1: 72, dur: 1.6, gain: 0.4, formants: [300, 700], q: 2.5, wobble: 9, wobbleDepth: 6, at: 0.4, noiseMix: 0.35, lp: 1400 }) },
-  'naga-aum': { vol: 0.7,
+  'naga-aum': { vol: 0.6,
     range: 120,
     ref: 12,
     gema: 1,
@@ -1045,6 +1046,29 @@ export const RESEP = {
       return STEP.salju(a, o, t + 0.35, 0.8)
     },
   },
+  'koin-orang': {
+    // orang membayar di kios (berposisi)
+    range: 30,
+    fn: (a, o, t) => {
+      for (let i = 0; i < 3; i++) bell(a, o, t + i * 0.06, { f: rnd(1900, 2500), ratios: [1, 1.5, 2.71], dur: 0.25, gain: 0.05 })
+      return 0.5
+    },
+  },
+  'rusa-dengus': {
+    // rusa kutub mendengus kaget
+    range: 45,
+    fn: (a, o, t) => noise(a, o, t, { dur: 0.22, kind: 'pink', type: 'bandpass', f: 900, f1: 500, q: 2, gain: 0.35, at: 0.01 }),
+  },
+  genderang: {
+    // genderang perang di perahu orc
+    range: 110,
+    ref: 14,
+    fn: (a, o, t, op) => {
+      const k = op.kuat ?? 1
+      tone(a, o, t, { f: 95, f1: 55, dur: 0.35, gain: 0.45 * k })
+      return noise(a, o, t, { dur: 0.12, kind: 'pink', type: 'lowpass', f: 600, gain: 0.3 * k, at: 0.002 })
+    },
+  },
   gosok: { vol: 2, range: 30, fn: (a, o, t) => noise(a, o, t, { dur: 0.5, type: 'bandpass', f: 1200, q: 1.5, gain: 0.1, at: 0.15 }) },
   sorak: {
     range: 50,
@@ -1132,6 +1156,7 @@ export const RESEP = {
   },
   'air-terjun': {
     gema: 0.5,
+    vol: 0.55,
     loop: (a, out) => {
       loopNoise(a, out, { kind: 'pink', type: 'lowpass', f: 2600 })
       const g = a.ctx.createGain()
@@ -1143,7 +1168,7 @@ export const RESEP = {
   },
   api: {
     // api unggun: desis rendah + letupan kayu (penyangga letupan acak yang berulang)
-    vol: 0.48,
+    vol: 0.8,
     loop: (a, out) => {
       const low = a.ctx.createGain()
       low.gain.value = 0.25

@@ -38,13 +38,20 @@ const KEGIATAN = {
   kulit: ['gosok', 1.5],
   sorak: ['sorak', 2.6],
   ngobrol: ['obrol', 3.4],
+  duduk: ['obrol', 6],
+  kios: ['obrol', 4.5],
+  beli: ['koin-orang', 6],
+  belanja: ['koin-orang', 6],
+  jemur: ['gosok', 4],
+  asap: ['masak', 5],
+  nonton: ['sorak', 7],
   mendongeng: ['obrol', 2.2],
   jamuan: ['piring', 3],
   makan: ['piring', 4],
 }
-const KERJA = { pandai: 'tempa', masak: 'masak', petani: 'cangkul' }
+const KERJA = { pandai: 'tempa', masak: 'masak', petani: 'cangkul', pedagang: 'obrol' }
 
-export function createAmbience({ ground, frost, frostMask, weather, warga, life, villagers, soldiersArmy, frostPlan, places, naga }) {
+export function createAmbience({ ground, frost, frostMask, weather, warga, life, villagers, soldiersArmy, deer, frostPlan, places, naga }) {
   const L = {
     laut: suara.loop('laut'),
     angin: suara.loop('angin'),
@@ -258,6 +265,7 @@ export function createAmbience({ ground, frost, frostMask, weather, warga, life,
       people(life?.agents, pos, dt, 'elf')
       people(villagers?.agents, pos, dt, 'kencana')
       people(soldiersArmy, pos, dt, 'prajurit')
+      people(deer, pos, dt, 'rusa')
     }
     // air di sekitar perahu yang melaju / badan yang berenang
     L.perahu = L.perahu || suara.loop('perahu-air')

@@ -768,6 +768,11 @@ export function createPatrolBoats({ boats, soldiers, security, player, boat, gro
       for (const pb of fleet) {
         if (pb.state === 'tambat') continue
         STATES[pb.state](pb, dt, engaged)
+        // awak mendayung seirama laju perahu
+        if (pb.speed > 0.6 && (pb.sndT = (pb.sndT ?? 0) - dt) <= 0) {
+          pb.sndT = Math.max(0.6, 1.5 - pb.speed * 0.15)
+          sfx('dayung', { x: pb.b.x, y: ISLAND.seaLevel, z: pb.b.z }, { kuat: 1 })
+        }
         placeCrew(pb, dt)
         pb.b.mesh.boundingSphere = null // perahu berpindah: batas gambarnya dihitung ulang
       }
