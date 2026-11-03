@@ -1,8 +1,8 @@
 # PROJECT_STATUS — Pulau Tropis
 
-**Milestone aktif:** 3 — Pembangunan dunia (v0.25.0: **efek suara di setiap adegan** — ±118 bunyi dibuat dari kode: gerak & langkah per permukaan, tempur & jurus, barang & kegiatan, perahu, mancing, antarmuka, suara orang, musuh, Naga Es, suasana tiap wilayah; Pengaturan → Suara — menunggu umpan balik dari HP; v0.24.1: Naga Es **lebih kecil** (±14 m, kepala ±5 m, sayap ±19 m) supaya leluasa di gua, dan **bergerak lebih halus** — menunggu umpan balik dari HP; v0.24.0: **Naga Es** dari lembar desain pengguna menjaga peti harta di ruang terdalam Gua Gletser — tidur melingkari peti bersegel es, bangun saat didekati, Hembusan Es, Ledakan Es, terbang & mendarat menghentak, gigitan, sapuan ekor; kalahkan untuk membuka peti — menunggu umpan balik dari HP; v0.23.0: **pagar tinggi** gelondong runcing mengelilingi ketiga desa Frostfall, dengan 9 gerbang — menunggu umpan balik dari HP; v0.22.0: **300 penduduk Frostfall** — 59 keluarga di Desa Emberwick dan dua kampung baru, Teluk Salju (nelayan) & Rusa Putih (pemburu); jam & malam Frostfall; bangun, makan, bekerja, berburu rusa kutub, memancing, pesta & acara, tidur di rumah; baju bulu khas; bisa diajak mengobrol (offline) — menunggu umpan balik dari HP; v0.21.0: **Aula Gletser** dibangun ulang dari gambar konsep pengguna — air terjun mengalir ke kolam, lengkung es, tebing bersalju, suasana biru kehijauan; v0.20.0: **lima gua besar** di Frostfall — Tambang Tua Emberwick, Gua Gletser Utara, Katedral Taring, Gua Laut Beku, Gua Seribu Tiang — masing-masing dengan peti harta; atap gua kini bisa diinjak; v0.19.0: wilayah baru Kerajaan Frostfall — menunggu umpan balik dari HP).
+**Milestone aktif:** 3 — Pembangunan dunia (v0.26.0: jurus ke-5 **Ranah Tebas** dari video pengguna — waktu berhenti, ranah terisi 0–100 % sambil mengunci musuh, lalu melesat menebas semuanya — menunggu umpan balik dari HP; v0.25.0: **efek suara di setiap adegan** — ±118 bunyi dibuat dari kode: gerak & langkah per permukaan, tempur & jurus, barang & kegiatan, perahu, mancing, antarmuka, suara orang, musuh, Naga Es, suasana tiap wilayah; Pengaturan → Suara — menunggu umpan balik dari HP; v0.24.1: Naga Es **lebih kecil** (±14 m, kepala ±5 m, sayap ±19 m) supaya leluasa di gua, dan **bergerak lebih halus** — menunggu umpan balik dari HP; v0.24.0: **Naga Es** dari lembar desain pengguna menjaga peti harta di ruang terdalam Gua Gletser — tidur melingkari peti bersegel es, bangun saat didekati, Hembusan Es, Ledakan Es, terbang & mendarat menghentak, gigitan, sapuan ekor; kalahkan untuk membuka peti — menunggu umpan balik dari HP; v0.23.0: **pagar tinggi** gelondong runcing mengelilingi ketiga desa Frostfall, dengan 9 gerbang — menunggu umpan balik dari HP; v0.22.0: **300 penduduk Frostfall** — 59 keluarga di Desa Emberwick dan dua kampung baru, Teluk Salju (nelayan) & Rusa Putih (pemburu); jam & malam Frostfall; bangun, makan, bekerja, berburu rusa kutub, memancing, pesta & acara, tidur di rumah; baju bulu khas; bisa diajak mengobrol (offline) — menunggu umpan balik dari HP; v0.21.0: **Aula Gletser** dibangun ulang dari gambar konsep pengguna — air terjun mengalir ke kolam, lengkung es, tebing bersalju, suasana biru kehijauan; v0.20.0: **lima gua besar** di Frostfall — Tambang Tua Emberwick, Gua Gletser Utara, Katedral Taring, Gua Laut Beku, Gua Seribu Tiang — masing-masing dengan peti harta; atap gua kini bisa diinjak; v0.19.0: wilayah baru Kerajaan Frostfall — menunggu umpan balik dari HP).
 Pengembangan jurus dihentikan sementara atas permintaan pengguna.
-**Versi:** 0.25.0
+**Versi:** 0.26.0
 **Terakhir diperbarui:** 2026-11-03
 
 ## Kondisi awal repository (sebelum Milestone 1)
@@ -108,6 +108,25 @@ Sebagian sudah dikerjakan lebih awal (bayangan, tanah per-piksel, awan, kaustik 
 | Partikel lanjutan, animasi vegetasi lanjutan | ⏳ belum |
 | Siang–malam | ✅ sebagian — hanya di Frostfall (v0.22.0); pulau-pulau lain selalu siang |
 | Dicoba di HP Android sungguhan | ⏳ menunggu laporan pengguna |
+
+## Yang sudah diperiksa (v0.26.0 — jurus Ranah Tebas)
+- **Pemeriksaan kode**: ESLint (konfigurasi repo) 0 error / 0 warning pada setiap commit.
+- **Build**: `vite build` berhasil (JS ±486 → ±492 KB gzip); `dist/` sama persis dengan versi yang diuji.
+- **Uji di browser** (Chromium, render software, layar Pixel 7 tiruan; versi build dan versi dev):
+  - di perkemahan orc: tahap buka → isi → puncak → kilat → diam → pulih berurutan; waktu dunia ×0,03 selama ranah
+    terisi (orc diam di tempat); kamera ±39 m di atas pemain melihat ke bawah; 5 orc terkunci satu per satu → 5
+    roboh + koin; suara tiap tahap berbunyi (buka, isi, 5× kunci, penuh, kilat, 5× tebas, ledak); jeda pakai jalan;
+  - prajurit Kencana: roboh; elf yang sedang melawan (10 dalam jangkauan): 8 terkunci (batas) → 8 roboh;
+  - Naga Es di sarang: nyawa 240 → 202; kamera atas berhenti 2,5 m di bawah atap gua (tetap di dalam gua);
+  - tanpa musuh dalam ±12 m: ditolak dengan pesan, jeda pakai tidak terpakai; tombol sentuh Ranah berfungsi;
+  - foto tiap tahap dibandingkan dengan video. Dari foto diperbaiki: percik berbentuk kotak besar → titik bulat
+    lembut; penanda kunci membesar saat kamera dekat → ukuran tetap di layar; jejak lesatan terlalu tebal;
+    cincin terisi berlawanan arah jarum jam; layar kelabu penuh ikut memudarkan penanda & jalur merah → warna
+    dunia diturunkan sebagian saja; jalur merah tak terlihat dari atas → dipertebal; sorotan dekat dirapikan;
+    nama jurus menutupi pemain → digeser ke bawah.
+- **Smoke test otomatis** (versi build): **HP Rendah 66 dari 66 — LULUS**. Cek baru "jurus Ranah Tebas" ada di
+  bagian uji jurus yang hanya dijalankan profil HP tegak — tidak dijalankan kali ini (jurusnya sudah diuji di
+  browser seperti di atas). HP tegak, HP mendatar & komputer tidak dijalankan.
 
 ## Yang sudah diperiksa (v0.25.0 — efek suara)
 - **Pemeriksaan kode**: ESLint (konfigurasi repo) 0 error / 0 warning pada setiap commit.
@@ -943,6 +962,9 @@ Sebagian sudah dikerjakan lebih awal (bayangan, tanah per-piksel, awan, kaustik 
   laut dalam → kembali ke pantai + pesan, mendaki lereng (+24 m dalam 120 frame).
 
 ## Yang BELUM diperiksa
+- **Ranah Tebas di HP sungguhan** (v0.26.0): FPS selama jurus (kamera tinggi melihat banyak hal sekaligus +
+  filter layar), apakah urutan & lamanya terasa seperti di video, apakah tombolnya mudah dijangkau.
+- **Smoke test HP tegak (termasuk cek baru Ranah Tebas), HP mendatar & komputer untuk v0.26.0** — tidak dijalankan.
 - **Efek suara di HP sungguhan** (v0.25.0): kekerasan tiap bunyi di speaker HP / earphone, bunyi yang terlalu
   sering / mengganggu (mis. gumam di Pasar Aeloria yang ramai), jeda antara gerak & bunyi, dan biaya FPS (di render
   software +0…9%). Belum pernah didengar telinga manusia — hanya diukur sinyalnya.
@@ -1427,6 +1449,7 @@ v0.3.0: Rendah ±300 rb, Sedang ±400 rb, Tinggi ±850 rb. Tambahan v0.4.0 beras
 yang lebih rapat (untuk ombak) dan buah kelapa. v0.2.0 (HP): ±230 ribu.
 
 ## Masalah yang diketahui
+- (v0.26.0) Ranah Tebas: pohon & atap tinggi bisa menutupi pandangan kamera atas (kamera ±39 m di atas pemain).
 - (v0.25.0) Suara orang berupa gumam bersuku kata (bukan kata-kata); bunyi dibuat dari kode, jadi lebih
   sederhana daripada rekaman sungguhan.
 - (v0.25.0) Suara baru mulai setelah layar disentuh pertama kali (aturan browser HP).
