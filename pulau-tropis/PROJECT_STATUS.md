@@ -1,9 +1,9 @@
 # PROJECT_STATUS — Pulau Tropis
 
-**Milestone aktif:** 3 — Pembangunan dunia (v0.24.0: **Naga Es** dari lembar desain pengguna menjaga peti harta di ruang terdalam Gua Gletser — tidur melingkari peti bersegel es, bangun saat didekati, Hembusan Es, Ledakan Es, terbang & mendarat menghentak, gigitan, sapuan ekor; kalahkan untuk membuka peti — menunggu umpan balik dari HP; v0.23.0: **pagar tinggi** gelondong runcing mengelilingi ketiga desa Frostfall, dengan 9 gerbang — menunggu umpan balik dari HP; v0.22.0: **300 penduduk Frostfall** — 59 keluarga di Desa Emberwick dan dua kampung baru, Teluk Salju (nelayan) & Rusa Putih (pemburu); jam & malam Frostfall; bangun, makan, bekerja, berburu rusa kutub, memancing, pesta & acara, tidur di rumah; baju bulu khas; bisa diajak mengobrol (offline) — menunggu umpan balik dari HP; v0.21.0: **Aula Gletser** dibangun ulang dari gambar konsep pengguna — air terjun mengalir ke kolam, lengkung es, tebing bersalju, suasana biru kehijauan; v0.20.0: **lima gua besar** di Frostfall — Tambang Tua Emberwick, Gua Gletser Utara, Katedral Taring, Gua Laut Beku, Gua Seribu Tiang — masing-masing dengan peti harta; atap gua kini bisa diinjak; v0.19.0: wilayah baru Kerajaan Frostfall — menunggu umpan balik dari HP).
+**Milestone aktif:** 3 — Pembangunan dunia (v0.24.1: Naga Es **lebih kecil** (±14 m, kepala ±5 m, sayap ±19 m) supaya leluasa di gua, dan **bergerak lebih halus** — menunggu umpan balik dari HP; v0.24.0: **Naga Es** dari lembar desain pengguna menjaga peti harta di ruang terdalam Gua Gletser — tidur melingkari peti bersegel es, bangun saat didekati, Hembusan Es, Ledakan Es, terbang & mendarat menghentak, gigitan, sapuan ekor; kalahkan untuk membuka peti — menunggu umpan balik dari HP; v0.23.0: **pagar tinggi** gelondong runcing mengelilingi ketiga desa Frostfall, dengan 9 gerbang — menunggu umpan balik dari HP; v0.22.0: **300 penduduk Frostfall** — 59 keluarga di Desa Emberwick dan dua kampung baru, Teluk Salju (nelayan) & Rusa Putih (pemburu); jam & malam Frostfall; bangun, makan, bekerja, berburu rusa kutub, memancing, pesta & acara, tidur di rumah; baju bulu khas; bisa diajak mengobrol (offline) — menunggu umpan balik dari HP; v0.21.0: **Aula Gletser** dibangun ulang dari gambar konsep pengguna — air terjun mengalir ke kolam, lengkung es, tebing bersalju, suasana biru kehijauan; v0.20.0: **lima gua besar** di Frostfall — Tambang Tua Emberwick, Gua Gletser Utara, Katedral Taring, Gua Laut Beku, Gua Seribu Tiang — masing-masing dengan peti harta; atap gua kini bisa diinjak; v0.19.0: wilayah baru Kerajaan Frostfall — menunggu umpan balik dari HP).
 Pengembangan jurus dihentikan sementara atas permintaan pengguna.
-**Versi:** 0.24.0
-**Terakhir diperbarui:** 2026-11-02
+**Versi:** 0.24.1
+**Terakhir diperbarui:** 2026-11-03
 
 ## Kondisi awal repository (sebelum Milestone 1)
 - Repository `threejs-games.github.io` berisi koleksi contoh Three.js lama (folder `examples/`,
@@ -88,7 +88,7 @@ Pengembangan jurus dihentikan sementara atas permintaan pengguna.
 | Jam & malam Frostfall; penduduk bangun, sarapan & makan malam bersama keluarga, bekerja, berburu rusa kutub, memancing, mengadakan pesta & acara, tidur di rumah | ✅ selesai (v0.22.0) |
 | Mengobrol dengan penduduk Frostfall — jawaban dari hidupnya sendiri (offline, berbasis aturan; kata asing ditanyakan balik lalu diingat) | ✅ selesai (v0.22.0) |
 | Pagar tinggi (±4 m, gelondong runcing) mengelilingi Desa Emberwick, Kampung Teluk Salju & Kampung Rusa Putih; 9 gerbang di setiap jalan keluar; pemain & penduduk hanya keluar-masuk lewat gerbang | ✅ selesai (v0.23.0, permintaan pengguna) |
-| Naga Es penjaga Gua Gletser (dari lembar desain pengguna): tidur melingkari peti bersegel es, bangun & mengaum bila penyusup masuk, berjalan / berlari / terbang, Hembusan Es, Ledakan Es, gigitan, sapuan ekor, mendarat menghentak; bilah nyawa; kalah → bangun di luar gua; menang → segel pecah + koin | ✅ selesai (v0.24.0, permintaan pengguna) |
+| Naga Es penjaga Gua Gletser (dari lembar desain pengguna): tidur melingkari peti bersegel es, bangun & mengaum bila penyusup masuk, berjalan / berlari / terbang, Hembusan Es, Ledakan Es, gigitan, sapuan ekor, mendarat menghentak; bilah nyawa; kalah → bangun di luar gua; menang → segel pecah + koin | ✅ selesai (v0.24.0, permintaan pengguna; v0.24.1 lebih kecil & gerak lebih halus) |
 | Sungai & air terjun, gua, reruntuhan | ✅ sungai, air terjun & gua di Frostfall (v0.19.0–v0.21.0); reruntuhan ⏳ belum |
 | Dicoba di HP Android sungguhan | ⏳ menunggu laporan pengguna |
 
@@ -107,6 +107,32 @@ Sebagian sudah dikerjakan lebih awal (bayangan, tanah per-piksel, awan, kaustik 
 | Partikel lanjutan, suara, animasi vegetasi lanjutan | ⏳ belum |
 | Siang–malam | ✅ sebagian — hanya di Frostfall (v0.22.0); pulau-pulau lain selalu siang |
 | Dicoba di HP Android sungguhan | ⏳ menunggu laporan pengguna |
+
+## Yang sudah diperiksa (v0.24.1 — Naga Es lebih kecil & lebih halus)
+- **Pemeriksaan kode**: ESLint (konfigurasi repo) 0 error / 0 warning pada setiap commit.
+- **Build**: `vite build` berhasil (JS 1,45 MB, ±471 KB gzip, +1 KB dari v0.24.0); `dist/` sama persis dengan
+  versi yang diuji.
+- **Pemeriksaan di Node**: letak tidur baru dicari ulang untuk naga kecil — seluruh badan tidur di atas lantai
+  ruang di ketiga kualitas, peti 1,55 m dari badan di lekuk antara badan & ekor, menghadap pintu ruang.
+- **Kehalusan gerak diukur** (simulasi 60 Hz tiap jurus di browser, titik kepala / dada / ujung ekor / ujung
+  sayap, dinormalkan ke ukuran naga; v0.24.0 diukur dengan cara sama). Percepatan maksimum (m/s²), v0.24.0 →
+  v0.24.1: bangun & mengaum 2.588 → 324, berbelok 429 → 138, Hembusan Es 1.474 → 156, Ledakan Es 2.149 → 192,
+  Gigitan 2.969 → 699, Sapuan Ekor 9.601 → 1.358, terbang 3.687 → 1.331, pulang ke sarang 2.459 → 296;
+  percepatan sudut belok maksimum 54–96 → 4–9 rad/s². Saat menunggu kini bergerak (dulu nyaris diam).
+- **Menembus dinding / atap gua** (verteks badan di luar ruang, tiap jurus): v0.24.0 hanya saat terbang (maks.
+  0,8% badan); v0.24.1 0% di semua jurus yang diuji (mengaum, Hembusan Es, Ledakan Es, Sapuan Ekor, terbang,
+  mendekat).
+- **Smoke test otomatis** (versi build, sama persis dengan `dist/`): **HP Rendah 65 dari 65 — LULUS**, termasuk
+  semua cek Naga Es (tidur 4,1 m dari peti, bangun, kelima jurus melukai pemain, dipukul, pemain kalah → di luar
+  gua, naga kalah → segel pecah & koin). **HP tegak tidak selesai**: 3 putaran berhenti di langkah "kalah duel"
+  di Kencana (sebelum bagian Frostfall) karena tombol Ajak / Duel hilang saat diketuk — prajurit sasaran sedang
+  berjalan; perbaikan naskah uji (commit 521f873) belum cukup. Bagian itu tidak diubah di v0.24.1. Atas
+  permintaan pengguna uji lain dihentikan. HP mendatar & komputer tidak dijalankan.
+- **Uji di browser** (Chromium, render software, layar Pixel 7 tiruan): foto naga tidur di samping peti,
+  mengaum, Hembusan Es, Ledakan Es, terbang (badan miring), roboh. Tanpa galat konsol.
+- **Performa** (render software; tabel di bagian Performa): sama dengan v0.24.0 — di sarang −6…+1% (Sedang),
+  −4…−1% (Rendah); segitiga & draw call sama. Mesin uji hari itu ±40% lebih lambat dari 2 November (angka
+  mutlak tidak bisa dibandingkan dengan tabel v0.24.0).
 
 ## Yang sudah diperiksa (v0.24.0 — Naga Es penjaga Gua Gletser)
 - **Pemeriksaan kode**: ESLint (konfigurasi repo) 0 error / 0 warning pada setiap commit.
@@ -894,6 +920,10 @@ Sebagian sudah dikerjakan lebih awal (bayangan, tanah per-piksel, awan, kaustik 
   laut dalam → kembali ke pantai + pesan, mendaki lereng (+24 m dalam 120 frame).
 
 ## Yang BELUM diperiksa
+- **Naga Es v0.24.1 di HP sungguhan**: apakah geraknya sudah terasa halus di layar HP (FPS rendah membuat
+  gerak apa pun tersendat), apakah ukuran barunya pas, dan apakah Gigitan / Sapuan Ekor kini terlalu mudah /
+  sulit dihindari.
+- **Smoke test HP tegak, HP mendatar & komputer untuk v0.24.1** — tidak selesai / tidak dijalankan (lihat di atas).
 - **Naga Es di HP sungguhan** (v0.24.0): FPS saat bertarung (di render software +21–24% waktu per bingkai di
   sarang, kualitas Sedang); apakah jurus-jurusnya terbaca dan bisa dihindari dengan joystick; tingkat
   kesulitan (nyawa naga 240, Hembusan Es ±18 per detik) — belum pernah dimainkan sungguhan dari awal sampai
@@ -1000,6 +1030,35 @@ Sebagian sudah dikerjakan lebih awal (bayangan, tanah per-piksel, awan, kaustik 
 - Apakah URL hosting (githack / GitHub Pages) terbuka di HP — tidak bisa diakses dari lingkungan pengembangan.
 
 ## Performa (segitiga per frame termasuk bayangan, dari smoke test)
+v0.24.1 (Naga Es lebih kecil & halus), layar HP tegak (Pixel 7), versi build, render software; v0.24.0 diukur
+bergantian di mesin yang sama, satu putaran per versi per kualitas. Mesin uji hari itu lebih lambat — bandingkan
+hanya kedua kolom dalam satu tabel. Segitiga (ribu) / draw call dan waktu per bingkai (ms):
+| Tempat | Sedang v0.24.0 | Sedang v0.24.1 | Rendah v0.24.0 | Rendah v0.24.1 |
+|---|---|---|---|---|
+| Titik mulai | 465 rb / 72 · 1.586 ms | 465 rb / 72 · 1.674 ms (+6%) | 351 rb / 64 · 846 ms | 351 rb / 64 · 882 ms (+4%) |
+| Pasar Kotaraja | 338 rb / 51 · 970 ms | 335 rb / 49 · 973 ms (±0%) | 258 rb / 43 · 463 ms | 257 rb / 41 · 495 ms (+7%) |
+| Depan barisan Tegal Wira | 458 rb / 31 · 2.258 ms | 458 rb / 31 · 2.387 ms (+6%) | 327 rb / 38 · 1.431 ms | 327 rb / 38 · 1.518 ms (+6%) |
+| Pasar Aeloria | 566 rb / 97 · 1.283 ms | 564 rb / 97 · 1.309 ms (+2%) | 482 rb / 97 · 766 ms | 485 rb / 97 · 779 ms (+2%) |
+| Dermaga Fajar, memandang Frostfall | 426 rb / 75 · 1.209 ms | 426 rb / 75 · 1.292 ms (+7%) | 290 rb / 58 · 608 ms | 290 rb / 58 · 610 ms (±0%) |
+| Frostfall: Desa Emberwick | 431 rb / 87 · 1.200 ms | 437 rb / 89 · 1.296 ms (+8%) | 367 rb / 71 · 630 ms | 367 rb / 72 · 646 ms (+3%) |
+| Frostfall: halaman kastel | 182 rb / 50 · 1.169 ms | 182 rb / 50 · 1.158 ms (−1%) | 142 rb / 40 · 580 ms | 142 rb / 40 · 573 ms (−1%) |
+| Frostfall: hutan pinus | 254 rb / 53 · 866 ms | 254 rb / 53 · 921 ms (+6%) | 176 rb / 45 · 477 ms | 176 rb / 45 · 475 ms (±0%) |
+| Frostfall: Lembah Atas | 219 rb / 55 · 891 ms | 219 rb / 55 · 913 ms (+2%) | 149 rb / 41 · 461 ms | 149 rb / 41 · 441 ms (−4%) |
+| Frostfall: dalam gua | 196 rb / 49 · 876 ms | 196 rb / 49 · 890 ms (+2%) | 136 rb / 37 · 470 ms | 136 rb / 37 · 466 ms (−1%) |
+| Penduduk: alun-alun Emberwick (10.30) | 358 rb / 64 · 1.009 ms | 369 rb / 67 · 1.028 ms (+2%) | 279 rb / 61 · 585 ms | 281 rb / 61 · 546 ms (−7%) |
+| Penduduk: pesta api unggun (20.30) | 397 rb / 67 · 1.140 ms | 390 rb / 65 · 1.167 ms (+2%) | 306 rb / 60 · 617 ms | 298 rb / 59 · 578 ms (−6%) |
+| Penduduk: Kampung Teluk Salju (10.30) | 352 rb / 60 · 1.022 ms | 361 rb / 64 · 1.112 ms (+9%) | 294 rb / 56 · 610 ms | 256 rb / 54 · 559 ms (−8%) |
+| Penduduk: Kampung Rusa Putih (10.30) | 478 rb / 94 · 1.222 ms | 487 rb / 94 · 1.359 ms (+11%) | 300 rb / 73 · 626 ms | 292 rb / 74 · 607 ms (−3%) |
+| Gua baru: Aula Tambang | 302 rb / 65 · 1.135 ms | 302 rb / 65 · 1.166 ms (+3%) | 149 rb / 32 · 541 ms | 149 rb / 32 · 543 ms (±0%) |
+| Gua baru: Katedral Taring | 147 rb / 37 · 788 ms | 147 rb / 37 · 820 ms (+4%) | 106 rb / 29 · 435 ms | 106 rb / 29 · 426 ms (−2%) |
+| Gua baru: Gua Seribu Tiang | 140 rb / 31 · 782 ms | 140 rb / 31 · 779 ms (±0%) | 98 rb / 23 · 468 ms | 98 rb / 23 · 415 ms (−11%) |
+| Gua baru: laguna Gua Laut Beku | 300 rb / 80 · 1.011 ms | 300 rb / 80 · 1.009 ms (±0%) | 157 rb / 62 · 515 ms | 157 rb / 62 · 480 ms (−7%) |
+| Aula Gletser (air terjun) | 156 rb / 39 · 904 ms | 156 rb / 39 · 919 ms (+2%) | 114 rb / 31 · 499 ms | 114 rb / 31 · 471 ms (−6%) |
+| Sarang Naga Es (tidur) | 197 rb / 59 · 918 ms | 197 rb / 59 · 926 ms (+1%) | 159 rb / 55 · 528 ms | 159 rb / 55 · 508 ms (−4%) |
+| Sarang Naga Es (bertarung) | 197 rb / 59 · 941 ms | 197 rb / 59 · 880 ms (−6%) | 159 rb / 55 · 502 ms | 159 rb / 55 · 497 ms (−1%) |
+- Ukuran & gerak naga tidak mengubah biaya gambar: segitiga & draw call sama; selisih waktu per bingkai di
+  semua tempat −11…+11%, sama dengan derau. Memori heap JS akhir sama (Sedang 244 → 245 MB, Rendah 215 MB).
+
 v0.24.0 (Naga Es), layar HP tegak (Pixel 7), versi build, render software; v0.23.0 diukur bergantian di mesin
 yang sama, satu putaran per versi per kualitas. Tempat baru "Sarang Naga Es": berdiri di pintu ruang memandang
 naga yang tidur, dan di tengah pertarungan (v0.23.0 di tempat yang sama: ruang kosong tanpa naga). Segitiga
@@ -1341,10 +1400,10 @@ v0.3.0: Rendah ±300 rb, Sedang ±400 rb, Tinggi ±850 rb. Tambahan v0.4.0 beras
 yang lebih rapat (untuk ombak) dan buah kelapa. v0.2.0 (HP): ±230 ribu.
 
 ## Masalah yang diketahui
-- (v0.24.0) **Ruang sarang sempit untuk naga** (ruang r 18 m, naga ±21 m): sayap bisa menembus dinding / atap
-  gua saat mengaum, terbang, dan mendarat; kamera kadang dekat sekali dengan badan naga. Ruang tidak diperbesar
-  supaya isi gua lain tidak bergeser.
-- (v0.24.0) Naga lebih kecil dari lembar desain (±21 / 8 / 29 m, bukan 25 / 12 / 40 m) — supaya muat di ruang itu.
+- (v0.24.1) Naga jauh lebih kecil dari lembar desain (±14 / 5 / 19 m, bukan 25 / 12 / 40 m) — permintaan
+  pengguna, supaya leluasa bergerak di ruang gua.
+- (v0.24.1) **Uji otomatis "kalah duel" (Kencana) kadang berhenti** di HP tegak: tombol Ajak / Duel hilang tepat
+  saat diketuk karena prajurit sasaran berjalan. Masalah naskah uji, bukan game; belum diperbaiki tuntas.
 - (v0.24.0) Naga hanya menyerang pemain (prajurit / anak buah yang ikut tidak dilawannya, dan tidak melawannya).
 - (v0.24.0) Belum ada suara (aum, hembusan) — game belum punya suara sama sekali.
 - (sejak v0.19.0, ditemukan saat uji v0.23.0) **Peta tertarik ke bawah**: kanvas Peta masih berbanding 1750 : 2000
