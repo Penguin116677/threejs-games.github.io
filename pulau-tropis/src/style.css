@@ -224,6 +224,12 @@ body {
   bottom: calc(var(--b) + 179px);
 }
 
+/* jurus 5 Ranah Tebas: di sela tombol Pukul dan busur jurus (45°, 90 px dari pusat Pukul) */
+#hud #btn-ranah {
+  right: calc(var(--r) + 78px);
+  bottom: calc(var(--b) + 78px);
+}
+
 /* jurus: kebiruan; selama jeda pakai ada lapisan gelap yang menyusut + sisa detik */
 #hud .jurus {
   border-color: rgba(190, 225, 255, 0.7);
@@ -242,6 +248,203 @@ body {
 
 #hud .jurus.pamungkas.siap {
   box-shadow: 0 0 12px rgba(255, 110, 90, 0.7);
+}
+
+/* Ranah Tebas: merah tua bercincin */
+#hud .jurus.ranah {
+  border-color: rgba(255, 140, 140, 0.9);
+  background: rgba(120, 10, 20, 0.45);
+}
+
+#hud .jurus.ranah.siap {
+  box-shadow: 0 0 14px rgba(255, 60, 60, 0.8), inset 0 0 8px rgba(255, 80, 80, 0.5);
+}
+
+/* ---------------------------------------------------------------- Ranah Tebas (lapisan layar) */
+#game {
+  transition: filter 0.25s;
+}
+
+body.ranah-kelabu #game {
+  filter: saturate(0.28) contrast(1.12) brightness(0.95);
+}
+
+#ranah-layar {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* tepi layar memerah gelap (atas & bawah lebih tebal, seperti pita) */
+#ranah-layar .ranah-tepi {
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(180deg, rgba(120, 16, 24, 0.62) 0, rgba(120, 16, 24, 0) 18%, rgba(120, 16, 24, 0) 82%, rgba(120, 16, 24, 0.62) 100%),
+    radial-gradient(ellipse at center, rgba(0, 0, 0, 0) 52%, rgba(110, 10, 20, 0.55) 100%);
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+
+#ranah-layar.buka .ranah-tepi,
+#ranah-layar.isi .ranah-tepi,
+#ranah-layar.puncak .ranah-tepi {
+  opacity: 1;
+}
+
+#ranah-layar.kilat .ranah-tepi {
+  opacity: 0.45;
+}
+
+/* angka kemajuan di atas layar: tanda kecil + "% 45" merah */
+#ranah-layar .ranah-persen {
+  position: absolute;
+  top: calc(env(safe-area-inset-top) + 92px);
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+  color: #ff3a44;
+  font-family: ui-monospace, 'Courier New', monospace;
+  font-weight: 700;
+  text-shadow: 0 0 8px rgba(255, 40, 50, 0.6), 0 1px 0 rgba(0, 0, 0, 0.5);
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
+#ranah-layar .ranah-persen i {
+  position: absolute;
+  left: 50%;
+  top: -22px;
+  width: 4px;
+  height: 16px;
+  margin-left: -2px;
+  background: #ff3a44;
+  box-shadow: 0 0 6px rgba(255, 40, 50, 0.8);
+}
+
+#ranah-layar .ranah-persen span {
+  font-size: 24px;
+}
+
+#ranah-layar .ranah-persen b {
+  font-size: 36px;
+  min-width: 2.2ch;
+}
+
+#ranah-layar.isi .ranah-persen,
+#ranah-layar.puncak .ranah-persen {
+  opacity: 1;
+}
+
+/* puncak: garis-garis tebasan merah melesat melintang layar */
+#ranah-layar .ranah-garis i {
+  position: absolute;
+  left: -10%;
+  width: 120%;
+  height: 3px;
+  background: linear-gradient(90deg, rgba(255, 60, 60, 0), #ff4040 20%, #ffd0c8 50%, #ff4040 80%, rgba(255, 60, 60, 0));
+  box-shadow: 0 0 10px rgba(255, 50, 50, 0.9);
+  transform: scaleX(0);
+  opacity: 0;
+}
+
+#ranah-layar .ranah-garis i:nth-child(1) {
+  top: 38%;
+  transform-origin: left;
+}
+
+#ranah-layar .ranah-garis i:nth-child(2) {
+  top: 47%;
+  transform-origin: right;
+}
+
+#ranah-layar .ranah-garis i:nth-child(3) {
+  top: 58%;
+  transform-origin: left;
+}
+
+#ranah-layar.puncak .ranah-garis i,
+#ranah-layar.kilat .ranah-garis i {
+  animation: ranah-garis 0.55s ease-out forwards;
+}
+
+#ranah-layar.puncak .ranah-garis i:nth-child(2) {
+  animation-delay: 0.12s;
+}
+
+#ranah-layar.puncak .ranah-garis i:nth-child(3) {
+  animation-delay: 0.24s;
+}
+
+@keyframes ranah-garis {
+  0% {
+    transform: scaleX(0);
+    opacity: 1;
+  }
+
+  45% {
+    transform: scaleX(1);
+    opacity: 1;
+  }
+
+  100% {
+    transform: scaleX(1);
+    opacity: 0;
+  }
+}
+
+/* nama jurus sesaat setelah ledakan tebasan */
+#ranah-nama {
+  position: absolute;
+  left: 50%;
+  top: 72%;
+  transform: translate(-50%, -50%);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  border-radius: 6px;
+  background: rgba(10, 10, 12, 0.72);
+  border: 1px solid rgba(255, 120, 110, 0.5);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  pointer-events: none;
+  opacity: 0;
+}
+
+#ranah-nama svg {
+  width: 18px;
+  height: 18px;
+}
+
+#ranah-nama.tampil {
+  animation: ranah-nama 1.8s ease-out forwards;
+}
+
+@keyframes ranah-nama {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -30%) scale(0.9);
+  }
+
+  12% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+
+  75% {
+    opacity: 1;
+  }
+
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -60%);
+  }
 }
 
 #hud .jurus .cd {
@@ -508,6 +711,11 @@ body {
 
   #hud #btn-penggal {
     right: calc(var(--r) + 294px);
+    bottom: calc(var(--b) + 14px);
+  }
+
+  #hud #btn-ranah {
+    right: calc(var(--r) + 360px);
     bottom: calc(var(--b) + 14px);
   }
 

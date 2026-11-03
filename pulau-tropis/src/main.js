@@ -52,6 +52,7 @@ import { createInput } from './player/input.js'
 import { createFollowCamera } from './player/camera.js'
 import { createMarkers } from './player/marker.js'
 import { createSwingEffects } from './player/effects.js'
+import { createRanah } from './player/ranah.js'
 import { SKILLS } from './player/combat.js'
 import { createPlayer, loadPlayerModel, MAX_HP } from './player/player.js'
 import { createBag } from './player/tas.js'
@@ -120,8 +121,8 @@ function findSpawn(ground, colliders) {
   return { x: -128, z: 128, heading: Math.atan2(128, -128) }
 }
 
-const HINT_TOUCH = '<b>Joystick</b> (kiri bawah): berjalan, dorong penuh = lari · Geser layar: putar kamera · Cubit: zoom<br><b>Pukul</b> berulang = kombo · 4 <b>jurus</b> · orc kalah = <b>koin</b> · dekati orang: <b>Bicara</b> · dekati prajurit Kencana: <b>Ajak</b> jadi anak buah (menolak → <b>Duel</b>)<br>Pukul pohon = <b>kayu</b> → buat <b>pancing</b> &amp; <b>perahu</b> di <b>Tas</b> · pulau tidak berjembatan: berenang / berlayar<br><b>Peta</b>: Kencana (barat) memusuhimu · Aeloria (utara) damai bila kamu tidak rusuh · <b>Frostfall</b> (timur): pegunungan salju, gua & kastel · <b>ketuk kios / elf</b>'
-const HINT_KEYS = '<b>WASD / panah</b>: berjalan (Shift = pelan) · Seret: putar kamera · Roda: zoom<br>F: pukul (kombo) · 1–4: jurus · Spasi: lompat / panjat · orc kalah = koin · B: tas · G / Enter: bicara · J: ajak prajurit jadi anak buah · U: duel<br>Pukul pohon = kayu → buat pancing &amp; perahu di Tas · C: mancing / tarik · V: naik / turun perahu<br>M: peta — Kencana (barat) memusuhimu · Aeloria (utara) damai bila kamu tidak rusuh · Frostfall (timur): pegunungan salju, gua & kastel · klik kios / elf'
+const HINT_TOUCH = '<b>Joystick</b> (kiri bawah): berjalan, dorong penuh = lari · Geser layar: putar kamera · Cubit: zoom<br><b>Pukul</b> berulang = kombo · 5 <b>jurus</b> (ke-5: <b>Ranah</b>) · orc kalah = <b>koin</b> · dekati orang: <b>Bicara</b> · dekati prajurit Kencana: <b>Ajak</b> jadi anak buah (menolak → <b>Duel</b>)<br>Pukul pohon = <b>kayu</b> → buat <b>pancing</b> &amp; <b>perahu</b> di <b>Tas</b> · pulau tidak berjembatan: berenang / berlayar<br><b>Peta</b>: Kencana (barat) memusuhimu · Aeloria (utara) damai bila kamu tidak rusuh · <b>Frostfall</b> (timur): pegunungan salju, gua & kastel · <b>ketuk kios / elf</b>'
+const HINT_KEYS = '<b>WASD / panah</b>: berjalan (Shift = pelan) · Seret: putar kamera · Roda: zoom<br>F: pukul (kombo) · 1–5: jurus (5 = Ranah Tebas) · Spasi: lompat / panjat · orc kalah = koin · B: tas · G / Enter: bicara · J: ajak prajurit jadi anak buah · U: duel<br>Pukul pohon = kayu → buat pancing &amp; perahu di Tas · C: mancing / tarik · V: naik / turun perahu<br>M: peta — Kencana (barat) memusuhimu · Aeloria (utara) damai bila kamu tidak rusuh · Frostfall (timur): pegunungan salju, gua & kastel · klik kios / elf'
 
 // FOV kamera (tegak, mendatar): layar tegak butuh FOV lebih lebar agar sisi kiri-kanan tetap
 // terlihat dari kamera di belakang karakter
@@ -500,16 +501,18 @@ async function start() {
       }
       return out
     },
-    position(id) {
-      if (id[0] === 'o') return enemies ? enemies.position(Number(id.slice(1))) : null
-      if (id[0] === 'e') return elfSec ? elfSec.position(id) : null
-      if (id[0] === 'n') return naga ? naga.targetPos() : null
-      const a = soldierOf(id)
-      return soldiers.alive(a) ? { x: a.x, z: a.z } : null
-    },
+    position: id => arenaPosition(id),
     standable: (x, z) => nav.walkableAt(x, z) && colliders.isFree(x, z, 0.45) && ground.heightAt(x, z) > -0.9,
   })
   const orcIds = ids => ids.filter(id => id[0] === 'o').map(id => Number(id.slice(1)))
+  // letak sasaran jurus Penggal / Ranah Tebas menurut id
+  function arenaPosition(id) {
+    if (id[0] === 'o') return enemies ? enemies.position(Number(id.slice(1))) : null
+    if (id[0] === 'e') return elfSec ? elfSec.position(id) : null
+    if (id[0] === 'n') return naga ? naga.targetPos() : null
+    const a = soldierOf(id)
+    return soldiers && soldiers.alive(a) ? { x: a.x, z: a.z } : null
+  }
   // orc penyerbu menyerang prajurit kerajaan (dan pemain yang memukulnya)
   if (enemies && soldiers)
     enemies.setFoes({
@@ -533,7 +536,7 @@ async function start() {
   // ruang dalam Frostfall (aula singgasana, kedai) & gua: kamera tetap di dalamnya
   const roomAt = (x, z, y) => frost.interiors.find(r => x > r.rect.x0 && x < r.rect.x1 && z > r.rect.z0 && z < r.rect.z1 && y > r.floor - 1.5 && y < r.ceil) ?? null
   cam.setVolumes({ roofAt: frost.cave.roofAt, inCave: frost.cave.inside, roomAt })
-  const skillButtons = { cincang: $('btn-cincang'), hentak: $('btn-hentak'), putar: $('btn-putar'), penggal: $('btn-penggal') }
+  const skillButtons = { cincang: $('btn-cincang'), hentak: $('btn-hentak'), putar: $('btn-putar'), penggal: $('btn-penggal'), ranah: $('btn-ranah') }
   const input = createInput({
     canvas, joystick: $('joystick'), knob: $('joystick').querySelector('.kenop'), jumpButton: $('btn-lompat'), attackButton: $('btn-pukul'), skillButtons, touch: touchUI,
   })
@@ -799,6 +802,70 @@ async function start() {
   // serangan: yang terkena (orc → nyawa berkurang & terpental; batang/batu → serpihan) + efeknya
   const effects = createSwingEffects(ground)
   scene.add(effects.object)
+  // jurus Ranah Tebas: kubah, cincin kemajuan, penanda kunci, jalur merah, kamera atas & sorotan dekat
+  const ceilAbove = (x, z, y) => {
+    if (frost.cave.inside(x, z, y)) {
+      const r = frost.cave.roofAt(x, z)
+      return r > -Infinity ? r : Infinity
+    }
+    const room = roomAt(x, z, y)
+    return room ? room.ceil : ground.ceilingAt(x, z, y)
+  }
+  const ranahFx = createRanah({ ground, ceil: ceilAbove })
+  scene.add(ranahFx.object, ranahFx.sparks)
+  // letak sasaran jurus (id 'o3', 's12', 'e…', 'n0') dengan tinggi tanahnya
+  const targetAt = id => {
+    const p = arenaPosition(id)
+    return p ? { x: p.x, y: ground.surfaceAt(p.x, p.z), z: p.z } : null
+  }
+  // Ranah Tebas: tampilan + suara tiap tahap; setiap sasaran yang dilewati tertebas, lalu semua yang
+  // terkunci roboh bersamaan dalam satu ledakan tebasan
+  function ranahStrike(id, damage) {
+    if (id[0] === 'o' && enemies) {
+      const n = Number(id.slice(1))
+      const alive = enemies.position(n)
+      enemies.damage(n, damage, player.position)
+      if (alive && !enemies.position(n)) shop.reward(orcCoins(1))
+    } else if (id[0] === 's' && soldiers) {
+      const a = soldierOf(id)
+      if (!soldiers.alive(a) || !canHit(a)) return
+      if (damage >= 99)
+        if (recruits?.inDuel(a)) soldiers.damage(a, a.maxHp * 0.4, player.position)
+        else soldiers.knockDown(a, player.position)
+      else soldiers.damage(a, damage, player.position)
+      security?.playerStruck([a])
+    } else if (id[0] === 'e' && elfSec)
+      if (damage >= 99) elfSec.fell(id)
+      else {
+        const p = elfSec.position(id)
+        if (p) elfSec.hit({ x: p.x, z: p.z, r: 0.6 }, damage, 2, player.position)
+      }
+    else if (id[0] === 'n' && naga) naga.execute(damage >= 99 ? 30 : 8)
+  }
+  function ranahEvent(ev) {
+    ranahFx.event(ev, targetAt, cam.yaw)
+    if (ev.fase === 'buka') {
+      suara.play('ranah-buka')
+      cam.shake(0.18)
+    } else if (ev.fase === 'isi') suara.play('ranah-isi', { lama: 2.1 })
+    else if (ev.fase === 'kunci') suara.play('ranah-kunci', { i: ev.i })
+    else if (ev.fase === 'penuh') suara.play('ranah-penuh')
+    else if (ev.fase === 'kilat') suara.play('ranah-kilat')
+    else if (ev.fase === 'tebas') {
+      const p = targetAt(ev.id)
+      ranahStrike(ev.id, 2)
+      suara.play('ranah-tebas', { n: ev.n })
+      if (p) effects.execute([p], player.position)
+      cam.shake(0.1)
+    } else if (ev.fase === 'ledak') {
+      const at = ev.targets.map(targetAt).filter(Boolean)
+      enemies?.mark(orcIds(ev.targets), false)
+      for (const id of ev.targets) ranahStrike(id, 999)
+      effects.execute(at, player.position)
+      suara.play('ranah-ledak', { n: at.length })
+      cam.shake(0.45)
+    }
+  }
   // desing ayunan menurut gerakannya (Pukul: tebas / tinju / tendang; jurus: cincang, putar, hentak)
   const SWING_SFX = { tebas: 'tebas', tinju: 'tinju', tendang: 'tendang', cincang: 'cincang', putar: 'putar', 'hentak-naik': 'hentak-naik' }
   player.onAttack(ev => {
@@ -808,7 +875,11 @@ async function start() {
     }
     if (ev.type === 'gagal') {
       suara.play('ditolak')
-      showMessage('Tidak ada musuh dalam jangkauan Penggal (±14 m).', 1800)
+      showMessage(ev.move === 'ranah' ? 'Tidak ada musuh di dalam jangkauan Ranah Tebas (±12 m).' : 'Tidak ada musuh dalam jangkauan Penggal (±14 m).', 1800)
+      return
+    }
+    if (ev.type === 'ranah') {
+      ranahEvent(ev)
       return
     }
     if (ev.type === 'aim') {
@@ -1273,10 +1344,16 @@ async function start() {
   const leader = { x: 0, y: 0, z: 0, heading: 0, speed: 0 } // pemain, untuk anak buahnya (prajurit.js)
   const roofs = [...kencana.roofs, ...aeloria.roofs]
   const debug = { timeScale: 1 } // pengujian: < 1 = gerak lambat (untuk memotret efek)
+  // waktu dunia: berjalan seperti biasa, kecuali saat Ranah Tebas menghentikan / memperlambatnya
+  // (pemain, kamera & efek jurusnya tetap memakai waktu nyata)
+  let worldT = 0
+  let ranahLook = ''
   renderer.setAnimationLoop(() => {
     frameCount++
     const dt = Math.min(clock.getDelta(), 0.1) * debug.timeScale
     const t = clock.elapsedTime
+    const wdt = dt * player.worldScale
+    worldT += wdt
     if (mode === 'main') {
       const inp = input.read()
       for (const tap of inp.taps) handleTap(tap)
@@ -1294,6 +1371,7 @@ async function start() {
       naga?.pushOut(player.position)
       if (!player.hasPath) markers.hideTarget()
       cam.update(dt, camTarget, inp)
+      ranahFx.camera(camera, dt, player.position, cam.yaw, player.heading)
       if (!hintGone && (player.speed > 0.5 || (hintTime += dt) > 15)) hideHint()
       // tajuk pohon & bangunan di antara kamera dan prajurit dibuat berlubang;
       // di bawah atap besar (pendopo, bale, gerbang) lubangnya diperlebar
@@ -1311,27 +1389,38 @@ async function start() {
       seeThrough.r.value = 0
     }
     markers.update(dt)
-    waterFx(dt)
+    ranahFx.update(dt, player.ranah, targetAt, player.position)
+    {
+      // layar kelabu selama ranah terbuka; suara dunia diredam
+      const ph = ranahFx.active ? ranahFx.phase : ''
+      const look = ph === 'buka' || ph === 'isi' || ph === 'puncak' ? 'kelabu' : ''
+      if (look !== ranahLook) {
+        ranahLook = look
+        document.body.classList.toggle('ranah-kelabu', !!look)
+      }
+      suara.setDuck(look ? 0.25 : ph === 'kilat' || ph === 'ledak' ? 0.7 : 1)
+    }
+    waterFx(wdt)
     updateActions(dt)
-    enemies?.update(dt, camera, player, mode === 'main' ? player.position : controls.target)
+    enemies?.update(wdt, camera, player, mode === 'main' ? player.position : controls.target)
     if (banner.update(dt, player.position, mode === 'main')) {
       hideHint()
       regionChime()
     }
-    villagers?.update(dt, camera, mode === 'main' ? player.position : controls.target, player.position, mode === 'main' ? 110 : 260)
-    army?.update(dt, camera, mode === 'main' ? player.position : controls.target)
-    life?.update(dt, camera, mode === 'main' ? player.position : controls.target, mode === 'main' ? 110 : 260)
-    warga?.update(dt, camera, mode === 'main' ? player.position : controls.target, mode === 'main' ? 150 : 300)
-    elfSec?.update(dt)
-    security?.update(dt)
-    recruits?.update(dt)
-    patrol?.update(dt, t)
+    villagers?.update(wdt, camera, mode === 'main' ? player.position : controls.target, player.position, mode === 'main' ? 110 : 260)
+    army?.update(wdt, camera, mode === 'main' ? player.position : controls.target)
+    life?.update(wdt, camera, mode === 'main' ? player.position : controls.target, mode === 'main' ? 110 : 260)
+    warga?.update(wdt, camera, mode === 'main' ? player.position : controls.target, mode === 'main' ? 150 : 300)
+    elfSec?.update(wdt)
+    security?.update(wdt)
+    recruits?.update(wdt)
+    patrol?.update(wdt, worldT)
     leader.x = player.position.x
     leader.y = player.position.y
     leader.z = player.position.z
     leader.heading = player.heading
     leader.speed = player.speed
-    soldiers?.update(dt, {
+    soldiers?.update(wdt, {
       camera,
       focus: mode === 'main' ? player.position : controls.target,
       range: mode === 'main' ? 110 : 260,
@@ -1366,13 +1455,13 @@ async function start() {
         ripples.spawn(fp.x, fp.z, 1.3, 0.5, pool.y)
       }
       const indoorK = roomAt(fp.x, fp.z, fp.y) ? 1 : 0
-      weather.update(dt, t, { target: fp, inCave: caveK, covered, caveTone, indoorK, far: mode === 'main' ? camera.far : null, camera, night: warga ? warga.malam : 0 })
+      weather.update(wdt, worldT, { target: fp, inCave: caveK, covered, caveTone, indoorK, far: mode === 'main' ? camera.far : null, camera, night: warga ? warga.malam : 0 })
       ambience.update(dt, { pos: fp, camera, swimming: player.swimming, boatSpeed: boat.aboard ? boat.speed : 0, indoor: indoorK, cave: covered ? Math.max(0.3, caveK) : 0 })
-      frost.update(dt, camera)
+      frost.update(wdt, camera)
       if (naga) {
         const pp = player.position
         const inLair = caveAt(pp.x, pp.z)?.id === naga.chestId && frost.cave.inside(pp.x, pp.z, pp.y)
-        naga.update(dt, { player, inCave: inLair, pixelScale: renderer.domElement.height / (2 * Math.tan(THREE.MathUtils.degToRad(camera.fov) / 2)) })
+        naga.update(wdt, { player, inCave: inLair, pixelScale: renderer.domElement.height / (2 * Math.tan(THREE.MathUtils.degToRad(camera.fov) / 2)) })
         const show = naga.fighting
         if (nagaBar.hidden === show) nagaBar.hidden = !show
         if (show) {
@@ -1382,11 +1471,11 @@ async function start() {
         }
       }
     }
-    env.update(t, camera, mode === 'main' ? player.position : controls.target)
-    waveTime.value = t
-    trees.userData.update(t)
-    kencana.update(t)
-    grass.userData.update(camera, t)
+    env.update(worldT, camera, mode === 'main' ? player.position : controls.target)
+    waveTime.value = worldT
+    trees.userData.update(worldT)
+    kencana.update(worldT)
+    grass.userData.update(camera, worldT)
     renderer.render(scene, camera)
 
     frames++
@@ -1418,7 +1507,7 @@ async function start() {
   // akses untuk debugging / pengujian otomatis
   window.__pulau = {
     renderer, scene, camera, controls, ground, shore, quality, trees, rocks, grass, water, env, kencana, region, plan, villagers, army, worldMap, banner, aeloria, elfPlan, elfMask, life,
-    frost, frostPlan, frostMask, weather, openSecret, openChest, warga, naga,
+    frost, frostPlan, frostMask, weather, openSecret, openChest, warga, naga, ranahFx,
     player, cam, input, colliders, nav, markers, effects, enemies, soldiers, security, patrol, recruits, bubbles, pickGround, setMode, getMode: () => mode, bag, gear, shop, elfSec, elfCard,
     boat, fishing, ripples, recipes, craftBoat, boardBoat, leaveBoat, chat, placesFor, suara, ambience,
     frames: () => frameCount, debug,
