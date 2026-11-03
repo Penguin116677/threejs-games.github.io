@@ -743,6 +743,24 @@ for (const [name, opts, query] of cases) {
     })
     const press = (id, key) => (name === 'desktop' ? page.keyboard.press(key) : page.tap(`#${id}`))
     const shown = id => page.evaluate(id => !document.getElementById(id).hidden, id)
+    // peronda terus berjalan: bila tombolnya hilang karena sasaran sudah menjauh, berdiri lagi 2 m di depannya
+    // lalu tunggu tombolnya tampil sebelum diketuk (dulu ketukan menunggu 90 detik lalu uji berhenti)
+    const pressNear = async(id, key) => {
+      for (let i = 0; i < 4; i++) {
+        if (await shown(id)) {
+          await press(id, key)
+          return true
+        }
+        await page.evaluate(() => {
+          const { soldiers, player } = window.__pulau
+          const a = soldiers.list[window.__sasaran]
+          player.placeAt(a.x + Math.sin(a.heading) * 2, a.z + Math.cos(a.heading) * 2, a.heading + Math.PI)
+          player.stop()
+        })
+        await waitFrames(page, 6)
+      }
+      return false
+    }
     const answered = () => waitUntil(page, () => {
       const b = window.__pulau.recruits.stats().bicara
       return !b || b.dijawab
@@ -817,11 +835,12 @@ for (const [name, opts, query] of cases) {
     await nextToSoldier()
     await waitFrames(page, 6)
     await page.evaluate(() => window.__pulau.recruits.forceAnswer(false))
-    await press('btn-ajak', 'KeyJ')
+    const ajak3 = await pressNear('btn-ajak', 'KeyJ')
     await answered()
     await waitFrames(page, 4)
-    await press('btn-duel', 'KeyU')
+    const duel3 = ajak3 && (await pressNear('btn-duel', 'KeyU'))
     await waitUntil(page, () => window.__pulau.recruits.stats().duel, 60, 3)
+    if (!duel3) fail(`kalah duel: tombol ${ajak3 ? 'Duel' : 'Ajak'} tidak tampil di dekat prajurit`)
     await page.evaluate(() => {
       const { soldiers, player } = window.__pulau
       player.damage(500, soldiers.list[window.__sasaran], 12)
