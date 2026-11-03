@@ -5,8 +5,8 @@
 - **Efek suara** (permintaan: *"menambahkan sound effect yang pass di setiap adegan yang ada, semua aktifitas
   dan gerakan harus di sertai dengan sound effect yang pass dan cocok"*). Semua bunyi **dibuat dari kode**
   (Web Audio: nada, derau tersaring, amplop) — tanpa file suara, tetap offline, aset sendiri, unduhan hanya
-  bertambah ±15 KB (gzip). ±115 bunyi, berposisi (makin jauh makin pelan, kiri / kanan menurut arah kamera), bergema
-  di gua & ruangan.
+  bertambah ±15 KB (gzip). ±118 bunyi, berposisi (makin jauh makin pelan, kiri / kanan menurut arah
+  kamera), bergema di gua & ruangan.
 - **Gerak pemain**: langkah menurut permukaan & seirama langkahnya (pasir, rumput, jalan batu, papan kayu
   dermaga / jembatan, salju, es, lantai batu gua, air dangkal), lompat, mendarat (makin tinggi makin keras),
   tercebur, kayuhan renang, memanjat, dayung perahu seirama lajunya, naik / turun perahu.
@@ -22,10 +22,11 @@
 - **Orang**: setiap gelembung ucapan bersuara gumam (prajurit rendah, elf lebih tinggi, anak-anak tinggi);
   orang di dekat pemain terdengar langkahnya dan kegiatannya — pandai besi menempa, membelah kayu, menyekop salju,
   menimba sumur, memasak, berlatih pedang / panah / boneka, menari & bertepuk, memainkan kecapi, mengobrol,
-  anak-anak tertawa & perang bola salju, memancing.
+  anak-anak tertawa & perang bola salju, memancing, berjualan & berbelanja, menjemur, mengasapi ikan; pemain
+  sendiri bersuara saat mengobrol / memberi makanan. Rusa kutub: derap kaki, mendengus saat kabur, kena panah.
 - **Musuh**: orc menggeram saat waspada, mengayun gada, roboh; prajurit menyerang, berdenting saat kena, roboh,
-  terjun & berenang; tombak dilempar dari perahu patroli & menancap; terompet duel, menang / kalah duel;
-  perkelahian elf.
+  terjun & berenang; awak perahu patroli mendayung, tombak dilempar & menancap; perahu perang orc bergenderang
+  & berdayung; prajurit mau / menolak diajak; terompet duel, menang / kalah duel; perkelahian elf.
 - **Naga Es**: dengkur napas saat tidur, geram saat bangun, aum (besar & kecil), langkah berat, gigitan, sapuan
   ekor, menghimpun napas, Hembusan Es, dengung lingkaran Ledakan Es & kristal pecah, kepak sayap, hentakan
   mendarat, kena pukul, roboh, segel es pecah.
