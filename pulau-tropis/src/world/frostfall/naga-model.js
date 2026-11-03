@@ -6,8 +6,10 @@ import * as THREE from 'three'
 // mata biru bercahaya, sayap bermembran es berurat. Tanpa aset luar.
 // Satu SkinnedMesh (41 tulang) dengan dua bahan (badan + membran sayap) = 2 draw call.
 // Pose bind: berdiri di atas empat kaki, sayap terbentang penuh, menghadap +Z, kaki di y = 0.
-// Ukuran (m): panjang moncong–ujung ekor ±21, kepala ±8 di atas tanah, rentang sayap ±29 — sedikit
-// lebih kecil dari lembar desain (25 / 12 / 40 m) supaya muat bertarung di ruang gua (Ø ±36 m).
+// Rangka & bentuk ditulis dalam satuan model (moncong–ujung ekor ±21, kepala ±8, rentang sayap ±29);
+// di dunia seluruhnya dikecilkan UKURAN kali (v0.24.1): ±14 m panjang, kepala ±5 m di atas tanah,
+// rentang sayap ±19 m — supaya leluasa bergerak, berbelok & terbang di ruang gua (Ø ±36 m).
+export const UKURAN = 0.65
 
 export const PALET = { putih: '#ffffff', es: '#d5efff', muda: '#8bd9ff', biru: '#39b6ff', tua: '#0e7bff', malam: '#0b2a4d' }
 
@@ -742,6 +744,8 @@ export function createDragonModel(noiseTexture) {
   const object = new THREE.Group()
   object.name = 'naga'
   object.add(mesh)
+  // satuan model → meter dunia (semua pose & tinggi akar ikut mengecil)
+  mesh.scale.setScalar(UKURAN)
   const rest = bones.map(b => b.position.clone())
   return { object, mesh, bones, rest, uniforms: mats.uniforms, triangles, pose: p => applyPose(bones, rest, p) }
 }

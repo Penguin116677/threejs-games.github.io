@@ -365,10 +365,11 @@ export const CAVES = [
     suasana: { kabut: '#1b6577', langit: '#8ae4f2', tanah: '#0f3a47', terang: 0.95 },
     konsep: { aula: { x: 1100, z: -386, y: 9 }, lengkung: [{ x: 1110, z: -376 }, { x: 1124, z: -366 }, { x: 1133, z: -357.5 }], tebing: { x: 1092, z: -380 } },
     chest: { x: 1160, z: -340, koin: 90, key: 'pulau-tropis:peti-gua-gletser', pesan: 'Peti yang membeku di dalam gletser!' },
-    // Naga Es penjaga (v0.24.0): tidur meringkuk di Ruang Air Terjun Beku, peti di sisi kanannya, menghadap
-    // pintu ruang (rot = arah hadap). Saat bertarung titik tengah badannya tetap di dalam arena (lingkaran
-    // di tengah ruang); bangun bila penyusup masuk sejauh `bangun` m dari tengah ruang
-    naga: { x: 1158.4, z: -335.9, rot: -2.0, arena: { x: 1160, z: -332, r: 8 }, bangun: 26, lepas: 46 },
+    // Naga Es penjaga (v0.24.0; v0.24.1 lebih kecil): tidur meringkuk di Ruang Air Terjun Beku, peti di lekuk
+    // kanan antara badan & ekornya, menghadap pintu ruang (rot = arah hadap). Saat bertarung titik akar
+    // badannya tetap di dalam arena (lingkaran di tengah ruang); bangun bila penyusup masuk sejauh `bangun` m
+    // dari tengah ruang
+    naga: { x: 1156.6, z: -337.7, rot: -1.92, arena: { x: 1160, z: -332, r: 10 }, bangun: 26, lepas: 46 },
     route: [{ x: 1040, z: -449 }, { x: 1055, z: -451 }, { x: 1090, z: -402 }, { x: 1108, z: -378 }, { x: 1118, z: -373 }, { x: 1150, z: -340 }, { x: 1155, z: -335 }],
   },
   {

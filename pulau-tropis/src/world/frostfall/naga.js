@@ -1,5 +1,5 @@
 import * as THREE from 'three'
-import { createDragonModel, JOINTS } from './naga-model.js'
+import { createDragonModel, JOINTS, UKURAN } from './naga-model.js'
 
 // Naga Es — penjaga Gua Gletser Utara (v0.24.0, dari lembar desain pengguna "Cryo Dragon").
 // Tidur meringkuk melingkari peti harta di Ruang Air Terjun Beku; peti terbungkus segel es selama naga
@@ -14,18 +14,20 @@ import { createDragonModel, JOINTS } from './naga-model.js'
 // Animasinya prosedural (naga-model.js applyPose): AI hanya mengatur parameter pose yang dihaluskan.
 
 export const NAGA_HP = 240
-const SPEED = { jalan: 3.2, lari: 6.8, putar: 1.5 }
-const STRIDE = 3.4 // m per siklus langkah
+// ukuran dunia mengikuti UKURAN model (v0.24.1: ±14 m panjang, kepala ±5 m, rentang sayap ±19 m)
+const S = UKURAN
+const SPEED = { jalan: 2.8, lari: 6.4, putar: 1.7 }
+const STRIDE = 3.4 * S // m per siklus langkah
 // jurus: jeda pakai (detik), jangkauan (m), luka, lama ancang-ancang & seluruh gerakan
 const SK = {
-  gigit: { cd: 2.4, reach: 4.2, dmg: 15, windup: 0.55, dur: 1.15 },
-  ekor: { cd: 4.5, reach: 11.5, dmg: 15, windup: 0.6, dur: 1.5, push: 9 },
+  gigit: { cd: 2.4, reach: 2.6, dmg: 15, windup: 0.55, dur: 1.15 },
+  ekor: { cd: 4.5, reach: 8.5, dmg: 15, windup: 0.6, dur: 1.5, push: 9 },
   hembus: { cd: 8, reach: 20, windup: 0.95, dur: 3.3, dps: 18, cone: 0.3 },
   ledak: { cd: 12.5, dmg: 24, r: 3.4, windup: 0.75, delay: 1.35, n: 4 },
   terbang: { cd: 24 },
-  hentak: { dmg: 20, r: 7.5, push: 10 }, // mendarat dari terbang
+  hentak: { dmg: 20, r: 6, push: 10 }, // mendarat dari terbang
 }
-const FLY_Y = 8.5
+const FLY_Y = 7
 const SMOOTH = 5 // laju penghalusan parameter pose (1/detik)
 
 const clamp = (v, a, b) => Math.min(b, Math.max(a, v))
@@ -361,7 +363,7 @@ export function createNaga({ plan, chest, ground, noiseTexture }) {
   const HIT = [
     ['hips', 1.9], ['spine', 2.05], ['chest', 1.95], ['neck2', 1.0], ['neck4', 0.85], ['head', 1.1, new THREE.Vector3(0, -0.1, 1.3)],
     ['tail1', 1.35], ['tail3', 0.95], ['tail5', 0.65], ['upperFl', 0.85], ['upperFr', 0.85], ['upperHl', 1.1], ['upperHr', 1.1],
-  ].map(([name, r, off]) => ({ bone: bones[JOINTS[name]], r, off: off || null, p: new THREE.Vector3(), name }))
+  ].map(([name, r, off]) => ({ bone: bones[JOINTS[name]], r: r * S, off: off || null, p: new THREE.Vector3(), name }))
   const tmp = new THREE.Vector3()
   const tmq = new THREE.Quaternion()
   const mouth = new THREE.Vector3()
@@ -445,20 +447,20 @@ export function createNaga({ plan, chest, ground, noiseTexture }) {
       start('ekor', { side: Math.sign(rel.ang) || 1 })
       return
     }
-    if (rel.root < 10.5 && rel.root > 4 && abs < 0.6 && st.cd.gigit <= 0) {
+    if (rel.root < 7.5 && rel.root > 2.5 && abs < 0.6 && st.cd.gigit <= 0) {
       start('gigit')
       return
     }
-    if (st.cd.ledak <= 0 && (rel.dist > 9 || Math.random() < 0.35)) {
+    if (st.cd.ledak <= 0 && (rel.dist > 8 || Math.random() < 0.35)) {
       start('ledak')
       return
     }
-    if (rel.dist < SK.hembus.reach && rel.dist > 4 && abs < 0.55 && st.cd.hembus <= 0) {
+    if (rel.dist < SK.hembus.reach && rel.dist > 3 && abs < 0.55 && st.cd.hembus <= 0) {
       start('hembus')
       return
     }
     if (abs > 0.4) start('belok', { dur: 1.2 })
-    else if (rel.root > 9) start('dekati', { dur: 2.2 })
+    else if (rel.root > 6.5) start('dekati', { dur: 2.2 })
     else st.idle = 0.35
   }
 
@@ -479,12 +481,12 @@ export function createNaga({ plan, chest, ground, noiseTexture }) {
       }
       case 'dekati': {
         const err = turnToward(p, dt, SPEED.putar * k)
-        const run = st.enraged || rel.dist > 14
+        const run = st.enraged || rel.dist > 12
         const v = (run ? SPEED.lari : SPEED.jalan) * k
         advance(v * Math.max(0.2, Math.cos(err)), dt)
         st.gait = run ? 2 : 1
         tgt.neckLift = 0.1
-        if (rel.root < 8.5 || a.t > a.dur) a.done = true
+        if (rel.root < 6 || a.t > a.dur) a.done = true
         break
       }
       case 'gigit': {
@@ -497,17 +499,18 @@ export function createNaga({ plan, chest, ground, noiseTexture }) {
           tgt.jaw = 0.8
           tgt.crouch = 0.25
         } else if (a.t < w + 0.35) {
-          // menyambar ke lantai sambil menerjang ±1,5 m: moncong turun sampai ±1 m di atas tanah
+          // menyambar ke lantai sambil menerjang ±1 m: moncong turun mendekati tanah
           tgt.neckLift = -1.5
           tgt.headPitch = 0.7
           tgt.jaw = a.t < w + 0.2 ? 1 : 0
           tgt.crouch = 0.6
-          advance(5, dt)
+          advance(3.4, dt)
           if (!a.struck && a.t > w + 0.18) {
             a.struck = true
-            const sx = st.x + Math.sin(st.heading) * 6.5
-            const sz = st.z + Math.cos(st.heading) * 6.5
-            if (Math.hypot(p.x - sx, p.z - sz) < 3.4 && playerY(player) < ground.heightAt(sx, sz) + 3) hurt(player, SK.gigit.dmg, { x: sx, z: sz }, 5)
+            // titik gigit = moncong saat itu, diproyeksikan ke lantai
+            const sx = mouth.x
+            const sz = mouth.z
+            if (Math.hypot(p.x - sx, p.z - sz) < SK.gigit.reach && playerY(player) < ground.heightAt(sx, sz) + 3) hurt(player, SK.gigit.dmg, { x: sx, z: sz }, 5)
             event('gigit')
           }
         } else {
@@ -733,7 +736,7 @@ export function createNaga({ plan, chest, ground, noiseTexture }) {
         rings.spawn('gelombang', st.x, gy, st.z, 3, 18, 0.8)
         for (let i = 0; i < 36; i++) {
           const an = Math.random() * Math.PI * 2
-          fx.emit(st.x + Math.cos(an) * 4, gy + 0.4, st.z + Math.sin(an) * 4, Math.cos(an) * 10, 1.2, Math.sin(an) * 10, 1.1, 1.2, 3.5, 0.05, 1.5)
+          fx.emit(st.x + Math.cos(an) * 3, gy + 0.4, st.z + Math.sin(an) * 3, Math.cos(an) * 10, 1.2, Math.sin(an) * 10, 1.1, 1.2, 3.5, 0.05, 1.5)
         }
         const d = Math.hypot(p.x - st.x, p.z - st.z)
         if (d < 13) hurt(player, 4, { x: st.x, z: st.z }, 11 - d * 0.5)
@@ -749,8 +752,8 @@ export function createNaga({ plan, chest, ground, noiseTexture }) {
       flapPhase += dt * 6.5
       flap = Math.sin(flapPhase) * 0.6
       a.orbit += dt * 0.35
-      const tx = A.x + Math.sin(a.orbit) * 6
-      const tz = A.z + Math.cos(a.orbit) * 6
+      const tx = A.x + Math.sin(a.orbit) * 7.5
+      const tz = A.z + Math.cos(a.orbit) * 7.5
       st.x += (tx - st.x) * (1 - Math.exp(-1.5 * dt))
       st.z += (tz - st.z) * (1 - Math.exp(-1.5 * dt))
       st.flyY = FLY_Y + Math.sin(flapPhase) * 0.35
@@ -795,8 +798,8 @@ export function createNaga({ plan, chest, ground, noiseTexture }) {
         rings.spawn('gelombang', st.x, y, st.z, 2, SK.hentak.r + 4, 0.7)
         for (let i = 0; i < 8; i++) {
           const an = (i / 8) * Math.PI * 2
-          const x = st.x + Math.cos(an) * 6.2
-          const z = st.z + Math.sin(an) * 6.2
+          const x = st.x + Math.cos(an) * 4.4
+          const z = st.z + Math.sin(an) * 4.4
           if (Math.hypot(x - plan.room.x, z - plan.room.z) < plan.room.r - 1.5) eruption(x, ground.heightAt(x, z), z, 0.55)
         }
         const d = Math.hypot(p.x - st.x, p.z - st.z)
@@ -988,7 +991,7 @@ export function createNaga({ plan, chest, ground, noiseTexture }) {
     model.object.rotation.y = st.heading
     shadow.position.set(st.x, gy + 0.06, st.z)
     shadow.rotation.y = st.heading
-    shadow.scale.set(8 + st.flyY * 0.4, 1, 17 + st.flyY * 0.6)
+    shadow.scale.set(8 * S + st.flyY * 0.4, 1, 17 * S + st.flyY * 0.6)
     shadow.material.opacity = 0.5 * (1 - Math.min(0.6, st.flyY / 22))
     refreshBody()
     pushOut(p)
