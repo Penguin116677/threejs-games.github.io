@@ -943,6 +943,17 @@ export function createPlayer({ ground, colliders, quality, asset }) {
     get speed() {
       return Math.hypot(vel.x, vel.z)
     },
+    // laju tegak (m/s, + = naik) — efek suara lompat & mendarat
+    get vy() {
+      return vel.y
+    },
+    // fase langkah (0..1, dua langkah per putaran) & kayuhan renang — efek suara langkah & kayuhan
+    get gaitPhase() {
+      return gait
+    },
+    get strokePhase() {
+      return stroke
+    },
     get grounded() {
       return grounded
     },
@@ -1107,7 +1118,7 @@ export function createPlayer({ ground, colliders, quality, asset }) {
     onRespawnNeeded(fn) {
       onRespawnNeeded = fn
     },
-    // fn(kejadian serangan) — lihat combat.js: { type: 'hit' | 'dash' | 'aim' | 'execute' | 'gagal',
+    // fn(kejadian serangan) — lihat combat.js: { type: 'ayun' | 'hit' | 'dash' | 'aim' | 'execute' | 'gagal',
     // move, heading, origin, … } — 'hit' membawa lingkaran sasaran (x, z, r), damage, knock
     onAttack(fn) {
       combat.onEvent(fn)
