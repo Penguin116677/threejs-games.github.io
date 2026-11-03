@@ -28,7 +28,16 @@ const SK = {
   hentak: { dmg: 20, r: 6, push: 10 }, // mendarat dari terbang
 }
 const FLY_Y = 7
-const SMOOTH = 5 // laju penghalusan parameter pose (1/detik)
+// Gerak halus (v0.24.1): setiap parameter pose mengejar sasarannya lewat pegas teredam kritis (mulai &
+// berhenti perlahan, tanpa sentakan, tanpa memantul); angka = kekakuan ω (1/detik) — makin besar makin
+// cepat. Arah hadap & laju juga berpercepatan, bukan langsung berubah.
+const RATE = {
+  sleep: 2.4, dead: 2.6, spread: 4.5, rear: 5.5, crouch: 7, tuck: 5, neckLift: 8.5, neckYaw: 6, headPitch: 8.5, jaw: 13,
+  tailSwing: 7, tailLift: 6, wingRaise: 6, bend: 4.5, bank: 3, airPitch: 3, idle: 1.5, gait: 6, flapAmp: 4,
+}
+const TURN_ACC = 4 // rad/detik² — percepatan belok
+const MOVE_ACC = 7 // m/detik² — percepatan maju
+const MOVE_DEC = 10 // m/detik² — perlambatan
 
 const clamp = (v, a, b) => Math.min(b, Math.max(a, v))
 const smoothstep = (a, b, x) => {
@@ -342,16 +351,28 @@ export function createNaga({ plan, chest, ground, noiseTexture }) {
     enraged: false,
     idle: 0,
     cd: { gigit: 0, ekor: 0, hembus: 3, ledak: 5, terbang: 14 },
+    turnV: 0, // kecepatan belok sekarang (rad/detik)
+    turnWant: 0,
+    turnAcc: TURN_ACC,
+    v: 0, // laju maju sekarang (m/detik)
+    vWant: 0,
+    vAcc: MOVE_ACC,
     lastHit: 0,
     sealed: !!seal,
     deadT: 0,
     fightT: 0,
   }
-  // pose sekarang (dihaluskan) & sasaran
-  const cur = { sleep: 1, dead: 0, spread: 0, rear: 0, crouch: 0, tuck: 0, neckLift: 0, neckYaw: 0, headPitch: 0, jaw: 0, tailSwing: 0, tailLift: 0, wingRaise: 0, bend: 0 }
+  // pose sekarang (dihaluskan), kecepatannya (pegas) & sasaran
+  const cur = { sleep: 1, dead: 0, spread: 0, rear: 0, crouch: 0, tuck: 0, neckLift: 0, neckYaw: 0, headPitch: 0, jaw: 0, tailSwing: 0, tailLift: 0, wingRaise: 0, bend: 0, bank: 0, airPitch: 0, idle: 0, gait: 0, flapAmp: 0 }
+  const vel = Object.fromEntries(Object.keys(cur).map(k => [k, 0]))
   const tgt = { ...cur }
-  let flap = 0
+  // pengali kekakuan per bingkai (jurus cepat seperti sambaran gigitan), direset tiap bingkai
+  const snap = {}
   let flapPhase = 0
+  let flapRate = 6
+  let breathPh = 0
+  // ayunan susulan ekor (tiap ruas menyusul ruas sebelumnya)
+  const tailF = new Float32Array(7)
   let eyes = 0.12
   let flash = 0
   let breathGlow = 0
@@ -385,25 +406,49 @@ export function createNaga({ plan, chest, ground, noiseTexture }) {
     onEvent({ type, ...data })
   }
 
-  // --- gerak di lantai: belok ke sasaran, maju dengan kecepatan v (tetap di arena)
+  // --- gerak di lantai: jurus hanya meminta laju belok & laju maju; keduanya dicapai dengan percepatan
+  // (move() di akhir bingkai), jadi naga mulai & berhenti berbelok / melangkah perlahan
   function turnToward(target, dt, rate = SPEED.putar) {
     const want = Math.atan2(target.x - st.x, target.z - st.z)
     const d = wrapAngle(want - st.heading)
-    const step = clamp(d, -rate * dt, rate * dt)
-    st.heading = wrapAngle(st.heading + step)
+    st.turnWant = clamp(d * 2.2, -rate, rate)
     return d
   }
-  function advance(v, dt) {
-    st.x += Math.sin(st.heading) * v * dt
-    st.z += Math.cos(st.heading) * v * dt
-    const dx = st.x - A.x
-    const dz = st.z - A.z
-    const d = Math.hypot(dx, dz)
-    if (d > A.r) {
-      st.x = A.x + (dx / d) * A.r
-      st.z = A.z + (dz / d) * A.r
+  function advance(v) {
+    st.vWant = v
+  }
+  function move(dt) {
+    const dw = st.turnWant - st.turnV
+    st.turnV += clamp(dw, -st.turnAcc * dt, st.turnAcc * dt)
+    st.heading = wrapAngle(st.heading + st.turnV * dt)
+    const dv = st.vWant - st.v
+    st.v += dv < 0 ? Math.max(dv, -MOVE_DEC * dt) : Math.min(dv, st.vAcc * dt)
+    if (st.flyY > 0.5) st.v = 0
+    if (st.v > 0.01) {
+      st.x += Math.sin(st.heading) * st.v * dt
+      st.z += Math.cos(st.heading) * st.v * dt
+      const dx = st.x - A.x
+      const dz = st.z - A.z
+      const d = Math.hypot(dx, dz)
+      if (d > A.r) {
+        st.x = A.x + (dx / d) * A.r
+        st.z = A.z + (dz / d) * A.r
+      }
     }
-    st.phase += (v / STRIDE) * Math.PI * 2 * dt
+    // langkah mengikuti laju sebenarnya (kaki tidak meluncur); langkah lari lebih panjang. Berbelok di
+    // tempat pun kaki melangkah.
+    const runK = smoothstep(SPEED.jalan, SPEED.lari, st.v)
+    const stride = STRIDE * (1 + 0.5 * runK)
+    const turnStep = st.flyY > 0.5 ? 0 : Math.min(1, Math.abs(st.turnV) * 0.9)
+    st.phase += ((st.v / stride) * Math.PI * 2 + turnStep * 2.4 * (1 - smoothstep(0.5, 1.5, st.v))) * dt
+    const walk = Math.min(1, st.v / (SPEED.jalan * 0.8))
+    tgt.gait = Math.max(walk + runK, turnStep * 0.8)
+    // ekor menyusul belokan (ruas demi ruas), leher mendahului ke arah belokan (lihat applyPose)
+    let drive = -st.turnV * 0.11
+    for (let i = 0; i < 7; i++) {
+      tailF[i] += (drive - tailF[i]) * (1 - Math.exp(-(6.5 - i * 0.55) * dt))
+      drive = tailF[i]
+    }
   }
 
   // hubungan dengan pemain: jarak dari dada & moncong, sudut terhadap arah hadap
@@ -473,8 +518,6 @@ export function createNaga({ plan, chest, ground, noiseTexture }) {
     switch (a.name) {
       case 'belok': {
         const d = turnToward(p, dt, SPEED.putar * k)
-        st.gait = 1
-        st.phase += SPEED.putar * dt * 1.6
         tgt.bend = clamp(d, -1, 1)
         if (Math.abs(d) < 0.15 || a.t > a.dur) a.done = true
         break
@@ -483,9 +526,10 @@ export function createNaga({ plan, chest, ground, noiseTexture }) {
         const err = turnToward(p, dt, SPEED.putar * k)
         const run = st.enraged || rel.dist > 12
         const v = (run ? SPEED.lari : SPEED.jalan) * k
-        advance(v * Math.max(0.2, Math.cos(err)), dt)
-        st.gait = run ? 2 : 1
+        // mengerem sebelum sampai (perlambatan bertahap, tidak menabrak pemain)
+        advance(v * Math.max(0.2, Math.cos(err)) * Math.max(0.3, smoothstep(5.5, 9.5, rel.root)))
         tgt.neckLift = 0.1
+        tgt.bend = clamp(err, -0.8, 0.8)
         if (rel.root < 6 || a.t > a.dur) a.done = true
         break
       }
@@ -504,7 +548,9 @@ export function createNaga({ plan, chest, ground, noiseTexture }) {
           tgt.headPitch = 0.7
           tgt.jaw = a.t < w + 0.2 ? 1 : 0
           tgt.crouch = 0.6
-          advance(3.4, dt)
+          snap.neckLift = snap.headPitch = snap.crouch = 1.8
+          st.vAcc = 16
+          advance(3.4)
           if (!a.struck && a.t > w + 0.18) {
             a.struck = true
             // titik gigit = moncong saat itu, diproyeksikan ke lantai
@@ -532,7 +578,10 @@ export function createNaga({ plan, chest, ground, noiseTexture }) {
           tgt.tailSwing = a.side * 3
           tgt.bend = -a.side * 0.9
           tgt.tailLift = 0.5
-          st.heading = wrapAngle(st.heading + a.side * dt * 1.6 * (a.t < w + 0.5 ? 1 : 0))
+          snap.tailSwing = 1.5
+          // badan ikut berputar searah sapuan, lalu melambat
+          st.turnWant = a.t < w + 0.5 ? a.side * 2 : 0
+          st.turnAcc = 9
           if (!a.struck && a.t > w + 0.25) {
             a.struck = true
             const behind = Math.abs(wrapAngle(Math.atan2(p.x - st.x, p.z - st.z) - st.heading)) > 1.3
@@ -726,9 +775,11 @@ export function createNaga({ plan, chest, ground, noiseTexture }) {
       tgt.crouch = a.t < 0.6 ? 0.9 : 0
       tgt.tuck = a.t > 0.6 ? 1 : 0
       tgt.neckLift = 0.4
+      tgt.airPitch = a.t > 0.55 ? -0.12 : 0
       if (a.t > 0.55) {
-        flapPhase += dt * 9
-        flap = Math.sin(flapPhase) * 0.75
+        flapRate = 9
+        tgt.flapAmp = 0.75
+        snap.flapAmp = 2
         st.flyY = FLY_Y * smoothstep(0.55, 2.0, a.t)
       }
       if (!a.gust && a.t > 0.6) {
@@ -749,15 +800,19 @@ export function createNaga({ plan, chest, ground, noiseTexture }) {
       }
     } else if (a.phase === 'layang') {
       // berputar pelan mengelilingi tengah ruang, selalu menghadap pemain; menyembur sekali dari udara
-      flapPhase += dt * 6.5
-      flap = Math.sin(flapPhase) * 0.6
+      flapRate = 6.5
+      tgt.flapAmp = 0.6
       a.orbit += dt * 0.35
       const tx = A.x + Math.sin(a.orbit) * 7.5
       const tz = A.z + Math.cos(a.orbit) * 7.5
       st.x += (tx - st.x) * (1 - Math.exp(-1.5 * dt))
       st.z += (tz - st.z) * (1 - Math.exp(-1.5 * dt))
-      st.flyY = FLY_Y + Math.sin(flapPhase) * 0.35
+      // naik sedikit pada tiap kepakan ke bawah (badan tertinggal dari sayap)
+      st.flyY += (FLY_Y + Math.sin(flapPhase - 1.2) * 0.3 - st.flyY) * (1 - Math.exp(-6 * dt))
       turnToward(p, dt, 1.2)
+      // miring ke arah belokan seperti burung besar; badan sedikit menunduk
+      tgt.bank = clamp(-st.turnV * 0.35, -0.3, 0.3)
+      tgt.airPitch = 0.06
       tgt.tuck = 1
       tgt.spread = 1
       if (a.t > 1.2 && !a.breathDone) {
@@ -781,8 +836,11 @@ export function createNaga({ plan, chest, ground, noiseTexture }) {
         a.land = { x: A.x + (dx / d) * r * 0.9, z: A.z + (dz / d) * r * 0.9, x0: st.x, z0: st.z, y0: st.flyY }
       }
     } else if (a.phase === 'turun') {
-      flapPhase += dt * 8
-      flap = Math.sin(flapPhase) * 0.5 * (1 - smoothstep(0.7, 1.2, a.t))
+      flapRate = 8
+      tgt.flapAmp = 0.5 * (1 - smoothstep(0.7, 1.2, a.t))
+      // mengerem di udara sebelum menapak: badan mendongak, lalu rata lagi
+      tgt.airPitch = a.t < 1.15 ? -0.2 * smoothstep(0.3, 0.9, a.t) : 0
+      tgt.bank = 0
       const k = smoothstep(0, 1.15, a.t)
       st.x = a.land.x0 + (a.land.x - a.land.x0) * k
       st.z = a.land.z0 + (a.land.z - a.land.z0) * k
@@ -793,7 +851,7 @@ export function createNaga({ plan, chest, ground, noiseTexture }) {
       if (a.t > 1.15 && !a.slam) {
         a.slam = true
         st.flyY = 0
-        flap = 0
+        tgt.flapAmp = 0
         const y = ground.heightAt(st.x, st.z)
         rings.spawn('gelombang', st.x, y, st.z, 2, SK.hentak.r + 4, 0.7)
         for (let i = 0; i < 8; i++) {
@@ -814,16 +872,33 @@ export function createNaga({ plan, chest, ground, noiseTexture }) {
     }
   }
 
-  // --- pose: sasaran → sekarang (dihaluskan), lalu ke rangka
+  // --- pose: sasaran → sekarang lewat pegas teredam kritis (Euler implisit: stabil pada dt berapa pun),
+  // lalu ke rangka
   function applyPose(dt) {
-    const k = 1 - Math.exp(-SMOOTH * dt)
-    const kf = 1 - Math.exp(-SMOOTH * 2.2 * dt)
     for (const key of Object.keys(cur)) {
-      const fast = key === 'jaw' || key === 'tailSwing' || key === 'neckLift' || key === 'headPitch'
-      cur[key] += (tgt[key] - cur[key]) * (fast ? kf : k)
+      const w = (RATE[key] || 6) * (snap[key] || 1)
+      const x = cur[key]
+      const v = vel[key]
+      const f = 1 + 2 * dt * w
+      const hoo = dt * w * w
+      const hhoo = dt * hoo
+      const inv = 1 / (f + hhoo)
+      cur[key] = (f * x + dt * v + hhoo * tgt[key]) * inv
+      vel[key] = (v + hoo * (tgt[key] - x)) * inv
     }
-    st.gaitS = (st.gaitS || 0) + (st.gait - (st.gaitS || 0)) * k
-    model.pose({ ...cur, t: elapsed, gait: st.gaitS, phase: st.phase, flap })
+    for (const key of Object.keys(snap)) delete snap[key]
+    if (cur.flapAmp > 0.005) flapPhase += flapRate * dt
+    breathPh += dt * (1.3 - cur.sleep * 0.6)
+    model.pose({
+      ...cur,
+      t: elapsed,
+      breath: breathPh,
+      phase: st.phase,
+      flapPhase,
+      bend: cur.bend + st.turnV * 0.3,
+      neckLead: st.turnV * 0.28,
+      tailYaw: tailF,
+    })
     uniforms.uTime.value = elapsed
     uniforms.uEyes.value = eyes
     uniforms.uFlash.value = flash
@@ -831,7 +906,15 @@ export function createNaga({ plan, chest, ground, noiseTexture }) {
   }
 
   function resetTargets() {
-    Object.assign(tgt, { rear: 0, crouch: 0, tuck: 0, neckLift: 0, neckYaw: 0, headPitch: 0, jaw: 0, tailSwing: 0, tailLift: 0, wingRaise: 0, bend: 0 })
+    Object.assign(tgt, { rear: 0, crouch: 0, tuck: 0, neckLift: 0, neckYaw: 0, headPitch: 0, jaw: 0, tailSwing: 0, tailLift: 0, wingRaise: 0, bend: 0, bank: 0, airPitch: 0, flapAmp: 0 })
+  }
+  // lompat langsung ke pose (pulih / pulang tanpa terlihat): tanpa sisa kecepatan pegas & gerak
+  function settle(values) {
+    Object.assign(cur, values)
+    Object.assign(tgt, values)
+    for (const k of Object.keys(vel)) vel[k] = 0
+    st.turnV = st.turnWant = st.v = st.vWant = 0
+    tailF.fill(0)
   }
 
   function setState(s) {
@@ -868,8 +951,11 @@ export function createNaga({ plan, chest, ground, noiseTexture }) {
     for (const n of Object.keys(st.cd)) st.cd[n] = Math.max(0, st.cd[n] - dt)
     flash = Math.max(0, flash - dt * 3)
     fx.uniforms.uScale.value = pixelScale
-    st.gait = 0
-    flap *= Math.exp(-3 * dt)
+    st.turnWant = 0
+    st.turnAcc = TURN_ACC
+    st.vWant = 0
+    st.vAcc = MOVE_ACC
+    tgt.idle = 0
 
     refreshBody()
     const rel = relation(player)
@@ -888,7 +974,7 @@ export function createNaga({ plan, chest, ground, noiseTexture }) {
         // bangkit dari tidur, menoleh ke penyusup, lalu mengaum
         tgt.sleep = 0
         eyes = Math.min(1, eyes + dt * 1.5)
-        if (st.t > 1.3) {
+        if (st.t > 1.5) {
           if (!st.act) start('aum', { first: true })
           runAct(dt, player, rel)
           if (st.act?.done) {
@@ -923,6 +1009,7 @@ export function createNaga({ plan, chest, ground, noiseTexture }) {
           turnToward(p, dt, 0.6)
           tgt.neckYaw = clamp(rel.ang, -0.6, 0.6)
           tgt.spread = 0.15
+          tgt.idle = 1
         }
         break
       }
@@ -943,20 +1030,15 @@ export function createNaga({ plan, chest, ground, noiseTexture }) {
         if (d > 0.6) {
           // maju hanya sejauh sudah menghadap tujuannya (tidak berputar-putar mengelilingi titik tujuan)
           const err = turnToward(home, dt, SPEED.putar)
-          advance(Math.min(SPEED.jalan, d * 1.5 + 0.5) * Math.max(0, Math.cos(err)), dt)
-          st.gait = 1
+          advance(Math.min(SPEED.jalan, d * 1.5 + 0.5) * Math.max(0, Math.cos(err)))
           if (d < 1.2) {
             st.x += (home.x - st.x) * Math.min(1, dt * 2)
             st.z += (home.z - st.z) * Math.min(1, dt * 2)
           }
         } else {
           const want = wrapAngle(plan.rot - st.heading)
-          st.heading = wrapAngle(st.heading + clamp(want, -dt, dt))
-          if (Math.abs(want) < 0.05) setState('rebah')
-          else {
-            st.gait = 1
-            st.phase += dt * 1.6
-          }
+          st.turnWant = clamp(want * 1.6, -0.9, 0.9)
+          if (Math.abs(want) < 0.05 && Math.abs(st.turnV) < 0.12) setState('rebah')
         }
         break
       }
@@ -985,6 +1067,7 @@ export function createNaga({ plan, chest, ground, noiseTexture }) {
     }
     if (st.state !== 'kalah') tgt.dead = 0
 
+    move(dt)
     applyPose(dt)
     const gy = ground.heightAt(st.x, st.z)
     model.object.position.set(st.x, gy + st.flyY, st.z)
@@ -1072,9 +1155,7 @@ export function createNaga({ plan, chest, ground, noiseTexture }) {
     st.roaredRage = false
     breathGlow = 0
     resetTargets()
-    Object.assign(cur, { sleep: 1, spread: 0 })
-    tgt.sleep = 1
-    tgt.spread = 0
+    settle({ sleep: 1, dead: 0, spread: 0, rear: 0, crouch: 0, tuck: 0, gait: 0, idle: 0 })
     setState('tidur')
   }
   function revive() {
@@ -1087,9 +1168,7 @@ export function createNaga({ plan, chest, ground, noiseTexture }) {
     st.roaredRage = false
     st.cd = { gigit: 0, ekor: 0, hembus: 3, ledak: 5, terbang: 14 }
     resetTargets()
-    Object.assign(cur, { dead: 0, sleep: 1, spread: 0 })
-    tgt.dead = 0
-    tgt.sleep = 1
+    settle({ dead: 0, sleep: 1, spread: 0, rear: 0, crouch: 0, tuck: 0, gait: 0, idle: 0 })
     setState('tidur')
     event('pulih')
   }

@@ -752,15 +752,22 @@ export function createDragonModel(noiseTexture) {
 
 // ------------------------------------------------------------------------------------- pose
 // Parameter pose (semua bawaan 0; sudut dalam radian):
-//   t                  waktu (napas, ekor bergoyang)
-//   gait, phase        0 = diam, 1 = berjalan, 2 = berlari; fase langkah (radian)
+//   t                  waktu (goyang ekor, gerak "hidup" saat diam)
+//   breath             fase napas (radian; bawaan t·1,3) — dijumlahkan oleh pemanggil supaya laju napas
+//                      bisa berubah (tidur lebih pelan) tanpa fase melompat
+//   gait, phase        0 = diam, 1 = berjalan, 2 = berlari (pecahan = campuran halus); fase langkah (radian)
 //   bend               lengkung badan ke samping saat berbelok (−1..1, + = ke kiri / +x)
-//   neckLift, neckYaw  angkat leher (+ = kepala naik), toleh (+ = ke +x)
+//   neckLift, neckYaw  angkat leher (+ = kepala naik), toleh (+ = ke +x); neckLead: toleh mendahului belokan
 //   headPitch, jaw     angguk kepala (+ = moncong turun), buka rahang 0..1
 //   rear, crouch       berdiri di kaki belakang 0..1, merunduk 0..1
-//   spread, flap       sayap terbentang 0..1 (0 = terlipat), kepak (+ = naik)
+//   spread             sayap terbentang 0..1 (0 = terlipat)
+//   flapPhase, flapAmp kepak sayap: fase & besar (bahu memimpin, siku & pergelangan menyusul → bergelombang);
+//                      flap (lama): kepak langsung tanpa fase
 //   tuck               kaki dilipat saat terbang 0..1
 //   tailCurl, tailSwing, tailLift   lingkar ekor (tidur), sapuan ekor, angkat ekor
+//   tailYaw            [7] toleh tambahan tiap ruas ekor (ayunan susulan saat berbelok)
+//   bank, airPitch     miring badan ke samping / angguk badan saat terbang
+//   idle               0..1: diam menunggu — menggeser berat badan, menoleh pelan, ekor mengayun
 //   sleep, dead        tidur meringkuk 0..1, roboh 0..1
 const E = new THREE.Euler()
 function setRot(b, x, y, z, order = 'XYZ') {
@@ -826,58 +833,78 @@ function towardPreset(bones, preset, w) {
   }
 }
 
+const smooth01 = (a, b, x) => {
+  const k = Math.min(1, Math.max(0, (x - a) / (b - a)))
+  return k * k * (3 - 2 * k)
+}
+// bobot toleh / angkat per ruas leher: pangkal sedikit, dekat kepala banyak (lengkung leher seperti S)
+const NECK_YAW = [0.16, 0.22, 0.28, 0.34]
+
 export function applyPose(bones, rest, p) {
   const b = n => bones[J[n]]
   const t = p.t || 0
-  const sleep = Math.min(1, p.sleep || 0)
-  const dead = Math.min(1, p.dead || 0)
+  const sleep = Math.min(1, Math.max(0, p.sleep || 0))
+  const dead = Math.min(1, Math.max(0, p.dead || 0))
   const rear = p.rear || 0
   const crouch = p.crouch || 0
   const tuck = p.tuck || 0
   const gait = p.gait || 0
   const spread = p.spread ?? 0
-  const flap = p.flap || 0
+  const idle = (p.idle || 0) * (1 - Math.max(sleep, dead))
   const lie = Math.max(sleep, dead)
-  const breathe = Math.sin(t * (1.3 - sleep * 0.6))
+  const breathe = Math.sin(p.breath ?? t * 1.3)
+  const ph = p.phase || 0
+  const g = Math.min(1, gait)
+  const run = smooth01(1, 2, gait)
 
-  // akar: turun saat merunduk, terayun sedikit saat melangkah, mengembang-kempis saat bernapas
-  const bob = gait > 0 ? Math.abs(Math.sin(p.phase || 0)) * 0.08 * Math.min(gait, 1.5) : 0
+  // akar: turun saat merunduk; naik-turun halus dua kali per siklus langkah (tanpa sudut patah), lebih
+  // dalam saat berlari; bergoyang ke samping mengikuti langkah; menggeser berat badan saat diam
+  const bob = g * (0.5 - 0.5 * Math.cos(2 * ph)) * (0.07 + 0.09 * run)
   const root = b('root')
   const yNorm = -crouch * 0.6 + bob + breathe * 0.03
   const yLie = (dead > sleep ? DEAD.y : SLEEP.y) + breathe * 0.05 * (1 - dead)
   root.position.set(0, yNorm + (yLie - yNorm) * lie, 0)
-  setRot(root, 0, 0, dead * DEAD.roll)
-  // pinggul: mendongak saat berdiri di kaki belakang
-  setRot(b('hips'), -rear * 0.55 + (p.bodyPitch || 0), (p.bend || 0) * 0.08, 0)
-  setRot(b('spine'), -rear * 0.12 + breathe * 0.012, (p.bend || 0) * 0.14, 0)
-  setRot(b('chest'), -rear * 0.1 - breathe * 0.015, (p.bend || 0) * 0.12, 0)
+  const sway = Math.sin(ph) * g * (1 - lie)
+  const shift = (Math.sin(t * 0.43) * 0.6 + Math.sin(t * 0.17 + 1.3) * 0.4) * idle
+  setRot(root, (p.airPitch || 0) * (1 - lie), 0, dead * DEAD.roll + (p.bank || 0) * (1 - lie) + sway * 0.03 + shift * 0.02)
+  // pinggul: mendongak saat berdiri di kaki belakang; bahu & pinggul berayun berlawanan saat melangkah
+  const bend = p.bend || 0
+  setRot(b('hips'), -rear * 0.55 + (p.bodyPitch || 0), bend * 0.08 + sway * 0.05, 0)
+  setRot(b('spine'), -rear * 0.12 + breathe * 0.012, bend * 0.14 - sway * 0.015, 0)
+  setRot(b('chest'), -rear * 0.1 - breathe * 0.015, bend * 0.12 - sway * 0.04, 0)
 
-  // leher & kepala: angkat/toleh dibagi rata ke empat ruas
-  const lift = p.neckLift || 0
-  const yaw = p.neckYaw || 0
-  for (const [i, n] of ['neck1', 'neck2', 'neck3', 'neck4'].entries()) setRot(b(n), -lift / 4 + rear * (i === 0 ? 0.2 : 0), yaw / 4, 0, 'YXZ')
-  setRot(b('head'), (p.headPitch || 0) + lift * 0.35 - rear * 0.15, 0, 0, 'YXZ')
+  // leher & kepala: angkat dibagi rata, toleh makin besar ke arah kepala; mengangguk kecil seirama langkah
+  // sementara kepala menahan diri tetap datar; saat diam kepala menoleh & mengangkat pelan sendiri
+  const lift = (p.neckLift || 0) + idle * (Math.sin(t * 0.29) * 0.06 + 0.04)
+  const look = idle * (Math.sin(t * 0.37) * 0.16 + Math.sin(t * 0.83 + 1) * 0.06)
+  const yaw = (p.neckYaw || 0) + (p.neckLead || 0) + look
+  const nod = Math.sin(2 * ph - 0.6) * 0.035 * g * (1 - lie)
+  for (const [i, n] of ['neck1', 'neck2', 'neck3', 'neck4'].entries()) setRot(b(n), -lift / 4 + rear * (i === 0 ? 0.2 : 0) + (i < 2 ? nod : 0), yaw * NECK_YAW[i], 0, 'YXZ')
+  setRot(b('head'), (p.headPitch || 0) + lift * 0.35 - rear * 0.15 - nod * 1.6 + idle * Math.sin(t * 0.51) * 0.04, 0, 0, 'YXZ')
   setRot(b('jaw'), (p.jaw || 0) * 0.7, 0, 0)
 
-  // ekor: goyang pelan, sapuan saat menyerang
+  // ekor: gelombang pelan yang merambat ke ujung, seirama langkah saat berjalan, ayunan susulan saat
+  // berbelok (tailYaw), sapuan saat menyerang
+  const ty = p.tailYaw
   for (let i = 1; i <= 7; i++) {
-    const sway = Math.sin(t * 1.1 - i * 0.55) * 0.05 * (1 + gait * 0.8)
+    const sway2 = Math.sin(t * 1.1 - i * 0.55) * 0.05 * (1 + idle * 0.6) + Math.sin(ph - i * 0.6) * 0.07 * g
     const curl = (p.tailCurl || 0) * 0.32
     const swing = (p.tailSwing || 0) * (0.06 + i * 0.03)
-    const lifted = (p.tailLift || 0) * (i < 3 ? 0.15 : 0.05) + rear * (i === 1 ? 0.5 : i < 4 ? 0.12 : 0.04) - tuck * 0.04
-    setRot(b(`tail${i}`), lifted, sway + curl + swing, 0)
+    const lifted = (p.tailLift || 0) * (i < 3 ? 0.15 : 0.05) + rear * (i === 1 ? 0.5 : i < 4 ? 0.12 : 0.04) - tuck * 0.04 + Math.sin(ph * 2 - i * 0.7) * 0.012 * g
+    setRot(b(`tail${i}`), lifted, sway2 + curl + swing + (ty ? ty[i - 1] : 0), 0)
   }
 
-  // kaki: langkah urutan samping (kiri depan, kanan belakang, kanan depan, kiri belakang)
-  const amp = gait > 1.2 ? 0.5 : 0.3
+  // kaki: langkah urutan samping (kiri depan, kanan belakang, kanan depan, kiri belakang); kaki terangkat
+  // dengan lengkung halus (mulai & berhenti pelan), langkah makin panjang saat berlari
+  const amp = 0.3 + 0.2 * run
   const LEGS = [['Fl', 0], ['Hr', 0.25], ['Fr', 0.5], ['Hl', 0.75]]
   for (const [id, off] of LEGS) {
     const front = id[0] === 'F'
     const k = id[1]
-    const th = (p.phase || 0) + off * Math.PI * 2
-    const g = Math.min(1, gait)
+    const th = ph + off * Math.PI * 2
     const swing = -Math.sin(th) * amp * g * (front ? 1 : 0.75)
-    const liftK = Math.max(0, Math.cos(th)) * g
+    const c = Math.max(0, Math.cos(th))
+    const liftK = c * c * (3 - 2 * c) * g
     const up = b(front ? `upperF${k}` : `upperH${k}`)
     const lo = b(front ? `lowerF${k}` : `lowerH${k}`)
     const ft = b(front ? `footF${k}` : `footH${k}`)
@@ -901,18 +928,25 @@ export function applyPose(bones, rest, p) {
   if (dead > 0) towardPreset(bones, DEAD, dead)
 
   // sayap: pose terlipat (FOLD, dihitung sekali) ↔ terbentang (bind), lalu kepak di bahu (sumbu z
-  // badan) dengan jeda di siku & jari; roboh = terkulai ke lantai
+  // badan); siku & pergelangan menyusul dengan jeda fase sehingga kepakan bergelombang ke ujung sayap;
+  // terlipat pun sayap ikut bernapas & bergeser sedikit seirama langkah; roboh = terkulai ke lantai
+  const fa = p.flapAmp
+  const fp = p.flapPhase || 0
+  const flapS = fa !== undefined ? fa * Math.sin(fp) : p.flap || 0
+  const flapE = fa !== undefined ? fa * 0.5 * Math.sin(fp - 0.75) : (p.flap || 0) * 0.35
+  const flapW = fa !== undefined ? fa * 0.4 * Math.sin(fp - 1.4) : (p.flap || 0) * 0.2
+  const alive = 1 - lie
   for (const [s, k] of SIDES) {
     const f = FOLD[k]
     const sp = Math.min(1, Math.max(0, spread))
-    const raise = (p.wingRaise || 0) + flap - dead * 0.38 - sleep * 0.15
+    const raise = (p.wingRaise || 0) + flapS - dead * 0.38 - sleep * 0.15 + (breathe * 0.025 + sway * s * 0.03) * alive
     QA.copy(f.hum).slerp(ID, sp)
     QB.setFromAxisAngle(AX_Z, s * raise)
     b(`hum${k}`).quaternion.copy(QB).multiply(QA)
     QA.copy(f.fore).slerp(ID, sp)
-    QB.setFromAxisAngle(AX_Z, s * (flap * 0.35 - dead * 0.25))
+    QB.setFromAxisAngle(AX_Z, s * (flapE - dead * 0.25))
     b(`fore${k}`).quaternion.copy(QA).multiply(QB)
-    QB.setFromAxisAngle(AX_Z, s * flap * 0.2)
+    QB.setFromAxisAngle(AX_Z, s * flapW)
     b(`hand${k}`).quaternion.copy(QB)
     for (const n of ['f1', 'f2', 'f3']) b(`${n}${k}`).quaternion.copy(f[n]).slerp(ID, sp)
   }
