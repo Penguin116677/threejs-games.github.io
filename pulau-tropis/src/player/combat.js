@@ -73,12 +73,14 @@ export function createCombat(body) {
     const len = body.clipLength(clip)
     move = { name, t: 0, dur: len ? len / speed : FALLBACK, hitAt: len ? hit / speed : FALLBACK * 0.55, struck: false }
     body.playClip(clip, speed)
+    emit('ayun', { swing: name }) // awal ayunan (efek suara desing)
   }
   // mulai satu cincangan (dipakai Cincang & Putar)
   function chop() {
     move.t = 0
     move.struck = false
     body.playClip('attack-melee-right', CHOP.speed, CHOP.from)
+    emit('ayun', { swing: 'cincang' })
   }
 
   // mulai 'pukul' (kombo) atau jurus; false bila tidak bisa (jurus belum siap, tidak ada sasaran)
@@ -102,6 +104,7 @@ export function createCombat(body) {
         body.launch(f.x * PLUNGE.forward, PLUNGE.up, f.z * PLUNGE.forward)
         move = { name: 'hentak', phase: 'naik', t: 0 }
         body.pose('attack-melee-right', 0.16) // pedang terangkat tinggi
+        emit('ayun', { swing: 'hentak-naik' })
       } else {
         const targets = arena.pickTargets(body.pos.x, body.pos.z, EXEC.range, EXEC.max)
         if (!targets.length) {
@@ -143,6 +146,7 @@ export function createCombat(body) {
       const len = body.clipLength('attack-melee-right')
       Object.assign(move, { phase: 'putar', t: 0, struck: false, h0: body.heading })
       body.playClip('attack-melee-right', len ? len / SPIN.time : 1)
+      emit('ayun', { swing: 'putar' })
     } else Object.assign(move, { phase: 'pulih', t: 0 })
   }
 

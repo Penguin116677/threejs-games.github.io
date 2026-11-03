@@ -340,6 +340,36 @@ body {
   background: #1f9c8a;
 }
 
+/* suara: tombol bisu + penggeser volume dalam satu baris */
+.suara-baris {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+#panel-pengaturan .suara-baris button {
+  flex: 0 0 auto;
+  text-align: center;
+  font-size: 14px;
+  padding-left: 12px;
+  padding-right: 12px;
+}
+
+#panel-pengaturan .suara-baris button.aktif {
+  background: #8a3b3b;
+}
+
+#suara-volume {
+  flex: 1 1 auto;
+  min-width: 0;
+  accent-color: #1f9c8a;
+  height: 28px;
+}
+
+#suara-volume:disabled {
+  opacity: 0.4;
+}
+
 #panel-pengaturan button.tutup {
   text-align: center;
   background: transparent;

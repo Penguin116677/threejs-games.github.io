@@ -1,4 +1,18 @@
 import * as THREE from 'three'
+import { suara } from '../audio/suara.js'
+
+// suara orang yang berbicara (bukan kata-kata, suku kata bergumam): nada menurut pembicara —
+// prajurit rendah, warga Kencana / Frostfall beragam, elf lebih tinggi & lembut; anak-anak tinggi
+function voiceOf(key) {
+  const k = String(key ?? '')
+  let h = 0
+  for (let i = 0; i < k.length; i++) h = (h * 31 + k.charCodeAt(i)) >>> 0
+  const r = (h % 1000) / 1000
+  if (k.startsWith('pemain')) return { nada: 165, laju: 1.05 }
+  if (k.startsWith('p')) return { nada: 105 + r * 45, laju: 1.1 } // prajurit
+  if (k.startsWith('elf')) return { nada: 165 + r * 95, laju: 0.95 }
+  return { nada: 115 + r * 120, laju: 1 + r * 0.2 } // warga Kencana (v…) & Frostfall (warga…)
+}
 
 // Tampilan untuk penjagaan kerajaan:
 // - gelembung ucapan di atas kepala (teks yang mengikuti titik 3D di layar): seruan prajurit,
@@ -33,6 +47,11 @@ export function createBubbles(container, camera) {
       b.el.textContent = teks
       b.el.hidden = false
       b.el.classList.remove('pudar')
+      const at = anchor()
+      if (at) {
+        const v = voiceOf(key)
+        suara.play('bicara', { at, nada: v.nada, laju: v.laju, suku: Math.max(2, Math.min(12, Math.round(teks.length / 6))) })
+      }
     },
     // teks gelembung yang sedang tampil (untuk pengujian)
     get texts() {

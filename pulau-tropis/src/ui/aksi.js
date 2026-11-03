@@ -2,6 +2,7 @@
 // Naik perahu, Turun, Mancing / Tarik!, Buat perahu, Bicara, Panjat, Ajak, Duel, Buka peti, Pintu rahasia, …
 // Elemennya dibuat sekali; set() hanya menulis ulang isinya bila teks/keadaannya berubah (dipanggil tiap
 // frame tanpa membebani DOM).
+import { suara } from '../audio/suara.js'
 
 // ikon SVG 24 × 24 (UI tidak memakai huruf/emoji sebagai ikon)
 const svg = body => `<svg viewBox="0 0 24 24" aria-hidden="true">${body}</svg>`
@@ -34,6 +35,7 @@ export function createActionButton(container, { id, icon, cls = '' }, onPress) {
   container.appendChild(b)
   b.addEventListener('click', e => {
     e.stopPropagation()
+    suara.play('klik')
     onPress()
   })
   let shown = ''

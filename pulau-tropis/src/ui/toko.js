@@ -1,5 +1,6 @@
 import { BARANG, PAKAIAN, KATALOG, NAMA_KIOS, IKAN, efekTeks } from '../world/aeloria/ekonomi.js'
 import { ikonBarang, IKON_KOIN, IKON_TAS } from './ikon.js'
+import { suara } from '../audio/suara.js'
 
 // Belanja di Aeloria: koin di HUD, tombol Belanja di dekat kios, panel toko (daftar barang, stok,
 // harga; Kios Ikan Bakar juga membeli ikan hasil memancing) dan panel Tas (makan / minum / ramuan /
@@ -102,6 +103,7 @@ export function createShop({ life, bag, player, bubbles, message, maxHp, wanted 
       return
     }
     const r = life.economy.sell(s, id, bag)
+    suara.play(r.ok ? 'koin' : 'ditolak', { n: 3 })
     el.tokoPesan.textContent = r.ok ? `${BARANG[id].nama} terjual: +${r.koin} koin. Pedagang membakarnya untuk dijual lagi.` : r.alasan
     if (r.ok) sayThanks(s)
     renderShop(true)
@@ -137,6 +139,7 @@ export function createShop({ life, bag, player, bubbles, message, maxHp, wanted 
       return
     }
     const r = life.economy.buy(s, id, bag)
+    suara.play(r.ok ? 'beli' : 'ditolak')
     if (!r.ok) {
       el.tokoPesan.textContent = bag.koin < b.harga ? `${r.alasan} Kalahkan orc untuk mendapat koin.` : r.alasan
       return
@@ -211,6 +214,7 @@ export function createShop({ life, bag, player, bubbles, message, maxHp, wanted 
     if (!b) return
     if (PAKAIAN.includes(b.jenis)) {
       bag.kenakan(id)
+      suara.play('pakai')
       el.tasPesan.textContent = bag.pakai[b.jenis] === id ? `${b.nama} dipakai.` : `${b.nama} dilepas.`
       return
     }
@@ -221,6 +225,7 @@ export function createShop({ life, bag, player, bubbles, message, maxHp, wanted 
     if (player.defeated) return
     const r = bag.gunakan(id)
     if (!r) return
+    suara.play(b.jenis === 'makanan' || b.jenis === 'ikan' ? 'makan' : 'minum')
     if (r.pulih) player.heal(r.pulih)
     el.tasPesan.textContent = r.kuat ? `Seranganmu menguat selama ${r.kuat} detik!` : r.cepat ? `Langkahmu menjadi ringan selama ${r.cepat} detik!` : `${b.nama} memulihkan ${r.pulih} nyawa.`
   }
@@ -281,6 +286,7 @@ export function createShop({ life, bag, player, bubbles, message, maxHp, wanted 
     // hadiah koin (mis. mengalahkan orc): angka "+n" melayang di dekat koin HUD
     reward(n) {
       bag.dapat(n)
+      suara.play('koin', { n: Math.min(5, 1 + Math.floor(n / 15)) })
       this.toast(`+${n}`)
     },
     // tulisan kecil yang melayang di dekat koin HUD (mis. "+1 kayu")

@@ -1,5 +1,6 @@
 import * as THREE from 'three'
 import { clone as cloneSkinned } from 'three/addons/utils/SkeletonUtils.js'
+import { sfx } from '../audio/suara.js'
 
 // Musuh: orc berkulit hijau, bertaring, berbahu duri (tokoh/rupa.js) di atas rangka & animasi Kenney
 // "Mini Dungeon" 2.0 (CC0) — rig & animasi sama persis dengan prajurit; badannya 1,2 × lebih besar.
@@ -177,6 +178,7 @@ export function createEnemies({ ground, colliders, nav, asset, spawn, shipMesh =
   }
 
   function kill(e) {
+    if (e.state === 'hidup') sfx('orc-mati', e.pos)
     e.state = 'mati'
     e.deadT = 0
     e.hp = 0
@@ -378,6 +380,7 @@ export function createEnemies({ ground, colliders, nav, asset, spawn, shipMesh =
           R.cd = 1.5 + Math.random() * 0.5
           e.actions.attack.reset()
           play(e, 'attack', 0.05)
+          sfx('orc-serang', e.pos)
         }
         return false
       }
@@ -505,6 +508,7 @@ export function createEnemies({ ground, colliders, nav, asset, spawn, shipMesh =
         e.target = null
         if (e.raid) e.raid.target = ME
         if (e.hp <= 0) kill(e)
+        else sfx('kena-daging', e.pos)
         out.push({ id: e.id, x: e.pos.x, y: e.pos.y, z: e.pos.z, dead: e.state !== 'hidup' })
       }
       return out
@@ -562,6 +566,7 @@ export function createEnemies({ ground, colliders, nav, asset, spawn, shipMesh =
       e.flash = 0.15
       e.barTime = 4
       if (e.hp <= 0) kill(e)
+      else sfx('kena-daging', e.pos)
     },
     setFoes(f) {
       foes = f
@@ -666,10 +671,13 @@ export function createEnemies({ ground, colliders, nav, asset, spawn, shipMesh =
           } else if (e.raid) {
             if (e.raid.delay <= 0) raidMove = stepRaider(e, dt, pp)
           } else if (dist < ALERT) {
-            // waspada: berhenti dan menghadap prajurit
+            // waspada: berhenti dan menghadap prajurit (menggeram sekali saat mulai waspada)
+            if (!e.growled) sfx('orc-geram', e.pos)
+            e.growled = true
             turn(e, Math.atan2(-dx, -dz), dt)
             e.target = null
           } else if (e.target) {
+            if (dist > ALERT + 5) e.growled = false
             const tx = e.target.x - e.pos.x
             const tz = e.target.z - e.pos.z
             const td = Math.hypot(tx, tz)
@@ -683,6 +691,7 @@ export function createEnemies({ ground, colliders, nav, asset, spawn, shipMesh =
               moving = true
             }
           } else if ((e.wait -= dt) <= 0) {
+            if (dist > ALERT + 5) e.growled = false
             e.target = pickWander(e)
             e.wait = 2
           }

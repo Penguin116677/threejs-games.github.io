@@ -1,5 +1,6 @@
 import * as THREE from 'three'
 import { createDragonModel, JOINTS, UKURAN } from './naga-model.js'
+import { sfx } from '../../audio/suara.js'
 
 // Naga Es — penjaga Gua Gletser Utara (v0.24.0, dari lembar desain pengguna "Cryo Dragon").
 // Tidur meringkuk melingkari peti harta di Ruang Air Terjun Beku; peti terbungkus segel es selama naga
@@ -537,6 +538,10 @@ export function createNaga({ plan, chest, ground, noiseTexture }) {
         // ancang-ancang: kepala ditarik ke belakang, rahang terbuka → menyambar
         const w = SK.gigit.windup
         turnToward(p, dt, 0.8)
+        if (!a.snd && a.t >= w - 0.12) {
+          a.snd = true
+          sfx('naga-gigit', mouth)
+        }
         if (a.t < w) {
           tgt.neckLift = 0.45
           tgt.headPitch = -0.2
@@ -570,6 +575,10 @@ export function createNaga({ plan, chest, ground, noiseTexture }) {
       case 'ekor': {
         // badan memutar, ekor menyapu dari satu sisi ke sisi lain di belakang
         const w = SK.ekor.windup
+        if (!a.snd && a.t >= w - 0.05) {
+          a.snd = true
+          sfx('naga-ekor', HIT[7].p)
+        }
         if (a.t < w) {
           tgt.tailSwing = -a.side * 2.2
           tgt.bend = a.side * 0.7
@@ -623,6 +632,8 @@ export function createNaga({ plan, chest, ground, noiseTexture }) {
             a.marks.push({ x, z, y: ground.heightAt(x, z) })
           }
           for (const m of a.marks) rings.spawn('tanda', m.x, m.y, m.z, SK.ledak.r, SK.ledak.r, SK.ledak.delay)
+          sfx('naga-aum', mouth, { kecil: true })
+          sfx('naga-tanda', a.marks[0])
           event('aum', { kecil: true })
         }
         if (a.marks && !a.blown && a.t > w + SK.ledak.delay) {
@@ -659,6 +670,14 @@ export function createNaga({ plan, chest, ground, noiseTexture }) {
     a.aim.z += clamp(p.z - a.aim.z, -sweep * 2.2, sweep * 2.2)
     a.aim.y = p.y + 0.6
     if (!airborne) turnToward(a.aim, dt, 0.5)
+    if (!a.sndIn) {
+      a.sndIn = true
+      sfx('naga-isi', mouth)
+    }
+    if (!a.sndOut && a.t >= w) {
+      a.sndOut = true
+      sfx('naga-hembus', mouth, { lama: SK.hembus.dur - w - 0.3 })
+    }
     // arahkan leher & kepala ke sasaran
     const dx = a.aim.x - st.x
     const dz = a.aim.z - st.z
@@ -729,6 +748,10 @@ export function createNaga({ plan, chest, ground, noiseTexture }) {
   // Mengaum: berdiri di kaki belakang, sayap terangkat; gelombang kejut mendorong pemain menjauh
   function roar(dt, player, a) {
     turnToward(player.position, dt, 0.9)
+    if (!a.snd && a.t > 0.35) {
+      a.snd = true
+      sfx('naga-aum', mouth)
+    }
     tgt.rear = a.t < 1.8 ? 0.8 : 0
     tgt.spread = a.t < 1.9 ? 1 : 0.15
     tgt.wingRaise = a.t < 1.9 ? 0.55 : 0
@@ -752,6 +775,7 @@ export function createNaga({ plan, chest, ground, noiseTexture }) {
 
   // semburan kristal es di satu titik (Ledakan Es, hentakan mendarat); big: besar kristal
   function eruption(x, y, z, big) {
+    if (big >= 1) sfx('es-pecah', { x, y, z })
     spikes.spawn(x, y - 0.2, z, 3.6 * big + Math.random() * 1.2, 0.55 * big, 0.08, Math.random() * 6, 1.3)
     const n = 6
     for (let i = 0; i < n; i++) {
@@ -784,6 +808,7 @@ export function createNaga({ plan, chest, ground, noiseTexture }) {
       }
       if (!a.gust && a.t > 0.6) {
         a.gust = true
+        sfx('naga-kepak', { x: st.x, y: gy + 2, z: st.z }, { kuat: 1.5 })
         rings.spawn('gelombang', st.x, gy, st.z, 3, 18, 0.8)
         for (let i = 0; i < 36; i++) {
           const an = Math.random() * Math.PI * 2
@@ -862,6 +887,7 @@ export function createNaga({ plan, chest, ground, noiseTexture }) {
         }
         const d = Math.hypot(p.x - st.x, p.z - st.z)
         if (d < SK.hentak.r && playerY(player) < y + 3) hurt(player, SK.hentak.dmg, { x: st.x, z: st.z }, SK.hentak.push)
+        sfx('naga-hentak', { x: st.x, y, z: st.z })
         event('hentak')
       }
       if (a.t > 1.15) {
@@ -887,7 +913,16 @@ export function createNaga({ plan, chest, ground, noiseTexture }) {
       vel[key] = (v + hoo * (tgt[key] - x)) * inv
     }
     for (const key of Object.keys(snap)) delete snap[key]
-    if (cur.flapAmp > 0.005) flapPhase += flapRate * dt
+    if (cur.flapAmp > 0.005) {
+      const before = Math.floor(flapPhase / (Math.PI * 2) + 0.25)
+      flapPhase += flapRate * dt
+      // kepak ke bawah (sayap melewati titik tertinggi): desau angin sayap
+      if (Math.floor(flapPhase / (Math.PI * 2) + 0.25) !== before && cur.flapAmp > 0.2) sfx('naga-kepak', chestPos(), { kuat: Math.min(1.2, cur.flapAmp * 1.4) })
+    }
+    // langkah kaki: empat kaki per putaran fase langkah (saat berjalan / berlari di tanah)
+    const q = Math.floor(st.phase / (Math.PI / 2))
+    if (q !== st.stepQ && cur.gait > 0.3 && st.flyY < 0.3 && cur.sleep < 0.5) sfx('naga-langkah', { x: st.x, y: ground.heightAt(st.x, st.z), z: st.z }, { kuat: Math.min(1.2, 0.5 + cur.gait * 0.35) })
+    st.stepQ = q
     breathPh += dt * (1.3 - cur.sleep * 0.6)
     model.pose({
       ...cur,
@@ -926,6 +961,7 @@ export function createNaga({ plan, chest, ground, noiseTexture }) {
   function wake(reason) {
     if (st.state !== 'tidur' && st.state !== 'rebah') return
     setState('bangun')
+    sfx('naga-geram', chestPos())
     event('bangun', { reason })
   }
 
@@ -1117,6 +1153,7 @@ export function createNaga({ plan, chest, ground, noiseTexture }) {
   function damageBy(amount) {
     if (st.state === 'kalah') return
     st.hp = Math.max(0, st.hp - amount)
+    if (st.hp > 0 && elapsed - st.lastHit > 0.25) sfx('naga-kena', chestPos())
     flash = 0.55
     st.lastHit = elapsed
     if (st.state === 'tidur' || st.state === 'rebah' || st.state === 'pulang')
@@ -1134,6 +1171,8 @@ export function createNaga({ plan, chest, ground, noiseTexture }) {
     breathGlow = 0
     const wasSealed = st.sealed
     st.sealed = false
+    sfx('naga-kalah', chestPos())
+    if (seal && seal.group.visible) sfx('segel-pecah', seal.group.position)
     if (seal && seal.group.visible) {
       // segel es pecah
       const c = seal.group.position

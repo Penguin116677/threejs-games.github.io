@@ -7,6 +7,7 @@ import { ISLAND } from '../island.js'
 import { buildRoutes } from './routes.js'
 import { TEGAL } from './layout.js'
 import { zoneAt } from './wilayah.js'
+import { sfx } from '../../audio/suara.js'
 
 // Prajurit Kerajaan Kencana yang bertugas (di luar 25.000 prajurit yang berbaris di Tegal Wira):
 // - PERONDA: berpasangan (satu bertombak, satu berpedang & berperisai) menyusuri jalan di semua
@@ -439,6 +440,7 @@ export function createSoldiers({ ground, colliders, nav, plan, spots, quality, s
       a.swim = true
       a.path = null
       onWater(a.x, a.z, 1.6, a.vy < -4 ? 0.9 : 0.5) // byur
+      sfx('cebur', { x: a.x, y: ISLAND.seaLevel, z: a.z }, { besar: a.vy < -4 ? 1.2 : 0.7 })
     }
     if (a.swim) {
       const wy = ISLAND.seaLevel - SWIM.sink + Math.sin(clock * 2.3 + a.id) * 0.035
@@ -447,6 +449,7 @@ export function createSoldiers({ ground, colliders, nav, plan, spots, quality, s
       if (a.moved > 0.3 && (a.rippleT -= dt) <= 0) {
         a.rippleT = 0.45
         onWater(a.x, a.z, 1.1, 0.35)
+        sfx('renang', { x: a.x, y: ISLAND.seaLevel, z: a.z }, { kuat: 0.6 })
       }
     } else if (a.y > gy + 0.02) {
       // jatuh (melangkah keluar dari dek / batur)
@@ -620,6 +623,7 @@ export function createSoldiers({ ground, colliders, nav, plan, spots, quality, s
       return
     }
     a.hp = 0
+    sfx('prajurit-roboh', a)
     a.state = 'roboh'
     a.order = null
     a.atk = null
@@ -643,6 +647,7 @@ export function createSoldiers({ ground, colliders, nav, plan, spots, quality, s
   function damage(a, amount, from, knock = 2.5) {
     if (a.state === 'roboh' || a.state === 'hilang') return
     a.hp -= amount
+    if (a.hp > 0) sfx('kena-logam', a)
     a.flash = 0.15
     a.barT = 5
     a.stagger = a.duel ? 0.08 : 0.3
@@ -892,7 +897,10 @@ export function createSoldiers({ ground, colliders, nav, plan, spots, quality, s
     if (!atk.hit && atk.t >= ATTACK.hit) {
       atk.hit = true
       if (atk.release) atk.release(a)
-      else if (tp && d <= types[a.type].reach + extra) onStrike(a, target, types[a.type].damage * (a.duel ? 1.5 : 1))
+      else {
+        sfx('prajurit-serang', a)
+        if (tp && d <= types[a.type].reach + extra) onStrike(a, target, types[a.type].damage * (a.duel ? 1.5 : 1))
+      }
     }
     if (atk.t >= ATTACK.dur && a.atk === atk) a.atk = null
   }

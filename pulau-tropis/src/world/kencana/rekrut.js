@@ -1,4 +1,5 @@
 import { PLAYER } from './keamanan.js'
+import { sfx, suara } from '../../audio/suara.js'
 
 // Mengajak prajurit Kencana menjadi ANAK BUAH pemain; yang menolak bisa ditantang DUEL satu lawan
 // satu — yang kalah menjadi anak buah yang menang (permintaan pengguna, v0.18.0).
@@ -131,6 +132,7 @@ export function createRecruits({ soldiers, security, player, enemies = null, bag
       soldiers.watch(s, { x: cx + Math.sin(ang) * r, z: cz + Math.cos(ang) * r, cx, cz })
     })
     duel = { a, cx, cz, watchers, t: 0 }
+    sfx('duel-mulai', a)
     soldiers.setDuel(a, true, DUEL.hp)
     soldiers.command(a, { do: 'serang', target: PLAYER })
     security.pause(true, DUEL.floor)
@@ -150,6 +152,7 @@ export function createRecruits({ soldiers, security, player, enemies = null, bag
       else soldiers.release(w.a)
     }
     security.pause(false)
+    if (result !== 'lari') suara.play(result === 'menang' ? 'menang' : 'kalah')
     if (result === 'menang') {
       soldiers.gesture(a, 'yes')
       say(a, pick(MENYERAH), 3200)

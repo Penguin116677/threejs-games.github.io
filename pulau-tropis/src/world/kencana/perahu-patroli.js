@@ -1,4 +1,5 @@
 import * as THREE from 'three'
+import { sfx } from '../../audio/suara.js'
 import { ISLAND } from '../island.js'
 import { insideWorld } from '../world.js'
 import { Heap } from '../navgrid.js'
@@ -294,6 +295,7 @@ export function createPatrolBoats({ boats, soldiers, security, player, boat, gro
     s.vy = (ty - y0 + 0.5 * GRAVITY * T * T) / T
     s.dir.set(s.vx, s.vy, s.vz).normalize()
     thrown++
+    sfx('tombak-lempar', a)
   }
 
   const _m = new THREE.Matrix4()
@@ -331,9 +333,11 @@ export function createPatrolBoats({ boats, soldiers, security, player, boat, gro
           s.y = top
           if (floor < ISLAND.seaLevel - 0.15) {
             ripples?.spawn(s.x, s.z, 0.9, 0.7)
+            sfx('kail-plung', s)
             s.state = 'tenggelam'
             s.hold = 0.7
           } else {
+            sfx('tombak-tancap', s)
             s.state = 'tancap'
             s.hold = 2.5
           }

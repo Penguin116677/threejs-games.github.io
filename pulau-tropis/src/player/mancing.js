@@ -1,6 +1,7 @@
 import * as THREE from 'three'
 import { ISLAND } from '../world/island.js'
 import { BARANG } from '../world/aeloria/ekonomi.js'
+import { sfx } from '../audio/suara.js'
 
 // Memancing: berdiri di tepi air (pantai, dermaga, air dangkal) atau duduk di perahu, menghadap air
 // yang cukup dalam, dengan pancing di Tas (dibuat dari kayu). Lempar kail → pelampung terapung →
@@ -106,6 +107,7 @@ export function createFishing({ ground, player, bag, ripples, message, rand = Ma
         return false
       }
       Object.assign(S, { state: 'lempar', t: 0, x: at.x, z: at.z, depth: at.depth })
+      sfx('kail-lempar', player.position)
       player.stop()
       player.setPose('holding-right')
       player.gesture('interact-right', THROW)
@@ -118,6 +120,8 @@ export function createFishing({ ground, player, bag, ripples, message, rand = Ma
       if (S.state === 'sambar') {
         const id = fishFor(S.depth, rand)
         bag.terima(id)
+        sfx('kail-tarik', { x: S.x, y: ISLAND.seaLevel, z: S.z })
+        sfx('ikan-dapat')
         ripples.spawn(S.x, S.z, 1.8, 0.7)
         player.gesture('emote-yes', 1.0)
         message(`Dapat ${BARANG[id].nama}! Masuk ke Tas — bisa dimakan atau dijual di Kios Ikan Bakar Aeloria.`, 3200)
@@ -125,6 +129,7 @@ export function createFishing({ ground, player, bag, ripples, message, rand = Ma
         return id
       }
       if (S.state === 'tunggu') {
+        sfx('ikan-lepas')
         message('Terlalu cepat — ikannya belum menyambar.', 1600)
         stop()
       }
@@ -150,6 +155,7 @@ export function createFishing({ ground, player, bag, ripples, message, rand = Ma
         updateLine(0.1)
         if (k >= 1) {
           ripples.spawn(S.x, S.z, 1.2, 0.6)
+          sfx('kail-plung', { x: S.x, y: wy, z: S.z })
           S.state = 'tunggu'
           S.t = 0
           S.wait = WAIT[0] + rand() * (WAIT[1] - WAIT[0])
@@ -168,6 +174,7 @@ export function createFishing({ ground, player, bag, ripples, message, rand = Ma
           S.state = 'sambar'
           S.t = 0
           ripples.spawn(S.x, S.z, 1.4, 0.8)
+          sfx('ikan-sambar', { x: S.x, y: wy, z: S.z })
           try {
             navigator.vibrate?.([60, 40, 90])
           } catch {
@@ -184,6 +191,7 @@ export function createFishing({ ground, player, bag, ripples, message, rand = Ma
         ripples.spawn(S.x, S.z, 0.9, 0.6)
       }
       if (S.t >= BITE) {
+        sfx('ikan-lepas')
         message('Ikannya lepas… tekan Tarik! begitu pelampung tertarik ke bawah.', 2600)
         stop()
       }

@@ -3,6 +3,7 @@ import { rng } from '../../core/random.js'
 import { WARNA, BAGIAN, packDye, FADE } from './elf.js'
 import { CITADEL } from './layout.js'
 import { createEconomy, NAMA_KIOS } from './ekonomi.js'
+import { sfx } from '../../audio/suara.js'
 
 // Kehidupan Aeloria: 10.000 kesatria elf + ratusan penduduk yang masing-masing punya pikiran sendiri.
 //
@@ -1243,6 +1244,7 @@ export function createLife({ ground, plan, routes, folk, quality, free = () => t
     decide(a)
   }
   function knockDown(a, seconds) {
+    sfx('prajurit-roboh', a)
     if (a.phase !== 'tempur') grab(a, 'roboh')
     settle(a)
     a.act = 'roboh'

@@ -1,4 +1,5 @@
 import { CITADEL, SELAT_Z } from './layout.js'
+import { sfx } from '../../audio/suara.js'
 
 // Penjagaan Aeloria. Kota bebas & kawasan kesatria adalah zona damai (DECISIONS #49): pemain boleh
 // berjalan, berbelanja, dan menonton tanpa diganggu.
@@ -277,6 +278,7 @@ export function createElfSecurity({ life, player, bubbles, message, nav, collide
       attackers.add(a)
     }
     a.hp -= damage
+    sfx(a.kind === 'kesatria' ? 'kena-logam' : 'kena-daging', a)
     a.stagger = 0.4
     const dx = a.x - from.x
     const dz = a.z - from.z
@@ -327,6 +329,7 @@ export function createElfSecurity({ life, player, bubbles, message, nav, collide
       atk.t += dt
       if (!atk.hit && atk.t >= ATTACK.hit) {
         atk.hit = true
+        sfx(a.weap === 'busur' ? 'panah' : 'prajurit-serang', a)
         if (d <= G.reach + 0.5 && !player.defeated) player.damage(G.damage, a)
       }
       if (atk.t >= ATTACK.dur && a.atk === atk) {
@@ -486,7 +489,10 @@ export function createElfSecurity({ life, player, bubbles, message, nav, collide
         b.swapT = between(0.9, 1.4)
         if (Math.random() < 0.25) say(att, pick(SERU.adu), 1600)
       }
-      if (b.hitT > 0 && (b.hitT -= dt) <= 0 && b.def && !gone(b.def)) life.mode(b.def, 'lawan', 'kena', true)
+      if (b.hitT > 0 && (b.hitT -= dt) <= 0 && b.def && !gone(b.def)) {
+        life.mode(b.def, 'lawan', 'kena', true)
+        sfx('kena-daging', b.def, { kuat: 0.7 })
+      }
       // kesatria terdekat datang melerai
       if (!b.knight && b.t > b.knightAt) {
         const k = life.around(b.cx, b.cz, 60).filter(a => a.kind === 'kesatria' && !busy(a) && !a.hidden).sort((p, q) => Math.hypot(p.x - b.cx, p.z - b.cz) - Math.hypot(q.x - b.cx, q.z - b.cz))[0]

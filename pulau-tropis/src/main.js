@@ -59,6 +59,9 @@ import { createGear } from './player/perlengkapan.js'
 import { createBoat, KAYU_PERAHU } from './player/perahu.js'
 import { createFishing, KAYU_PANCING } from './player/mancing.js'
 import { createRipples } from './player/riak.js'
+import { suara, sfx } from './audio/suara.js'
+import { createAmbience } from './audio/suasana.js'
+import { createPlayerSounds } from './audio/pemain.js'
 
 const $ = id => document.getElementById(id)
 
@@ -90,7 +93,11 @@ const nextFrame = () => new Promise(r => requestAnimationFrame(() => setTimeout(
 const LABEL = { rendah: 'Rendah', sedang: 'Sedang', tinggi: 'Tinggi' }
 
 let messageTimer = 0
+let blipT = 0
 function showMessage(teks, ms = 2800) {
+  const now = performance.now()
+  if (now - blipT > 1500) suara.play('pesan')
+  blipT = now
   const el = $('pesan')
   el.textContent = teks
   el.hidden = false
@@ -142,11 +149,32 @@ function setupSettings() {
   })
   $('btn-pengaturan').addEventListener('click', () => {
     panel.hidden = !panel.hidden
+    suara.play(panel.hidden ? 'tutup' : 'buka')
     $('saran').hidden = true
   })
   $('btn-tutup-pengaturan').addEventListener('click', () => {
     panel.hidden = true
+    suara.play('tutup')
   })
+  // suara: volume (0–100) & bisu, tersimpan di browser
+  const vol = $('suara-volume')
+  const mute = $('btn-bisu')
+  const showMute = () => {
+    mute.classList.toggle('aktif', suara.muted)
+    mute.querySelector('b').textContent = suara.muted ? 'Suara mati' : 'Suara hidup'
+    vol.disabled = suara.muted
+  }
+  vol.value = Math.round(suara.volume * 100)
+  vol.addEventListener('input', () => {
+    suara.volume = Number(vol.value) / 100
+  })
+  vol.addEventListener('change', () => suara.play('klik'))
+  mute.addEventListener('click', () => {
+    suara.muted = !suara.muted
+    showMute()
+    suara.play('klik')
+  })
+  showMute()
 }
 
 async function start() {
@@ -377,6 +405,7 @@ async function start() {
   function craftRod() {
     bag.ambil('kayu', KAYU_PANCING)
     bag.terima('pancing')
+    suara.play('buat')
     return 'Pancing jadi! Berdirilah di tepi air (pantai, dermaga, atau di perahu) menghadap laut, lalu tekan Mancing.'
   }
   function craftBoat() {
@@ -388,6 +417,7 @@ async function start() {
     bag.ambil('kayu', KAYU_PERAHU)
     boat.build(spot)
     ripples.spawn(spot.x, spot.z, 3, 0.7)
+    suara.play('perahu-jadi')
     return `Perahu jadi${replaced ? ' (perahu lamamu ditinggalkan)' : ''}! Dekati lalu tekan Naik perahu. Letaknya juga terlihat di Peta.`
   }
   const recipes = [
@@ -419,6 +449,7 @@ async function start() {
     }
     c.n++
     bag.terima('kayu')
+    suara.play('kayu')
     shop.toast(`+1 kayu (${bag.jumlah('kayu')})`)
   }
   // hadiah koin: 6–12 per orc yang dikalahkan
@@ -626,6 +657,7 @@ async function start() {
     shop.close()
     elfCard?.hide()
     boat.board()
+    sfx('perahu-naik', boat.position)
     player.setRide(() => boat.seat())
     cam.lookFrom(boat.heading + Math.PI, false)
     if (!toldBoat)
@@ -638,6 +670,7 @@ async function start() {
     const spot = boat.leave()
     player.setRide(null)
     player.placeAt(spot.x, spot.z, spot.heading)
+    sfx(spot.water ? 'cebur' : 'perahu-turun', player.position)
     if (spot.water) showMessage('Tidak ada daratan di dekat perahu — kamu terjun ke air. Berenanglah, atau naik perahu lagi.', 3000)
   }
   const fishPress = () => (fishing.state ? fishing.pull() : fishing.start())
@@ -689,6 +722,7 @@ async function start() {
     ground.setSurfaces(allSurfaces.filter(s => !s.trapdoor))
     frost.trapdoor.gate.off = true
     cam.shake(0.15)
+    sfx('lempeng-geser', frost.trapdoor)
     showMessage(player.position.y < frost.trapdoor.y - 1
       ? 'Lempeng di atasmu terdorong bergeser… tangga ini naik ke Ruang Singgasana Kastel Frostfall.'
       : 'Lempeng lantai bergeser… tangga rahasia turun ke bawah kastel, menuju gua di dalam gunung.', 3800)
@@ -697,6 +731,7 @@ async function start() {
     const ch = mode === 'main' ? chestNear(player.position) : null
     if (!ch) return
     if (chestSealed(ch)) {
+      sfx('peti-segel', ch)
       showMessage('Peti ini terbungkus segel es Naga Es — kalahkan penjaganya dulu!', 2600)
       return
     }
@@ -707,6 +742,7 @@ async function start() {
       // tidak apa-apa
     }
     frost.openChest(ch.id)
+    sfx('peti-buka', ch)
     shop.reward(ch.koin)
     showMessage(`${ch.pesan} Di dalam peti ada ${ch.koin} koin emas.`, 3600)
   }
@@ -761,15 +797,24 @@ async function start() {
   // serangan: yang terkena (orc → nyawa berkurang & terpental; batang/batu → serpihan) + efeknya
   const effects = createSwingEffects(ground)
   scene.add(effects.object)
+  // desing ayunan menurut gerakannya (Pukul: tebas / tinju / tendang; jurus: cincang, putar, hentak)
+  const SWING_SFX = { tebas: 'tebas', tinju: 'tinju', tendang: 'tendang', cincang: 'cincang', putar: 'putar', 'hentak-naik': 'hentak-naik' }
   player.onAttack(ev => {
+    if (ev.type === 'ayun') {
+      if (SWING_SFX[ev.swing]) sfx(SWING_SFX[ev.swing], player.position)
+      return
+    }
     if (ev.type === 'gagal') {
+      suara.play('ditolak')
       showMessage('Tidak ada musuh dalam jangkauan Penggal (±14 m).', 1800)
       return
     }
     if (ev.type === 'aim') {
+      sfx('penggal-bidik', player.position)
       enemies?.mark(orcIds(ev.targets), true)
       return
     }
+    if (ev.type === 'dash') sfx('penggal-sabet', player.position, { n: ev.path ? ev.path.length - 1 : 1 })
     if (ev.type === 'execute') {
       enemies?.mark(orcIds(ev.targets), false)
       const cut = enemies ? enemies.decapitate(orcIds(ev.targets), player.position) : []
@@ -797,6 +842,7 @@ async function start() {
         if (at) cut.push(at)
       }
       effects.execute(cut, player.position)
+      for (const c of cut.slice(0, 4)) sfx('kena-daging', c, { kuat: 1.3 })
       if (cut.length) cam.shake(0.22)
       return
     }
@@ -824,6 +870,10 @@ async function start() {
       if (elfSec) struck.push(...elfSec.hit(shape, damage, ev.knock, ev.origin))
       if (naga) struck.push(...naga.hit(shape, damage, ev.knock, ev.origin, ev.y))
       const hits = colliders.hitAll(ev.x, ev.z, ev.r, 5)
+      // batang pohon / batu yang kena (orang & hewan berbunyi di modulnya sendiri)
+      const thing = hits.find(o => o.kind === 'pohon') ? 'kena-kayu' : hits.length ? 'kena-batu' : null
+      if (thing) sfx(thing, { x: ev.x, y: ev.y, z: ev.z })
+      if (ev.plant) sfx('hentak-tancap', player.position)
       chopWood(hits)
       effects.attack(ev, hits, struck)
       if (ev.plant) cam.shake(0.4)
@@ -886,6 +936,7 @@ async function start() {
     const elf = elfCard?.pick(tap.x, tap.y)
     const elfStall = elf && elf.job === 'pedagang' && elf.atWork ? shop.stallOf(elf) : null
     if (elf && !elfStall) {
+      suara.play('buka')
       elfCard.show(elf)
       return
     }
@@ -973,6 +1024,28 @@ async function start() {
     patrol = createPatrolBoats({ boats: kencana.boats, soldiers, security, player, boat, ground, bubbles, message: showMessage, ripples })
     scene.add(patrol.object)
   }
+  // efek suara (v0.25.0): suasana tiap wilayah & orang di sekitar, gerak pemain
+  const ambience = createAmbience({
+    ground, frost, frostMask, weather, warga, life, villagers, soldiersArmy: soldiers?.list, frostPlan, naga,
+    places: {
+      paved: [region, elfMask],
+      // keramaian: pasar & alun-alun (Frostfall: hanya siang)
+      crowds: [PASAR, ALUN, MARKET, { x0: 674, x1: 714, z0: -62, z1: -22, malam: false }, ...HAMLETS.map(h => ({ ...h, malam: false }))],
+      feast: FEAST,
+      smithy: { ...SMITHY, y: TOWN.y },
+      army: TEGAL,
+    },
+  })
+  const playerSounds = createPlayerSounds({ player, boat, ambience })
+  // bunyi khas saat nama wilayah baru tampil
+  function regionChime() {
+    const p = player.position
+    const cold = weather.coldAt(p.x, p.z) > 0.5
+    suara.play(frost.cave.inside(p.x, p.z, p.y) ? 'wilayah-gua' : cold ? 'wilayah-frostfall' : p.x < -150 ? 'wilayah-kencana' : p.z < -150 ? 'wilayah-aeloria' : 'wilayah-tropis')
+  }
+  let chatWas = false
+  let shopWas = false
+
   function resize() {
     const w = window.innerWidth
     const h = window.innerHeight
@@ -1029,6 +1102,7 @@ async function start() {
   const worldMap = createWorldMap({ ground, plans: [plan, elfPlan, frostPlan], regions: [region, elfMask], frost: frostMask, camps: enemies ? enemies.camps : [], shops: elfPlan.shops })
   const banner = createRegionBanner({ ground, spans: [...plan.spans, ...elfPlan.spans] })
   function toggleMap() {
+    suara.play('peta')
     if (worldMap.open) worldMap.hide()
     else {
       $('panel-pengaturan').hidden = true
@@ -1062,9 +1136,14 @@ async function start() {
   // ke pantai barat Pulau Tropis (di dekat Dermaga Barat, di luar wilayah kerajaan); dikeroyok orc =
   // titik mulai
   const exitPoint = { x: dockBarat.base.x - dockBarat.dir * 14, z: dockBarat.at + 3, heading: Math.PI / 2 }
+  let hurtSndT = 0
   player.onHurt(() => {
     health.hurt()
     cam.shake(0.12)
+    // rintih paling sering ±3× per detik (Hembusan Es melukai 10× per detik)
+    const now = performance.now()
+    if (now - hurtSndT > 350) sfx('sakit', player.position)
+    hurtSndT = now
   })
   // dikalahkan kesatria Aeloria = diantar ke luar kerajaan: pantai utara Pulau Tropis (Dermaga Utara)
   const elfExit = { x: dockUtara.at + 3, z: dockUtara.base.z - dockUtara.dir * 12, heading: 0 }
@@ -1079,11 +1158,16 @@ async function start() {
       boat.leave()
       player.setRide(null)
     }
-    setTimeout(() => $('tirai').classList.add('gelap'), 1100)
+    sfx('roboh', player.position)
+    setTimeout(() => {
+      $('tirai').classList.add('gelap')
+      suara.play('tirai')
+    }, 1100)
     setTimeout(() => {
       const p = byDragon ? naga.exit : byElves ? elfExit : byKingdom ? exitPoint : spawn
       player.placeAt(p.x, p.z, p.heading)
       player.revive()
+      suara.play('pulih')
       cam.lookFrom(player.heading + Math.PI)
       $('tirai').classList.remove('gelap')
       showMessage(byDragon
@@ -1103,6 +1187,7 @@ async function start() {
     respawning = true
     player.freeze()
     $('tirai').classList.add('gelap')
+    suara.play('tirai')
     setTimeout(() => {
       player.respawn()
       cam.lookFrom(player.heading + Math.PI)
@@ -1227,7 +1312,10 @@ async function start() {
     waterFx(dt)
     updateActions(dt)
     enemies?.update(dt, camera, player, mode === 'main' ? player.position : controls.target)
-    if (banner.update(dt, player.position, mode === 'main')) hideHint()
+    if (banner.update(dt, player.position, mode === 'main')) {
+      hideHint()
+      regionChime()
+    }
     villagers?.update(dt, camera, mode === 'main' ? player.position : controls.target, player.position, mode === 'main' ? 110 : 260)
     army?.update(dt, camera, mode === 'main' ? player.position : controls.target)
     life?.update(dt, camera, mode === 'main' ? player.position : controls.target, mode === 'main' ? 110 : 260)
@@ -1252,6 +1340,12 @@ async function start() {
     })
     bubbles.update(dt)
     shop.update(dt, mode === 'main' && !chat.open)
+    if (mode === 'main') playerSounds.update(dt)
+    // panel obrolan & toko / tas dibuka-ditutup
+    if (chat.open !== chatWas) suara.play(chat.open ? 'buka' : 'tutup')
+    chatWas = chat.open
+    if (shop.open !== shopWas) suara.play(shop.open ? 'tas' : 'tutup')
+    shopWas = shop.open
     chat.update(dt, mode === 'main')
     elfCard?.update(dt)
     health.set(player.hp, MAX_HP)
@@ -1269,7 +1363,9 @@ async function start() {
         poolRippleT = 0.32
         ripples.spawn(fp.x, fp.z, 1.3, 0.5, pool.y)
       }
-      weather.update(dt, t, { target: fp, inCave: caveK, covered, caveTone, indoorK: roomAt(fp.x, fp.z, fp.y) ? 1 : 0, far: mode === 'main' ? camera.far : null, camera, night: warga ? warga.malam : 0 })
+      const indoorK = roomAt(fp.x, fp.z, fp.y) ? 1 : 0
+      weather.update(dt, t, { target: fp, inCave: caveK, covered, caveTone, indoorK, far: mode === 'main' ? camera.far : null, camera, night: warga ? warga.malam : 0 })
+      ambience.update(dt, { pos: fp, camera, swimming: player.swimming, boatSpeed: boat.aboard ? boat.speed : 0, indoor: indoorK, cave: covered ? Math.max(0.3, caveK) : 0 })
       frost.update(dt, camera)
       if (naga) {
         const pp = player.position
@@ -1322,7 +1418,7 @@ async function start() {
     renderer, scene, camera, controls, ground, shore, quality, trees, rocks, grass, water, env, kencana, region, plan, villagers, army, worldMap, banner, aeloria, elfPlan, elfMask, life,
     frost, frostPlan, frostMask, weather, openSecret, openChest, warga, naga,
     player, cam, input, colliders, nav, markers, effects, enemies, soldiers, security, patrol, recruits, bubbles, pickGround, setMode, getMode: () => mode, bag, gear, shop, elfSec, elfCard,
-    boat, fishing, ripples, recipes, craftBoat, boardBoat, leaveBoat, chat, placesFor,
+    boat, fishing, ripples, recipes, craftBoat, boardBoat, leaveBoat, chat, placesFor, suara, ambience,
     frames: () => frameCount, debug,
   }
 }
