@@ -29,6 +29,7 @@ function createEngine() {
   let bus = null // { sfx, amb, ui }
   let revIn = null // masukan gema (dikirimi sebagian suara berposisi)
   let revLevel = 0 // 0 = luar ruang, 1 = gua besar
+  let duck = 1 // peredam suara dunia (setDuck)
   let voices = 0
   const buffers = {}
   const loops = new Map() // nama → { out, ctl, level }
@@ -251,6 +252,14 @@ function createEngine() {
         listener.rx = e[0] / l
         listener.rz = e[2] / l
       }
+    },
+    // redam suara dunia (efek & suasana) — mis. saat Ranah Tebas menghentikan waktu; antarmuka tidak
+    setDuck(k) {
+      if (!ctx || duck === k) return
+      duck = k
+      const now = ctx.currentTime
+      bus.sfx.gain.setTargetAtTime(k, now, 0.12)
+      bus.amb.gain.setTargetAtTime(0.85 * k, now, 0.12)
     },
     // banyaknya gema (gua / ruangan), 0..1
     setReverb(k) {

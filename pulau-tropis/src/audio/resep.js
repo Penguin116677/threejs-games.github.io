@@ -738,6 +738,106 @@ export const RESEP = {
       return 1.2
     },
   },
+  // ---------------------------------------------------------------- jurus Ranah Tebas (v0.26.0)
+  // (jalur antarmuka: tidak ikut diredam saat waktu dunia berhenti)
+  'ranah-buka': {
+    ui: true,
+    vol: 1.2,
+    fn: (a, o, t) => {
+      // dentum dalam + desau terbalik yang membesar (waktu berhenti)
+      tone(a, o, t, { f: 70, f1: 32, dur: 1.1, gain: 0.5, at: 0.01 })
+      noise(a, o, t, { dur: 0.55, kind: 'pink', type: 'bandpass', f: 250, f1: 3200, q: 1.2, gain: 0.35, at: 0.45 })
+      noise(a, o, t, { dur: 1.2, kind: 'brown', type: 'lowpass', f: 300, gain: 0.4, at: 0.02 })
+      return bell(a, o, t + 0.35, { f: 1046, ratios: [1, 2.01, 3.03], dur: 1.2, gain: 0.06 })
+    },
+  },
+  'ranah-isi': {
+    // dengung yang naik nadanya + kilau tinggi selama ranah terisi
+    ui: true,
+    fn: (a, o, t, op) => {
+      const dur = op.lama ?? 2.1
+      const c = a.ctx
+      const os = c.createOscillator()
+      os.type = 'sawtooth'
+      os.frequency.setValueAtTime(110, t)
+      os.frequency.exponentialRampToValueAtTime(440, t + dur)
+      const lp = c.createBiquadFilter()
+      lp.type = 'lowpass'
+      lp.frequency.setValueAtTime(400, t)
+      lp.frequency.exponentialRampToValueAtTime(2600, t + dur)
+      const trem = c.createOscillator()
+      trem.frequency.setValueAtTime(5, t)
+      trem.frequency.linearRampToValueAtTime(18, t + dur)
+      const tg = c.createGain()
+      tg.gain.value = 0.4
+      const g = c.createGain()
+      g.gain.setValueAtTime(0.0001, t)
+      g.gain.exponentialRampToValueAtTime(0.09, t + 0.2)
+      g.gain.linearRampToValueAtTime(0.16, t + dur)
+      g.gain.exponentialRampToValueAtTime(0.0001, t + dur + 0.08)
+      trem.connect(tg).connect(g.gain)
+      os.connect(lp).connect(g).connect(o)
+      os.start(t)
+      os.stop(t + dur + 0.1)
+      trem.start(t)
+      trem.stop(t + dur + 0.1)
+      a.until = Math.max(a.until || 0, t + dur + 0.1)
+      noise(a, o, t + 0.2, { dur: dur - 0.1, type: 'bandpass', f: 5500, f1: 7500, q: 3, gain: 0.08, at: dur * 0.6 })
+      return dur + 0.1
+    },
+  },
+  'ranah-kunci': {
+    // bunyi kunci sasaran: dua ketukan elektronik, makin tinggi tiap sasaran
+    ui: true,
+    fn: (a, o, t, op) => {
+      const f = 1500 * Math.pow(1.06, op.i ?? 0)
+      tone(a, o, t, { type: 'square', f, dur: 0.05, gain: 0.05, lp: 5000 })
+      return tone(a, o, t + 0.06, { type: 'square', f: f * 1.5, dur: 0.08, gain: 0.05, lp: 6000 })
+    },
+  },
+  'ranah-penuh': {
+    // 100 %: denting pedang yang tajam + dentum
+    ui: true,
+    vol: 1.3,
+    fn: (a, o, t) => {
+      bell(a, o, t, { f: 2637, ratios: [1, 1.5, 2.76, 4.1], dur: 1.1, gain: 0.08 })
+      noise(a, o, t, { dur: 0.5, type: 'highpass', f: 4500, gain: 0.12, at: 0.005 })
+      tone(a, o, t, { f: 90, f1: 40, dur: 0.6, gain: 0.45 })
+      return noise(a, o, t + 0.05, { dur: 0.6, kind: 'brown', type: 'lowpass', f: 250, gain: 0.35, at: 0.01 })
+    },
+  },
+  'ranah-kilat': {
+    // melesat: desau panjang yang menyapu tinggi
+    ui: true,
+    vol: 1.5,
+    fn: (a, o, t) => noise(a, o, t, { dur: 0.7, type: 'bandpass', f: 600, f1: 5000, f2: 1500, q: 1.4, gain: 0.3, at: 0.04 }),
+  },
+  'ranah-tebas': {
+    // tiap sasaran tertebas: sabetan tajam + denting + hantaman
+    ui: true,
+    vol: 1.4,
+    fn: (a, o, t, op) => {
+      const k = 1 + (op.n ?? 0) * 0.03
+      noise(a, o, t, { dur: 0.14, type: 'bandpass', f: 1500 * k, f1: 7000, q: 2.5, gain: 0.35, at: 0.006 })
+      bell(a, o, t + 0.01, { f: 3100 * k, ratios: [1, 1.42, 2.3], dur: 0.35, gain: 0.04 })
+      tone(a, o, t + 0.02, { f: 160, f1: 60, dur: 0.12, gain: 0.3 })
+      return noise(a, o, t + 0.02, { dur: 0.12, kind: 'pink', type: 'lowpass', f: 1300, gain: 0.25, at: 0.003 })
+    },
+  },
+  'ranah-ledak': {
+    // semua yang terkunci roboh bersamaan: dentum besar + rentetan sabetan + cipratan
+    ui: true,
+    vol: 1.2,
+    fn: (a, o, t, op) => {
+      const n = Math.max(1, Math.min(8, op.n || 4))
+      tone(a, o, t, { f: 65, f1: 28, dur: 1.2, gain: 0.6 })
+      noise(a, o, t, { dur: 1.3, kind: 'brown', type: 'lowpass', f: 380, f1: 100, gain: 0.7, at: 0.004 })
+      noise(a, o, t, { dur: 0.08, type: 'highpass', f: 2500, gain: 0.5, at: 0.001 })
+      for (let i = 0; i < n + 3; i++) noise(a, o, t + 0.03 + i * rnd(0.025, 0.05), { dur: 0.09, type: 'bandpass', f: rnd(2500, 6500), q: 3, gain: 0.18 })
+      for (let i = 0; i < 10; i++) noise(a, o, t + rnd(0.05, 0.4), { dur: rnd(0.06, 0.14), kind: 'pink', type: 'bandpass', f: rnd(600, 1600), q: 1.2, gain: 0.12 })
+      return 1.4
+    },
+  },
   // ---------------------------------------------------------------- Naga Es
   'naga-geram': { range: 80, gema: 0.9, penting: true, fn: (a, o, t) => growl(a, o, t, { f: 50, f1: 72, dur: 1.6, gain: 0.4, formants: [300, 700], q: 2.5, wobble: 9, wobbleDepth: 6, at: 0.4, noiseMix: 0.35, lp: 1400 }) },
   'naga-aum': { vol: 0.6,
