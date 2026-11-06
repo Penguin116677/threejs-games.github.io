@@ -3,9 +3,9 @@
 ## Automated
 
 ```
-node examples/80-scenes/riverside-apartment/tests/run-tests.cjs           # full (~8 min, SwiftShader)
-node examples/80-scenes/riverside-apartment/tests/run-tests.cjs --quick   # shorter fuzz
-node examples/80-scenes/riverside-apartment/tests/run-tests.cjs --only=stairs,elevator
+npm test                                         # full (~8 min, SwiftShader)
+npm run test:quick                               # shorter fuzz
+node tests/run-tests.cjs --only=stairs,elevator  # selected tests
 ```
 
 Runs the real game headless (`?test` exposes `window.__RA`) and drives it through the

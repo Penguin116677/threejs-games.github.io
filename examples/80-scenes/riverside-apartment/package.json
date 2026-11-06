@@ -1,0 +1,14 @@
+{
+  "name": "riverside-apartments",
+  "version": "0.1.0",
+  "private": true,
+  "description": "First-person horror exploration of an 8-floor apartment block (three.js).",
+  "scripts": {
+    "start": "python3 -m http.server 8080",
+    "test": "node tests/run-tests.cjs",
+    "test:quick": "node tests/run-tests.cjs --quick"
+  },
+  "devDependencies": {
+    "playwright": "^1.48.0"
+  }
+}

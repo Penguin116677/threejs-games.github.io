@@ -1,4 +1,31 @@
 // Small synthesised sound kit (no downloads except the shared rain loop).
+// Rain synthesised at start-up (no audio files): pink noise for the wash plus
+// thousands of tiny decaying "ticks" for individual drops, in a 6 s stereo loop.
+function rainBuffer(c) {
+  const sec = 6, n = c.sampleRate * sec
+  const buf = c.createBuffer(2, n, c.sampleRate)
+  for (let ch = 0; ch < 2; ch++) {
+    const d = buf.getChannelData(ch)
+    let b0 = 0, b1 = 0, b2 = 0, b3 = 0, b4 = 0, b5 = 0
+    for (let i = 0; i < n; i++) { // Paul Kellet's pink-noise filter
+      const w = Math.random() * 2 - 1
+      b0 = 0.99886 * b0 + w * 0.0555179; b1 = 0.99332 * b1 + w * 0.0750759; b2 = 0.969 * b2 + w * 0.153852
+      b3 = 0.8665 * b3 + w * 0.3104856; b4 = 0.55 * b4 + w * 0.5329522; b5 = -0.7616 * b5 - w * 0.016898
+      d[i] = (b0 + b1 + b2 + b3 + b4 + b5 + w * 0.5362) * 0.05
+    }
+    const drops = sec * 900
+    for (let k = 0; k < drops; k++) {
+      const at = Math.floor(Math.random() * n), f = 1800 + Math.random() * 5000
+      const amp = 0.02 + Math.random() ** 3 * 0.25, len = Math.floor(c.sampleRate * (0.002 + Math.random() * 0.006))
+      for (let j = 0; j < len; j++) d[(at + j) % n] += Math.sin(2 * Math.PI * f * j / c.sampleRate) * amp * Math.exp(-j / (len / 4))
+    }
+    let peak = 0
+    for (let i = 0; i < n; i++) peak = Math.max(peak, Math.abs(d[i]))
+    for (let i = 0; i < n; i++) d[i] *= 0.8 / peak
+  }
+  return buf
+}
+
 export class Audio {
   constructor() {
     this.ctx = null
@@ -29,9 +56,8 @@ export class Audio {
     this.rainGain = c.createGain(); this.rainGain.gain.value = 0
     this.rainFilter = c.createBiquadFilter(); this.rainFilter.type = 'lowpass'; this.rainFilter.frequency.value = 6000
     this.rainFilter.connect(this.rainGain).connect(this.master)
-    fetch('/assets/sounds/rain.mp3').then(r => r.arrayBuffer()).then(b => c.decodeAudioData(b)).then(buf => {
-      const s = c.createBufferSource(); s.buffer = buf; s.loop = true; s.connect(this.rainFilter); s.start()
-    }).catch(() => {})
+    const rain = c.createBufferSource(); rain.buffer = rainBuffer(c); rain.loop = true
+    rain.connect(this.rainFilter); rain.start()
     // elevator hum
     this.hum = c.createGain(); this.hum.gain.value = 0; this.hum.connect(this.master)
     const ho = c.createOscillator(); ho.type = 'triangle'; ho.frequency.value = 58

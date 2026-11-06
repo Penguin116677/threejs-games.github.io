@@ -4,7 +4,7 @@
 // Runs the real game in headless Chromium (?test mode exposes window.__RA) and
 // drives the actual physics, doors, elevator and interaction raycasts.
 //
-//   node examples/80-scenes/riverside-apartment/tests/run-tests.cjs [--only=name,name] [--quick]
+//   node tests/run-tests.cjs [--only=name,name] [--quick]      (or: npm test)
 //
 // Requires Playwright (require('playwright')) with a Chromium build.
 const http = require('http')
@@ -12,11 +12,11 @@ const fs = require('fs')
 const path = require('path')
 const { chromium, devices } = require('playwright')
 
-const ROOT = path.resolve(__dirname, '../../../..') // repo root (index uses /libs/...)
+const ROOT = path.resolve(__dirname, '..') // the game folder is self-contained
 const args = process.argv.slice(2)
 const ONLY = (args.find(a => a.startsWith('--only=')) || '').slice(7).split(',').filter(Boolean)
 const QUICK = args.includes('--quick')
-const PAGE = '/examples/80-scenes/riverside-apartment/'
+const PAGE = '/'
 
 // ---- static server ----------------------------------------------------------------
 const MIME = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.mp3': 'audio/mpeg', '.png': 'image/png', '.jpg': 'image/jpeg', '.json': 'application/json' }

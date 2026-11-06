@@ -3,8 +3,16 @@
 A first-person horror exploration scene: an 8-storey apartment block with a fully
 walkable interior, built with three.js (vendored r160, no build step).
 
-Run from the repository root (`npx live-server` or `python3 -m http.server`) and open
-`/examples/80-scenes/riverside-apartment/`.
+This folder is a self-contained project: three.js is vendored in `vendor/three/`,
+every texture and sound is generated in code, and all paths are relative. Serve the
+folder with any static server and open it:
+
+```
+npm start            # python3 -m http.server 8080 → http://localhost:8080/
+npm test             # full automated suite (headless Chromium via Playwright)
+```
+
+Release target: Google Play (Android). See `THIRD_PARTY_NOTICES.md` for licences.
 
 ## Vertical slice (implemented first)
 
