@@ -112,6 +112,16 @@ Sebagian sudah dikerjakan lebih awal (bayangan, tanah per-piksel, awan, kaustik 
 | Siang–malam | ✅ sebagian — hanya di Frostfall (v0.22.0); pulau-pulau lain selalu siang |
 | Dicoba di HP Android sungguhan | ⏳ menunggu laporan pengguna |
 
+## Yang sudah diperiksa (v0.27.1 — mulai di Pulau Rajawali)
+- **Pemeriksaan kode**: ESLint 0 error / 0 warning. **Build** berhasil; `dist/` sama persis dengan versi yang diuji.
+- **Uji di browser** (Pixel 7 miring, build): game dibuka di Lapangan Latihan (−849, −846; tinggi 4,2 m; wilayah
+  "Lapangan Latihan"), menghadap pasukan & benteng (foto); perkemahan orc tetap di Pulau Tropis (orc terdekat
+  13,4 m dari titik mulai lama, ±1,1 km dari pemain); pingsan dikeroyok orc → bangun di Lapangan Latihan dengan
+  pesan "…terbangun di kerajaanmu, Pulau Rajawali".
+- **Smoke test otomatis** (build, HP Rendah, layar miring): **75 dari 75 — LULUS** (termasuk cek baru titik mulai,
+  dan cek panel komando & Ikuti aku yang naskahnya diperbaiki di v0.27.0). HP utama, HP mendatar & komputer tidak
+  dijalankan.
+
 ## Yang sudah diperiksa (v0.27.0 — kerajaanmu, tombol jurus dilepas, layar miring)
 - **Pemeriksaan kode**: ESLint (konfigurasi repo) 0 error / 0 warning pada setiap commit.
 - **Build**: `vite build` berhasil (JS ±492 → ±497 KB gzip); `dist/` sama persis dengan versi yang diuji.
