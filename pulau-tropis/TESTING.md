@@ -537,6 +537,12 @@ Laporkan: gerbang yang terasa kurang (ingin keluar-masuk di tempat lain), pagar 
 rendah, dan FPS.
 
 
+## Daftar uji manual — v0.27.1 (mulai di kerajaanmu)
+1. Buka game (HP miring): kamu berdiri di Lapangan Latihan Pulau Rajawali, di depan keempat divisi, menghadap
+   benteng. Panel komando langsung bisa dipakai.
+2. Peta: panah "Kamu" ada di Pulau Rajawali (kiri atas).
+3. Seberangi laut ke Pulau Tropis, biarkan orc mengalahkanmu → bangun lagi di Lapangan Latihan.
+
 ## Daftar uji manual — v0.27.0 (Kerajaanmu: Pulau Rajawali & 400 prajurit)
 Buka **Peta**: Pulau Rajawali ada di **barat laut** (kiri atas). Seberangi laut (berenang atau perahu) ke
 **Dermaga Rajawali** di pantai timurnya.

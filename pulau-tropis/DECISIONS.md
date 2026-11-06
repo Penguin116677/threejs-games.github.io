@@ -1037,3 +1037,8 @@ tandai sebagai "diganti" bila berubah.
     90° dengan CSS ditolak: joystick, geser kamera, ketuk tanah, dan peta membaca koordinat layar — semuanya
     harus ikut diputar dan rawan salah. Tata letak tegak lama di CSS dibiarkan (tidak terpakai di HP; jendela
     komputer yang sempit masih memakainya).
+100. **Titik mulai pindah ke Pulau Rajawali; perkemahan orc tidak ikut** (v0.27.1, permintaan pengguna). Titik mulai
+     lama (pantai barat daya Pulau Tropis, `findSpawn`) tetap dihitung karena perkemahan orc pertama diletakkan
+     16 m di depannya — tanpa itu orc akan muncul di kerajaan pemain. Pemain mulai & bangun lagi (dikeroyok orc)
+     di `HOME` Lapangan Latihan; tempat bangun karena prajurit / kesatria / naga tidak diubah (ceritanya: diusir
+     ke luar wilayah mereka).

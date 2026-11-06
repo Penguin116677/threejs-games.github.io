@@ -1,5 +1,14 @@
 # CHANGELOG — Pulau Tropis
 
+## [0.27.1] — 2026-11-06 — Mulai di kerajaanmu (permintaan pengguna)
+### Diubah
+- **Pemain mulai di Pulau Rajawali** (permintaan: *"Buat posisiku berada di pulau kerajaanku"*): game dibuka di
+  Lapangan Latihan, di depan barisan keempat divisi, menghadap benteng. Pingsan dikeroyok orc juga membuatmu
+  bangun di sini. Dikalahkan prajurit Kencana / kesatria Aeloria / Naga Es tetap seperti sebelumnya (pantai
+  Pulau Tropis / mulut Gua Gletser).
+- Perkemahan orc tetap di Pulau Tropis (patokannya titik mulai lama di pantai barat dayanya).
+- Petunjuk awal: "Kamu mulai di kerajaanmu, Pulau Rajawali".
+
 ## [0.27.0] — 2026-11-06 — Kerajaanmu: Pulau Rajawali & 400 prajurit (permintaan pengguna)
 ### Ditambahkan
 - **Pulau Rajawali — kerajaan kecil milikmu** (permintaan: *"Tambahkan kerajaan kecil punyaku di sebuah pulau,
