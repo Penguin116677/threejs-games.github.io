@@ -539,7 +539,8 @@ for (const [name, opts, query] of cases) {
     if (!isle || isle.s.prajurit !== 400 || isle.s.komandan !== 4 || isle.s.divisi.some(d => d.n !== 100) || Math.abs(isle.y - 4.2) > 0.2)
       fail(`Pulau Rajawali: ${JSON.stringify(isle && { y: isle.y, prajurit: isle.s.prajurit, komandan: isle.s.komandan, per })}`)
     else ok(`Pulau Rajawali (Lapangan Latihan, tanah rata ${isle.y} m): ${isle.s.prajurit} prajurit (${per}) + ${isle.s.komandan} komandan, ${isle.s.visible} terlihat`)
-    const panel = await page.isVisible('#komando')
+    // #komando sendiri wadah berukuran nol; yang terlihat adalah tombol-tombolnya
+    const panel = await page.isVisible('#btn-komandan-pedang')
     await page.screenshot({ path: `${out}/${name}-kerajaan.png` })
     // pilih komandan Pedang → Formasi → Lingkaran
     await page.click('#btn-komandan-pedang')
@@ -575,18 +576,22 @@ for (const [name, opts, query] of cases) {
     // Ikuti aku: Kavaleri mengikuti pemain yang menjauh
     await page.click('#btn-komandan-kavaleri')
     await page.click('#btn-perintah-ikuti')
-    await page.evaluate(() => window.__pulau.player.placeAt(-760, -860, Math.PI / 2))
+    // pemain pindah ±60 m ke pangkal dermaga, menghadap timur: jangkar divisi harus tiba di tempat ikutnya —
+    // di belakang pemain sejauh 5 m + setengah panjang formasinya (kavaleri kotak ±33 m)
+    await page.evaluate(() => window.__pulau.player.placeAt(-735, -880, Math.PI / 2))
     const follow = await waitUntil(page, () => {
       const { bala, player } = window.__pulau
       const d = bala.divisions[3]
-      const dist = Math.hypot(d.ax - player.position.x, d.az - player.position.z)
-      return d.mode === 'ikut' && dist < 26 && +dist.toFixed(1)
-    }, 600, 5)
+      const back = 5 + d.layout.halfD
+      const tx = player.position.x - back
+      const err = Math.hypot(d.ax - tx, d.az - player.position.z)
+      return d.mode === 'ikut' && err < 3 && { di: +(player.position.x - d.ax).toFixed(1), back: +back.toFixed(1) }
+    }, 900, 5)
     const snd = await page.evaluate(() => {
       const c = window.__pulau.suara.debug.counts; return { aba: c['aba-aba'] || 0, siap: c['komandan-siap'] || 0, sorak: c['sorak-pasukan'] || 0, derap: (c['derap-barisan'] || 0) + (c['derap-kuda'] || 0) }
     })
     if (!follow) fail('Ikuti aku: kavaleri tidak menyusul pemain')
-    else ok(`Ikuti aku: kavaleri menyusul pemain (jangkar ${follow} m di belakangnya)`)
+    else ok(`Ikuti aku: kavaleri menyusul pemain ±60 m dan berbaris ${follow.di} m di belakangnya (tempat ikut ${follow.back} m)`)
     if (!snd.aba || !snd.siap || !snd.sorak || !snd.derap) fail(`suara komando: ${JSON.stringify(snd)}`)
     else ok(`suara komando: terompet ${snd.aba}×, jawaban komandan ${snd.siap}×, sorak ${snd.sorak}×, derap ${snd.derap}×`)
     await page.evaluate(() => {
