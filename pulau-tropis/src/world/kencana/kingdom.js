@@ -24,7 +24,7 @@ const ROOFS = {
   alang: ['#bb9c5c', '#a98a4e', '#c4a76a', '#8f7a52'],
 }
 
-function partsFor(b, ground) {
+export function partsFor(b, ground) {
   const r = b.roof ?? 0
   switch (b.type) {
     case 'rumah-bata': return B.rumahBata(b.w, b.d, ROOFS.genteng[r])
@@ -53,6 +53,8 @@ function partsFor(b, ground) {
     case 'tenda': return B.tenda(b.w, b.d, b.color)
     case 'kandang': return B.kandang(b.w, b.d)
     case 'jerami': return B.jerami()
+    case 'sasaran': return B.sasaran()
+    case 'boneka': return B.boneka()
     case 'peti': return B.peti()
     case 'gentong': return B.gentong()
     case 'jemuran': return B.jemuran()

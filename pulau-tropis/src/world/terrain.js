@@ -199,7 +199,7 @@ const vec3 DRY = vec3(0.60, 0.58, 0.26);
 const vec3 ROCK = vec3(0.42, 0.39, 0.35);
 const vec3 ROCK_DARK = vec3(0.26, 0.24, 0.22);
 
-#if defined(REGION_MASK) || defined(REGION_MASK2)
+#if defined(REGION_MASK) || defined(REGION_MASK2) || defined(REGION_MASK3)
 // Masker wilayah (Kepulauan Kencana, Aeloria): r = jalan tanah, g = sawah / ladang, b = lantai batu,
 // a = rumput halus. uRegionRect = x0, z0, 1/lebar, 1/panjang
 #ifdef REGION_MASK
@@ -209,6 +209,10 @@ uniform vec4 uRegionRect;
 #ifdef REGION_MASK2
 uniform sampler2D uRegion2;
 uniform vec4 uRegionRect2;
+#endif
+#ifdef REGION_MASK3
+uniform sampler2D uRegion3;
+uniform vec4 uRegionRect3;
 #endif
 const vec3 ROAD = vec3(0.60, 0.49, 0.33);
 const vec3 PAVE = vec3(0.60, 0.56, 0.50);
@@ -413,6 +417,9 @@ vec3 terrainColor() {
 #ifdef REGION_MASK2
   col = regionColor(col, p, nF, nM, nD, uRegion2, uRegionRect2, REGION2_STYLE);
 #endif
+#ifdef REGION_MASK3
+  col = regionColor(col, p, nF, nM, nD, uRegion3, uRegionRect3, REGION3_STYLE);
+#endif
 #ifdef FROST_REGION
   col = frostColor(col, p, h, slope, nF, nM, nL, nD);
 #endif
@@ -464,8 +471,8 @@ function gridNormals(ground) {
   return nor
 }
 
-// regions (opsional, maks. 2): masker jalan/sawah/lantai batu/rumput halus Kepulauan Kencana &
-// Aeloria { texture, x0, z0, width, depth, style } — lihat kencana/mask.js
+// regions (opsional, maks. 3): masker jalan/sawah/lantai batu/rumput halus Kepulauan Kencana,
+// Aeloria, & Pulau Rajawali { texture, x0, z0, width, depth, style } — lihat kencana/mask.js
 // frost (opsional): masker Kerajaan Frostfall { texture, x0, z0, width, depth, cold: [x0, x1] } — lihat
 // frostfall/mask.js
 export function createTerrain(ground, { noiseTexture, quality, regions = [], frost = null }) {
@@ -484,7 +491,7 @@ export function createTerrain(ground, { noiseTexture, quality, regions = [], fro
   const mat = new THREE.MeshLambertMaterial({ color: 0xffffff })
   mat.defines = {}
   if (quality.water.wetSand) mat.defines.WAVE_WET_SAND = ''
-  const [region, region2] = regions
+  const [region, region2, region3] = regions
   if (region) {
     mat.defines.REGION_MASK = ''
     mat.defines.REGION_STYLE = region.style ?? 0
@@ -492,6 +499,10 @@ export function createTerrain(ground, { noiseTexture, quality, regions = [], fro
   if (region2) {
     mat.defines.REGION_MASK2 = ''
     mat.defines.REGION2_STYLE = region2.style ?? 0
+  }
+  if (region3) {
+    mat.defines.REGION_MASK3 = ''
+    mat.defines.REGION3_STYLE = region3.style ?? 0
   }
   if (frost) mat.defines.FROST_REGION = ''
   mat.onBeforeCompile = shader => {
@@ -505,6 +516,10 @@ export function createTerrain(ground, { noiseTexture, quality, regions = [], fro
     if (region2) {
       shader.uniforms.uRegion2 = { value: region2.texture }
       shader.uniforms.uRegionRect2 = { value: new THREE.Vector4(region2.x0, region2.z0, 1 / region2.width, 1 / region2.depth) }
+    }
+    if (region3) {
+      shader.uniforms.uRegion3 = { value: region3.texture }
+      shader.uniforms.uRegionRect3 = { value: new THREE.Vector4(region3.x0, region3.z0, 1 / region3.width, 1 / region3.depth) }
     }
     if (frost) {
       shader.uniforms.uFrost = { value: frost.texture }

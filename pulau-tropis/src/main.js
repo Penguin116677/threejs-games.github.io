@@ -19,6 +19,8 @@ import { createEnemies } from './world/enemies.js'
 import { planKencana } from './world/kencana/plan.js'
 import { createRegionMask } from './world/kencana/mask.js'
 import { createKencana, boatGeometry } from './world/kencana/kingdom.js'
+import { planRajawali } from './world/rajawali/rencana.js'
+import { createRajawali } from './world/rajawali/pulau.js'
 import { buildingMaterial, buildingDepthMaterial } from './world/kencana/material.js'
 import { createVillagers } from './world/kencana/villagers.js'
 import { createArmy } from './world/kencana/pasukan.js'
@@ -228,9 +230,13 @@ async function start() {
   // Kerajaan Frostfall (pegunungan salju di timur): jalan, es, lantai batu & gua dicat di shader tanah
   const frostPlan = planFrostfall(ground)
   const frostMask = createFrostMask(frostPlan)
-  const terrain = createTerrain(ground, { ...shared, regions: [region, elfMask], frost: frostMask })
+  // Pulau Rajawali (v0.27.0): kerajaan kecil milik pemain di barat laut — lapangan tanah, jalan &
+  // lantai batu benteng dicat lewat masker wilayah ketiga
+  const rajaPlan = planRajawali(ground)
+  const rajaMask = createRegionMask(rajaPlan, ground, { rect: { x0: -1000, z0: -1030, x1: -660, z1: -770 }, cell: 1, style: 0, free: null })
+  const terrain = createTerrain(ground, { ...shared, regions: [region, elfMask, rajaMask], frost: frostMask })
   scene.add(terrain)
-  const reservedAll = (x, z, r) => region.reserved(x, z, r) || elfMask.reserved(x, z, r) || frostMask.reserved(x, z, r)
+  const reservedAll = (x, z, r) => region.reserved(x, z, r) || elfMask.reserved(x, z, r) || frostMask.reserved(x, z, r) || rajaMask.reserved(x, z, r)
 
   setStatus('Menanam pohon dan menebar batu…')
   await nextFrame()
@@ -251,6 +257,8 @@ async function start() {
   await nextFrame()
   const aeloria = createAeloria({ ground, plan: elfPlan, mask: elfMask, grid, quality, noiseTexture })
   scene.add(aeloria.object)
+  const rajawali = createRajawali({ ground, plan: rajaPlan, mask: rajaMask, grid, quality, noiseTexture })
+  scene.add(rajawali.object)
   setStatus('Membangun Kerajaan Frostfall…')
   await nextFrame()
   const frost = createFrostfall({ ground, plan: frostPlan, mask: frostMask, grid, quality, noiseTexture, terrainMaterial: terrain.userData.material })
@@ -261,11 +269,11 @@ async function start() {
     : null
   if (naga) scene.add(naga.object)
   // lantai jembatan, dermaga, batur pendopo, tangga, menara jaga, lantai aula: bisa diinjak
-  const allSurfaces = [...kencana.surfaces, ...aeloria.surfaces, ...frost.surfaces]
+  const allSurfaces = [...kencana.surfaces, ...aeloria.surfaces, ...frost.surfaces, ...rajawali.surfaces]
   ground.setSurfaces(allSurfaces)
   // atap gua-gua Frostfall = pijakan bagi yang berjalan di atas gunungnya (tanpa pagar tak terlihat)
   ground.setRoof(frost.cave.roofAt)
-  terrain.userData.applyOcclusion([...trees.userData.occlusion, ...rocks.userData.occlusion, ...kencana.occlusion, ...aeloria.occlusion, ...frost.occlusion])
+  terrain.userData.applyOcclusion([...trees.userData.occlusion, ...rocks.userData.occlusion, ...kencana.occlusion, ...aeloria.occlusion, ...frost.occlusion, ...rajawali.occlusion])
   // batang pohon + batu besar + dinding bangunan menghalangi pemain; batu kecil bisa dilangkahi
   const colliders = createColliders([
     ...trees.userData.trunks,
@@ -273,6 +281,7 @@ async function start() {
     ...kencana.colliders,
     ...aeloria.colliders,
     ...frost.colliders,
+    ...rajawali.colliders,
   ])
   // peta jalan untuk "ketuk untuk berjalan" (memutari pohon, batu, tebing, laut dalam)
   const nav = createNavGrid(ground, colliders)
@@ -1172,7 +1181,7 @@ async function start() {
     resize()
   }
   // peta dunia + spanduk nama wilayah
-  const worldMap = createWorldMap({ ground, plans: [plan, elfPlan, frostPlan], regions: [region, elfMask], frost: frostMask, camps: enemies ? enemies.camps : [], shops: elfPlan.shops })
+  const worldMap = createWorldMap({ ground, plans: [plan, elfPlan, frostPlan, rajaPlan], regions: [region, elfMask, rajaMask], frost: frostMask, camps: enemies ? enemies.camps : [], shops: elfPlan.shops })
   const banner = createRegionBanner({ ground, spans: [...plan.spans, ...elfPlan.spans] })
   function toggleMap() {
     suara.play('peta')
@@ -1342,7 +1351,7 @@ async function start() {
 
   let frameCount = 0
   const leader = { x: 0, y: 0, z: 0, heading: 0, speed: 0 } // pemain, untuk anak buahnya (prajurit.js)
-  const roofs = [...kencana.roofs, ...aeloria.roofs]
+  const roofs = [...kencana.roofs, ...aeloria.roofs, ...rajawali.roofs]
   const debug = { timeScale: 1 } // pengujian: < 1 = gerak lambat (untuk memotret efek)
   // waktu dunia: berjalan seperti biasa, kecuali saat Ranah Tebas menghentikan / memperlambatnya
   // (pemain, kamera & efek jurusnya tetap memakai waktu nyata)
@@ -1475,6 +1484,7 @@ async function start() {
     waveTime.value = worldT
     trees.userData.update(worldT)
     kencana.update(worldT)
+    rajawali.update(worldT)
     grass.userData.update(camera, worldT)
     renderer.render(scene, camera)
 

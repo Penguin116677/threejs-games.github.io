@@ -5,6 +5,7 @@ import { DIVISIONS } from '../world/kencana/barisan.js'
 import { REGIONS as ELF_REGIONS, LANDS as ELF_LANDS, landDistance } from '../world/aeloria/layout.js'
 import { REGIONS as FROST_REGIONS, PEAKS as FROST_PEAKS, CAVES as FROST_CAVES, COLD_X0, landDistance as frostLandDistance, polyInfo } from '../world/frostfall/layout.js'
 import { caveAt, frostSurface } from '../world/frostfall/height.js'
+import { REGIONS as RAJA_REGIONS, rajawaliDistance, ISLE as RAJA_ISLE, FORT as RAJA_FORT, FIELD as RAJA_FIELD } from '../world/rajawali/layout.js'
 
 // Peta dunia (tombol "Peta") dan spanduk nama wilayah saat prajurit memasuki pulau/kota baru.
 
@@ -41,6 +42,10 @@ const LABELS = [
   { text: 'Air Terjun Beku', x: 930, z: -112, size: 10 },
   { text: 'Dermaga Frostfall', x: 470, z: 50, size: 10 },
   { text: 'Dermaga Fajar', x: 250, z: 62, size: 10 },
+  { text: 'Pulau Rajawali · Kerajaanmu', x: RAJA_ISLE.x, z: RAJA_ISLE.z + RAJA_ISLE.rz + 28, size: 15 },
+  { text: 'Benteng Rajawali', x: (RAJA_FORT.x0 + RAJA_FORT.x1) / 2, z: RAJA_FORT.z0 - 10, size: 12 },
+  { text: 'Lapangan Latihan', x: (RAJA_FIELD.x0 + RAJA_FIELD.x1) / 2, z: RAJA_FIELD.z1 + 12, size: 11 },
+  { text: 'Dermaga Rajawali', x: -690, z: -900, size: 10 },
   ...FROST_PEAKS.filter(p => p.name).map(p => ({ text: p.name, x: p.x, z: p.z, size: 10 })),
   ...FROST_CAVES.map(c => ({ text: c.short, x: c.label.x, z: c.label.z, size: 10 })),
 ]
@@ -51,6 +56,14 @@ const clamp01 = t => Math.min(1, Math.max(0, t))
 // Wilayah tempat (x, z) berada: { id, name, sub } atau null (di laut). y = tinggi kaki (opsional): di
 // atas gunung yang menaungi gua tidak dianggap di dalam guanya
 export function regionAt(x, z, ground, spans, y = -Infinity) {
+  // Pulau Rajawali (kerajaanmu, barat laut): kawasan dulu, lalu daratannya
+  if (rajawaliDistance(x, z) < 1.4) {
+    for (const r of RAJA_REGIONS) {
+      if (r.rect && inRect(x, z, r.rect, 1)) return { id: r.id, name: r.name, sub: r.sub }
+      if (r.island && rajawaliDistance(x, z) < 1.12 && ground.heightAt(x, z) > -1.2) return { id: r.id, name: r.name, sub: r.sub }
+    }
+    return null
+  }
   // Frostfall (timur): gua, kawasan, lalu daratannya
   if (x > COLD_X0) {
     const cave = caveAt(x, z)

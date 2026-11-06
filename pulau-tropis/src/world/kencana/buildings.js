@@ -648,6 +648,33 @@ export function jerami() {
   return P
 }
 
+// Sasaran panah (Pulau Rajawali): bantalan jerami bundar bercincin merah-putih di atas kuda-kuda
+// kayu, muka sasaran menghadap +z lokal, sedikit mendongak
+export function sasaran() {
+  const P = new Parts()
+  for (const s of [-1, 1]) P.box(0.12, 1.9, 0.12, COL.kayuTua, K.KAYU, { x: s * 0.55, rx: -0.12 })
+  P.box(0.1, 1.6, 0.1, COL.kayuTua, K.KAYU, { z: -0.7, rx: 0.42 })
+  const tilt = Math.PI / 2 - 0.12
+  P.cyl(0.62, 0.62, 0.32, 16, COL.alang, K.JERAMI, { y: 1.25, z: -0.2, rx: tilt })
+  const face = (r, color, z) => P.cyl(r, r, 0.04, 16, color, K.POLOS, { y: 1.25, z, rx: tilt })
+  face(0.58, COL.putih, 0.12)
+  face(0.42, COL.merah, 0.14)
+  face(0.26, COL.putih, 0.16)
+  face(0.11, COL.merah, 0.18)
+  return P
+}
+
+// Boneka latihan pedang: tiang kayu berpalang dengan badan jerami terikat
+export function boneka() {
+  const P = new Parts()
+  P.cyl(0.08, 0.1, 2.1, 6, COL.kayuTua, K.KAYU)
+  P.box(1.3, 0.12, 0.12, COL.kayuTua, K.KAYU, { y: 1.45 })
+  P.cyl(0.26, 0.3, 0.9, 8, COL.alang, K.JERAMI, { y: 0.85 })
+  P.cyl(0.2, 0.2, 0.32, 8, COL.alang, K.JERAMI, { y: 1.6 })
+  for (const y of [1.0, 1.4]) P.cyl(0.29, 0.29, 0.06, 8, COL.kayu, K.POLOS, { y })
+  return P
+}
+
 export function peti() {
   const P = new Parts()
   P.box(1.0, 0.8, 0.8, COL.kayuMuda, K.KAYU)
