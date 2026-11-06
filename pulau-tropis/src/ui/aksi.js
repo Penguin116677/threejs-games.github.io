@@ -22,6 +22,8 @@ export const IKON_AKSI = {
   peti: svg('<path d="M3 11h18v8.5a1.5 1.5 0 0 1-1.5 1.5h-15A1.5 1.5 0 0 1 3 19.5z" fill="#fff"/><path d="M3 10a6 4.5 0 0 1 6-4.5h6A6 4.5 0 0 1 21 10z" fill="#fff" fill-opacity=".8"/><rect x="10.3" y="10" width="3.4" height="4.2" rx=".6" fill="#b8862c"/>'),
   // lempeng lantai bergeser memperlihatkan anak tangga turun (pintu rahasia)
   rahasia: svg('<path d="M3 7.5h18" stroke="#fff" stroke-width="2.2" stroke-linecap="round"/><path d="M5 11h4v3.5h4V18h4v3" fill="none" stroke="#fff" stroke-width="2.2" stroke-linejoin="round"/><path d="M14.5 3.5h6.5" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-opacity=".6"/>'),
+  // kapak menebang batang pohon (kayu untuk pancing & perahu)
+  tebang: svg('<path d="M9.5 20.5 17 6" stroke="#fff" stroke-width="2.3" stroke-linecap="round"/><path d="M14.2 3.4c2.9-.6 5.6.9 6.4 3.6l-5.3 2.3-3.3-1.8z" fill="#fff"/><path d="M3 21.5h7M5.2 21.5v-6.3h3v6.3" fill="none" stroke="#fff" stroke-width="1.6" stroke-linejoin="round" stroke-opacity=".75"/>'),
   bicara: svg('<path d="M4 4.5h16a1.5 1.5 0 0 1 1.5 1.5v9a1.5 1.5 0 0 1-1.5 1.5h-8.4L6.5 20.6V16.5H4A1.5 1.5 0 0 1 2.5 15V6A1.5 1.5 0 0 1 4 4.5z" fill="#fff"/><circle cx="8" cy="10.5" r="1.3" fill="#2f7d4a"/><circle cx="12" cy="10.5" r="1.3" fill="#2f7d4a"/><circle cx="16" cy="10.5" r="1.3" fill="#2f7d4a"/>'),
 }
 

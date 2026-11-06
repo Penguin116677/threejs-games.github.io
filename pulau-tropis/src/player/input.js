@@ -1,8 +1,9 @@
 // Input pemain (kontrol joystick, kamera di belakang karakter):
 // - HP: JOYSTICK di bagian kiri-bawah layar — muncul di tempat ibu jari kiri menyentuh, dorong
 //   sedikit = berjalan, dorong penuh = lari. Geser di bagian lain layar untuk memutar kamera
-//   (kiri-kanan & naik-turun), cubit dua jari untuk zoom. Tombol Pukul (kombo), 4 tombol jurus,
-//   Lompat. Ketuk elf / kios untuk memilihnya.
+//   (kiri-kanan & naik-turun), cubit dua jari untuk zoom. Tombol Lompat (tombol Pukul & jurus tidak
+//   lagi di layar sejak v0.27.0 — attackButton / skillButtons boleh kosong). Ketuk elf / kios untuk
+//   memilihnya.
 // - Komputer: WASD/panah untuk berjalan (Shift = pelan), seret mouse untuk memutar kamera, roda
 //   untuk zoom, klik untuk memilih, F untuk memukul, 1–4 (atau Q/E/R/T) untuk jurus, Spasi lompat
 //   (di depan tepi dek / batur yang bisa dipanjat: memanjat).
@@ -163,10 +164,11 @@ export function createInput({ canvas, joystick, knob, jumpButton, attackButton, 
   actionButton(jumpButton, () => {
     jumpQueued = true
   })
-  actionButton(attackButton, () => {
-    attackQueued = true
-  })
-  for (const [name, button] of Object.entries(skillButtons))
+  if (attackButton)
+    actionButton(attackButton, () => {
+      attackQueued = true
+    })
+  for (const [name, button] of Object.entries(skillButtons || {}))
     actionButton(button, () => {
       skillQueued = name
     })
@@ -224,6 +226,11 @@ export function createInput({ canvas, joystick, knob, jumpButton, attackButton, 
       zoom = 1
       return out
     },
+    // ayunan seperti tombol Pukul (tombol konteks Tebang di dekat pohon — layar sentuh tidak punya
+    // tombol Pukul sejak v0.27.0)
+    pressAttack() {
+      if (enabled) attackQueued = true
+    },
     // joystick sedang dipegang (untuk pengujian & petunjuk)
     get joystickActive() {
       return joyId !== null
@@ -233,7 +240,7 @@ export function createInput({ canvas, joystick, knob, jumpButton, attackButton, 
       if (!on) resetAll()
       // joystick & tombol aksi hanya untuk layar sentuh (komputer memakai keyboard)
       joystick.hidden = !on || !touch
-      for (const b of [jumpButton, attackButton, ...Object.values(skillButtons)]) b.hidden = !on || !touch
+      for (const b of [jumpButton, attackButton, ...Object.values(skillButtons || {})]) if (b) b.hidden = !on || !touch
     },
   }
 }

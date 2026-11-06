@@ -139,7 +139,7 @@ body {
   transition: opacity 1s;
 }
 
-/* tombol aksi bulat di kanan bawah: Pukul (besar) di pojok, jurus & Lompat melingkarinya */
+/* tombol aksi bulat di kanan bawah (Lompat, tombol komando prajurit) */
 #hud .aksi {
   --r: max(20px, env(safe-area-inset-right));
   --b: max(22px, env(safe-area-inset-bottom));
@@ -173,91 +173,13 @@ body {
   transform: scale(0.93);
 }
 
-#hud #btn-pukul {
+/* Lompat: satu-satunya tombol gerak di pojok kanan bawah (v0.27.0: tombol jurus pedang dihapus dari
+   layar; kanan bawah kini untuk tombol komando prajurit) */
+#hud #btn-lompat {
   right: var(--r);
   bottom: var(--b);
-  width: 84px;
-  height: 84px;
-  font-size: 12px;
-  border-color: rgba(255, 214, 190, 0.7);
-  background: rgba(255, 120, 80, 0.24);
-}
-
-#hud #btn-pukul svg {
-  width: 30px;
-  height: 30px;
-}
-
-#hud #btn-pukul.ditekan {
-  background: rgba(255, 140, 100, 0.5);
-}
-
-/* layar tegak: busur berjari-jari 165 px dari pusat tombol Pukul (jurus 1–4, lalu Lompat) */
-#hud .jurus,
-#hud #btn-lompat {
-  width: 56px;
-  height: 56px;
-}
-
-#hud #btn-cincang {
-  right: calc(var(--r) + 179px);
-  bottom: calc(var(--b) + 14px);
-}
-
-#hud #btn-hentak {
-  right: calc(var(--r) + 166px);
-  bottom: calc(var(--b) + 77px);
-}
-
-#hud #btn-putar {
-  right: calc(var(--r) + 131px);
-  bottom: calc(var(--b) + 131px);
-}
-
-#hud #btn-penggal {
-  right: calc(var(--r) + 77px);
-  bottom: calc(var(--b) + 166px);
-}
-
-#hud #btn-lompat {
-  right: calc(var(--r) + 14px);
-  bottom: calc(var(--b) + 179px);
-}
-
-/* jurus 5 Ranah Tebas: di sela tombol Pukul dan busur jurus (45°, 90 px dari pusat Pukul) */
-#hud #btn-ranah {
-  right: calc(var(--r) + 78px);
-  bottom: calc(var(--b) + 78px);
-}
-
-/* jurus: kebiruan; selama jeda pakai ada lapisan gelap yang menyusut + sisa detik */
-#hud .jurus {
-  border-color: rgba(190, 225, 255, 0.7);
-  background: rgba(70, 140, 255, 0.22);
-}
-
-#hud .jurus.siap {
-  box-shadow: 0 0 10px rgba(140, 200, 255, 0.55);
-}
-
-/* jurus pamungkas (Penggal): kemerahan */
-#hud .jurus.pamungkas {
-  border-color: rgba(255, 190, 180, 0.8);
-  background: rgba(200, 40, 40, 0.3);
-}
-
-#hud .jurus.pamungkas.siap {
-  box-shadow: 0 0 12px rgba(255, 110, 90, 0.7);
-}
-
-/* Ranah Tebas: merah tua bercincin */
-#hud .jurus.ranah {
-  border-color: rgba(255, 140, 140, 0.9);
-  background: rgba(120, 10, 20, 0.45);
-}
-
-#hud .jurus.ranah.siap {
-  box-shadow: 0 0 14px rgba(255, 60, 60, 0.8), inset 0 0 8px rgba(255, 80, 80, 0.5);
+  width: 62px;
+  height: 62px;
 }
 
 /* ---------------------------------------------------------------- Ranah Tebas (lapisan layar) */
@@ -445,22 +367,6 @@ body.ranah-kelabu #game {
     opacity: 0;
     transform: translate(-50%, -60%);
   }
-}
-
-#hud .jurus .cd {
-  position: absolute;
-  inset: -2px;
-  border-radius: 50%;
-  display: grid;
-  place-items: center;
-  font-size: 20px;
-  font-weight: 700;
-  background: conic-gradient(rgba(0, 20, 30, 0.66) calc(var(--cd, 0) * 1turn), rgba(0, 20, 30, 0.3) 0);
-  pointer-events: none;
-}
-
-#hud .jurus .cd:empty {
-  display: none;
 }
 
 #pesan {
@@ -689,41 +595,9 @@ body.ranah-kelabu #game {
   border: 1px solid rgba(255, 255, 255, 0.35);
 }
 
-/* layar mendatar: petunjuk di ruang kosong atas, di antara judul dan tombol; Lompat di atas tombol
-   Pukul, 4 jurus sebaris di kirinya — kiri layar untuk joystick */
+/* layar mendatar: petunjuk di ruang kosong atas, di antara judul dan tombol — kiri layar untuk
+   joystick */
 @media (orientation: landscape) {
-  /* `bottom` diulang per tombol: aturan tegak per-id (#hud #btn-…) lebih spesifik daripada
-     #hud .jurus, jadi tanpa ini tombol jurus tetap di busur tegak dan naik miring ke tengah layar */
-  #hud #btn-cincang {
-    right: calc(var(--r) + 96px);
-    bottom: calc(var(--b) + 14px);
-  }
-
-  #hud #btn-hentak {
-    right: calc(var(--r) + 162px);
-    bottom: calc(var(--b) + 14px);
-  }
-
-  #hud #btn-putar {
-    right: calc(var(--r) + 228px);
-    bottom: calc(var(--b) + 14px);
-  }
-
-  #hud #btn-penggal {
-    right: calc(var(--r) + 294px);
-    bottom: calc(var(--b) + 14px);
-  }
-
-  #hud #btn-ranah {
-    right: calc(var(--r) + 360px);
-    bottom: calc(var(--b) + 14px);
-  }
-
-  #hud #btn-lompat {
-    right: calc(var(--r) + 14px);
-    bottom: calc(var(--b) + 96px);
-  }
-
   #petunjuk {
     top: max(12px, env(safe-area-inset-top));
     max-width: 46%;

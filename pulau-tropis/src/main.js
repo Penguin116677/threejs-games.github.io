@@ -124,7 +124,7 @@ function findSpawn(ground, colliders) {
   return { x: -128, z: 128, heading: Math.atan2(128, -128) }
 }
 
-const HINT_TOUCH = '<b>Joystick</b> (kiri bawah): berjalan, dorong penuh = lari · Geser layar: putar kamera · Cubit: zoom<br><b>Pukul</b> berulang = kombo · 5 <b>jurus</b> (ke-5: <b>Ranah</b>) · orc kalah = <b>koin</b> · dekati orang: <b>Bicara</b> · dekati prajurit Kencana: <b>Ajak</b> jadi anak buah (menolak → <b>Duel</b>)<br>Pukul pohon = <b>kayu</b> → buat <b>pancing</b> &amp; <b>perahu</b> di <b>Tas</b> · pulau tidak berjembatan: berenang / berlayar<br><b>Peta</b>: Kencana (barat) memusuhimu · Aeloria (utara) damai bila kamu tidak rusuh · <b>Frostfall</b> (timur): pegunungan salju, gua & kastel · <b>ketuk kios / elf</b>'
+const HINT_TOUCH = '<b>Joystick</b> (kiri bawah): berjalan, dorong penuh = lari · Geser layar: putar kamera · Cubit: zoom<br>dekati orang: <b>Bicara</b> · dekati prajurit Kencana: <b>Ajak</b> jadi anak buah (menolak → <b>Duel</b>)<br>dekati pohon: <b>Tebang</b> = <b>kayu</b> → buat <b>pancing</b> &amp; <b>perahu</b> di <b>Tas</b> · pulau tidak berjembatan: berenang / berlayar<br><b>Peta</b>: Kencana (barat) memusuhimu · Aeloria (utara) damai bila kamu tidak rusuh · <b>Frostfall</b> (timur): pegunungan salju, gua & kastel · <b>ketuk kios / elf</b>'
 const HINT_KEYS = '<b>WASD / panah</b>: berjalan (Shift = pelan) · Seret: putar kamera · Roda: zoom<br>F: pukul (kombo) · 1–5: jurus (5 = Ranah Tebas) · Spasi: lompat / panjat · orc kalah = koin · B: tas · G / Enter: bicara · J: ajak prajurit jadi anak buah · U: duel<br>Pukul pohon = kayu → buat pancing &amp; perahu di Tas · C: mancing / tarik · V: naik / turun perahu<br>M: peta — Kencana (barat) memusuhimu · Aeloria (utara) damai bila kamu tidak rusuh · Frostfall (timur): pegunungan salju, gua & kastel · klik kios / elf'
 
 // FOV kamera (tegak, mendatar): layar tegak butuh FOV lebih lebar agar sisi kiri-kanan tetap
@@ -558,9 +558,11 @@ async function start() {
   // ruang dalam Frostfall (aula singgasana, kedai) & gua: kamera tetap di dalamnya
   const roomAt = (x, z, y) => frost.interiors.find(r => x > r.rect.x0 && x < r.rect.x1 && z > r.rect.z0 && z < r.rect.z1 && y > r.floor - 1.5 && y < r.ceil) ?? null
   cam.setVolumes({ roofAt: frost.cave.roofAt, inCave: frost.cave.inside, roomAt })
-  const skillButtons = { cincang: $('btn-cincang'), hentak: $('btn-hentak'), putar: $('btn-putar'), penggal: $('btn-penggal'), ranah: $('btn-ranah') }
+  // v0.27.0: tombol Pukul & kelima jurus pedang dihapus dari layar (permintaan pengguna) — layar sentuh
+  // kini hanya punya Lompat + tombol komando prajurit Rajawali; keyboard (F, 1–5) tetap bisa dipakai
+  const skillButtons = {}
   const input = createInput({
-    canvas, joystick: $('joystick'), knob: $('joystick').querySelector('.kenop'), jumpButton: $('btn-lompat'), attackButton: $('btn-pukul'), skillButtons, touch: touchUI,
+    canvas, joystick: $('joystick'), knob: $('joystick').querySelector('.kenop'), jumpButton: $('btn-lompat'), attackButton: null, skillButtons, touch: touchUI,
   })
   const NO_INPUT = { moveX: 0, moveY: 0, jump: false, attack: false, skill: null, lookDX: 0, lookDY: 0, zoom: 1, taps: [] }
   const markers = createMarkers(ground)
@@ -775,6 +777,27 @@ async function start() {
   }
   const btnRahasia = createActionButton(aksiBox, { id: 'btn-rahasia', icon: IKON_AKSI.rahasia, cls: 'coklat' }, openSecret)
   const btnPeti = createActionButton(aksiBox, { id: 'btn-peti', icon: IKON_AKSI.peti, cls: 'kuning' }, openChest)
+  // Tebang (v0.27.0): tombol Pukul tidak lagi di layar, jadi kayu dikumpulkan lewat tombol ini saat
+  // berdiri di dekat batang pohon — pemain menghadap pohonnya lalu mengayun seperti Pukul
+  let treeNear = null
+  const btnTebang = createActionButton(aksiBox, { id: 'btn-tebang', icon: IKON_AKSI.tebang, cls: 'coklat' }, () => {
+    if (!treeNear) return
+    player.face(treeNear.x, treeNear.z)
+    input.pressAttack()
+  })
+  function nearestTree(p) {
+    let best = null
+    let bestD = Infinity
+    colliders.forEachNear(p.x, p.z, 1.6, o => {
+      if (o.kind !== 'pohon' || !o.radius) return
+      const d = Math.hypot(o.x - p.x, o.z - p.z) - o.radius
+      if (d < bestD) {
+        bestD = d
+        best = o
+      }
+    })
+    return bestD < 1.3 ? best : null
+  }
   let actionT = 0
   let buildSpot = null
   const anakBuahEl = $('anak-buah')
@@ -800,6 +823,8 @@ async function start() {
     const ch = chestNear(p)
     const sealed = !!ch && chestSealed(ch)
     btnPeti.set(free && !!ch, sealed ? 'Tersegel es' : 'Buka peti', sealed ? 'kalahkan Naga Es' : 'harta karun')
+    treeNear = free && !boat.aboard && !player.swimming ? nearestTree(p) : null
+    btnTebang.set(!!treeNear, 'Tebang', `kayu ${bag.jumlah('kayu')}`)
     // jumlah anak buah di HUD (di bawah koin)
     const nBuah = recruits ? recruits.followers.length : 0
     if (nBuah !== shownBuah) {
