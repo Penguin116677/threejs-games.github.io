@@ -43,6 +43,9 @@ export const DIVISI = [
 ]
 export const PER_DIVISI = 100
 export const HOME_HEADING = 0 // menghadap selatan (ke laut, membelakangi benteng)
+// titik mulai pemain (v0.27.1): Lapangan Latihan, di depan barisan divisi Pedang & Perisai, menghadap utara
+// (pasukan & benteng di depannya); juga tempat bangun setelah pingsan dikeroyok orc
+export const HOME = { x: -849, z: -846, heading: Math.PI }
 
 // Nama wilayah untuk spanduk "memasuki …" dan peta (yang pertama cocok menang)
 export const REGIONS = [

@@ -213,6 +213,23 @@ for (const [name, opts, query] of cases) {
   }
   await page.screenshot({ path: `${out}/${name}.png` })
 
+  // v0.27.1: pemain mulai di kerajaannya (Pulau Rajawali); sisa uji berjalan dari titik mulai lama di
+  // pantai Pulau Tropis seperti sebelumnya
+  const start = await page.evaluate(() => {
+    const { player, home, banner } = window.__pulau
+    const p = player.position
+    return { d: Math.hypot(p.x - home.x, p.z - home.z), wilayah: banner.current }
+  })
+  await page.screenshot({ path: `${out}/${name}-mulai.png` })
+  if (start.d > 1 || start.wilayah !== 'lapangan-rajawali') fail(`titik mulai di Pulau Rajawali: ${JSON.stringify(start)}`)
+  else ok('pemain mulai di kerajaannya: Lapangan Latihan, Pulau Rajawali')
+  await page.evaluate(() => {
+    const { player, cam, spawn } = window.__pulau
+    player.placeAt(spawn.x, spawn.z, spawn.heading)
+    player.stop()
+    cam.lookFrom(spawn.heading + Math.PI)
+  })
+  await waitFrames(page, 10)
   const s0 = await state(page)
   if (!s0.model) fail('model karakter tidak termuat (memakai karakter cadangan)')
   else if (!await page.evaluate(() => !!window.__pulau.player.root.getObjectByName('weapon-sword')))

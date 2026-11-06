@@ -20,6 +20,7 @@ import { planKencana } from './world/kencana/plan.js'
 import { createRegionMask } from './world/kencana/mask.js'
 import { createKencana, boatGeometry } from './world/kencana/kingdom.js'
 import { planRajawali } from './world/rajawali/rencana.js'
+import { HOME as RAJA_HOME } from './world/rajawali/layout.js'
 import { createRajawali } from './world/rajawali/pulau.js'
 import { createBala } from './world/rajawali/bala.js'
 import { createKomando } from './ui/komando.js'
@@ -125,8 +126,8 @@ function findSpawn(ground, colliders) {
   return { x: -128, z: 128, heading: Math.atan2(128, -128) }
 }
 
-const HINT_TOUCH = '<b>Joystick</b> (kiri bawah): berjalan, dorong penuh = lari · Geser layar: putar kamera · Cubit: zoom<br><b>Kerajaanmu</b> (Pulau Rajawali, barat laut): kanan bawah pilih <b>komandan</b> → <b>Ikuti aku</b> · <b>Ke titik</b> (ketuk tanah / peta) · <b>Formasi</b> · <b>Kiri</b> / <b>Kanan</b> = mengepung<br>dekati orang: <b>Bicara</b> · dekati prajurit Kencana: <b>Ajak</b> jadi anak buah (menolak → <b>Duel</b>)<br>dekati pohon: <b>Tebang</b> = <b>kayu</b> → buat <b>pancing</b> &amp; <b>perahu</b> di <b>Tas</b> · pulau tidak berjembatan: berenang / berlayar<br><b>Peta</b>: Kencana (barat) memusuhimu · Aeloria (utara) damai bila kamu tidak rusuh · <b>Frostfall</b> (timur): pegunungan salju, gua & kastel · <b>ketuk kios / elf</b>'
-const HINT_KEYS = '<b>WASD / panah</b>: berjalan (Shift = pelan) · Seret: putar kamera · Roda: zoom<br>F: pukul (kombo) · 1–5: jurus (5 = Ranah Tebas) · Spasi: lompat / panjat<br>Kerajaanmu (Pulau Rajawali, barat laut): 6–9 pilih komandan · I ikuti aku · O ke titik (lalu klik tanah / peta) · L formasi · Z / X geser kiri / kanan (kepung) · orc kalah = koin · B: tas · G / Enter: bicara · J: ajak prajurit jadi anak buah · U: duel<br>Pukul pohon = kayu → buat pancing &amp; perahu di Tas · C: mancing / tarik · V: naik / turun perahu<br>M: peta — Kencana (barat) memusuhimu · Aeloria (utara) damai bila kamu tidak rusuh · Frostfall (timur): pegunungan salju, gua & kastel · klik kios / elf'
+const HINT_TOUCH = '<b>Joystick</b> (kiri bawah): berjalan, dorong penuh = lari · Geser layar: putar kamera · Cubit: zoom<br>Kamu mulai di <b>kerajaanmu</b>, Pulau Rajawali (barat laut): kanan bawah pilih <b>komandan</b> → <b>Ikuti aku</b> · <b>Ke titik</b> (ketuk tanah / peta) · <b>Formasi</b> · <b>Kiri</b> / <b>Kanan</b> = mengepung<br>dekati orang: <b>Bicara</b> · dekati prajurit Kencana: <b>Ajak</b> jadi anak buah (menolak → <b>Duel</b>)<br>dekati pohon: <b>Tebang</b> = <b>kayu</b> → buat <b>pancing</b> &amp; <b>perahu</b> di <b>Tas</b> · pulau tidak berjembatan: berenang / berlayar<br><b>Peta</b>: Kencana (barat) memusuhimu · Aeloria (utara) damai bila kamu tidak rusuh · <b>Frostfall</b> (timur): pegunungan salju, gua & kastel · <b>ketuk kios / elf</b>'
+const HINT_KEYS = '<b>WASD / panah</b>: berjalan (Shift = pelan) · Seret: putar kamera · Roda: zoom<br>F: pukul (kombo) · 1–5: jurus (5 = Ranah Tebas) · Spasi: lompat / panjat<br>Kamu mulai di kerajaanmu, Pulau Rajawali (barat laut): 6–9 pilih komandan · I ikuti aku · O ke titik (lalu klik tanah / peta) · L formasi · Z / X geser kiri / kanan (kepung) · orc kalah = koin · B: tas · G / Enter: bicara · J: ajak prajurit jadi anak buah · U: duel<br>Pukul pohon = kayu → buat pancing &amp; perahu di Tas · C: mancing / tarik · V: naik / turun perahu<br>M: peta — Kencana (barat) memusuhimu · Aeloria (utara) damai bila kamu tidak rusuh · Frostfall (timur): pegunungan salju, gua & kastel · klik kios / elf'
 
 // FOV kamera (tegak, mendatar): layar tegak butuh FOV lebih lebar agar sisi kiri-kanan tetap
 // terlihat dari kamera di belakang karakter
@@ -403,8 +404,12 @@ async function start() {
   const player = createPlayer({ ground, colliders, quality, asset })
   scene.add(player.root)
   if (player.blob) scene.add(player.blob)
+  // titik mulai lama di pantai Pulau Tropis: patokan perkemahan orc pertama (enemies.js)
   const spawn = findSpawn(ground, colliders)
-  player.placeAt(spawn.x, spawn.z, spawn.heading)
+  // v0.27.1: pemain mulai di kerajaannya sendiri — Lapangan Latihan Pulau Rajawali, di depan barisan
+  // keempat divisi, menghadap benteng (permintaan pengguna)
+  const home = RAJA_HOME
+  player.placeAt(home.x, home.z, home.heading)
   // tas pemain (koin, bekal, ramuan, perlengkapan) + perlengkapan yang tampak di badan
   const bag = createBag()
   const gear = asset ? createGear(asset.model, quality, asset.clips) : null
@@ -557,7 +562,7 @@ async function start() {
   // Kamera di belakang karakter (mode main) + joystick / keyboard
   const touchUI = navigator.maxTouchPoints > 0 || 'ontouchstart' in window
   const cam = createFollowCamera(camera, ground)
-  cam.lookFrom(spawn.heading + Math.PI) // di belakang prajurit, menghadap gunung
+  cam.lookFrom(home.heading + Math.PI) // di belakang prajurit, menghadap pasukan & benteng
   // ruang dalam Frostfall (aula singgasana, kedai) & gua: kamera tetap di dalamnya
   const roomAt = (x, z, y) => frost.interiors.find(r => x > r.rect.x0 && x < r.rect.x1 && z > r.rect.z0 && z < r.rect.z1 && y > r.floor - 1.5 && y < r.ceil) ?? null
   cam.setVolumes({ roofAt: frost.cave.roofAt, inCave: frost.cave.inside, roomAt })
@@ -1318,7 +1323,7 @@ async function start() {
       suara.play('tirai')
     }, 1100)
     setTimeout(() => {
-      const p = byDragon ? naga.exit : byElves ? elfExit : byKingdom ? exitPoint : spawn
+      const p = byDragon ? naga.exit : byElves ? elfExit : byKingdom ? exitPoint : home
       player.placeAt(p.x, p.z, p.heading)
       player.revive()
       suara.play('pulih')
@@ -1330,7 +1335,7 @@ async function start() {
           ? 'Kamu dikalahkan kesatria Aeloria dan diantar perahu ke luar kerajaan: pantai utara Pulau Tropis.'
           : byKingdom
             ? 'Kamu dikalahkan prajurit Kencana dan dibuang ke pantai barat Pulau Tropis, di luar wilayah kerajaan.'
-            : 'Kamu pingsan dikeroyok orc… dan terbangun di pantai.', 4200)
+            : 'Kamu pingsan dikeroyok orc… dan terbangun di kerajaanmu, Pulau Rajawali.', 4200)
     }, 1600)
   })
 
@@ -1606,7 +1611,7 @@ async function start() {
   // akses untuk debugging / pengujian otomatis
   window.__pulau = {
     renderer, scene, camera, controls, ground, shore, quality, trees, rocks, grass, water, env, kencana, region, plan, villagers, army, worldMap, banner, aeloria, elfPlan, elfMask, life,
-    frost, frostPlan, frostMask, weather, openSecret, openChest, warga, naga, ranahFx, rajawali, rajaPlan, bala, komando,
+    frost, frostPlan, frostMask, weather, openSecret, openChest, warga, naga, ranahFx, rajawali, rajaPlan, bala, komando, spawn, home,
     player, cam, input, colliders, nav, markers, effects, enemies, soldiers, security, patrol, recruits, bubbles, pickGround, setMode, getMode: () => mode, bag, gear, shop, elfSec, elfCard,
     boat, fishing, ripples, recipes, craftBoat, boardBoat, leaveBoat, chat, placesFor, suara, ambience,
     frames: () => frameCount, debug,
