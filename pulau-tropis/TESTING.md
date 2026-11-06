@@ -540,6 +540,9 @@ rendah, dan FPS.
 ## Daftar uji manual — v0.27.0 (Kerajaanmu: Pulau Rajawali & 400 prajurit)
 Buka **Peta**: Pulau Rajawali ada di **barat laut** (kiri atas). Seberangi laut (berenang atau perahu) ke
 **Dermaga Rajawali** di pantai timurnya.
+0. **Layar miring**: buka game dengan HP tegak → layar "Putar HP ke posisi miring"; putar HP → game tampil.
+   Setelah sentuhan pertama (layar penuh), putar HP kembali tegak → layar tetap miring (terkunci) bila browser
+   mengizinkan, atau layar "Putar HP" muncul lagi.
 1. Layar: tombol Pukul & kelima jurus **tidak ada lagi**; kanan bawah = Lompat + 4 tombol komandan + baris
    perintah. Dekati pohon → tombol **Tebang** → +1 kayu tiap ketukan.
 2. Masuk pulau: spanduk "Pulau Rajawali" / "Lapangan Latihan" / "Benteng Rajawali". Tidak ada rumah / penduduk;

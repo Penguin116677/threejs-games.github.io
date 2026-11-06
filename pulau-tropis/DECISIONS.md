@@ -1030,3 +1030,10 @@ tandai sebagai "diganti" bila berubah.
     (pancing & perahu untuk menyeberang laut), jadi tombol konteks "Tebang" muncul di dekat batang pohon dan
     menjalankan ayunan yang sama. Keyboard (F, 1–5) tidak dihapus karena tidak tampil di layar. Akibatnya di HP:
     melawan orc / prajurit / naga dan menang duel tidak lagi bisa dilakukan sendiri (dicatat di PROJECT_STATUS).
+99. **HP hanya layar miring: kunci orientasi + layar "Putar HP", bukan memutar halaman dengan CSS** (v0.27.0,
+    permintaan pengguna). `screen.orientation.lock('landscape')` hanya diizinkan browser di layar penuh (game
+    sudah masuk layar penuh pada sentuhan pertama, #45), jadi dipanggil di sana; bila ditolak / tidak didukung
+    (mis. Safari iPhone, rotasi otomatis dimatikan), layar penutup meminta HP diputar. Memutar seluruh halaman
+    90° dengan CSS ditolak: joystick, geser kamera, ketuk tanah, dan peta membaca koordinat layar — semuanya
+    harus ikut diputar dan rawan salah. Tata letak tegak lama di CSS dibiarkan (tidak terpakai di HP; jendela
+    komputer yang sempit masih memakainya).

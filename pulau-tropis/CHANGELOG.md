@@ -44,6 +44,9 @@
 - **Tombol jurus pedang dihapus dari layar** (permintaan: *"Hapuskan semua skill berpedangku di layar, sisakan
   skill yang mengarahkan prajurit"*): Pukul, Cincang, Hentak, Putar, Penggal, dan Ranah tidak lagi ada di layar
   sentuh; kanan bawah kini Lompat + panel komando. Di komputer tombol keyboard F dan 1–5 tetap bekerja.
+- **Hanya layar miring di HP** (permintaan: *"Gamenya layar miring saja tidak usah layar berdiri"*): saat layar
+  penuh, orientasi dikunci miring (bila browser mengizinkan); HP yang dipegang tegak ditutup layar **"Putar HP
+  ke posisi miring"** sampai diputar. Komputer tidak terpengaruh.
 - Shader tanah menerima masker wilayah ketiga (lapangan tanah, jalan & lantai batu Pulau Rajawali).
 - Petunjuk awal: Pukul / jurus diganti keterangan komando & Tebang.
 
