@@ -72,10 +72,10 @@ async function main() {
     const { ctx, E, errors } = await open()
     const s = await E(() => __RA.step(0.3))
     check(errors.length === 0, 'console/page errors', errors)
-    check(s.grounded && Math.abs(s.y) < 0.01, 'player starts on the ground outside', s)
-    check(s.zones.lobby && !s.zones.apt703, 'only nearby zones are loaded at start', s.zones)
+    check(s.grounded && Math.abs(s.y - 21) < 0.01 && s.x > 10.06 && s.z < -3.96, 'player starts in the bedroom of 803 (top floor)', s)
+    check(s.zones.apt803 && !s.zones.lobby, 'only nearby zones are loaded at start', s.zones)
     const counts = await E(() => ({ doors: __RA.game.doors.length, colliders: __RA.game.world.all.size, interactables: __RA.game.interactables.size }))
-    check(counts.doors === FLOORS * 6 - 1 + 3 + 2 + 1, 'door count (6 per floor, lobby has an archway; + 3 in 703 + 2 entrance + roof)', counts)
+    check(counts.doors === FLOORS * 6 - 1 + 3 + 3 + 2 + 1, 'door count (6 per floor, lobby has an archway; + 3 in 703 + 3 in 803 + 2 entrance + roof)', counts)
     await ctx.close()
     return counts
   })
@@ -90,6 +90,7 @@ async function main() {
       if (r && r.ok === false) throw Object.assign(new Error('route step failed: ' + name), { detail: r })
       return r
     }
+    await E(() => __RA.teleport(0.5, 0, -13.5, Math.PI))
     await step('walk to entrance', () => __RA.path([[0.5, -9.2]]))
     await step('open front door', () => __RA.use('door-entrance-x+'))
     await E(() => __RA.step(1))
@@ -203,6 +204,41 @@ async function main() {
     check(errors.length === 0, 'no runtime errors', errors)
     await ctx.close()
     return { steps: log.length, photos: end.photos.length, zones: end.zones }
+  })
+
+  // =====================================================================================
+  test('start: wake up in 803 on the top floor, get out and take the stairs all the way down to the lobby', async () => {
+    const { ctx, E, errors } = await open()
+    const r = await E(() => {
+      const out = []
+      const st = (name, res) => { out.push([name, res.ok !== false]); if (res.ok === false) throw Object.assign(new Error(name), { res }) }
+      try {
+        const s0 = __RA.step(0.5)
+        st('start in bedroom', { ok: s0.y === 21 && s0.grounded && /803/.test(document.getElementById('objective').textContent) })
+        st('read phone', __RA.use('doc-home-phone'))
+        st('light switch is dead', (() => { __RA.path([[10.9, -4.6]]); const r = __RA.use('sw8-bedroom'); return { ok: r.ok && /dead/.test(__RA.game.ui.lastToast) } })())
+        st('bedroom door', __RA.use('door-803-bedroom')); __RA.step(1)
+        st('to hall', __RA.path([[10.7, -4.6], [10.7, -3.2], [10.8, -2.2]]))
+        st('hall door', __RA.use('door-803-hall')); __RA.step(1)
+        st('to kitchen', __RA.path([[9.5, -2.2], [8.4, -2.4], [5.95, -1.7]]))
+        st('note under the door', __RA.use('doc-home-note'))
+        st('front door of 803 (unlocked)', __RA.use('door-7-03')); __RA.step(1)
+        st('corridor 8', __RA.path([[6.0, -1.7], [6.0, 0.2], [-11.55, 0.2]]))
+        st('left home', { ok: __RA.game.flags.leftHome })
+        st('stair door 8', __RA.use('door-stair-7')); __RA.step(1)
+        st('onto landing', __RA.path([[-11.55, 1.6], [-11.4, 2.4]]))
+        for (let k = 7; k >= 1; k--) st('down to floor ' + k, __RA.path([[-11.4, 6.6], [-13.0, 6.6], [-13.0, 2.6], [-11.4, 2.4]]))
+        st('at ground landing', { ok: Math.abs(__RA.game.player.pos.y) < 0.01 })
+        st('stair door 1', (() => { __RA.path([[-11.55, 1.9]]); return __RA.use('door-stair-0') })()); __RA.step(1)
+        st('lobby', __RA.path([[-11.55, 0.2], [0.5, 0.0], [0.5, -4]]))
+        st('lobby objective', { ok: __RA.game.flags.lobby && /front desk/.test(document.getElementById('objective').textContent) })
+      } catch (e) { return { ok: false, out, failed: e.message, res: e.res, status: __RA.status() } }
+      return { ok: true, out, recoveries: __RA.game.stats.recoveries }
+    })
+    check(r.ok, 'start route failed', r)
+    check(r.recoveries === 0 && errors.length === 0, 'no recoveries / errors', { r, errors })
+    await ctx.close()
+    return r.out.map(([n]) => n).join(' → ')
   })
 
   // =====================================================================================
@@ -366,7 +402,7 @@ async function main() {
           eastWindow: [13.2, 0], westWindow: [-13.2, 0],
         }
         if (k === 0) Object.assign(targets, { lobby: [0.5, -4], entrance: [0.5, -7.4], maintenance: [-9, -4], desk: [4.4, -4.4], street: [0.5, -12] })
-        if (k === 6) Object.assign(targets, { kitchen: [8.4, -2.4], living: [7.5, -6.3], hall: [10.8, -2.4], bedroom: [11, -6.5], bathroom: [12.4, -2.3] })
+        if (k === 6 || k === 7) Object.assign(targets, { kitchen: [8.4, -2.4], living: [7.5, -6.3], hall: [10.8, -2.4], bedroom: [11, -6.5], bathroom: [12.4, -2.3] })
         const bounds = k === 0 ? { x0: -16, x1: 16, z0: -14, z1: 8 } : undefined
         const res = __RA.reachable(y, [-9.4, 0], targets, bounds)
         out.push({ k, area: res.area, targets: res.targets, why: res.why })
@@ -436,6 +472,7 @@ async function main() {
         spawns.push([-12, y, 0], [0, y, 0], [11, y, 0], [-11.4, y, 2.2], [-12.9, y + 1.5, 6.6], [-9.4, y, 2.3])
       }
       spawns.push([0.5, 0, -4], [-9, 0, -4], [4.4, 0, -4.6], [0.5, 0, -12], [-20, 0, -20], [20, 0, 10])
+      spawns.push([10.9, 21, -5.3], [7.5, 21, -5.5], [8, 21, -2.3], [12.4, 21, -2.3])
       spawns.push([7.5, 18, -5.5], [8, 18, -2.3], [10.8, 18, -2.5], [11, 18, -6.5], [12.6, 18, -2.4], [0, 24, 0], [10, 24, 6])
       let worst = { overlap: 0, below: 0, outside: 0, escapes: 0, stuck: 0 }
       const issues = []

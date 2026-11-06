@@ -7,7 +7,7 @@ import { Fixture } from './lights.js'
 import * as P from './props.js'
 import {
   FLOOR_H, SLAB, CEIL_H, FLOORS, ROOF_Y, B, IN, STAIR, SHAFT, ELEV_DOOR, DOORS_N, DOORS_S,
-  DOOR_H, INNER_DOOR_H, APT_K, APT, MAP, floorLabel,
+  DOOR_H, INNER_DOOR_H, APT_K, HOME_K, hasApartment, APT, MAP, floorLabel,
 } from './constants.js'
 import { textTexture } from './materials.js'
 
@@ -62,7 +62,7 @@ function exteriorWalls(b, k, top = FLOOR_H) {
   b.wall([[STAIR.x1 + 0.1, 'stairPaint'], [SHAFT.x1 + 0.2, 'concrete'], [20, unit]], 'x', B.x0 + 0.1, B.x1 - 0.1, IN.z1, B.z1 - 0.1, y, y1, SOUTH_WINDOWS)
   for (const w of SOUTH_WINDOWS) b.window('x', w.a, w.b, IN.z1, B.z1, y, w.lo, w.hi, { inside: -1 })
   // east
-  const eastIn = k === APT_K ? [[-3.9, 'wallpaper'], [-1.0, 'wallTile'], [1.0, corr], [20, 'wallpaper']] : [[-1.0, unit], [1.0, corr], [20, unit]]
+  const eastIn = hasApartment(k) ? [[-3.9, 'wallpaper'], [-1.0, 'wallTile'], [1.0, corr], [20, 'wallpaper']] : [[-1.0, unit], [1.0, corr], [20, unit]]
   b.wall('brick', 'z', B.z0 + 0.1, B.z1 - 0.1, B.x1 - 0.1, B.x1, y, y1, EAST_WINDOWS)
   b.wall(eastIn, 'z', B.z0 + 0.1, B.z1 - 0.1, IN.x1, B.x1 - 0.1, y, y1, EAST_WINDOWS)
   for (const w of EAST_WINDOWS) b.window('z', w.a, w.b, IN.x1, B.x1, y, w.lo, w.hi, { inside: -1 })
@@ -114,7 +114,7 @@ function corridorWalls(b, k, game) {
   const nOpen = k === 0
     ? [{ a: DOORS_N['01'][0], b: DOORS_N['01'][1], hi: DOOR_H }, { a: NORTH_LOBBY.x0, b: NORTH_LOBBY.x1, hi: 2.5 }, { a: DOORS_N['03'][0], b: DOORS_N['03'][1], hi: DOOR_H }]
     : Object.values(DOORS_N).map(([a, b2]) => ({ a, b: b2, hi: DOOR_H }))
-  const aptSide = k === APT_K ? [[-3.9, unit], [5, unit], [10, 'kitchenPaint'], [11.6, 'wallpaper'], [20, 'wallTile']]
+  const aptSide = hasApartment(k) ? [[-3.9, unit], [5, unit], [10, 'kitchenPaint'], [11.6, 'wallpaper'], [20, 'wallTile']]
     : k === 0 ? [[-3.9, 'utilityPaint'], [5, 'lobbyPaint'], [20, 'utilityPaint']] : unit
   b.wall2(aptSide, corr, 'x', IN.x0, IN.x1, -1.1, -0.9, y, yc, nOpen)
   // south corridor wall: corridor side z[0.9,1.0], other side z[1.0,1.1]
@@ -131,7 +131,7 @@ function corridorWalls(b, k, game) {
   for (const xc of [-4, 5]) {
     let west = unit, east = unit
     if (k === 0) { west = xc === -4 ? 'utilityPaint' : 'lobbyPaint'; east = xc === -4 ? 'lobbyPaint' : 'utilityPaint' }
-    if (k === APT_K && xc === 5) east = [[-3.6, 'wallpaper'], [-1.1, 'kitchenPaint']]
+    if (hasApartment(k) && xc === 5) east = [[-3.6, 'wallpaper'], [-1.1, 'kitchenPaint']]
     b.wall2(west, east, 'z', IN.z0, -1.1, xc - 0.1, xc + 0.1, y, yc)
   }
   // south: stair east wall / shaft walls (full storey height), unit split
@@ -144,8 +144,8 @@ function corridorWalls(b, k, game) {
 }
 const NORTH_LOBBY = { x0: -3.9, x1: 4.9 }
 
-function apartmentWalls(b) {
-  const y = APT_K * FLOOR_H, yc = y + CEIL_H
+function apartmentWalls(b, k) {
+  const y = k * FLOOR_H, yc = y + CEIL_H
   // A: living | kitchen, wide arch
   b.wall2('wallpaper', 'kitchenPaint', 'x', APT.x0, 9.94, -3.66, -3.54, y, yc, [{ a: 7.4, b: 9.4, hi: 2.3 }])
   // B: west rooms | east rooms, door to the hall
@@ -173,7 +173,7 @@ function floorFinishes(k) {
   for (const [a, b2] of Object.values(DOORS_S)) f.push(['carpet', a, 0.9, b2, 1.1])
   f.push([k === 0 ? 'lobbyFloor' : 'carpet', ELEV_DOOR[0], 0.9, ELEV_DOOR[1], 1.1])
   f.push(['stairConcrete', S.door[0], 0.9, S.door[1], 1.1])
-  if (k === APT_K) {
+  if (hasApartment(k)) {
     const A = APT
     f.push(['floorTile', A.kitchen.x0, A.kitchen.z0 - 0.06, A.kitchen.x1, A.kitchen.z1])
     f.push(['wood', A.living.x0, A.living.z0, A.living.x1, A.living.z1 + 0.06])
@@ -206,7 +206,8 @@ function addDoors(game, k) {
     }
     add({
       id: `door-${k}-${u}`, hinge: { x: a, y, z: -1.0 }, dir: 'x+', width: b - a, height: DOOR_H - 0.01, mat: 'doorWood',
-      name: `door to ${num}`, locked: true, keyId: num === '703' ? 'key703' : null,
+      swing: 1, // apartment doors open into the unit, never into the corridor
+      name: num === '803' ? 'front door' : `door to ${num}`, locked: num !== '803', keyId: num === '703' ? 'key703' : null,
       lockedMsg: num === '703' ? 'Apartment 703 is locked. The manager kept spare keys at the front desk.' : lockedLines[(k * 3 + +u) % lockedLines.length],
       plate: { texture: doorPlate(num), side: 1 },
     })
@@ -215,6 +216,7 @@ function addDoors(game, k) {
     const num = `${k + 1}${u}`
     add({
       id: `door-${k}-${u}`, hinge: { x: a, y, z: 1.0 }, dir: 'x+', width: b - a, height: DOOR_H - 0.01, mat: k === 0 ? 'doorPaint' : 'doorWood',
+      swing: -1,
       name: k === 0 ? (u === '04' ? 'laundry door' : 'storage door') : `door to ${num}`, locked: true,
       lockedMsg: k === 0 ? 'Locked. A sign reads "Residents only — see manager".' : lockedLines[(k * 2 + +u) % lockedLines.length] + (residents[+u] ? '' : ''),
       plate: { texture: doorPlate(k === 0 ? (u === '04' ? 'LAUNDRY' : 'STORAGE') : num, k === 0), side: -1 },
@@ -226,12 +228,12 @@ function addDoors(game, k) {
   })
 }
 
-function addApartmentDoors(game) {
-  const y = APT_K * FLOOR_H
+function addApartmentDoors(game, k) {
+  const y = k * FLOOR_H, n = `${k + 1}03`
   const add = o => game.addDoor(new HingedDoor(game, { mat: 'doorPaint', height: INNER_DOOR_H - 0.01, ...o }))
-  add({ id: 'door-703-hall', hinge: { x: 10.0, y, z: -1.75 }, dir: 'z-', width: 0.85, name: 'hall door' })
-  add({ id: 'door-703-bedroom', hinge: { x: 10.3, y, z: -3.9 }, dir: 'x+', width: 0.8, name: 'bedroom door' })
-  add({ id: 'door-703-bath', hinge: { x: 11.6, y, z: -2.75 }, dir: 'z+', width: 0.8, name: 'bathroom door' })
+  add({ id: `door-${n}-hall`, hinge: { x: 10.0, y, z: -1.75 }, dir: 'z-', width: 0.85, name: 'hall door' })
+  add({ id: `door-${n}-bedroom`, hinge: { x: 10.3, y, z: -3.9 }, dir: 'x+', width: 0.8, name: 'bedroom door' })
+  add({ id: `door-${n}-bath`, hinge: { x: 11.6, y, z: -2.75 }, dir: 'z+', width: 0.8, name: 'bathroom door' })
 }
 
 // ---------------------------------------------------------------------------------
@@ -243,7 +245,7 @@ export function buildShell(game) {
     exteriorWalls(b, k)
     corridorWalls(b, k, game)
     stairs(b, k)
-    if (k === APT_K) apartmentWalls(b)
+    if (hasApartment(k)) apartmentWalls(b, k)
     if (k === 0) {
       // entrance threshold (the exterior wall's footprint has no slab under it)
       b.box('lobbyFloor', ENTRANCE.a, -SLAB, B.z0, ENTRANCE.b, 0, IN.z0, { faces: { ny: false } })
@@ -256,7 +258,7 @@ export function buildShell(game) {
     game.scene.add(b.finish())
     game.shellBuilders.push(b)
     addDoors(game, k)
-    if (k === APT_K) addApartmentDoors(game)
+    if (hasApartment(k)) addApartmentDoors(game, k)
   }
   // entrance doors (double, swing away from the player)
   for (const [x, dir] of [[ENTRANCE.a, 'x+'], [ENTRANCE.b, 'x-']])
@@ -400,6 +402,7 @@ export function defineZones(game) {
   Z.define('lobby', pf => pf <= 1, buildLobby)
   for (let k = 1; k < FLOORS; k++) Z.define('floor-' + k, pf => Math.abs(pf - k) <= 1, z => buildFloorDecor(z, k))
   Z.define('apt703', pf => pf >= APT_K - 1 && pf <= APT_K + 1, buildApartment)
+  Z.define('apt803', pf => pf >= HOME_K - 1, buildHome)
   Z.define('roof', pf => pf >= FLOORS - 1, buildRoofProps)
 }
 
@@ -504,7 +507,7 @@ function buildLobby(z) {
 function buildFloorDecor(z, k) {
   const b = z.b, y = k * FLOOR_H
   const f7 = k === APT_K
-  const circuit = f7 ? 'f7' : (k % 2 ? null : 'dead')
+  const circuit = f7 ? 'f7' : k === HOME_K ? 'f8' : (k % 2 ? null : 'dead')
   corridorLamps(z, k, circuit, i => (f7 ? (i % 2 ? 0.7 : 0.25) : (circuit ? 0.9 : 0)))
   stairLights(z, k)
   exitSign(z, -11.55, y + 2.3, 0.88, Math.PI)
@@ -545,11 +548,11 @@ function buildApartment(z) {
   P.ceilingLamp(z, { id: 'apt-hall', x: 10.8, y: yc, z: -2.5, circuit: 'f7', switchId: 'sw-hall', intensity: 4, range: 4.5 })
   P.ceilingLamp(z, { id: 'apt-bedroom', x: 11.9, y: yc, z: -5.8, circuit: 'f7', switchId: 'sw-bedroom', intensity: 8, range: 6.5, flicker: 0.1 })
   P.ceilingLamp(z, { id: 'apt-bath', x: 12.7, y: yc, z: -2.4, circuit: 'f7', switchId: 'sw-bath', intensity: 5, range: 4.5, flicker: 0.35 })
-  P.lightSwitch(z, { id: 'sw-kitchen', x: 6.6, z: -1.1, y: y + 1.25, facing: '-z', label: 'kitchen light' })
-  P.lightSwitch(z, { id: 'sw-living', x: 7.2, z: -3.66, y: y + 1.25, facing: '-z', label: 'living room light' })
-  P.lightSwitch(z, { id: 'sw-hall', x: 9.94, z: -1.45, y: y + 1.25, facing: '-x', label: 'hall light' })
-  P.lightSwitch(z, { id: 'sw-bedroom', x: 11.3, z: -3.96, y: y + 1.25, facing: '-z', label: 'bedroom light' })
-  P.lightSwitch(z, { id: 'sw-bath', x: 11.54, z: -1.6, y: y + 1.25, facing: '-x', label: 'bathroom light' })
+  P.lightSwitch(z, { id: 'sw-kitchen', circuit: 'f7', x: 6.6, z: -1.1, y: y + 1.25, facing: '-z', label: 'kitchen light' })
+  P.lightSwitch(z, { id: 'sw-living', circuit: 'f7', x: 7.2, z: -3.66, y: y + 1.25, facing: '-z', label: 'living room light' })
+  P.lightSwitch(z, { id: 'sw-hall', circuit: 'f7', x: 9.94, z: -1.45, y: y + 1.25, facing: '-x', label: 'hall light' })
+  P.lightSwitch(z, { id: 'sw-bedroom', circuit: 'f7', x: 11.3, z: -3.96, y: y + 1.25, facing: '-z', label: 'bedroom light' })
+  P.lightSwitch(z, { id: 'sw-bath', circuit: 'f7', x: 11.54, z: -1.6, y: y + 1.25, facing: '-x', label: 'bathroom light' })
 
   z.lift(y, () => {
     // ---------------- kitchen (x 5.1–9.94, z -3.54..-1.1) ----------------
@@ -657,6 +660,68 @@ function buildApartment(z) {
       text: `7\n7\n7\n7\n7\n7\n7\n\nIT'S IN THE WALLS NOW\nDON'T COUNT\nDON'T COUNT\nDON'T`,
     })
     b.box('frame', 11.9, 1.0, -1.16, 12.05, 1.6, -1.12, { collide: false }) // towel
+  })
+}
+
+// Apartment 803 — the player's own flat, where the game starts. Same plan as 703.
+function buildHome(z) {
+  const b = z.b
+  const y = HOME_K * FLOOR_H, yc = y + CEIL_H
+  for (const [id, x, zz, sw, style] of [['home-living', 7.5, -5.7, 'sw8-living', 'dome'], ['home-kitchen', 7.6, -2.3, 'sw8-kitchen', 'panel'],
+    ['home-hall', 10.8, -2.5, 'sw8-hall', 'dome'], ['home-bedroom', 11.9, -5.8, 'sw8-bedroom', 'dome'], ['home-bath', 12.7, -2.4, 'sw8-bath', 'dome']])
+    P.ceilingLamp(z, { id, x, y: yc, z: zz, circuit: 'f8', switchId: sw, intensity: 6, range: 6, style })
+  P.lightSwitch(z, { id: 'sw8-kitchen', circuit: 'f8', x: 6.6, z: -1.1, y: y + 1.25, facing: '-z', label: 'kitchen light' })
+  P.lightSwitch(z, { id: 'sw8-living', circuit: 'f8', x: 7.2, z: -3.66, y: y + 1.25, facing: '-z', label: 'living room light' })
+  P.lightSwitch(z, { id: 'sw8-hall', circuit: 'f8', x: 9.94, z: -1.45, y: y + 1.25, facing: '-x', label: 'hall light' })
+  P.lightSwitch(z, { id: 'sw8-bedroom', circuit: 'f8', x: 11.3, z: -3.96, y: y + 1.25, facing: '-z', label: 'bedroom light' })
+  P.lightSwitch(z, { id: 'sw8-bath', circuit: 'f8', x: 11.54, z: -1.6, y: y + 1.25, facing: '-x', label: 'bathroom light' })
+  // a battery lamp on the nightstand is the only light when you wake up
+  z.fixture(new Fixture({ id: 'home-batterylamp', pos: new THREE.Vector3(11.36, y + 0.95, -4.25), color: 0xffc888, intensity: 1.3, range: 4, flicker: 0.25 }))
+
+  z.lift(y, () => {
+    // bedroom (start)
+    P.bed(z, { x0: 11.65, z0: -6.0, x1: 13.25, z1: -3.97, head: '+z' })
+    P.nightstand(z, { id: 'home-night-1', x0: 11.12, z0: -4.46, x1: 11.6, z1: -3.97, facing: '-z' })
+    P.nightstand(z, { id: 'home-night-2', x0: 13.25, z0: -4.46, x1: 13.69, z1: -3.97, facing: '-z' })
+    b.boxC('steel', 11.36, -4.22, 0.12, 0.12, 0.55, 0.78, { collide: false }) // battery lamp
+    b.boxC('emissive', 11.36, -4.22, 0.08, 0.08, 0.78, 0.84, { collide: false, shadow: false })
+    b.box('darkWood', 10.07, 0, -7.55, 10.66, 2.05, -6.0)
+    P.cabinetDoor(z, { id: 'home-wardrobe-l', hx: 10.672, hz: -7.55, y0: 0.04, h: 1.97, w: 0.775, facing: '+x', extend: 'z+', name: 'wardrobe' })
+    P.cabinetDoor(z, { id: 'home-wardrobe-r', hx: 10.672, hz: -6.0, y0: 0.04, h: 1.97, w: 0.775, facing: '+x', extend: 'z-', name: 'wardrobe' })
+    P.table(z, { x0: 11.2, z0: -7.68, x1: 12.5, z1: -7.1 })
+    P.chair(z, { x: 12.0, z: -6.75, facing: '-z' })
+    P.boxes(z, 13.3, -7.3, 2) // unpacked moving boxes
+    P.rug(z, { x0: 10.8, z0: -6.9, x1: 13.0, z1: -6.1, mat: 'blanket' })
+    P.doc(z, {
+      id: 'doc-home-phone', x: 11.22, y: 0.552, z: -4.25, rot: 0.3, w: 0.08, d: 0.15, title: 'Your phone',
+      text: `11:52 PM — 0% battery.\n\nLast message, from an unknown number, 11:47 PM:\n\n"803. You can hear it too, can't you. The counting. It's coming up from 703.\nThe lifts are dead. Take the stairs.\nThe manager left Hale's spare key in the front desk. Find out what he did."`,
+    })
+    // living room
+    P.sofa(z, { x0: 9.0, z0: -6.6, x1: 9.92, z1: -4.6, facing: '-x', mat: 'fabricRed' })
+    P.table(z, { x0: 6.9, z0: -5.9, x1: 7.7, z1: -4.9, h: 0.45 })
+    b.box('darkWood', 5.12, 0, -5.9, 5.55, 0.5, -4.7)
+    b.box('blackPlastic', 5.15, 0.5, -5.55, 5.6, 0.95, -5.0)
+    b.box('screen', 5.6, 0.55, -5.5, 5.61, 0.9, -5.05, { collide: false })
+    P.boxes(z, 5.6, -7.2, 3); P.boxes(z, 6.4, -7.3, 2)
+    P.plant(z, 9.55, -7.35)
+    // kitchen
+    b.box('appliance', 5.12, 0, -3.54, 5.8, 1.78, -2.88)
+    P.cabinetDoor(z, { id: 'home-fridge', hx: 5.13, hz: -2.87, y0: 0.05, h: 1.7, w: 0.66, facing: '+z', extend: 'x+', mat: 'appliance', name: 'fridge', open: 1.7 })
+    b.box('darkWood', 5.8, 0, -3.54, 7.4, 0.86, -2.94)
+    b.box('lightWood', 5.8, 0.86, -3.54, 7.4, 0.9, -2.91, { collide: false })
+    b.box('steel', 6.75, 0.9, -3.44, 7.25, 0.905, -3.04, { collide: false })
+    P.drawer(z, { id: 'home-drawer', x: 6.2, y: 0.76, z: -2.94 + 0.0125, w: 0.76, h: 0.15, d: 0.55, facing: '+z', name: 'kitchen drawer' })
+    P.doc(z, {
+      id: 'doc-home-note', x: 6.0, y: 0.002, z: -1.45, rot: 0.6, title: 'Note slipped under your door',
+      text: `To the new tenant in 803,\n\nPlease stop walking around at night. Every time you do, the knocking in 703 starts again, right below you.\n\nIf you ever go down there: the breakers are in the maintenance room by the lobby. DON'T turn on floor 7.\n\n— your neighbour in 804`,
+    })
+    // bathroom
+    b.box('ceramic', 11.66, 0, -3.84, 13.69, 0.55, -3.12)
+    b.boxC('ceramic', 13.38, -1.9, 0.6, 0.42, 0, 0.42)
+    b.boxC('ceramic', 13.6, -1.9, 0.18, 0.4, 0.42, 0.8)
+    b.box('darkWood', 12.15, 0, -1.55, 12.95, 0.82, -1.11)
+    b.box('ceramic', 12.12, 0.82, -1.6, 12.98, 0.86, -1.11, { collide: false })
+    b.box('mirror', 12.2, 1.3, -1.13, 12.9, 1.95, -1.11, { collide: false })
   })
 }
 

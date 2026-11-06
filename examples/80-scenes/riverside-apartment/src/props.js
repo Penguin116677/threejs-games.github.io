@@ -121,7 +121,7 @@ export function doc(zone, { id, x, y, z, rot = 0, parent, title, text, w = 0.21,
 }
 
 // Wall light switch on a wall face: (x, z) on the face, `facing` = outward normal.
-export function lightSwitch(zone, { id, x, z, y, facing, label }) {
+export function lightSwitch(zone, { id, x, z, y, facing, label, circuit = null }) {
   const game = zone.game
   const [fx, fz] = FACING[facing]
   const plate = mesh(zone, new THREE.BoxGeometry(...panelSize(facing, 0.012, 0.08, 0.12)), 'ceramic', x + fx * 0.006, y, z + fz * 0.006)
@@ -136,7 +136,7 @@ export function lightSwitch(zone, { id, x, z, y, facing, label }) {
       g.state.set('switch:' + id, g.switches[id])
       g.audio.play('switch')
       sync()
-      if (g.switches[id] && !g.power.f7 && id.startsWith('sw-')) g.ui.toast('The switch clicks, but nothing happens.')
+      if (g.switches[id] && circuit && !g.power[circuit]) g.ui.toast(circuit === 'f8' ? 'Click. Nothing. The whole floor is dead.' : 'The switch clicks, but nothing happens.')
     },
   })
   zone.interactable(p)

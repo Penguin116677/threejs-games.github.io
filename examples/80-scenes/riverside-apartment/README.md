@@ -8,7 +8,8 @@ Run from the repository root (`npx live-server` or `python3 -m http.server`) and
 
 ## Vertical slice (implemented first)
 
-Street → front doors → lobby → front desk (spare key in the drawer) → maintenance room
+You start in the bedroom of your own flat, **Apartment 803** on the top floor, during a
+power cut. Leave 803 → take the dark stairwell down 8 floors → lobby → front desk (spare key in the drawer) → maintenance room
 (breakers: LOBBY / STAIRS / ELEVATOR / FLOOR 7) → elevator → floor 7 corridor →
 Apartment 703 (kitchen, living room, hall, bedroom, bathroom) → stairs → roof → back down.
 
@@ -20,10 +21,11 @@ Apartment 703 (kitchen, living room, hall, bedroom, bathroom) → stairs → roo
 | Stairwell | Switch-back stairs, two 9-riser flights per floor (16.7 cm rise, 32 cm tread), mid landings, spine wall, continues to a roof bulkhead |
 | Elevator | Moving car that carries the player, centre-opening car + landing doors, 8 floor buttons + door-open, auto-close with obstruction re-open, needs the ELEVATOR breaker |
 | Ground floor | Lobby (desk, mailboxes, notice board), maintenance room (breaker panel, workbench), locked office / laundry / storage |
+| Apartment 803 (start) | Same plan as 703: bedroom with battery lamp, phone and wardrobe, living room, kitchen, bathroom; floor 8 has no power |
 | Apartment 703 | Kitchen (fridge, cupboards, drawers, wall cabinets), living room (sofa, TV, bookshelf, dining set), hall, bedroom (bed, nightstands, wardrobe, desk), bathroom (bath, toilet, vanity, mirror cabinet); light switch per room |
 | Roof | Parapet, water tank, AC units, final document |
 
-Other apartments are locked (doors are real and openable in tests; interiors are empty
+Apartment doors open into their unit. Other apartments are locked (doors are real and openable in tests; interiors are empty
 shells awaiting expansion — see *Next steps*).
 
 ## Controls

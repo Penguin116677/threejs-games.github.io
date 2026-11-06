@@ -9,7 +9,7 @@ import { Input } from './input.js'
 import { UI } from './ui.js'
 import { Audio } from './audio.js'
 import { buildShell, defineZones } from './level.js'
-import { B, MAP, FLOORS, FLOOR_H, ROOF_Y, APT, APT_K, floorOfY, floorLabel } from './constants.js'
+import { B, MAP, FLOORS, FLOOR_H, ROOF_Y, APT, APT_K, HOME_K, floorOfY, floorLabel } from './constants.js'
 
 const REACH = 2.2
 const DT = 1 / 60
@@ -55,12 +55,12 @@ export class Game {
     this.world = new CollisionWorld()
     this.player = new PlayerController(this.world)
     this.state = new Map()
-    this.power = { street: true, lobby: false, stairs: false, elevator: false, f7: false, dead: false }
+    this.power = { street: true, lobby: false, stairs: false, elevator: false, f7: false, f8: false, dead: false }
     this.switches = {}
     this.inventory = new Map()
     this.photos = new Set()
     this.photoTotal = PHOTO_IDS.length
-    this.flags = { entered: false, f7: false, inApt: false, living: false, bedroom: false, bathroom: false, kitchen: false, scare: false, roof: false }
+    this.flags = { leftHome: false, lobby: false, entered: false, f7: false, inApt: false, living: false, bedroom: false, bathroom: false, kitchen: false, scare: false, roof: false }
     this.events = new Emitter()
     this.interactables = new Set()
     this.doors = []
@@ -93,7 +93,9 @@ export class Game {
     this.#rain()
     this.#wireStory()
 
-    this.player.teleport(0.5, 0, -13.5)
+    // start in the bedroom of 803 (top floor), facing the bedroom door
+    this.player.teleport(10.9, HOME_K * FLOOR_H, -5.3)
+    this.yaw = Math.PI
     this.zones.update(0, 0, true)
     this.ui.updateInventory()
     this.#objectives()
@@ -244,7 +246,9 @@ export class Game {
   #objectives() {
     const f = this.flags, g = this
     const L = []
-    if (!f.entered) L.push({ text: 'Enter Riverside Apartments.' })
+    if (!f.leftHome) L.push({ text: 'Get out of your apartment (803).' })
+    else if (!f.lobby && !f.entered) L.push({ text: 'The power is out. Take the stairs down to the lobby.' })
+    else if (!f.entered) L.push({ text: 'Enter Riverside Apartments.' })
     else if (!(g.inventory.has('key703') && g.power.elevator && f.f7)) {
       L.push({ text: 'Find the spare key to 703 (front desk).', done: g.inventory.has('key703') })
       L.push({ text: 'Restore power to the elevator (maintenance room).', done: g.power.elevator })
@@ -263,6 +267,8 @@ export class Game {
     const inB = p.x > B.x0 && p.x < B.x1 && p.z > B.z0 && p.z < B.z1
     if (!f.entered && inB && p.y < 1) f.entered = true
     const k = this.playerFloor()
+    if (!f.leftHome && (k !== HOME_K || p.z > -0.9 || p.x < APT.x0)) f.leftHome = true
+    if (k === 0 && inB) { f.lobby = true; f.leftHome = true }
     if (k === APT_K && inB) {
       f.f7 = true
       const inR = r => p.x > r.x0 && p.x < r.x1 && p.z > r.z0 && p.z < r.z1

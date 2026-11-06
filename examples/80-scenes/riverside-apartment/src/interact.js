@@ -137,7 +137,20 @@ export class HingedDoor {
     const pb = game.player.box()
     const hitsPlayer = boxes.some(b => overlaps({ minx: b[0], miny: b[1], minz: b[2], maxx: b[3], maxy: b[4], maxz: b[5] },
       pb[0] - 0.02, pb[1], pb[2] - 0.02, pb[3] + 0.02, pb[4], pb[5] + 0.02))
-    if (hitsPlayer) { this.blocked = true; return }
+    if (hitsPlayer) {
+      // An opening door nudges the player out of its arc (they're usually standing right
+      // where it swings); a closing door just waits. Walls still stop the push.
+      const pl = game.player
+      if (step > 0 && !this._pushing) {
+        const phi = this.phi0 + this.sign * next
+        const px = -Math.sin(phi) * this.sign, pz = -Math.cos(phi) * this.sign
+        this._pushing = true
+        pl.moveAxis('x', px * 0.06); pl.moveAxis('z', pz * 0.06)
+        this._pushing = false
+      }
+      this.blocked = true
+      return
+    }
     this.blocked = false
     this.angle = next
     this.pivot.rotation.y = this.phi0 + this.sign * this.angle

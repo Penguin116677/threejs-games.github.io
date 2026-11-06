@@ -46,6 +46,9 @@ export const floorOfY = y => Math.max(0, Math.min(FLOORS, Math.floor((y + 0.6) /
 
 // Apartment 703 sits on floor 7 (k = 6), north-east unit.
 export const APT_K = 6
+// The player's own apartment, 803, is directly above it on the top floor (k = 7).
+export const HOME_K = 7
+export const hasApartment = k => k === APT_K || k === HOME_K
 export const APT = {
   x0: 5.1, x1: IN.x1, z0: IN.z0, z1: -1.1,
   // room rectangles (clear interior)
