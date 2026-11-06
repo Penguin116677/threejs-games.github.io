@@ -7,8 +7,8 @@
   <meta name="theme-color" content="#7ec8e8">
   <meta name="mobile-web-app-capable" content="yes">
   <title>Pulau Tropis</title>
-  <script type="module" crossorigin src="./assets/index-CP3U6Tdd.js"></script>
-  <link rel="stylesheet" crossorigin href="./assets/index-BabBweia.css">
+  <script type="module" crossorigin src="./assets/index-tX9_GKdQ.js"></script>
+  <link rel="stylesheet" crossorigin href="./assets/index-C8K-uV5X.css">
 </head>
 
 <body>
@@ -17,6 +17,13 @@
   <div id="loading">
     <div class="judul">Pulau Tropis</div>
     <div id="loading-teks">Memuat pulau…</div>
+  </div>
+
+  <!-- layar HP tegak: game hanya dimainkan miring (v0.27.0) -->
+  <div id="putar-layar" role="alert">
+    <svg viewBox="0 0 64 64" aria-hidden="true"><rect class="hp" x="22" y="8" width="20" height="36" rx="3.5" fill="none" stroke="#fff" stroke-width="3" /><circle class="hp" cx="32" cy="39" r="1.8" fill="#fff" /><path d="M12 50c6 6 18 8 28 3M36 50l5 3-4 4" fill="none" stroke="#ffd34d" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" /></svg>
+    <div class="putar-judul">Putar HP ke posisi miring</div>
+    <div class="putar-ket">Pulau Tropis hanya dimainkan dengan layar miring</div>
   </div>
 
   <div id="hud" hidden>
@@ -44,35 +51,6 @@
     <div id="aksi-konteks">
       <button id="btn-belanja" type="button" hidden></button>
     </div>
-    <button id="btn-pukul" class="aksi" type="button" aria-label="Pukul (kombo)" hidden>
-      <svg viewBox="0 0 24 24" aria-hidden="true"><path transform="rotate(45 12 12)" d="M12 1.5 13.5 4v11h-3V4zM7 15h10v2H7zm4 2h2v4h-2zm-.75 4h3.5v2h-3.5z" /></svg>
-      <span>Pukul</span>
-    </button>
-    <button id="btn-cincang" class="aksi jurus siap" type="button" aria-label="Jurus 1: Cincang 10 kali" hidden>
-      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 13 13 4M6.5 17.5 17.5 6.5M11 20l9-9" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" /></svg>
-      <span>Cincang</span>
-      <b class="cd"></b>
-    </button>
-    <button id="btn-hentak" class="aksi jurus siap" type="button" aria-label="Jurus 2: Hentak tancap" hidden>
-      <svg viewBox="0 0 24 24" aria-hidden="true"><path transform="translate(0 -1.5) rotate(180 12 12) scale(.85) translate(2.1 2.1)" d="M12 1.5 13.5 4v11h-3V4zM7 15h10v2H7zm4 2h2v4h-2zm-.75 4h3.5v2h-3.5z" /><path d="M3 21.5h18M5.5 18l2.2 1.6M18.5 18l-2.2 1.6" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" /></svg>
-      <span>Hentak</span>
-      <b class="cd"></b>
-    </button>
-    <button id="btn-putar" class="aksi jurus siap" type="button" aria-label="Jurus 3: Cincang lalu putar" hidden>
-      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19.5 12A7.5 7.5 0 1 1 17.7 7.2" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" /><path d="M19.4 9.2 15.3 8.4 19.3 5z" /></svg>
-      <span>Putar</span>
-      <b class="cd"></b>
-    </button>
-    <button id="btn-penggal" class="aksi jurus pamungkas siap" type="button" aria-label="Jurus 4: Penggal lima leher" hidden>
-      <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="6.5" fill="none" stroke="#fff" stroke-width="2" /><path d="M12 2.5v4M12 17.5v4M2.5 12h4M17.5 12h4" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" /><path d="M5 19 19 5" fill="none" stroke="#ff9a8a" stroke-width="2.4" stroke-linecap="round" /></svg>
-      <span>Penggal</span>
-      <b class="cd"></b>
-    </button>
-    <button id="btn-ranah" class="aksi jurus pamungkas ranah siap" type="button" aria-label="Jurus 5: Ranah Tebas" hidden>
-      <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5" fill="none" stroke="#fff" stroke-width="1.8" stroke-dasharray="3.2 2" /><path d="M4.5 16.5 19.5 7.5" fill="none" stroke="#ff8a7a" stroke-width="2.4" stroke-linecap="round" /><path d="M6 9.5 18 14.5" fill="none" stroke="#fff" stroke-width="1.6" stroke-linecap="round" /><circle cx="12" cy="12" r="1.8" fill="#ff5a5a" /></svg>
-      <span>Ranah</span>
-      <b class="cd"></b>
-    </button>
     <button id="btn-lompat" class="aksi" type="button" aria-label="Lompat" hidden>
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.5 20 12h-5v8.5H9V12H4z" /></svg>
       <span>Lompat</span>

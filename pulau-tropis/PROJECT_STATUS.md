@@ -1,8 +1,8 @@
 # PROJECT_STATUS — Pulau Tropis
 
-**Milestone aktif:** 3 — Pembangunan dunia (v0.26.0: jurus ke-5 **Ranah Tebas** dari video pengguna — waktu berhenti, ranah terisi 0–100 % sambil mengunci musuh, lalu melesat menebas semuanya — menunggu umpan balik dari HP; v0.25.0: **efek suara di setiap adegan** — ±118 bunyi dibuat dari kode: gerak & langkah per permukaan, tempur & jurus, barang & kegiatan, perahu, mancing, antarmuka, suara orang, musuh, Naga Es, suasana tiap wilayah; Pengaturan → Suara — menunggu umpan balik dari HP; v0.24.1: Naga Es **lebih kecil** (±14 m, kepala ±5 m, sayap ±19 m) supaya leluasa di gua, dan **bergerak lebih halus** — menunggu umpan balik dari HP; v0.24.0: **Naga Es** dari lembar desain pengguna menjaga peti harta di ruang terdalam Gua Gletser — tidur melingkari peti bersegel es, bangun saat didekati, Hembusan Es, Ledakan Es, terbang & mendarat menghentak, gigitan, sapuan ekor; kalahkan untuk membuka peti — menunggu umpan balik dari HP; v0.23.0: **pagar tinggi** gelondong runcing mengelilingi ketiga desa Frostfall, dengan 9 gerbang — menunggu umpan balik dari HP; v0.22.0: **300 penduduk Frostfall** — 59 keluarga di Desa Emberwick dan dua kampung baru, Teluk Salju (nelayan) & Rusa Putih (pemburu); jam & malam Frostfall; bangun, makan, bekerja, berburu rusa kutub, memancing, pesta & acara, tidur di rumah; baju bulu khas; bisa diajak mengobrol (offline) — menunggu umpan balik dari HP; v0.21.0: **Aula Gletser** dibangun ulang dari gambar konsep pengguna — air terjun mengalir ke kolam, lengkung es, tebing bersalju, suasana biru kehijauan; v0.20.0: **lima gua besar** di Frostfall — Tambang Tua Emberwick, Gua Gletser Utara, Katedral Taring, Gua Laut Beku, Gua Seribu Tiang — masing-masing dengan peti harta; atap gua kini bisa diinjak; v0.19.0: wilayah baru Kerajaan Frostfall — menunggu umpan balik dari HP).
+**Milestone aktif:** 3 — Pembangunan dunia (v0.27.0: **kerajaan kecil milikmu** — Pulau Rajawali di barat laut (benteng, lapangan latihan, kandang kuda, dermaga, tanpa penduduk desa) dengan **400 prajurit** (100 pemanah, 100 pedang, 100 perisai, 100 kavaleri) dan **4 komandan** berkuda; perintah lewat komandan: Ikuti aku, Ke titik (ketuk tanah / peta), Formasi (barisan, kotak, lingkaran, baji), Kiri / Kanan untuk mengepung; **tombol jurus pedang dihapus dari layar**; **HP hanya layar miring** — menunggu umpan balik dari HP; v0.26.0: jurus ke-5 **Ranah Tebas** dari video pengguna — waktu berhenti, ranah terisi 0–100 % sambil mengunci musuh, lalu melesat menebas semuanya — menunggu umpan balik dari HP; v0.25.0: **efek suara di setiap adegan** — ±118 bunyi dibuat dari kode: gerak & langkah per permukaan, tempur & jurus, barang & kegiatan, perahu, mancing, antarmuka, suara orang, musuh, Naga Es, suasana tiap wilayah; Pengaturan → Suara — menunggu umpan balik dari HP; v0.24.1: Naga Es **lebih kecil** (±14 m, kepala ±5 m, sayap ±19 m) supaya leluasa di gua, dan **bergerak lebih halus** — menunggu umpan balik dari HP; v0.24.0: **Naga Es** dari lembar desain pengguna menjaga peti harta di ruang terdalam Gua Gletser — tidur melingkari peti bersegel es, bangun saat didekati, Hembusan Es, Ledakan Es, terbang & mendarat menghentak, gigitan, sapuan ekor; kalahkan untuk membuka peti — menunggu umpan balik dari HP; v0.23.0: **pagar tinggi** gelondong runcing mengelilingi ketiga desa Frostfall, dengan 9 gerbang — menunggu umpan balik dari HP; v0.22.0: **300 penduduk Frostfall** — 59 keluarga di Desa Emberwick dan dua kampung baru, Teluk Salju (nelayan) & Rusa Putih (pemburu); jam & malam Frostfall; bangun, makan, bekerja, berburu rusa kutub, memancing, pesta & acara, tidur di rumah; baju bulu khas; bisa diajak mengobrol (offline) — menunggu umpan balik dari HP; v0.21.0: **Aula Gletser** dibangun ulang dari gambar konsep pengguna — air terjun mengalir ke kolam, lengkung es, tebing bersalju, suasana biru kehijauan; v0.20.0: **lima gua besar** di Frostfall — Tambang Tua Emberwick, Gua Gletser Utara, Katedral Taring, Gua Laut Beku, Gua Seribu Tiang — masing-masing dengan peti harta; atap gua kini bisa diinjak; v0.19.0: wilayah baru Kerajaan Frostfall — menunggu umpan balik dari HP).
 Pengembangan jurus dihentikan sementara atas permintaan pengguna.
-**Versi:** 0.26.0
+**Versi:** 0.27.0
 **Terakhir diperbarui:** 2026-11-03
 
 ## Kondisi awal repository (sebelum Milestone 1)
@@ -105,9 +105,34 @@ Sebagian sudah dikerjakan lebih awal (bayangan, tanah per-piksel, awan, kaustik 
 | Karakter pixel art chibi (kepala bulat bermata, badan membulat) menggantikan badan kotak Kenney: penduduk, raja, pedagang, penjaga, bala tentara + kuda, orc, elf, pemain | ✅ selesai (v0.16.0) |
 | File model hanya rangka + animasi (unduhan model 892 KB → 108 KB) | ✅ selesai (v0.16.0) |
 | Efek suara di setiap adegan & aktivitas (dibuat dari kode, berposisi, gema gua; Pengaturan → Suara) | ✅ selesai (v0.25.0, permintaan pengguna) |
+| Kerajaan kecil milik pemain: Pulau Rajawali, 400 prajurit + 4 komandan, perintah lewat komandan (Ikuti aku, Ke titik, Formasi, Kiri / Kanan mengepung) | ✅ selesai (v0.27.0, permintaan pengguna) |
+| Tombol jurus pedang dihapus dari layar (kayu lewat tombol konteks Tebang) | ✅ selesai (v0.27.0, permintaan pengguna) |
+| HP hanya layar miring (kunci orientasi + layar "Putar HP") | ✅ selesai (v0.27.0, permintaan pengguna) |
 | Partikel lanjutan, animasi vegetasi lanjutan | ⏳ belum |
 | Siang–malam | ✅ sebagian — hanya di Frostfall (v0.22.0); pulau-pulau lain selalu siang |
 | Dicoba di HP Android sungguhan | ⏳ menunggu laporan pengguna |
+
+## Yang sudah diperiksa (v0.27.0 — kerajaanmu, tombol jurus dilepas, layar miring)
+- **Pemeriksaan kode**: ESLint (konfigurasi repo) 0 error / 0 warning pada setiap commit.
+- **Build**: `vite build` berhasil (JS ±492 → ±497 KB gzip); `dist/` sama persis dengan versi yang diuji.
+- **Uji di browser** (Chromium, render software, Pixel 7 tiruan tegak & miring; versi dev dan build):
+  - Pulau Rajawali: benteng (menara, gerbang, pendopo, barak), lapangan, sasaran panah, boneka latihan, kandang kuda,
+    dermaga & jalan dipotret dari beberapa arah; spanduk wilayah "Pulau Rajawali" / "Lapangan Latihan" / "Benteng
+    Rajawali" tepat; label di Peta.
+  - 400 prajurit (4 × 100) + 4 komandan tampil; foto dekat pemanah, pedang, perisai, kavaleri, komandan berpanji;
+    berbaris ke titik, berganti formasi (barisan, lingkaran, baji), mengikuti pemain lewat dermaga, kuda berenang di laut.
+  - Panel komando diketuk seperti di HP: pilih komandan (cincin kuning, gelembung jawaban), Formasi → Lingkaran,
+    Ke titik → ketuk tanah, Ke titik → ketuk Peta (tujuan tepat di titik yang diketuk), Kiri (Perisai menghadap
+    selatan bergeser 21 m ke timur = kirinya, menghadap titik depan), Ikuti aku; terompet, jawaban, sorak, derap
+    tercatat. Panel disembunyikan selama Peta terbuka (sebelumnya menutupi peta — diperbaiki).
+  - Biaya CPU bala tentara (CPU komputer): 0,14 ms per frame saat diam, 0,29 ms saat 404 orang bergerak.
+  - Tombol jurus pedang tidak ada lagi; tombol Tebang di dekat pohon → +3 kayu dari 3 ketukan.
+  - HP tegak → layar "Putar HP ke posisi miring"; miring → game; jendela komputer tegak tidak terpengaruh.
+- **Smoke test otomatis** (versi build, HP Rendah, kini layar miring): 72 dari 74 lulus pada percobaan pertama; 2
+  yang gagal adalah kesalahan naskah uji baru (panel komando berukuran nol dianggap "tidak terlihat"; ambang jarak
+  Ikuti aku lebih kecil dari jarak berbaris kavaleri ±33 m). Naskah diperbaiki, kedua cek dijalankan ulang terpisah
+  pada build yang sama → **lulus**. Profil HP utama (dulu "HP tegak", kini miring), HP mendatar & komputer tidak
+  dijalankan.
 
 ## Yang sudah diperiksa (v0.26.0 — jurus Ranah Tebas)
 - **Pemeriksaan kode**: ESLint (konfigurasi repo) 0 error / 0 warning pada setiap commit.
@@ -962,6 +987,12 @@ Sebagian sudah dikerjakan lebih awal (bayangan, tanah per-piksel, awan, kaustik 
   laut dalam → kembali ke pantai + pesan, mendaki lereng (+24 m dalam 120 frame).
 
 ## Yang BELUM diperiksa
+- **Kerajaan Rajawali di HP sungguhan** (v0.27.0): FPS saat 400 prajurit terlihat bersamaan / semuanya mengikuti,
+  apakah tombol komandan & perintah mudah dijangkau ibu jari di layar miring, apakah gerak barisan terasa rapi.
+- **Kunci layar miring di HP sungguhan** (v0.27.0): Chrome Android biasanya mengizinkan setelah layar penuh; Safari
+  iPhone tidak — di sana layar "Putar HP" yang bekerja. Belum dicoba di perangkat sungguhan.
+- **Smoke test profil HP utama, HP mendatar & komputer untuk v0.27.0** — tidak dijalankan (profil HP utama kini
+  layar miring; bagian-bagiannya ditulis untuk layar tegak dan mungkin perlu disesuaikan).
 - **Ranah Tebas di HP sungguhan** (v0.26.0): FPS selama jurus (kamera tinggi melihat banyak hal sekaligus +
   filter layar), apakah urutan & lamanya terasa seperti di video, apakah tombolnya mudah dijangkau.
 - **Smoke test HP tegak (termasuk cek baru Ranah Tebas), HP mendatar & komputer untuk v0.26.0** — tidak dijalankan.
@@ -1449,6 +1480,11 @@ v0.3.0: Rendah ±300 rb, Sedang ±400 rb, Tinggi ±850 rb. Tambahan v0.4.0 beras
 yang lebih rapat (untuk ombak) dan buah kelapa. v0.2.0 (HP): ±230 ribu.
 
 ## Masalah yang diketahui
+- (v0.27.0) Tanpa tombol Pukul & jurus di layar, pemain HP tidak bisa lagi melawan sendiri (orc, prajurit Kencana,
+  Naga Es) dan tidak bisa menang duel; prajurit Rajawali juga belum bisa bertempur (perintah Serang tidak diminta).
+  Keyboard komputer (F, 1–5) masih bisa.
+- (v0.27.0) Prajurit Rajawali tidak saling dorong dengan pasukan / orang lain di luar divisinya; bisa saling tumpang
+  bila dua divisi diperintah ke titik yang sama.
 - (v0.26.0) Ranah Tebas: pohon & atap tinggi bisa menutupi pandangan kamera atas (kamera ±39 m di atas pemain).
 - (v0.25.0) Suara orang berupa gumam bersuku kata (bukan kata-kata); bunyi dibuat dari kode, jadi lebih
   sederhana daripada rekaman sungguhan.
