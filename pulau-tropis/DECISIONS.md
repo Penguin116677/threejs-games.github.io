@@ -1010,3 +1010,23 @@ tandai sebagai "diganti" bila berubah.
     memakai waktu nyata — jadi tidak ada sistem yang perlu tahu tentang jurus ini. Layar pudar memakai filter
     CSS `saturate` pada kanvas (murah, sementara ±3 detik) — bukan `grayscale` penuh, supaya penanda & jalur
     merah tetap merah. Nama, ikon & angka jurus dibuat sendiri (bukan dari game di video).
+96. **Kerajaan pemain = pulau baru di laut kosong barat laut, di dalam batas dunia yang ada** (v0.27.0, permintaan
+    pengguna; pengguna memilih "pulau baru"). Laut terluas yang masih tropis (iklim salju Frostfall berlaku di timur
+    x 300) ada di barat laut: ±285 m dari daratan terdekat, jadi pulau ±290 × 236 m beserta paparannya muat tanpa
+    memperluas dunia (memperluas = grid tanah, navgrid, peta, air ikut berubah). Bangunannya memakai pembuat
+    bangunan & masker wilayah Kencana (satu gaya Nusantara, tanpa kode bangunan baru selain sasaran panah & boneka
+    latihan); shader tanah kini menerima 3 masker wilayah. Tanpa rumah / penduduk sesuai permintaan.
+97. **400 prajurit digerakkan sebagai 4 "jangkar" formasi, bukan 400 pencari jalan** (v0.27.0). Tiap divisi punya
+    satu titik tengah + arah hadap yang berjalan ke tujuannya (jalur navgrid sekali per perintah, lurus di laut);
+    tiap prajurit hanya menuju tempatnya di formasi itu (tempat ditata ulang bila formasi berganti / berbalik
+    arah, supaya tidak saling menyeberang). Murah (±0,3 ms per frame untuk 404 orang di CPU komputer) dan barisan
+    tetap rapi saat berjalan & berbelok. "Geser kiri / kanan" untuk mengepung = bergerak melingkar 45° mengitari
+    titik 30 m di depan divisi, lalu menghadapnya — ditekan berulang = mengitari sampai belakang; tanpa perintah
+    menyerang (pengguna tidak memilihnya). Gambar: model lengkap untuk paling banyak 50 / 110 / 200 orang terdekat
+    (Rendah / Sedang / Tinggi), sisanya badan kotak satu kotak per tulang (±150–450 segitiga, tetap beranimasi
+    dengan rangka yang sama) — bukan impostor seperti 25.000 prajurit Tegal Wira, karena prajurit ini bergerak.
+98. **Tombol jurus pedang dihapus dari layar; kayu lewat tombol konteks Tebang** (v0.27.0, permintaan pengguna).
+    Layar sentuh hanya menyisakan Lompat + panel komando. Pukul pohon adalah satu-satunya cara mendapat kayu
+    (pancing & perahu untuk menyeberang laut), jadi tombol konteks "Tebang" muncul di dekat batang pohon dan
+    menjalankan ayunan yang sama. Keyboard (F, 1–5) tidak dihapus karena tidak tampil di layar. Akibatnya di HP:
+    melawan orc / prajurit / naga dan menang duel tidak lagi bisa dilakukan sendiri (dicatat di PROJECT_STATUS).

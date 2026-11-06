@@ -537,6 +537,27 @@ Laporkan: gerbang yang terasa kurang (ingin keluar-masuk di tempat lain), pagar 
 rendah, dan FPS.
 
 
+## Daftar uji manual — v0.27.0 (Kerajaanmu: Pulau Rajawali & 400 prajurit)
+Buka **Peta**: Pulau Rajawali ada di **barat laut** (kiri atas). Seberangi laut (berenang atau perahu) ke
+**Dermaga Rajawali** di pantai timurnya.
+1. Layar: tombol Pukul & kelima jurus **tidak ada lagi**; kanan bawah = Lompat + 4 tombol komandan + baris
+   perintah. Dekati pohon → tombol **Tebang** → +1 kayu tiap ketukan.
+2. Masuk pulau: spanduk "Pulau Rajawali" / "Lapangan Latihan" / "Benteng Rajawali". Tidak ada rumah / penduduk;
+   ada benteng (menara, gerbang, pendopo, barak), sasaran panah, boneka latihan, kandang kuda, dermaga.
+3. Di lapangan berbaris 4 divisi (pemanah, pedang, perisai, kavaleri) masing-masing 100 orang + komandan berkuda
+   putih berpanji (hijau / merah / biru / emas).
+4. Ketuk **Pedang** → cincin kuning di bawah komandannya, ia menjawab ("Siap…"), terompet berbunyi.
+5. **Formasi** → Barisan / Kotak / Lingkaran / Baji: prajurit berjalan ke tempat barunya.
+6. **Ke titik** → ketuk tanah: divisi berbaris ke sana (cincin kuning di tujuan). Coba juga **Ke titik** lalu
+   buka **Peta** dan ketuk pulau lain: divisi berjalan ke pantai lalu berenang.
+7. **Kiri** / **Kanan** beberapa kali: divisi bergerak melingkar mengitari titik di depannya (mengepung).
+   Coba pedang ke kiri & perisai ke kanan = jepitan.
+8. Pilih **Kavaleri** → **Ikuti aku**, lalu berjalan / berlari / berenang ke laut: kuda menyusul, berenang
+   (kepala & penunggang di atas air). Tambahkan divisi lain → berderet dua lajur di belakangmu.
+9. Suara: derap barisan & kuda saat bergerak, sorak saat diberi perintah, cebur saat masuk air.
+10. Catat: **FPS** saat 400 prajurit terlihat bersamaan (di lapangan & saat semuanya mengikutimu), apakah tombol
+    mudah dijangkau ibu jari, dan apakah gerak barisan terasa rapi.
+
 ## Daftar uji manual — v0.26.0 (jurus Ranah Tebas)
 Ke salah satu perkemahan orc di Pulau Tropis (Peta), berdiri di tengah kelompok orc.
 1. Ketuk tombol **Ranah** (merah tua, di sela tombol Pukul dan busur jurus; keyboard: **5**): lingkaran ranah

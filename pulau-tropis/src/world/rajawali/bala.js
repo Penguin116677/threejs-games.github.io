@@ -896,6 +896,19 @@ export function createBala({ ground, colliders, nav, quality, soldier }) {
       const per = divisions.map(d => ({ id: d.def.id, n: d.members.length, mode: d.mode, formasi: d.formasi, renang: d.swimming, gerak: d.moving, lag: +d.lag.toFixed(2), ax: +d.ax.toFixed(1), az: +d.az.toFixed(1), ah: +d.ah.toFixed(2), tiba: d.arrived }))
       return { total: agents.length, prajurit: agents.filter(a => !a.commander).length, komandan: agents.filter(a => a.commander).length, divisi: per, visible, dekat: nearShown, nearR: +nearR.toFixed(1), segitiga: types.map(T => ({ id: T.id, dekat: T.near.index.length / 3, jauh: T.far.index.length / 3 })) }
     },
+    // kembali seperti awal: semua divisi berbaris kotak di Lapangan Latihan (pengujian)
+    reset() {
+      divisions.forEach((div, i) => {
+        div.mode = 'rumah'
+        div.formasi = 'kotak'
+        div.layout = formationSlots('kotak', PER_DIVISI, div.mounted)
+        div.members.forEach((a, k) => {
+          a.slot = k
+        })
+        this.teleport(i, div.def.home.x, div.def.home.z, HOME_HEADING)
+      })
+      selected = -1
+    },
     // pengujian: pindahkan jangkar & semua prajurit divisi seketika
     teleport(i, x, z, h = 0) {
       const div = divisions[i]

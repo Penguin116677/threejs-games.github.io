@@ -501,6 +501,84 @@ for (const [name, opts, query] of cases) {
   const mapClosed = await page.isHidden('#peta')
   if (!mapOpen || !mapClosed) fail(`peta: terbuka ${mapOpen}, tertutup ${mapClosed}`)
   else ok('tombol Peta membuka peta dunia, Tutup menutupnya')
+  // ===== Kerajaanmu (v0.27.0): Pulau Rajawali, 400 prajurit + 4 komandan, panel komando
+  {
+    // tombol jurus pedang sudah dihapus dari layar; Lompat tetap
+    const gone = await page.evaluate(() => ['btn-pukul', 'btn-cincang', 'btn-hentak', 'btn-putar', 'btn-penggal', 'btn-ranah'].filter(id => document.getElementById(id)))
+    const jumpThere = await page.evaluate(() => !!document.getElementById('btn-lompat'))
+    if (gone.length || !jumpThere) fail(`tombol jurus pedang masih ada: ${gone.join(', ')} (Lompat ${jumpThere})`)
+    else ok('tombol Pukul, Cincang, Hentak, Putar, Penggal, Ranah tidak ada lagi di layar; Lompat tetap')
+    await page.evaluate(() => {
+      const { player, bala, suara } = window.__pulau
+      bala.reset()
+      suara.debug.reset()
+      player.placeAt(-855, -895, Math.PI)
+      player.stop()
+    })
+    const isle = await waitUntil(page, () => {
+      const { banner, ground, bala } = window.__pulau
+      return banner.current === 'lapangan-rajawali' && { y: +ground.heightAt(-855, -895).toFixed(2), s: bala.stats() }
+    }, 120, 5)
+    const per = isle && isle.s.divisi.map(d => `${d.id} ${d.n}`).join(', ')
+    if (!isle || isle.s.prajurit !== 400 || isle.s.komandan !== 4 || isle.s.divisi.some(d => d.n !== 100) || Math.abs(isle.y - 4.2) > 0.2)
+      fail(`Pulau Rajawali: ${JSON.stringify(isle && { y: isle.y, prajurit: isle.s.prajurit, komandan: isle.s.komandan, per })}`)
+    else ok(`Pulau Rajawali (Lapangan Latihan, tanah rata ${isle.y} m): ${isle.s.prajurit} prajurit (${per}) + ${isle.s.komandan} komandan, ${isle.s.visible} terlihat`)
+    const panel = await page.isVisible('#komando')
+    await page.screenshot({ path: `${out}/${name}-kerajaan.png` })
+    // pilih komandan Pedang → Formasi → Lingkaran
+    await page.click('#btn-komandan-pedang')
+    await page.click('#btn-perintah-formasi')
+    await page.click('#btn-formasi-lingkaran')
+    const form = await page.evaluate(() => ({ sel: window.__pulau.komando.selected, f: window.__pulau.bala.status(1).formasi, txt: document.querySelector('.komando-status').textContent }))
+    if (!panel || form.sel !== 1 || form.f !== 'lingkaran') fail(`komando formasi: panel ${panel}, ${JSON.stringify(form)}`)
+    else ok(`panel komando: pilih Komandan Pedang → Formasi Lingkaran ("${form.txt}")`)
+    // Ke titik: tombol → menunggu tujuan → titik di tanah → divisi berbaris ke sana
+    await page.click('#btn-perintah-titik')
+    const picking = await page.evaluate(() => window.__pulau.komando.picking)
+    const a0 = await page.evaluate(() => {
+      const d = window.__pulau.bala.divisions[1]; window.__pulau.komando.pickPoint({ x: d.ax, z: d.az + 25 }); return { x: d.ax, z: d.az }
+    })
+    const moved = await waitUntil(page, () => {
+      const d = window.__pulau.bala.divisions[1]; return d.az - (-877) > 4 && d.mode === 'titik' && +(d.az + 877).toFixed(1)
+    }, 400, 5)
+    if (!picking || !moved) fail(`Ke titik: menunggu tujuan ${picking}, bergerak ${moved}`)
+    else ok(`Ke titik: divisi Pedang berbaris ${moved} m menuju tujuan (dari ${a0.z.toFixed(0)})`)
+    // Geser kiri: divisi Perisai (menghadap selatan) melingkar ke timur (kirinya), menghadap titik di depannya
+    await page.click('#btn-komandan-perisai')
+    await page.click('#btn-perintah-kiri')
+    const flank = await page.evaluate(() => {
+      const d = window.__pulau.bala.divisions[2]; return { gx: +(d.goal.x - d.ax).toFixed(1), gz: +(d.goal.z - d.az).toFixed(1), h: +d.goal.h.toFixed(2) }
+    })
+    await page.click('#btn-perintah-kanan')
+    const flank2 = await page.evaluate(() => {
+      const d = window.__pulau.bala.divisions[2]; return { gx: +d.goal.x.toFixed(1), gz: +d.goal.z.toFixed(1), h: +d.goal.h.toFixed(2) }
+    })
+    if (!(flank.gx > 15 && flank.gz > 5 && Math.abs(flank.h + 0.79) < 0.05) || Math.abs(flank2.gx + 831) > 1 || Math.abs(flank2.gz + 877) > 1)
+      fail(`Geser kiri / kanan: ${JSON.stringify({ flank, flank2 })}`)
+    else ok(`Geser kiri: Perisai melingkar ${flank.gx} m ke kiri (timur) menghadap titik depan; Kanan: kembali ke (${flank2.gx}, ${flank2.gz})`)
+    // Ikuti aku: Kavaleri mengikuti pemain yang menjauh
+    await page.click('#btn-komandan-kavaleri')
+    await page.click('#btn-perintah-ikuti')
+    await page.evaluate(() => window.__pulau.player.placeAt(-760, -860, Math.PI / 2))
+    const follow = await waitUntil(page, () => {
+      const { bala, player } = window.__pulau
+      const d = bala.divisions[3]
+      const dist = Math.hypot(d.ax - player.position.x, d.az - player.position.z)
+      return d.mode === 'ikut' && dist < 26 && +dist.toFixed(1)
+    }, 600, 5)
+    const snd = await page.evaluate(() => {
+      const c = window.__pulau.suara.debug.counts; return { aba: c['aba-aba'] || 0, siap: c['komandan-siap'] || 0, sorak: c['sorak-pasukan'] || 0, derap: (c['derap-barisan'] || 0) + (c['derap-kuda'] || 0) }
+    })
+    if (!follow) fail('Ikuti aku: kavaleri tidak menyusul pemain')
+    else ok(`Ikuti aku: kavaleri menyusul pemain (jangkar ${follow} m di belakangnya)`)
+    if (!snd.aba || !snd.siap || !snd.sorak || !snd.derap) fail(`suara komando: ${JSON.stringify(snd)}`)
+    else ok(`suara komando: terompet ${snd.aba}×, jawaban komandan ${snd.siap}×, sorak ${snd.sorak}×, derap ${snd.derap}×`)
+    await page.evaluate(() => {
+      const { bala, komando } = window.__pulau
+      komando.select(-1)
+      bala.reset()
+    })
+  }
   // pemandangan kerajaan dari udara
   await page.evaluate(() => {
     const { camera, controls, setMode } = window.__pulau
@@ -814,8 +892,7 @@ for (const [name, opts, query] of cases) {
         const a = soldiers.list[window.__sasaran]
         player.face(a.x, a.z)
       })
-      if (name === 'desktop') await page.keyboard.press('KeyF')
-      else await page.tap('#btn-pukul')
+      await page.keyboard.press('KeyF') // sejak v0.27.0 tombol Pukul tidak di layar
       await waitFrames(page, 6)
     }
     await page.evaluate(() => {
@@ -861,8 +938,7 @@ for (const [name, opts, query] of cases) {
       return recruits.followers.map(a => a.hp)
     })
     for (let i = 0; i < 2; i++) {
-      if (name === 'desktop') await page.keyboard.press('KeyF')
-      else await page.tap('#btn-pukul')
+      await page.keyboard.press('KeyF') // sejak v0.27.0 tombol Pukul tidak di layar
       await waitFrames(page, 8)
     }
     const after = await page.evaluate(() => window.__pulau.recruits.followers.map(a => a.hp))
@@ -2186,7 +2262,7 @@ for (const [name, opts, query] of cases) {
     await waitFrames(page, 6)
     const fx0 = await page.evaluate(() => window.__pulau.effects.stats())
     const run = await state(page)
-    await page.tap('#btn-pukul')
+    await page.keyboard.press('KeyF')
     await waitFrames(page, 2)
     const swing = await state(page)
     await page.keyboard.up('KeyW')
@@ -2202,7 +2278,7 @@ for (const [name, opts, query] of cases) {
     const target = await openTrunk(page)
     await teleport(page, target.x - (target.radius + 0.5), target.z, [target.x, target.z])
     await waitFrames(page, 5)
-    await page.tap('#btn-pukul')
+    await page.keyboard.press('KeyF')
     await waitFrames(page, 2)
     const fx2 = await attackDone(page)
     const wood = await page.evaluate(() => window.__pulau.bag.jumlah('kayu'))
@@ -2215,12 +2291,12 @@ for (const [name, opts, query] of cases) {
     await teleport(page, -122, 122, [0, 0])
     await waitGameTime(page, 1)
     const combo = []
-    await page.tap('#btn-pukul')
+    await page.keyboard.press('KeyF')
     for (let i = 0; i < 60 && combo.length < 3; i++) {
       const mv = (await state(page)).move
       if (mv && mv !== combo[combo.length - 1]) {
         combo.push(mv)
-        if (combo.length < 3) await page.tap('#btn-pukul')
+        if (combo.length < 3) await page.keyboard.press('KeyF')
       }
       await waitFrames(page, 1)
     }
@@ -2239,7 +2315,7 @@ for (const [name, opts, query] of cases) {
     await nearOrc(page, 0, 1.3)
     await waitFrames(page, 5)
     const c0 = await page.evaluate(() => window.__pulau.effects.stats().slashes)
-    await page.tap('#btn-cincang')
+    await page.keyboard.press('Digit1')
     await waitFrames(page, 2)
     const chopMove = (await state(page)).move
     const c1 = await attackDone(page)
@@ -2253,7 +2329,7 @@ for (const [name, opts, query] of cases) {
     await nearOrc(page, 0, 1.8)
     await waitFrames(page, 5)
     const h0 = await page.evaluate(() => window.__pulau.effects.stats())
-    await page.tap('#btn-hentak')
+    await page.keyboard.press('Digit2')
     let top = 0
     for (let i = 0; i < 80; i++) {
       const s = await state(page)
@@ -2273,7 +2349,7 @@ for (const [name, opts, query] of cases) {
     await nearOrc(page, 0, -1.6)
     await waitFrames(page, 5)
     const p0 = await page.evaluate(() => window.__pulau.effects.stats())
-    await page.tap('#btn-putar')
+    await page.keyboard.press('Digit3')
     const phases = []
     for (let i = 0; i < 80; i++) {
       const s = await page.evaluate(() => window.__pulau.player.attackPhase)
@@ -2292,7 +2368,7 @@ for (const [name, opts, query] of cases) {
     await waitFrames(page, 5)
     const pg0 = await state(page)
     const coin0 = await page.evaluate(() => window.__pulau.bag.koin)
-    await page.tap('#btn-penggal')
+    await page.keyboard.press('Digit4')
     await waitFrames(page, 2)
     const aimed = await page.evaluate(() => window.__pulau.enemies.list.filter(e => e.marked).length)
     await attackDone(page)
@@ -2327,7 +2403,7 @@ for (const [name, opts, query] of cases) {
     await nearOrc(page, 0, 2)
     await waitFrames(page, 5)
     await page.evaluate(() => window.__pulau.suara.debug.reset())
-    await page.tap('#btn-ranah')
+    await page.keyboard.press('Digit5')
     const rn = { phases: [], world: 1, camH: 0, locked: 0, persen: 0, kelabu: false }
     for (let i = 0; i < 600; i++) {
       const s = await page.evaluate(() => {
@@ -2365,7 +2441,7 @@ for (const [name, opts, query] of cases) {
     await page.evaluate(() => {
       window.__pesanLog.length = 0
     })
-    await page.tap('#btn-penggal')
+    await page.keyboard.press('Digit4')
     await waitFrames(page, 3)
     const none = await page.evaluate(() => ({
       move: window.__pulau.player.attackMove, cd: window.__pulau.player.cooldowns.penggal,

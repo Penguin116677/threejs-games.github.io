@@ -128,6 +128,8 @@ penguji selama 14 hari (akun developer pribadi baru).
 4. **Interaksi gameplay** — interaksi objek, item, inventory, NPC & dialog, quest sederhana.
 5. **Peningkatan visual** — material/tekstur, bayangan, animasi vegetasi, partikel, suara (efek suara di
    setiap adegan — v0.25.0, dibuat dari kode). Jurus ke-5 Ranah Tebas (v0.26.0, dari video pengguna).
+   Kerajaan kecil milik pemain — Pulau Rajawali dengan 400 prajurit dalam 4 divisi yang diperintah lewat
+   komandannya (v0.27.0); tombol jurus pedang dilepas dari layar (v0.27.0).
 6. **Sistem game** — UI, peta mini, kesehatan/stamina (bila perlu), siang-malam, simpan progres.
 7. **Optimasi & pengujian** — bug, kontrol sentuh, collision, performa, ukuran layar/orientasi.
 

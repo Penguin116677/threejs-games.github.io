@@ -1,5 +1,52 @@
 # CHANGELOG — Pulau Tropis
 
+## [0.27.0] — 2026-11-06 — Kerajaanmu: Pulau Rajawali & 400 prajurit (permintaan pengguna)
+### Ditambahkan
+- **Pulau Rajawali — kerajaan kecil milikmu** (permintaan: *"Tambahkan kerajaan kecil punyaku di sebuah pulau,
+  tanpa penduduk desa, hanya memiliki 400 prajurit tempur … dan tambahkan 4 komandan di setiap devisinya, aku yang
+  akan mengontrol pergerakan mereka melalui tiap tiap komandan"*). Pulau baru di laut lepas **barat laut** (di
+  antara Kepulauan Kencana dan Aeloria, ±290 × 236 m), tanpa rumah / penduduk desa:
+  - **Benteng Rajawali**: tembok bata dengan 4 menara sudut, gerbang candi bentar di selatan, halaman berlantai
+    batu, pendopo (balairung raja) dan dua bangsal (barak prajurit), gentong & peti perbekalan.
+  - **Lapangan Latihan**: tanah lapang tempat keempat divisi berbaris, umbul-umbul di sudutnya, deretan
+    **sasaran panah** di barat, **boneka latihan pedang** di depan tembok benteng, **kandang kuda** kavaleri.
+  - **Dermaga Rajawali** di pantai timur (gapura kecil, jukung bersandar), jalan tanah dari lapangan.
+  - Kelapa di pantai, pohon & semak jarang di pedalaman. Spanduk wilayah "Pulau Rajawali", "Benteng Rajawali",
+    "Lapangan Latihan"; nama-namanya di Peta.
+- **400 prajurit tempur dalam 4 divisi**: 100 **pemanah** (busur, bertudung merah tua), 100 **pemegang pedang**,
+  100 **pemegang perisai** (perisai layang besar + pedang), 100 **penunggang kuda** (kuda cokelat, tombak panjang) —
+  tabar merah tua berlis emas, jambul sewarna panji divisinya. **4 komandan** (satu per divisi) menunggang kuda
+  putih membawa **panji** divisinya (hijau, merah, biru, emas).
+  - Berjalan, berlari, dan **berenang** dengan gerak bersendi seperti pemain; kuda **melangkah, berderap, dan
+    berenang** (badan kuda terbenam, kepala & penunggang di atas air).
+  - Barisan tetap rapi saat berjalan & berbelok (tiap prajurit menuju tempatnya sendiri di formasi); yang lewat di
+    tengah barisan menyibak; bangunan & pohon tidak ditembus.
+- **Kendali lewat komandan** — panel di kanan bawah: ketuk salah satu dari 4 komandan (cincin kuning di bawah
+  kudanya, komandan menjawab lewat gelembung ucapan), lalu perintah untuk seluruh divisinya:
+  - **Ikuti aku**: divisi berbaris di belakangmu ke mana pun (beberapa divisi berderet dua lajur), ikut
+    **berenang menyeberang laut**, menyusul berlari bila tertinggal.
+  - **Ke titik**: ketuk tanah tujuan — atau buka **Peta** dan ketuk titiknya (pulau mana pun); divisi berbaris
+    ke sana dalam formasinya, memutari bangunan & tebing di darat, berenang di laut; cincin kuning di tujuannya.
+  - **Formasi**: **Barisan** (25 sebaris), **Kotak** (10 × 10), **Lingkaran** (menghadap ke luar, komandan di
+    tengah), **Baji** (ujung tombak 1 + 3 + … + 19).
+  - **Kiri / Kanan** (ikon panah melingkar): divisi bergerak **melingkar 45° mengitari titik 30 m di depannya**
+    lalu menghadap titik itu — tekan berulang untuk **mengepung** dari samping sampai ke belakang; dua divisi
+    ke kiri & kanan = jepitan.
+  - Keterangan divisi terpilih (formasi & keadaan: di lapangan / berbaris ke tujuan / siaga / mengikutimu /
+    berenang). Di Peta, posisi keempat komandan tampak sebagai titik sewarna panji.
+  - Keyboard: **6–9** pilih komandan, **I** ikuti aku, **O** ke titik (lalu klik tanah / peta), **L** formasi
+    berikutnya, **Z / X** geser kiri / kanan.
+- **Suara**: terompet aba-aba tiap perintah, jawaban komandan, sorak divisi (kavaleri + ringkik), derap barisan
+  & derap kuda seirama langkah divisi yang bergerak, cebur & kayuhan saat berenang.
+- **Tombol Tebang**: muncul saat berdiri di dekat batang pohon — mengayun & memberi kayu (pengganti Pukul pohon,
+  lihat di bawah), supaya pancing & perahu tetap bisa dibuat.
+### Diubah
+- **Tombol jurus pedang dihapus dari layar** (permintaan: *"Hapuskan semua skill berpedangku di layar, sisakan
+  skill yang mengarahkan prajurit"*): Pukul, Cincang, Hentak, Putar, Penggal, dan Ranah tidak lagi ada di layar
+  sentuh; kanan bawah kini Lompat + panel komando. Di komputer tombol keyboard F dan 1–5 tetap bekerja.
+- Shader tanah menerima masker wilayah ketiga (lapangan tanah, jalan & lantai batu Pulau Rajawali).
+- Petunjuk awal: Pukul / jurus diganti keterangan komando & Tebang.
+
 ## [0.26.0] — 2026-11-03 — Jurus ke-5: Ranah Tebas (permintaan pengguna)
 ### Ditambahkan
 - **Ranah Tebas** (permintaan: *"buatkan aku satu skill yang sama seperti di vidio ini"*), dibuat menurut video
