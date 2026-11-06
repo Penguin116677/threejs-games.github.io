@@ -183,6 +183,8 @@ function setupSettings() {
 }
 
 async function start() {
+  // layar sentuh (HP / tablet): game hanya dimainkan miring — dipegang tegak, layar #putar-layar menutupinya
+  if (navigator.maxTouchPoints > 0 || 'ontouchstart' in window) document.body.classList.add('layar-sentuh')
   if (!webglAvailable()) {
     showError('Browser ini tidak mendukung WebGL 2.\nCoba gunakan Chrome versi terbaru di Android.')
     return
@@ -1199,12 +1201,18 @@ async function start() {
   // layar penuh otomatis di HP (tanpa tombol): saat pemain pertama kali menyentuh layar — browser
   // hanya mengizinkan layar penuh dari sentuhan. Sekali per pemuatan: bila pemain sendiri keluar dari
   // layar penuh, tidak dipaksa masuk lagi
+  // v0.27.0: hanya layar miring — di layar penuh orientasi dikunci miring (browser hanya mengizinkan
+  // penguncian saat layar penuh; bila ditolak / tidak didukung, layar #putar-layar meminta HP diputar)
+  const lockLandscape = () => screen.orientation?.lock?.('landscape').catch(() => {})
   if (touchUI && document.fullscreenEnabled) {
     const enterFullscreen = () => {
       window.removeEventListener('pointerup', enterFullscreen, true)
-      if (!document.fullscreenElement) document.documentElement.requestFullscreen({ navigationUI: 'hide' }).catch(() => {})
+      if (!document.fullscreenElement) document.documentElement.requestFullscreen({ navigationUI: 'hide' }).then(lockLandscape).catch(() => {})
     }
     window.addEventListener('pointerup', enterFullscreen, true)
+    document.addEventListener('fullscreenchange', () => {
+      if (document.fullscreenElement) lockLandscape()
+    })
   }
   setupSettings()
 

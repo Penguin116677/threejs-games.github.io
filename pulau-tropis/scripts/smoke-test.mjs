@@ -1,6 +1,6 @@
 import { chromium, devices } from 'playwright'
 import { mkdirSync } from 'node:fs'
-// Smoke test otomatis (Chromium headless, render software) untuk HP portrait/landscape,
+// Smoke test otomatis (Chromium headless, render software) untuk HP (layar miring),
 // HP kualitas Rendah, dan komputer. Memeriksa:
 // - game termuat tanpa error, karakter prajurit (model + pedang) muncul berdiri di tanah, rangka
 //   bersendi (lutut, pergelangan kaki, pinggang, siku) dengan klip gerak mirip manusia (diam, lari,
@@ -27,25 +27,25 @@ import { mkdirSync } from 'node:fs'
 //   spanduk "Tegal Wira" di depan barisan, prajurit 3D di dekat pemain, barisan menahan prajurit
 // - penjagaan kerajaan (pemain musuh setiap kerajaan): peronda di semua wilayah & bergerak,
 //   mendarat di Dermaga Timur → langsung dihadang & diserang (tanpa kartu tanya-jawab);
-//   (HP tegak & komputer) masuk wilayah → diserang, pukulan pemain mengenai prajurit, kalah →
+//   (HP utama & komputer) masuk wilayah → diserang, pukulan pemain mengenai prajurit, kalah →
 //   dibuang ke pantai Pulau Tropis, kabur keluar wilayah → berhenti dikejar, serbuan orc dengan
 //   perahu perang dihadang prajurit, pendatang ditanyai penjaga di gapura dermaga. Di luar uji penjagaan prajurit dibuat tidak
 //   menghiraukan pemain (gencatan senjata), supaya uji kota & bala tentara tidak terganggu.
-// - (HP tegak & komputer) air & dermaga: menabrak sisi dek dari air = tertahan, tombol Panjat / Spasi
+// - (HP utama & komputer) air & dermaga: menabrak sisi dek dari air = tertahan, tombol Panjat / Spasi
 //   memanjat ke dek; prajurit terjun & berenang mengejar; kabur lewat laut → perahu patroli (awak
 //   naik, mengejar, melempar tombak), lolos ke darat di luar wilayah → perahu pulang & bersandar
-// - (HP tegak & komputer) anak buah & duel: tombol Ajak / J di dekat prajurit → mau → anak buah yang
+// - (HP utama & komputer) anak buah & duel: tombol Ajak / J di dekat prajurit → mau → anak buah yang
 //   mengikuti; menolak → tombol Duel / U → duel → menang = lawan menjadi anak buah; kalah = pemain
 //   jatuh terduduk & membayar upeti; pukulan pemain tidak mengenai anak buahnya
 // - Kerajaan Elf Aeloria (utara): 10.000 kesatria + penduduk, elf terlihat di pasar, tombol Belanja
 //   di depan kios, membeli makanan & perlengkapan (koin berkurang, tombak dipakai), ketuk elf →
-//   kartu isi pikiran, keributan warga dilerai kesatria; (HP tegak & komputer) memukul kesatria →
+//   kartu isi pikiran, keributan warga dilerai kesatria; (HP utama & komputer) memukul kesatria →
 //   kerusuhan (musuh kerajaan, kesatria menyerang), pedagang tetap melayani, kalah → diantar ke
 //   pantai utara Pulau Tropis, Benteng Aeloria terlarang (masuk → diserang, keluar → berhenti);
-//   (HP tegak) jurus Penggal pada orc memberi koin
+//   (HP utama) jurus Penggal pada orc memberi koin
 // - obrolan NPC: tombol Bicara di dekat elf / warga Kencana, panel obrolan, jawaban atas kalimat
 //   ketikan & topik, memberi makanan, elf berhenti & menghadap pemain lalu kembali berkegiatan
-// - (HP tegak) kayu dari batang pohon, membuat pancing di Tas, memancing (Mancing → Tarik! → ikan
+// - (HP utama) kayu dari batang pohon, membuat pancing di Tas, memancing (Mancing → Tarik! → ikan
 //   masuk Tas), menjual ikan ke Kios Ikan Bakar
 // Waktu tunggu dihitung dalam FRAME (fisika berjalan per frame), bukan detik, karena
 // render software jauh lebih lambat dari HP.
@@ -62,12 +62,14 @@ const fail = msg => {
 const ok = msg => console.log('  ok:', msg)
 
 const browser = await chromium.launch({ args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist'] })
-// SMOKE_CASES=hp-portrait,desktop → hanya kasus itu (bawaan: semua)
+// SMOKE_CASES=hp-utama,desktop → hanya kasus itu (bawaan: semua)
 const only = process.env.SMOKE_CASES ? process.env.SMOKE_CASES.split(',') : null
 const cases = [
-  ['hp-portrait', { ...devices['Pixel 7'] }, ''],
+  // v0.27.0: game hanya dimainkan miring di HP → semua profil HP memakai layar miring
+  // (hp-utama = profil HP lengkap, dulu "hp-portrait")
+  ['hp-utama', { ...devices['Pixel 7 landscape'] }, ''],
   ['hp-landscape', { ...devices['Pixel 7 landscape'] }, ''],
-  ['hp-rendah', { ...devices['Pixel 7'] }, '?kualitas=rendah'],
+  ['hp-rendah', { ...devices['Pixel 7 landscape'] }, '?kualitas=rendah'],
   ['desktop', { viewport: { width: 1280, height: 720 } }, ''],
 ].filter(([name]) => !only || only.includes(name))
 
@@ -501,6 +503,20 @@ for (const [name, opts, query] of cases) {
   const mapClosed = await page.isHidden('#peta')
   if (!mapOpen || !mapClosed) fail(`peta: terbuka ${mapOpen}, tertutup ${mapClosed}`)
   else ok('tombol Peta membuka peta dunia, Tutup menutupnya')
+  // ===== hanya layar miring (v0.27.0): HP dipegang tegak → layar "Putar HP" menutupi game
+  if (name.startsWith('hp-')) {
+    const vp = page.viewportSize()
+    const before = await page.isVisible('#putar-layar')
+    await page.setViewportSize({ width: vp.height, height: vp.width })
+    await waitFrames(page, 3)
+    const tegak = await page.isVisible('#putar-layar')
+    await page.screenshot({ path: `${out}/${name}-tegak.png` })
+    await page.setViewportSize(vp)
+    await waitFrames(page, 3)
+    const after = await page.isVisible('#putar-layar')
+    if (before || !tegak || after) fail(`layar miring: miring ${before}, tegak ${tegak}, miring lagi ${after}`)
+    else ok('HP tegak → layar "Putar HP ke posisi miring" menutupi game; miring lagi → game tampil')
+  } else if (await page.isVisible('#putar-layar')) fail('komputer: layar "Putar HP" tampil')
   // ===== Kerajaanmu (v0.27.0): Pulau Rajawali, 400 prajurit + 4 komandan, panel komando
   {
     // tombol jurus pedang sudah dihapus dari layar; Lompat tetap
@@ -648,7 +664,7 @@ for (const [name, opts, query] of cases) {
 
   // ===== Penjagaan: masuk wilayah kerajaan → langsung diserang; kalah → dibawa keluar wilayah;
   // kabur keluar wilayah → berhenti dikejar; serbuan orc dihadang; pendatang ditanyai di gerbang
-  if (name === 'hp-portrait' || name === 'desktop') {
+  if (name === 'hp-utama' || name === 'desktop') {
     await page.evaluate(() => {
       window.__pulau.debug.timeScale = 2
       window.__pulau.security.ceasefire(false)
@@ -724,7 +740,7 @@ for (const [name, opts, query] of cases) {
 
   // ===== Air & dermaga: menabrak sisi dek dari air = tertahan (tidak naik sendiri), tombol Panjat /
   // Spasi memanjat; prajurit terjun & berenang mengejar; yang kabur lewat laut dikejar perahu patroli
-  if (name === 'hp-portrait' || name === 'desktop') {
+  if (name === 'hp-utama' || name === 'desktop') {
     await page.evaluate(() => {
       const { player, cam } = window.__pulau
       player.revive()
@@ -798,7 +814,7 @@ for (const [name, opts, query] of cases) {
 
   // ===== Anak buah & duel: prajurit Kencana diajak (mau → ikut pemain), yang menolak ditantang duel
   // (menang → ikut; kalah → upeti), anak buah mengikuti & tidak terkena pukulan pemain
-  if (name === 'hp-portrait' || name === 'desktop') {
+  if (name === 'hp-utama' || name === 'desktop') {
     await page.evaluate(() => {
       const { security, soldiers, player } = window.__pulau
       window.__pulau.debug.timeScale = 1
@@ -1081,7 +1097,7 @@ for (const [name, opts, query] of cases) {
     else if (!calmed) fail(`keributan tidak berakhir: ${JSON.stringify(brawlEnd)}`)
     else ok(`keributan warga: ${brawlEnd.keributan ? `fase ${brawlEnd.keributan.fase}, pelerai ${brawlEnd.keributan.pelerai}` : 'sudah bubar'}`)
   }
-  if (elf && (name === 'hp-portrait' || name === 'desktop')) {
+  if (elf && (name === 'hp-utama' || name === 'desktop')) {
     // kerusuhan: memukul kesatria → musuh kerajaan, kesatria menyerang
     const knight = await page.evaluate(() => {
       const { life, player, cam } = window.__pulau
@@ -1329,11 +1345,11 @@ for (const [name, opts, query] of cases) {
   // ===================================================================== Kerajaan Frostfall (timur)
   // semua profil: isi wilayah, tanpa benda melayang / terbenam, tanah tanpa lubang, selat harus
   // direnangi, salju & iklim dingin, masuk gua (gelap, kamera di bawah atap), peti harta.
-  // HP tegak & komputer: berjalan sungguhan di jembatan, tangga menara jaga, masuk kedai, gerbang →
+  // HP utama & komputer: berjalan sungguhan di jembatan, tangga menara jaga, masuk kedai, gerbang →
   // halaman → ruang singgasana, pintu rahasia → tangga → lorong → gua, mulut gua; semua profil: atap gua
   // bisa diinjak, lima gua besar (v0.20.0) dijalani dari luar mulut sampai petinya
   if (await page.evaluate(() => !!window.__pulau.frost)) {
-    const full = name === 'hp-portrait' || name === 'desktop'
+    const full = name === 'hp-utama' || name === 'desktop'
     await page.evaluate(() => window.__pulau.security?.ceasefire(true))
     // jalan mengikuti titik-titik (seperti ketuk untuk berjalan); hasil: sampai / tertahan + posisi
     async function walk(points, maxFrames = 400) {
@@ -2049,7 +2065,7 @@ for (const [name, opts, query] of cases) {
     else ok(`kembali ke Pulau Tropis: iklim tropis lagi (dingin ${back.frost}, tanpa salju turun)`)
   }
 
-  if (name === 'hp-portrait') {
+  if (name === 'hp-utama') {
     const cdp = await ctx.newCDPSession(page)
     const touch = (type, points) => cdp.send('Input.dispatchTouchEvent', { type, touchPoints: points })
     // ketukan dengan cap waktu eksplisit (jari menempel 80 ms): CDP menunggu frame render
