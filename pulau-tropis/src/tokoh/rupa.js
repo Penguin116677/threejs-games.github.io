@@ -615,11 +615,11 @@ function prajurit({ tabarW = 'biru', jambul = 'biru', jubahW = null, helmW = tru
   return d
 }
 
-function pemanah() {
+function pemanah(tudungW = null) {
   const d = bodyData()
   kepala(d, { kulit: 'kulit' })
   rambut(d, 'pendek', 'rambutCokelat')
-  tudung(d, 'hijau', 'hijauTua')
+  tudung(d, tudungW || 'hijau', 'hijauTua')
   badan(d, { baju: 'hijau', celana: 'samakTua' })
   rompi(d, 'samak', 1.02)
   sabuk(d, 'samakTua', 'emasTua')
@@ -802,7 +802,7 @@ export const RUPA = {
   pedagang,
   raja,
   pendeta,
-  pemanah,
+  pemanah: () => pemanah(),
   orc,
   pemain,
   // penjaga kerajaan (prajurit.js): jambul pembeda tugas
@@ -815,12 +815,20 @@ export const RUPA = {
   pedang: () => prajurit({ helmW: false, tabarW: 'merahTua', syalW: 'merah', rambutW: 'rambutCokelatTua' }),
   kavaleri: () => prajurit({ tabarW: 'merah', jambul: 'merah' }),
   senapati: () => prajurit({ tabarW: 'unguTua', jambul: 'ungu', jubahW: 'ungu', lis: 'emas' }),
+  // prajurit Pulau Rajawali (kerajaan pemain, rajawali/bala.js): tabar merah tua berlis emas,
+  // jambul sewarna panji divisinya; komandan berjubah sewarna panji
+  rajaPedang: () => prajurit({ tabarW: 'merahTua', jambul: 'merah', syalW: 'emas' }),
+  rajaPerisai: () => prajurit({ tabarW: 'merahTua', jambul: 'biru' }),
+  rajaKavaleri: () => prajurit({ tabarW: 'merahTua', jambul: 'emas' }),
+  rajaPemanah: () => pemanah('merahTua'),
+  rajaKomandan: warna => prajurit({ tabarW: 'merahTua', jambul: warna || 'emas', jubahW: warna || 'emas', lis: 'emas' }),
 }
 
-// data badan rupa `nama` (varian `arg`); ringan = lebih sedikit sisi (kerumunan bala tentara);
+// data badan rupa `nama` (varian `arg`); ringan = lebih sedikit sisi (kerumunan bala tentara),
+// detail = kerapatan sisi sendiri (mis. 0,4 untuk prajurit Rajawali yang jauh);
 // sendi = untuk rangka bersendi (14 tulang, lihat SENDI)
-export function buatRupa(nama, arg = 0, { ringan = false, sendi = false } = {}) {
-  setDetail(ringan ? 0.7 : 1)
+export function buatRupa(nama, arg = 0, { ringan = false, sendi = false, detail = null } = {}) {
+  setDetail(detail ?? (ringan ? 0.7 : 1))
   BERSENDI = sendi
   try {
     const d = RUPA[nama](arg)

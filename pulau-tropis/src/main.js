@@ -21,6 +21,7 @@ import { createRegionMask } from './world/kencana/mask.js'
 import { createKencana, boatGeometry } from './world/kencana/kingdom.js'
 import { planRajawali } from './world/rajawali/rencana.js'
 import { createRajawali } from './world/rajawali/pulau.js'
+import { createBala } from './world/rajawali/bala.js'
 import { buildingMaterial, buildingDepthMaterial } from './world/kencana/material.js'
 import { createVillagers } from './world/kencana/villagers.js'
 import { createArmy } from './world/kencana/pasukan.js'
@@ -382,6 +383,18 @@ async function start() {
       scene.add(army.object)
     } catch (err) {
       console.warn('Bala tentara gagal dimuat:', err)
+    }
+
+  // bala tentara Pulau Rajawali (v0.27.0): 400 prajurit + 4 komandan milik pemain
+  setStatus('Membariskan 400 prajuritmu…')
+  await nextFrame()
+  let bala = null
+  if (asset)
+    try {
+      bala = createBala({ ground, colliders, nav, quality, soldier: asset.rig })
+      scene.add(bala.object)
+    } catch (err) {
+      console.warn('Bala tentara Rajawali gagal dibuat:', err)
     }
 
   const player = createPlayer({ ground, colliders, quality, asset })
@@ -1429,6 +1442,7 @@ async function start() {
     leader.z = player.position.z
     leader.heading = player.heading
     leader.speed = player.speed
+    bala?.update(wdt, { camera, player: { x: player.position.x, y: player.position.y, z: player.position.z, heading: player.heading } })
     soldiers?.update(wdt, {
       camera,
       focus: mode === 'main' ? player.position : controls.target,
@@ -1517,7 +1531,7 @@ async function start() {
   // akses untuk debugging / pengujian otomatis
   window.__pulau = {
     renderer, scene, camera, controls, ground, shore, quality, trees, rocks, grass, water, env, kencana, region, plan, villagers, army, worldMap, banner, aeloria, elfPlan, elfMask, life,
-    frost, frostPlan, frostMask, weather, openSecret, openChest, warga, naga, ranahFx,
+    frost, frostPlan, frostMask, weather, openSecret, openChest, warga, naga, ranahFx, rajawali, rajaPlan, bala,
     player, cam, input, colliders, nav, markers, effects, enemies, soldiers, security, patrol, recruits, bubbles, pickGround, setMode, getMode: () => mode, bag, gear, shop, elfSec, elfCard,
     boat, fishing, ripples, recipes, craftBoat, boardBoat, leaveBoat, chat, placesFor, suara, ambience,
     frames: () => frameCount, debug,
