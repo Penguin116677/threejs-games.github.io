@@ -18,7 +18,7 @@ real input → physics → raycast-interaction path; nothing is teleported throu
 | vertical slice | street → entrance → lobby → desk drawer → key → maintenance breakers → elevator → floor 7 → unlock 703 → kitchen/living/hall/bedroom/bathroom (switches, drawers, fridge, wardrobe, mirror cabinet, documents, photos) → stairs to roof → roof door → stairs + elevator back to the lobby → out to the street; asserts zero fail-safe recoveries |
 | stairs | for every floor 1–8: walk up both flights to the next floor (8 → roof) and back down; landing heights exact |
 | elevator | visits every floor in scrambled order: car level to 1e-6 m, only that floor's landing doors open, rider stays grounded; exits on floor 5; doors re-open on an obstruction |
-| doors | all 56 doors: panel sits in its wall opening (not buried), header + jambs exist, closed door blocks from both sides, opened door passable both ways, locked doors stay locked |
+| doors | all 47 doors: panel sits in its wall opening (not buried), header + jambs exist, closed door blocks from both sides, opened door passable both ways, locked doors stay locked |
 | navigation | 0.1 m flood fill of every floor with all doors open: elevator, stair door/landing, every apartment door, corridor ends; ground floor lobby/desk/maintenance/entrance/street; floor 7 every room of 703; roof corners |
 | collision | sprinting into exterior walls, window glass, partitions, sofa, bed, fridge, counter, bathtub, locked door, corridor window, lobby glass, roof parapet, closed elevator doors, stair spine, map boundary |
 | escape fuzz | 61 spawn points (every corridor, landing, mid-landing, car, lobby, 703 rooms, roof, street) × random sprint/crouch walks with random interactions; checks every physics step for collider overlap, falling below ground, leaving the map, leaving/entering the building other than by the front door, and being stuck |
@@ -54,9 +54,10 @@ Play on desktop and on an Android phone (Chrome, landscape and portrait).
 **Floor 7**
 - [ ] Corridor lights flicker once FLOOR 7 is on; dark with it off
 - [ ] 703 refuses to open without the key, unlocks with it
-- [ ] Kitchen, living room, hall, bedroom, bathroom all walkable; switches light each room
+- [ ] Kitchen, living/dining, foyer/gallery, master bedroom, en-suite all walkable; switches light each room
+- [ ] Open doors never cover a light switch; walk around piano, island and dining set without snagging
 - [ ] Fridge, cupboards, wall cabinets, kitchen/nightstand/desk drawers, wardrobe, vanity, mirror cabinet open
-- [ ] Furniture is solid (sofa, tables, chairs, bed, bath, toilet, counters)
+- [ ] Furniture is solid (sofas, tables, chairs, piano, island, bed, tub, shower glass, toilet, counters)
 - [ ] Bathroom note triggers the scare (flicker + sound)
 
 **Roof**

@@ -22,14 +22,14 @@ function northWindows(k) {
     { a: -3.2, b: -1.2, lo: 0.5, hi: 2.4 }, { a: 2.2, b: 4.2, lo: 0.5, hi: 2.4 },
     { a: 6.0, b: 7.4, lo: 0.9, hi: 2.3 }, { a: 11.0, b: 12.6, lo: 0.9, hi: 2.3 },
   ]
-  return [[-12.5, -11.1], [-9, -7.6], [-6.4, -5.0], [-2.8, -1.4], [0.2, 1.6], [2.8, 4.2], [6.0, 7.4], [8.2, 9.6], [11.0, 12.6]]
-    .map(([a, b]) => ({ a, b, lo: 0.9, hi: 2.3 }))
+  return [[-12.5, -11.1], [-9, -7.6], [-6.4, -5.0], [-3.2, -0.8, 0.25, 2.5], [0.4, 2.8, 0.25, 2.5], [5.6, 7.6, 0.25, 2.5], [11.4, 13.4, 0.25, 2.5]]
+    .map(([a, b, lo = 0.9, hi = 2.3]) => ({ a, b, lo, hi }))
 }
 const SOUTH_WINDOWS = [[-13.2, -11.2, 2.0, 2.8], [-6.5, -5.1], [-3, -1.6], [0.5, 1.9], [4.5, 5.9], [8, 9.4], [11.2, 12.6]]
   .map(([a, b, lo = 0.9, hi = 2.3]) => ({ a, b, lo, hi }))
-const EAST_WINDOWS = [[-6.5, -5.1], [-3.0, -2.2, 1.5, 2.1], [-0.6, 0.6], [3, 4.4], [5.5, 6.9]]
+const EAST_WINDOWS = [[-10.8, -8.8, 0.25, 2.5], [-8.2, -6.8, 0.25, 2.5], [-4.4, -3.0, 1.4, 2.2], [-0.6, 0.6], [3, 4.4], [5.5, 6.9]]
   .map(([a, b, lo = 0.9, hi = 2.3]) => ({ a, b, lo, hi }))
-const WEST_WINDOWS = [[-6.3, -4.9], [-3.5, -2.1], [-0.6, 0.6]].map(([a, b]) => ({ a, b, lo: 0.9, hi: 2.3 }))
+const WEST_WINDOWS = [[-10.4, -9.0], [-6.3, -4.9], [-3.5, -2.1], [-0.6, 0.6]].map(([a, b]) => ({ a, b, lo: 0.9, hi: 2.3 }))
 
 const ENTRANCE = { a: -0.4, b: 1.4, lo: 0, hi: 2.4 }
 
@@ -55,14 +55,14 @@ function exteriorWalls(b, k, top = FLOOR_H) {
   const nOpen = k === 0 ? [...nw, ENTRANCE] : nw
   // north (street) facade
   b.wall('brick', 'x', B.x0, B.x1, B.z0, B.z0 + 0.1, y, y1, nOpen)
-  b.wall(k === 0 ? 'lobbyPaint' : 'wallpaper', 'x', B.x0 + 0.1, B.x1 - 0.1, B.z0 + 0.1, IN.z0, y, y1, nOpen)
+  b.wall(k === 0 ? 'lobbyPaint' : hasApartment(k) ? [[-3.9, 'wallpaper'], [20, 'luxWall']] : 'wallpaper', 'x', B.x0 + 0.1, B.x1 - 0.1, B.z0 + 0.1, IN.z0, y, y1, nOpen)
   for (const w of nw) b.window('x', w.a, w.b, B.z0, IN.z0, y, w.lo, w.hi, { inside: 1 })
   // south
   b.wall('brick', 'x', B.x0, B.x1, B.z1 - 0.1, B.z1, y, y1, SOUTH_WINDOWS)
   b.wall([[STAIR.x1 + 0.1, 'stairPaint'], [SHAFT.x1 + 0.2, 'concrete'], [20, unit]], 'x', B.x0 + 0.1, B.x1 - 0.1, IN.z1, B.z1 - 0.1, y, y1, SOUTH_WINDOWS)
   for (const w of SOUTH_WINDOWS) b.window('x', w.a, w.b, IN.z1, B.z1, y, w.lo, w.hi, { inside: -1 })
   // east
-  const eastIn = hasApartment(k) ? [[-3.9, 'wallpaper'], [-1.0, 'wallTile'], [1.0, corr], [20, 'wallpaper']] : [[-1.0, unit], [1.0, corr], [20, unit]]
+  const eastIn = hasApartment(k) ? [[-6.0, 'luxWall'], [-1.0, 'marbleWall'], [1.0, corr], [20, 'wallpaper']] : [[-1.0, unit], [1.0, corr], [20, unit]]
   b.wall('brick', 'z', B.z0 + 0.1, B.z1 - 0.1, B.x1 - 0.1, B.x1, y, y1, EAST_WINDOWS)
   b.wall(eastIn, 'z', B.z0 + 0.1, B.z1 - 0.1, IN.x1, B.x1 - 0.1, y, y1, EAST_WINDOWS)
   for (const w of EAST_WINDOWS) b.window('z', w.a, w.b, IN.x1, B.x1, y, w.lo, w.hi, { inside: -1 })
@@ -113,8 +113,8 @@ function corridorWalls(b, k, game) {
   // north corridor wall: apartment side z[-1.1,-1.0], corridor side z[-1.0,-0.9]
   const nOpen = k === 0
     ? [{ a: DOORS_N['01'][0], b: DOORS_N['01'][1], hi: DOOR_H }, { a: NORTH_LOBBY.x0, b: NORTH_LOBBY.x1, hi: 2.5 }, { a: DOORS_N['03'][0], b: DOORS_N['03'][1], hi: DOOR_H }]
-    : Object.values(DOORS_N).map(([a, b2]) => ({ a, b: b2, hi: DOOR_H }))
-  const aptSide = hasApartment(k) ? [[-3.9, unit], [5, unit], [10, 'kitchenPaint'], [11.6, 'wallpaper'], [20, 'wallTile']]
+    : RES_DOORS_N.map(([a, b2]) => ({ a, b: b2, hi: DOOR_H }))
+  const aptSide = hasApartment(k) ? [[-3.9, unit], [4.0, 'kitchenPaint'], [9.0, 'luxWall'], [20, 'marbleWall']]
     : k === 0 ? [[-3.9, 'utilityPaint'], [5, 'lobbyPaint'], [20, 'utilityPaint']] : unit
   b.wall2(aptSide, corr, 'x', IN.x0, IN.x1, -1.1, -0.9, y, yc, nOpen)
   // south corridor wall: corridor side z[0.9,1.0], other side z[1.0,1.1]
@@ -128,10 +128,10 @@ function corridorWalls(b, k, game) {
   b.doorTrim('x', ELEV_DOOR[0], ELEV_DOOR[1], 0.9, 0.9, y, DOOR_H) // corridor-side only
   // skirting strip along corridor floor (visual)
   // north partitions between units
-  for (const xc of [-4, 5]) {
+  for (const xc of k === 0 ? [-4, 5] : [-4]) {
     let west = unit, east = unit
     if (k === 0) { west = xc === -4 ? 'utilityPaint' : 'lobbyPaint'; east = xc === -4 ? 'lobbyPaint' : 'utilityPaint' }
-    if (hasApartment(k) && xc === 5) east = [[-3.6, 'wallpaper'], [-1.1, 'kitchenPaint']]
+    if (hasApartment(k)) east = [[-4.6, 'luxWall'], [-1.1, 'kitchenPaint']]
     b.wall2(west, east, 'z', IN.z0, -1.1, xc - 0.1, xc + 0.1, y, yc)
   }
   // south: stair east wall / shaft walls (full storey height), unit split
@@ -143,20 +143,27 @@ function corridorWalls(b, k, game) {
   // lobby corner: the header above the wide lobby opening is part of nOpen (hi 2.5)
 }
 const NORTH_LOBBY = { x0: -3.9, x1: 4.9 }
+const RES_DOORS_N = [DOORS_N['01'], DOORS_N['03']] // residential floors: 01 + the merged luxury unit 03
 
 function apartmentWalls(b, k) {
   const y = k * FLOOR_H, yc = y + CEIL_H
-  // A: living | kitchen, wide arch
-  b.wall2('wallpaper', 'kitchenPaint', 'x', APT.x0, 9.94, -3.66, -3.54, y, yc, [{ a: 7.4, b: 9.4, hi: 2.3 }])
-  // B: west rooms | east rooms, door to the hall
-  b.wall2([[-3.6, 'wallpaper'], [-1.1, 'kitchenPaint']], 'wallpaper', 'z', APT.z0, -1.1, 9.94, 10.06, y, yc, [{ a: -2.6, b: -1.75, hi: INNER_DOOR_H }])
-  // C: bedroom | hall + bathroom
-  b.wall2('wallpaper', [[11.6, 'wallpaper'], [20, 'wallTile']], 'x', 10.06, APT.x1, -3.96, -3.84, y, yc, [{ a: 10.3, b: 11.1, hi: INNER_DOOR_H }])
-  // D: hall | bathroom
-  b.wall2('wallpaper', 'wallTile', 'z', -3.84, -1.1, 11.54, 11.66, y, yc, [{ a: -2.75, b: -1.95, hi: INNER_DOOR_H }])
-  b.doorTrim('z', -2.6, -1.75, 9.94, 10.06, y, INNER_DOOR_H)
-  b.doorTrim('x', 10.3, 11.1, -3.96, -3.84, y, INNER_DOOR_H)
-  b.doorTrim('z', -2.75, -1.95, 11.54, 11.66, y, INNER_DOOR_H)
+  // living | kitchen: wide open-plan opening
+  b.wall2('luxWall', 'kitchenPaint', 'x', APT.x0, 5.0, -4.66, -4.54, y, yc, [{ a: -2.4, b: 3.4, hi: 2.4 }])
+  // kitchen | foyer: arch
+  b.wall2('kitchenPaint', 'luxWall', 'z', -4.54, -1.1, 3.94, 4.06, y, yc, [{ a: -4.2, b: -1.6, hi: 2.3 }])
+  // living | bedroom + gallery: arch from the gallery into the living room
+  b.wall2('luxWall', 'luxWall', 'z', APT.z0, -4.66, 4.94, 5.06, y, yc, [{ a: -5.9, b: -4.8, hi: 2.3 }])
+  // master bedroom | gallery + bathroom: two doors
+  b.wall2('luxWall', [[9.0, 'luxWall'], [20, 'marbleWall']], 'x', 5.06, APT.x1, -6.06, -5.94, y, yc,
+    [{ a: 6.6, b: 7.5, hi: INNER_DOOR_H }, { a: 10.2, b: 11.0, hi: INNER_DOOR_H }])
+  // gallery | bathroom (en-suite: only reachable from the bedroom)
+  b.wall2('luxWall', 'marbleWall', 'z', -5.94, -1.1, 8.94, 9.06, y, yc)
+  b.doorTrim('x', 6.6, 7.5, -6.06, -5.94, y, INNER_DOOR_H)
+  b.doorTrim('x', 10.2, 11.0, -6.06, -5.94, y, INNER_DOOR_H)
+  // crown moulding along the luxury rooms (visual)
+  const nc = { collide: false }
+  b.box('frame', APT.x0, yc - 0.08, APT.z0, APT.x1, yc - 0.06, APT.z0 + 0.06, nc)
+  b.box('frame', APT.x0, yc - 0.08, -1.16, APT.x1, yc - 0.06, -1.1, nc)
 }
 
 function floorFinishes(k) {
@@ -168,18 +175,18 @@ function floorFinishes(k) {
     f.push(['lobbyFloor', NORTH_LOBBY.x0, IN.z0, NORTH_LOBBY.x1, -0.9])
     f.push(['lobbyFloor', DOORS_N['01'][0], -1.1, DOORS_N['01'][1], -0.9]) // thresholds
   } else {
-    for (const [a, b2] of Object.values(DOORS_N)) f.push(['carpet', a, -1.1, b2, -0.9])
+    for (const [a, b2] of RES_DOORS_N) f.push(['carpet', a, -1.1, b2, -0.9])
   }
   for (const [a, b2] of Object.values(DOORS_S)) f.push(['carpet', a, 0.9, b2, 1.1])
   f.push([k === 0 ? 'lobbyFloor' : 'carpet', ELEV_DOOR[0], 0.9, ELEV_DOOR[1], 1.1])
   f.push(['stairConcrete', S.door[0], 0.9, S.door[1], 1.1])
   if (hasApartment(k)) {
     const A = APT
-    f.push(['floorTile', A.kitchen.x0, A.kitchen.z0 - 0.06, A.kitchen.x1, A.kitchen.z1])
-    f.push(['wood', A.living.x0, A.living.z0, A.living.x1, A.living.z1 + 0.06])
-    f.push(['wood', A.hall.x0 - 0.06, A.hall.z0, A.hall.x1, A.hall.z1])
-    f.push(['wood', A.bedroom.x0, A.bedroom.z0, A.bedroom.x1, A.bedroom.z1 + 0.12])
-    f.push(['floorTile', A.bathroom.x0 - 0.06, A.bathroom.z0, A.bathroom.x1, A.bathroom.z1])
+    f.push(['marble', A.kitchen.x0, A.kitchen.z0 - 0.06, A.kitchen.x1 + 0.06, A.kitchen.z1])
+    f.push(['wood', A.living.x0, A.living.z0, A.living.x1 + 0.06, A.living.z1 + 0.06])
+    f.push(['marble', A.hall.x0, A.hall.z0, A.hall.x1, A.hall.z1])
+    f.push(['wood', A.bedroom.x0 - 0.06, A.bedroom.z0, A.bedroom.x1, A.bedroom.z1 + 0.12])
+    f.push(['lobbyFloor', A.bathroom.x0 - 0.06, A.bathroom.z0, A.bathroom.x1, A.bathroom.z1])
   }
   return f
 }
@@ -197,7 +204,7 @@ function addDoors(game, k) {
   const add = o => game.addDoor(new HingedDoor(game, o))
   for (const [u, [a, b]] of Object.entries(DOORS_N)) {
     const num = `${k + 1}${u}`
-    if (k === 0 && u === '02') continue // the lobby is an open archway on the ground floor
+    if (u === '02') continue // ground floor: open lobby archway; above: merged into the luxury unit 03
     if (k === 0) {
       const name = u === '01' ? 'maintenance door' : 'office door'
       add({ id: `door-0-${u}`, hinge: { x: a, y, z: -1.0 }, dir: 'x+', width: b - a, height: DOOR_H - 0.01, mat: 'doorPaint', name,
@@ -230,10 +237,9 @@ function addDoors(game, k) {
 
 function addApartmentDoors(game, k) {
   const y = k * FLOOR_H, n = `${k + 1}03`
-  const add = o => game.addDoor(new HingedDoor(game, { mat: 'doorPaint', height: INNER_DOOR_H - 0.01, ...o }))
-  add({ id: `door-${n}-hall`, hinge: { x: 10.0, y, z: -1.75 }, dir: 'z-', width: 0.85, name: 'hall door' })
-  add({ id: `door-${n}-bedroom`, hinge: { x: 10.3, y, z: -3.9 }, dir: 'x+', width: 0.8, name: 'bedroom door' })
-  add({ id: `door-${n}-bath`, hinge: { x: 11.6, y, z: -2.75 }, dir: 'z+', width: 0.8, name: 'bathroom door' })
+  const add = o => game.addDoor(new HingedDoor(game, { mat: 'doorWood', height: INNER_DOOR_H - 0.01, ...o }))
+  add({ id: `door-${n}-bedroom`, hinge: { x: 6.6, y, z: -6.0 }, dir: 'x+', width: 0.9, name: 'bedroom door' })
+  add({ id: `door-${n}-bath`, hinge: { x: 10.2, y, z: -6.0 }, dir: 'x+', width: 0.8, name: 'bathroom door' })
 }
 
 // ---------------------------------------------------------------------------------
@@ -253,7 +259,7 @@ export function buildShell(game) {
       b.box('concrete', SHAFT.x0, -1.6, SHAFT.z0, SHAFT.x1, -1.4, SHAFT.z1)
       b.box('concrete', B.x0 - 0.1, -0.02, B.z0 - 0.1, B.x1 + 0.1, 0.4, B.z0, { collide: false, faces: { pz: false } }) // plinth
       // entrance canopy
-      b.box('concrete', -1.4, 2.75, -9.6, 2.4, 2.95, B.z0, { collide: false })
+      b.box('concrete', -1.4, 2.75, B.z0 - 1.6, 2.4, 2.95, B.z0, { collide: false })
     }
     game.scene.add(b.finish())
     game.shellBuilders.push(b)
@@ -315,12 +321,12 @@ function buildRoof(game) {
 
 function buildExterior(game) {
   const b = new Builder(game, 'exterior')
-  const STREET = { x0: MAP.x0, x1: MAP.x1, z0: -26, z1: -15.5 }
+  const STREET = { x0: MAP.x0, x1: MAP.x1, z0: -30, z1: -19.5 }
   b.rectMinus('paving', MAP.x0, MAP.z0, MAP.x1, MAP.z1, [B, STREET], -0.4, 0, { faces: { ny: false } })
   b.box('asphalt', STREET.x0, -0.55, STREET.z0, STREET.x1, -0.15, STREET.z1, { faces: { ny: false } })
   b.box('concrete', STREET.x0, -0.15, STREET.z1 - 0.15, STREET.x1, 0, STREET.z1, { collide: false })
   // road markings
-  for (let x = MAP.x0 + 2; x < MAP.x1; x += 6) b.box('frame', x, -0.15, -20.85, x + 3, -0.145, -20.65, { collide: false, shadow: false })
+  for (let x = MAP.x0 + 2; x < MAP.x1; x += 6) b.box('frame', x, -0.15, -24.85, x + 3, -0.145, -24.65, { collide: false, shadow: false })
   // map boundary: low walls + invisible barrier
   const wallH = 2.2
   for (const [x0, z0, x1, z1] of [[MAP.x0, MAP.z0, MAP.x1, MAP.z0 + 0.3], [MAP.x0, MAP.z1 - 0.3, MAP.x1, MAP.z1], [MAP.x0, MAP.z0, MAP.x0 + 0.3, MAP.z1], [MAP.x1 - 0.3, MAP.z0, MAP.x1, MAP.z1]]) {
@@ -330,17 +336,17 @@ function buildExterior(game) {
   b.collider(MAP.x0 - 2, -3, MAP.z0 - 2, MAP.x1 + 2, -2, MAP.z1 + 2, { tag: 'bounds' })
   // planters along the facade
   for (const [x0, x1] of [[-12, -3], [3.5, 12]]) {
-    b.box('concrete', x0, 0, -9.4, x1, 0.45, -8.6)
-    b.box('grass', x0 + 0.08, 0.45, -9.32, x1 - 0.08, 0.47, -8.68, { collide: false })
+    b.box('concrete', x0, 0, -13.4, x1, 0.45, -12.6)
+    b.box('grass', x0 + 0.08, 0.45, -13.32, x1 - 0.08, 0.47, -12.68, { collide: false })
   }
   // trees in the planters
   for (const x of [-10, -5, 6, 10.5]) {
-    b.boxC('bark', x, -9, 0.18, 0.18, 0.45, 3.2)
-    b.boxC('tree', x, -9, 1.6, 1.6, 2.6, 4.2, { collide: false })
-    b.boxC('tree', x + 0.2, -9.1, 1.1, 1.1, 4.2, 5.0, { collide: false })
+    b.boxC('bark', x, -13, 0.18, 0.18, 0.45, 3.2)
+    b.boxC('tree', x, -13, 1.6, 1.6, 2.6, 4.2, { collide: false })
+    b.boxC('tree', x + 0.2, -13.1, 1.1, 1.1, 4.2, 5.0, { collide: false })
   }
   // street lamps
-  const lampAt = [[-20, -14.8, 0], [-6, -14.8, 0.6], [8, -14.8, 0], [22, -14.8, 0.2], [20, 2, 0]]
+  const lampAt = [[-20, -18.8, 0], [-6, -18.8, 0.6], [8, -18.8, 0], [22, -18.8, 0.2], [20, 2, 0]]
   lampAt.forEach(([x, z, fl], i) => {
     b.boxC('steel', x, z, 0.14, 0.14, 0, 5.2)
     b.boxC('steel', x, z - 0.4, 0.12, 0.9, 5.1, 5.25, { collide: false })
@@ -354,10 +360,10 @@ function buildExterior(game) {
     }))
   })
   // parked car
-  b.box('carPaint', 4.2, -0.15 + 0.25, -18.2, 8.6, 0.95, -16.4)
-  b.box('carPaint', 5.2, 0.95, -18.1, 7.6, 1.5, -16.5)
-  b.box('glass', 5.25, 1.0, -18.12, 7.55, 1.45, -16.48, { collide: false })
-  for (const [x, z] of [[4.9, -18.25], [7.9, -18.25], [4.9, -16.35], [7.9, -16.35]]) b.boxC('blackPlastic', x, z, 0.6, 0.2, -0.15, 0.45, { collide: false })
+  b.box('carPaint', 4.2, -0.15 + 0.25, -22.2, 8.6, 0.95, -20.4)
+  b.box('carPaint', 5.2, 0.95, -22.1, 7.6, 1.5, -20.5)
+  b.box('glass', 5.25, 1.0, -22.12, 7.55, 1.45, -20.48, { collide: false })
+  for (const [x, z] of [[4.9, -22.25], [7.9, -22.25], [4.9, -20.35], [7.9, -20.35]]) b.boxC('blackPlastic', x, z, 0.6, 0.2, -0.15, 0.45, { collide: false })
   // dumpster + bins by the east side
   b.box('carPaint', 16, 0, -4, 18, 1.3, -2.6)
   b.box('blackPlastic', 16.2, 0, -1.8, 16.8, 1.0, -1.2)
@@ -450,9 +456,9 @@ function buildLobby(z) {
   P.ceilingLamp(z, { id: 'lobby-1', x: -1.2, y: CEIL_H, z: -5.0, circuit: 'lobby', intensity: 7, range: 8, style: 'panel' })
   P.ceilingLamp(z, { id: 'lobby-2', x: 2.6, y: CEIL_H, z: -2.6, circuit: 'lobby', intensity: 6, range: 8, flicker: 0.3, style: 'panel' })
   corridorLamps(z, 0, 'lobby', i => (i === 1 ? 0.6 : 0.05))
-  z.fixture(new Fixture({ id: 'emerg-lobby', pos: new THREE.Vector3(0.5, 2.5, -7.4), color: 0xff5030, intensity: 1.6, range: 7 }))
+  z.fixture(new Fixture({ id: 'emerg-lobby', pos: new THREE.Vector3(0.5, 2.5, -11.4), color: 0xff5030, intensity: 1.6, range: 7 }))
   z.fixture(new Fixture({ id: 'emerg-cor', pos: new THREE.Vector3(-9.4, 2.5, 0.6), color: 0xff5030, intensity: 1.2, range: 6 }))
-  exitSign(z, 0.5, 2.55, -7.68, 0)
+  exitSign(z, 0.5, 2.55, -11.68, 0)
   exitSign(z, -11.55, 2.3, 0.88, Math.PI)
   stairLights(z, 0)
 
@@ -469,7 +475,7 @@ function buildLobby(z) {
     id: 'drawer-desk', x: 3.8 + 0.0125, y: 0.86, z: -4.4, w: 0.55, h: 0.18, d: 0.5, facing: '+x', name: 'desk drawer',
     fill: (grp, p) => P.key(z, { id: 'key703', x: p.x, y: p.y, z: p.z, parent: grp, name: 'key to Apartment 703' }),
   })
-  P.chair(z, { x: 2.3, z: -7.35, facing: '+z' })
+  P.chair(z, { x: 2.3, z: -11.35, facing: '+z' })
   // mailboxes on the west wall
   b.box('brass', -3.9, 0.8, -6.8, -3.62, 2.0, -4.4)
   for (let r = 0; r < 5; r++) for (let c = 0; c < 8; c++)
@@ -480,8 +486,12 @@ function buildLobby(z) {
     id: 'doc-notice', x: -3.855, y: 1.55, z: -3.1, rot: Math.PI / 2, standing: true, title: 'Notice to residents',
     text: `NOTICE TO ALL RESIDENTS\n\nDue to repeated electrical faults the building has been switched to emergency power.\n\n• The ELEVATOR is out of service until the breaker in the maintenance room (ground floor, west corridor) is reset.\n• Floor 7 has been isolated. Please do not reset the FLOOR 7 breaker.\n• Residents of 703 — your rent is overdue.\n\n— The Management`,
   })
-  P.plant(z, -3.4, -7.25); P.plant(z, 4.45, -7.25)
-  P.rug(z, { x0: -0.6, z0: -7.6, x1: 1.6, z1: -5.6, mat: 'fabricRed' })
+  P.plant(z, -3.4, -11.25); P.plant(z, 4.45, -11.25); P.plant(z, -3.4, -7.4); P.plant(z, 4.45, -7.4)
+  P.rug(z, { x0: -0.6, z0: -11.6, x1: 1.6, z1: -5.6, mat: 'fabricRed' })
+  // waiting area in the deeper lobby
+  P.sofa(z, { x0: -3.6, z0: -10.2, x1: -2.7, z1: -8.2, facing: '+x', mat: 'fabricRed' })
+  P.sofa(z, { x0: 3.7, z0: -10.2, x1: 4.6, z1: -8.2, facing: '-x', mat: 'fabricRed' })
+  P.ceilingLamp(z, { id: 'lobby-3', x: 0.5, y: CEIL_H, z: -9.4, circuit: 'lobby', intensity: 6, range: 8, flicker: 0.15, style: 'panel' })
   // bench
   b.box('darkWood', -2.8, 0, -2.2, -1.0, 0.45, -1.75)
 
@@ -490,18 +500,18 @@ function buildLobby(z) {
   const circuits = [['brk-lobby', 'lobby', 'LOBBY'], ['brk-stairs', 'stairs', 'STAIRS'], ['brk-elevator', 'elevator', 'ELEVATOR'], ['brk-f7', 'f7', 'FLOOR 7']]
   circuits.forEach(([id, c, label], i) => P.breaker(z, { id, circuit: c, x: -8.88 + i * 0.3, y: 1.45, z: -1.26, facing: '-z', label }))
   P.doc(z, {
-    id: 'doc-maint', x: -11.6, y: 0.9, z: -7.3, rot: 0.15, title: 'Maintenance log',
+    id: 'doc-maint', x: -11.6, y: 0.9, z: -11.3, rot: 0.15, title: 'Maintenance log',
     text: `MAINTENANCE LOG — R. Pike\n\nMon: Elevator tripped the breaker again. Reset it. Smell of burning hair in the shaft?\nWed: Tenants on 7 complaining about knocking inside the walls. Checked 703's pipes from the corridor. Nothing.\nThu: Management told me to cut power to floor 7 "until further notice."\nFri: Hale's lights came on by themselves. The breaker was OFF.\n\nBreakers: LOBBY / STAIRS / ELEVATOR / FLOOR 7.\nI'm not going up there again.`,
   })
-  b.box('darkWood', -12.9, 0, -7.7, -10.6, 0.9, -7.0) // workbench
-  z.fixture(new Fixture({ id: 'worklamp', pos: new THREE.Vector3(-11.0, 1.2, -7.35), color: 0xffd090, intensity: 1.4, range: 4.5, flicker: 0.4 }))
-  b.boxC('steel', -11.0, -7.35, 0.12, 0.12, 0.9, 1.1, { collide: false })
-  b.box('steel', -8.6, 0, -7.7, -6.6, 2.0, -7.25) // shelving
-  for (let s = 0; s < 4; s++) b.box('steel', -8.6, 0.4 + s * 0.5, -7.75, -6.6, 0.43 + s * 0.5, -7.2, { collide: false })
-  P.photo(z, { id: 'photo-maint', x: -7.3, y: 0.93, z: -7.12, rot: -0.3 })
+  b.box('darkWood', -12.9, 0, -11.7, -10.6, 0.9, -11.0) // workbench
+  z.fixture(new Fixture({ id: 'worklamp', pos: new THREE.Vector3(-11.0, 1.2, -11.35), color: 0xffd090, intensity: 1.4, range: 4.5, flicker: 0.4 }))
+  b.boxC('steel', -11.0, -11.35, 0.12, 0.12, 0.9, 1.1, { collide: false })
+  b.box('steel', -8.6, 0, -11.7, -6.6, 2.0, -11.25) // shelving
+  for (let s = 0; s < 4; s++) b.box('steel', -8.6, 0.4 + s * 0.5, -11.75, -6.6, 0.43 + s * 0.5, -11.2, { collide: false })
+  P.photo(z, { id: 'photo-maint', x: -7.3, y: 0.93, z: -11.12, rot: -0.3 })
   b.boxC('steel', -13.1, -2.0, 0.7, 0.7, 0, 1.6) // water heater
-  P.boxes(z, -12.8, -5.0, 3); P.boxes(z, -6.0, -6.5, 2); P.boxes(z, -12.6, -6.2, 2)
-  b.box('red', -5.2, 0, -7.6, -4.7, 0.35, -7.1) // mop bucket
+  P.boxes(z, -12.8, -9.0, 3); P.boxes(z, -6.0, -10.5, 2); P.boxes(z, -12.6, -10.2, 2); P.boxes(z, -9.5, -6.0, 2)
+  b.box('red', -5.2, 0, -11.6, -4.7, 0.35, -11.1) // mop bucket
 }
 
 function buildFloorDecor(z, k) {
@@ -538,192 +548,177 @@ function buildFloorDecor(z, k) {
   }
 }
 
-function buildApartment(z) {
-  const b = z.b, g = z.game
-  const y = APT_K * FLOOR_H, yc = y + CEIL_H
-  // Furniture below is authored relative to the floor and lifted by y (z.lift).
-  // lights
-  P.ceilingLamp(z, { id: 'apt-living', x: 7.5, y: yc, z: -5.7, circuit: 'f7', switchId: 'sw-living', intensity: 9, range: 7.5 })
-  P.ceilingLamp(z, { id: 'apt-kitchen', x: 7.6, y: yc, z: -2.3, circuit: 'f7', switchId: 'sw-kitchen', intensity: 7, range: 6.5, style: 'panel', flicker: 0.2 })
-  P.ceilingLamp(z, { id: 'apt-hall', x: 10.8, y: yc, z: -2.5, circuit: 'f7', switchId: 'sw-hall', intensity: 4, range: 4.5 })
-  P.ceilingLamp(z, { id: 'apt-bedroom', x: 11.9, y: yc, z: -5.8, circuit: 'f7', switchId: 'sw-bedroom', intensity: 8, range: 6.5, flicker: 0.1 })
-  P.ceilingLamp(z, { id: 'apt-bath', x: 12.7, y: yc, z: -2.4, circuit: 'f7', switchId: 'sw-bath', intensity: 5, range: 4.5, flicker: 0.35 })
-  P.lightSwitch(z, { id: 'sw-kitchen', circuit: 'f7', x: 6.6, z: -1.1, y: y + 1.25, facing: '-z', label: 'kitchen light' })
-  P.lightSwitch(z, { id: 'sw-living', circuit: 'f7', x: 7.2, z: -3.66, y: y + 1.25, facing: '-z', label: 'living room light' })
-  P.lightSwitch(z, { id: 'sw-hall', circuit: 'f7', x: 9.94, z: -1.45, y: y + 1.25, facing: '-x', label: 'hall light' })
-  P.lightSwitch(z, { id: 'sw-bedroom', circuit: 'f7', x: 11.3, z: -3.96, y: y + 1.25, facing: '-z', label: 'bedroom light' })
-  P.lightSwitch(z, { id: 'sw-bath', circuit: 'f7', x: 11.54, z: -1.6, y: y + 1.25, facing: '-x', label: 'bathroom light' })
+// ---------------------------------------------------------------------------------
+// Luxury apartments 703 (floor 7, the story) and 803 (floor 8, the player's home).
+// Both use the same ≈186 m² plan (see APT); `home` switches ids, lights and story items.
+function furnishLuxury(z, k, home) {
+  const b = z.b
+  const y = k * FLOOR_H, yc = y + CEIL_H
+  const circuit = home ? 'f8' : 'f7'
+  const sw = n => (home ? 'sw8-' : 'sw-') + n
+  const I = n => (home ? 'home-' : '') + n
+  const L = (id, x, zz, opts) => P.ceilingLamp(z, { id: (home ? 'home-' : 'apt-') + id, x, y: yc, z: zz, circuit, switchId: sw(opts.sw), ...opts })
+  // chandeliers / ceiling lights per room
+  L('living', -1.2, -8.2, { sw: 'living', intensity: 24, range: 11 })
+  L('dining', 2.7, -10.1, { sw: 'living', intensity: 16, range: 9, flicker: 0.1 })
+  L('kitchen', -0.6, -2.9, { sw: 'kitchen', intensity: 18, range: 9, style: 'panel', flicker: 0.2 })
+  L('hall', 6.6, -3.4, { sw: 'hall', intensity: 11, range: 8 })
+  L('bedroom', 9.5, -8.8, { sw: 'bedroom', intensity: 22, range: 10, flicker: 0.1 })
+  L('bath', 11.4, -3.5, { sw: 'bath', intensity: 13, range: 8, flicker: 0.35 })
+  P.lightSwitch(z, { id: sw('living'), circuit, x: 4.94, z: -6.3, y: y + 1.25, facing: '-x', label: 'living room lights' })
+  P.lightSwitch(z, { id: sw('kitchen'), circuit, x: 3.94, z: -1.4, y: y + 1.25, facing: '-x', label: 'kitchen light' })
+  P.lightSwitch(z, { id: sw('hall'), circuit, x: 6.75, z: -1.1, y: y + 1.25, facing: '-z', label: 'hall light' })
+  P.lightSwitch(z, { id: sw('bedroom'), circuit, x: 7.66, z: -6.06, y: y + 1.25, facing: '-z', label: 'bedroom light' })
+  P.lightSwitch(z, { id: sw('bath'), circuit, x: 11.25, z: -5.94, y: y + 1.25, facing: '+z', label: 'bathroom light' })
+  if (home) z.fixture(new Fixture({ id: 'home-batterylamp', pos: new THREE.Vector3(8.15, y + 0.95, -11.3), color: 0xffc888, intensity: 4, range: 7, flicker: 0.25 }))
 
   z.lift(y, () => {
-    // ---------------- kitchen (x 5.1–9.94, z -3.54..-1.1) ----------------
-    const kz0 = -3.54
-    // fridge
-    b.box('appliance', 5.12, 0, kz0, 5.8, 1.78, kz0 + 0.66)
-    P.cabinetDoor(z, { id: 'fridge', hx: 5.13, hz: kz0 + 0.67, y0: 0.05, h: 1.7, w: 0.66, facing: '+z', extend: 'x+', mat: 'appliance', name: 'fridge', open: 1.7 })
-    b.box('appliance', 5.18, 0.5, kz0 + 0.05, 5.74, 0.52, kz0 + 0.6, { collide: false }) // shelf
-    b.box('appliance', 5.18, 1.0, kz0 + 0.05, 5.74, 1.02, kz0 + 0.6, { collide: false })
-    b.boxC('fabricRed', 5.4, kz0 + 0.35, 0.12, 0.12, 1.02, 1.2, { collide: false }) // something wrapped in red paper
-    // base cabinets with drawers + doors (front faces +z at z = kz0 + 0.6)
-    const front = kz0 + 0.6
-    b.box('darkWood', 5.8, 0, kz0, 7.4, 0.86, front)
-    b.box('lightWood', 5.8, 0.86, kz0, 7.4, 0.9, front + 0.03, { collide: false }) // worktop
-    b.box('wallTile', 5.8, 0.9, kz0, 7.4, 1.45, kz0 + 0.01, { collide: false }) // backsplash
-    b.box('steel', 6.75, 0.9, kz0 + 0.1, 7.25, 0.905, kz0 + 0.5, { collide: false }) // sink
-    b.box('steel', 6.95, 0.9, kz0 + 0.05, 7.0, 1.2, kz0 + 0.1, { collide: false }) // tap
-    for (const [cx, cz] of [[6.05, kz0 + 0.18], [6.35, kz0 + 0.18], [6.05, kz0 + 0.45], [6.35, kz0 + 0.45]]) // hob
-      b.boxC('blackPlastic', cx, cz, 0.2, 0.2, 0.9, 0.905, { collide: false })
-    P.drawer(z, { id: 'drawer-kitchen-1', x: 6.2, y: 0.76, z: front + 0.0125, w: 0.76, h: 0.15, d: 0.55, facing: '+z', name: 'kitchen drawer',
-      fill: (grp, p) => P.photo(z, { id: 'photo-kitchen', x: p.x, y: p.y, z: p.z, parent: grp, rot: 0.2 }) })
-    P.drawer(z, { id: 'drawer-kitchen-2', x: 7.0, y: 0.76, z: front + 0.0125, w: 0.76, h: 0.15, d: 0.55, facing: '+z', name: 'kitchen drawer' })
-    P.cabinetDoor(z, { id: 'cab-k1', hx: 5.82, hz: front + 0.012, y0: 0.08, h: 0.58, w: 0.78, facing: '+z', extend: 'x+', name: 'cupboard' })
-    P.cabinetDoor(z, { id: 'cab-k2', hx: 7.38, hz: front + 0.012, y0: 0.08, h: 0.58, w: 0.78, facing: '+z', extend: 'x-', name: 'cupboard' })
-    // wall cabinets above
-    b.box('darkWood', 5.8, 1.5, kz0, 7.4, 2.2, kz0 + 0.33, { collide: false })
-    P.cabinetDoor(z, { id: 'cab-k3', hx: 5.81, hz: kz0 + 0.34, y0: 1.52, h: 0.66, w: 0.79, facing: '+z', extend: 'x+', name: 'wall cabinet' })
-    P.cabinetDoor(z, { id: 'cab-k4', hx: 7.39, hz: kz0 + 0.34, y0: 1.52, h: 0.66, w: 0.79, facing: '+z', extend: 'x-', name: 'wall cabinet' })
-    P.doc(z, {
-      id: 'doc-letter', x: 7.1, y: 0.905, z: kz0 + 0.4, rot: 0.3, title: 'Final notice',
-      text: `FINAL NOTICE — APARTMENT 703\n\nMr. D. Hale,\n\nDespite repeated requests you have not allowed maintenance access to your apartment. Neighbours report persistent knocking and a voice "counting" through the walls between 2 and 4 a.m.\n\nIf you do not respond within 7 days the management will enter the premises.\n\n(Scrawled across the bottom in pencil:) THEY ALREADY CAME IN. THEY NEVER LEFT.`,
-    })
-    b.boxC('blackPlastic', 9.6, -1.5, 0.35, 0.35, 0, 0.6) // bin
-    P.rug(z, { x0: 5.4, z0: -1.9, x1: 6.6, z1: -1.2, mat: 'fabric' })
-
-    // ---------------- living room (x 5.1–9.94, z -7.7..-3.66) ----------------
-    P.sofa(z, { x0: 9.0, z0: -6.6, x1: 9.92, z1: -4.6, facing: '-x' })
-    P.table(z, { x0: 6.9, z0: -5.9, x1: 7.7, z1: -4.9, h: 0.45 })
-    P.doc(z, {
-      id: 'doc-diary1', x: 7.3, y: 0.452, z: -5.4, rot: 1.3, title: 'Diary — page 41',
+    // ---------------- living + dining (x -3.9…4.94, z -11.7…-4.66) ----------------
+    b.box('darkWood', -3.88, 0, -9.7, -3.4, 0.5, -6.9) // media console
+    b.box('screen', -3.86, 0.95, -9.3, -3.8, 2.0, -7.3, { collide: false }) // wall TV
+    P.sofa(z, { x0: -0.6, z0: -9.9, x1: 0.4, z1: -6.7, facing: '-x', mat: 'velvet' })
+    P.sofa(z, { x0: -2.4, z0: -10.9, x1: -0.6, z1: -9.9, facing: '+z', mat: 'velvet' })
+    P.table(z, { x0: -2.5, z0: -8.9, x1: -1.4, z1: -7.6, h: 0.42, mat: 'piano' })
+    if (!home) P.doc(z, {
+      id: 'doc-diary1', x: -1.95, y: 0.422, z: -8.25, rot: 1.3, title: 'Diary — page 41',
       text: `Day 41.\n\nThe knocking moved from the bedroom wall to the bathroom tonight. Three knocks, then counting. It always stops at seven.\n\nI taped the photographs into the drawers so I'd remember what this place looked like before. If you're reading this, collect them. Show someone. Prove it was real.`,
     })
-    b.box('darkWood', 5.12, 0, -5.9, 5.55, 0.5, -4.7) // TV stand
-    b.box('blackPlastic', 5.15, 0.5, -5.55, 5.6, 0.95, -5.0) // CRT
-    b.box('screen', 5.6, 0.55, -5.5, 5.61, 0.9, -5.05, { collide: false })
-    P.bookshelf(z, { x0: 5.12, z0: -4.55, x1: 5.48, z1: -3.7, facing: '+x' })
-    P.table(z, { x0: 6.1, z0: -7.55, x1: 7.5, z1: -6.75, h: 0.75 })
-    P.chair(z, { x: 6.5, z: -6.45, facing: '-z' })
-    P.chair(z, { x: 7.15, z: -6.45, facing: '-z' })
-    P.rug(z, { x0: 6.5, z0: -6.3, x1: 8.5, z1: -4.5 })
-    // floor lamp (part of the living-room circuit)
-    b.boxC('steel', 9.7, -7.45, 0.06, 0.06, 0, 1.55, { collide: false })
-    b.boxC('fabric', 9.7, -7.45, 0.36, 0.36, 1.45, 1.75, { collide: false })
-    b.collider(9.55, 0, -7.6, 9.85, 1.75, -7.3)
-    P.plant(z, 5.4, -7.35)
-    b.box('metal', 8.25, 0.12, -7.7, 9.55, 0.7, -7.6) // radiator
+    P.rug(z, { x0: -3.0, z0: -10.4, x1: 0.2, z1: -6.2, mat: home ? 'blanket' : 'fabricRed' })
+    // dining for six under the window
+    P.table(z, { x0: 1.6, z0: -10.7, x1: 3.8, z1: -9.7, h: 0.76, mat: 'darkWood' })
+    for (const x of [2.0, 2.7, 3.4]) { P.chair(z, { x, z: -11.1, facing: '+z' }); P.chair(z, { x, z: -9.3, facing: '-z' }) }
+    b.boxC('gold', 2.7, -10.2, 0.25, 0.25, 0.76, 0.8, { collide: false }) // candelabra base
+    b.boxC('ceramic', 2.7, -10.2, 0.05, 0.05, 0.8, 1.05, { collide: false })
+    // grand piano
+    b.box('piano', 1.8, 0.62, -8.0, 3.4, 0.95, -6.4, { collide: false })
+    b.box('piano', 1.8, 0.95, -8.0, 3.4, 0.97, -6.9, { collide: false })
+    b.box('ceramic', 1.8, 0.75, -6.55, 3.4, 0.79, -6.4, { collide: false }) // keys
+    for (const [x, zz] of [[1.95, -7.85], [3.25, -7.85], [2.6, -6.55]]) b.boxC('piano', x, zz, 0.1, 0.1, 0, 0.62, { collide: false })
+    b.collider(1.8, 0, -8.0, 3.4, 1.0, -6.4)
+    b.box('piano', 2.3, 0, -6.15, 2.9, 0.5, -5.85) // bench
+    P.bookshelf(z, { x0: 4.5, z0: -10.6, x1: 4.92, z1: -8.4, facing: '-x' })
+    P.plant(z, -3.45, -11.25); P.plant(z, 4.5, -11.25); P.plant(z, -3.45, -5.1)
+    if (home) { P.boxes(z, 0.9, -11.2, 3); P.boxes(z, -3.2, -6.2, 2) }
 
-    // ---------------- hall ----------------
-    b.boxC('darkWood', 11.3, -1.3, 0.35, 0.3, 0, 0.8) // shoe cabinet
-    b.boxC('darkWood', 11.38, -1.25, 0.04, 0.04, 0.8, 1.8, { collide: false }) // coat rack pole
+    // ---------------- kitchen (x -3.9…3.94, z -4.54…-1.1) ----------------
+    const front = -1.72
+    b.box('appliance', -3.9, 0, -1.85, -3.0, 2.0, -1.1) // tall fridge
+    P.cabinetDoor(z, { id: I('fridge'), hx: -3.01, hz: -1.862, y0: 0.05, h: 1.9, w: 0.88, facing: '-z', extend: 'x-', mat: 'appliance', name: 'fridge', open: 1.7 })
+    b.box('appliance', -3.82, 0.6, -1.8, -3.08, 0.62, -1.2, { collide: false })
+    b.box('appliance', -3.82, 1.2, -1.8, -3.08, 1.22, -1.2, { collide: false })
+    b.box('darkWood', -3.0, 0, front, 1.8, 0.88, -1.1)
+    b.box('marble', -3.0, 0.88, front - 0.03, 1.8, 0.92, -1.1, { collide: false })
+    b.box('marbleWall', -3.0, 0.92, -1.12, 1.8, 1.5, -1.1, { collide: false })
+    b.box('steel', -0.4, 0.92, -1.62, 0.4, 0.925, -1.22, { collide: false }) // sink
+    b.box('steel', -0.03, 0.92, -1.2, 0.03, 1.25, -1.14, { collide: false })
+    for (const [cx, cz] of [[0.9, -1.3], [1.3, -1.3], [0.9, -1.55], [1.3, -1.55]]) b.boxC('blackPlastic', cx, cz, 0.22, 0.2, 0.92, 0.925, { collide: false })
+    P.drawer(z, { id: I('drawer-kitchen-1'), x: -2.5, y: 0.78, z: front - 0.0125, w: 0.8, h: 0.15, d: 0.55, facing: '-z', name: 'kitchen drawer',
+      fill: home ? null : (grp, p) => P.photo(z, { id: 'photo-kitchen', x: p.x, y: p.y, z: p.z, parent: grp, rot: 0.2 }) })
+    P.drawer(z, { id: I('drawer-kitchen-2'), x: -1.6, y: 0.78, z: front - 0.0125, w: 0.8, h: 0.15, d: 0.55, facing: '-z', name: 'kitchen drawer' })
+    P.cabinetDoor(z, { id: I('cab-k1'), hx: -2.98, hz: front - 0.012, y0: 0.08, h: 0.6, w: 0.85, facing: '-z', extend: 'x+', name: 'cupboard' })
+    P.cabinetDoor(z, { id: I('cab-k2'), hx: 1.78, hz: front - 0.012, y0: 0.08, h: 0.6, w: 0.85, facing: '-z', extend: 'x-', name: 'cupboard' })
+    b.box('darkWood', -3.0, 1.55, -1.45, 1.8, 2.25, -1.1, { collide: false }) // wall cabinets
+    P.cabinetDoor(z, { id: I('cab-k3'), hx: -2.99, hz: -1.462, y0: 1.57, h: 0.66, w: 0.9, facing: '-z', extend: 'x+', name: 'wall cabinet' })
+    P.cabinetDoor(z, { id: I('cab-k4'), hx: 1.79, hz: -1.462, y0: 1.57, h: 0.66, w: 0.9, facing: '-z', extend: 'x-', name: 'wall cabinet' })
+    // island with stools
+    b.box('darkWood', -2.2, 0, -3.3, 1.0, 0.88, -2.6)
+    b.box('marble', -2.3, 0.88, -3.4, 1.1, 0.93, -2.5, { collide: false })
+    for (const x of [-1.6, -0.6, 0.4]) { b.boxC('steel', x, -3.75, 0.36, 0.36, 0.66, 0.7, { collide: false }); b.boxC('steel', x, -3.75, 0.05, 0.05, 0, 0.66, { collide: false }); b.collider(x - 0.18, 0, -3.93, x + 0.18, 0.7, -3.57) }
+    b.boxC('ceramic', 0.6, -2.95, 0.3, 0.3, 0.93, 1.0, { collide: false }) // fruit bowl
+    if (!home) P.doc(z, {
+      id: 'doc-letter', x: -1.0, y: 0.932, z: -2.95, rot: 0.3, title: 'Final notice',
+      text: `FINAL NOTICE — APARTMENT 703 (PENTHOUSE LEVEL)\n\nMr. D. Hale,\n\nDespite repeated requests you have not allowed maintenance access to your apartment. Neighbours report persistent knocking and a voice "counting" through the walls between 2 and 4 a.m.\n\nIf you do not respond within 7 days the management will enter the premises.\n\n(Scrawled across the bottom in pencil:) THEY ALREADY CAME IN. THEY NEVER LEFT.`,
+    })
+    b.boxC('blackPlastic', 3.6, -1.45, 0.35, 0.35, 0, 0.6) // bin
 
-    // ---------------- bedroom (x 10.06–13.7, z -7.7..-3.96) ----------------
-    P.bed(z, { x0: 11.65, z0: -6.0, x1: 13.25, z1: -3.97, head: '+z' })
-    P.nightstand(z, { id: 'drawer-night-1', x0: 11.12, z0: -4.46, x1: 11.6, z1: -3.97, facing: '-z',
-      fill: (grp, p) => P.photo(z, { id: 'photo-bedroom', x: p.x, y: p.y, z: p.z, parent: grp, rot: -0.3 }) })
-    P.nightstand(z, { id: 'drawer-night-2', x0: 13.25, z0: -4.46, x1: 13.69, z1: -3.97, facing: '-z' })
-    b.boxC('ceramic', 11.36, -4.2, 0.14, 0.14, 0.55, 0.8, { collide: false }) // bedside lamp
-    // wardrobe with two doors (front faces +x at x = 10.66)
-    b.box('darkWood', 10.07, 0, -7.55, 10.66, 2.05, -6.0)
-    b.box('lightWood', 10.1, 1.75, -7.5, 10.6, 1.77, -6.05, { collide: false })
-    b.box('fabricRed', 10.3, 0.9, -7.3, 10.4, 1.7, -7.0, { collide: false }) // a coat
-    P.cabinetDoor(z, { id: 'wardrobe-l', hx: 10.672, hz: -7.55, y0: 0.04, h: 1.97, w: 0.775, facing: '+x', extend: 'z+', name: 'wardrobe' })
-    P.cabinetDoor(z, { id: 'wardrobe-r', hx: 10.672, hz: -6.0, y0: 0.04, h: 1.97, w: 0.775, facing: '+x', extend: 'z-', name: 'wardrobe' })
-    // desk under the window
-    b.box('darkWood', 11.2, 0.71, -7.68, 12.5, 0.75, -7.1, { collide: false })
-    b.box('darkWood', 11.2, 0, -7.68, 11.6, 0.71, -7.1, { collide: false })
-    b.box('darkWood', 12.45, 0, -7.68, 12.5, 0.71, -7.1, { collide: false })
-    b.collider(11.2, 0, -7.68, 12.5, 0.75, -7.1)
-    P.drawer(z, { id: 'drawer-desk-bed', x: 11.4, y: 0.6, z: -7.1 + 0.0125, w: 0.36, h: 0.14, d: 0.5, facing: '+z', name: 'desk drawer' })
-    P.chair(z, { x: 12.0, z: -6.75, facing: '-z' })
-    P.doc(z, {
-      id: 'doc-diary2', x: 12.05, y: 0.752, z: -7.4, rot: -0.2, title: 'Diary — last page',
+    // ---------------- entry foyer + gallery (x 4.06…8.94, z -5.94…-1.1) ----------------
+    b.box('darkWood', 8.5, 0, -4.4, 8.93, 0.85, -3.0) // console table
+    b.box('mirror', 8.92, 1.1, -4.2, 8.935, 2.1, -3.2, { collide: false })
+    b.box('gold', 8.9, 1.05, -4.25, 8.94, 2.15, -3.15, { collide: false })
+    b.boxC('ceramic', 8.7, -3.3, 0.18, 0.18, 0.85, 1.2, { collide: false }) // vase
+    b.boxC('darkWood', 8.6, -1.5, 0.05, 0.05, 0, 1.8, { collide: false }) // coat stand
+    b.collider(8.45, 0, -1.65, 8.75, 1.8, -1.35)
+    P.rug(z, { x0: 5.0, z0: -5.6, x1: 8.2, z1: -2.2, mat: 'velvet' })
+    if (home) P.doc(z, {
+      id: 'doc-home-note', x: 6.9, y: 0.002, z: -1.5, rot: 0.6, title: 'Note slipped under your door',
+      text: `To the new tenant in 803,\n\nPlease stop walking around at night. Every time you do, the knocking in 703 starts again, right below you.\n\nIf you ever go down there: the breakers are in the maintenance room by the lobby. DON'T turn on floor 7.\n\n— your neighbour in 805`,
+    })
+
+    // ---------------- master bedroom (x 5.06…13.7, z -11.7…-6.06) ----------------
+    P.bed(z, { x0: 8.5, z0: -11.69, x1: 10.5, z1: -9.4, head: '-z' })
+    b.box('velvet', 8.4, 0.3, -11.69, 10.6, 1.45, -11.6, { collide: false }) // tall upholstered headboard
+    P.nightstand(z, { id: I('drawer-night-1'), x0: 7.85, z0: -11.69, x1: 8.4, z1: -11.2, facing: '+z',
+      fill: home ? null : (grp, p) => P.photo(z, { id: 'photo-bedroom', x: p.x, y: p.y, z: p.z, parent: grp, rot: -0.3 }) })
+    P.nightstand(z, { id: I('drawer-night-2'), x0: 10.6, z0: -11.69, x1: 11.15, z1: -11.2, facing: '+z' })
+    b.boxC('gold', 8.12, -11.5, 0.14, 0.14, 0.55, 0.75, { collide: false }) // lamps
+    b.boxC('gold', 10.88, -11.5, 0.14, 0.14, 0.55, 0.75, { collide: false })
+    if (home) {
+      b.boxC('emissive', 8.12, -11.5, 0.1, 0.1, 0.75, 0.82, { collide: false, shadow: false })
+      P.doc(z, {
+        id: 'doc-home-phone', x: 8.15, y: 0.552, z: -11.3, rot: 0.3, w: 0.08, d: 0.15, title: 'Your phone',
+        text: `11:52 PM — 0% battery.\n\nLast message, from an unknown number, 11:47 PM:\n\n"803. You can hear it too, can't you. The counting. It's coming up from 703.\nThe lifts are dead. Take the stairs.\nThe manager left Hale's spare key in the front desk. Find out what he did."`,
+      })
+    }
+    // wardrobe wall between the two doors (front faces -z)
+    b.box('darkWood', 7.75, 0, -6.66, 9.95, 2.3, -6.07)
+    b.box('fabricRed', 8.2, 0.9, -6.5, 8.35, 1.8, -6.2, { collide: false })
+    P.cabinetDoor(z, { id: I('wardrobe-l'), hx: 7.76, hz: -6.672, y0: 0.04, h: 2.22, w: 1.09, facing: '-z', extend: 'x+', name: 'wardrobe' })
+    P.cabinetDoor(z, { id: I('wardrobe-r'), hx: 9.94, hz: -6.672, y0: 0.04, h: 2.22, w: 1.09, facing: '-z', extend: 'x-', name: 'wardrobe' })
+    // writing desk on the west wall
+    b.box('darkWood', 5.08, 0.72, -10.5, 5.75, 0.76, -9.0, { collide: false })
+    b.box('darkWood', 5.08, 0, -10.5, 5.75, 0.72, -10.4, { collide: false })
+    b.box('darkWood', 5.08, 0, -9.1, 5.75, 0.72, -9.0, { collide: false })
+    b.collider(5.08, 0, -10.5, 5.75, 0.76, -9.0)
+    P.drawer(z, { id: I('drawer-desk-bed'), x: 5.75 + 0.0125, y: 0.62, z: -9.4, w: 0.4, h: 0.14, d: 0.55, facing: '+x', name: 'desk drawer' })
+    P.chair(z, { x: 6.1, z: -9.85, facing: '-x' })
+    if (!home) P.doc(z, {
+      id: 'doc-diary2', x: 5.4, y: 0.762, z: -10.1, rot: -0.2, title: 'Diary — last page',
       text: `I counted with it tonight. One... two... three...\n\nAt seven the bathroom mirror fogged from the inside.\n\nThere is a door behind the mirror that wasn't there when I moved in. It's very small. Something is pressing on it.\n\nIf I'm gone: the roof. I left the last of it on the roof, by the water tank, where the counting can't reach.`,
     })
-    P.rug(z, { x0: 10.8, z0: -6.9, x1: 13.0, z1: -6.1, mat: 'fabricRed' })
-    b.box('metal', 11.1, 0.12, -7.7, 11.18, 0.7, -7.6, { collide: false })
+    // reading corner
+    P.sofa(z, { x0: 12.6, z0: -7.9, x1: 13.6, z1: -6.9, facing: '-x', mat: 'velvet' })
+    b.boxC('steel', 13.3, -8.5, 0.06, 0.06, 0, 1.6, { collide: false })
+    b.boxC('fabric', 13.3, -8.5, 0.36, 0.36, 1.5, 1.8, { collide: false })
+    b.collider(13.15, 0, -8.65, 13.45, 1.8, -8.35)
+    P.rug(z, { x0: 7.8, z0: -9.3, x1: 11.4, z1: -7.2, mat: home ? 'blanket' : 'rug' })
+    P.plant(z, 13.35, -11.3)
+    if (home) P.boxes(z, 6.0, -11.2, 2)
 
-    // ---------------- bathroom (x 11.66–13.7, z -3.84..-1.1) ----------------
-    b.box('ceramic', 11.66, 0, -3.84, 13.69, 0.55, -3.12) // bathtub
-    b.box('steel', 11.8, 0.55, -3.75, 13.55, 0.551, -3.2, { collide: false })
-    b.box('screen', 11.85, 0.4, -3.7, 13.5, 0.552, -3.25, { collide: false }) // dark water
-    b.boxC('ceramic', 13.38, -1.9, 0.6, 0.42, 0, 0.42) // toilet bowl
-    b.boxC('ceramic', 13.6, -1.9, 0.18, 0.4, 0.42, 0.8) // tank
-    // vanity with cabinet + mirror cabinet (front faces -z)
-    b.box('darkWood', 12.15, 0, -1.55, 12.95, 0.82, -1.11)
-    b.box('ceramic', 12.12, 0.82, -1.6, 12.98, 0.86, -1.11, { collide: false })
-    b.box('steel', 12.52, 0.86, -1.2, 12.56, 1.05, -1.15, { collide: false })
-    P.cabinetDoor(z, { id: 'cab-vanity', hx: 12.17, hz: -1.562, y0: 0.06, h: 0.7, w: 0.76, facing: '-z', extend: 'x+', name: 'vanity cabinet' })
-    b.box('darkWood', 12.2, 1.3, -1.26, 12.9, 1.95, -1.11, { collide: false }) // mirror cabinet body
-    const mc = P.cabinetDoor(z, { id: 'cab-mirror', hx: 12.2, hz: -1.272, y0: 1.31, h: 0.63, w: 0.7, facing: '-z', extend: 'x+', mat: 'mirror', name: 'mirror cabinet', open: 1.6 })
-    void mc
-    P.photo(z, { id: 'photo-bath', x: 12.55, y: 1.52, z: -1.19, rot: Math.PI / 2 })
-    P.doc(z, {
-      id: 'doc-bath', x: 12.35, y: 0.862, z: -1.38, rot: 0.1, title: 'Note on the sink',
-      text: `7\n7\n7\n7\n7\n7\n7\n\nIT'S IN THE WALLS NOW\nDON'T COUNT\nDON'T COUNT\nDON'T`,
-    })
-    b.box('frame', 11.9, 1.0, -1.16, 12.05, 1.6, -1.12, { collide: false }) // towel
+    // ---------------- en-suite bathroom (x 9.06…13.7, z -5.94…-1.1) ----------------
+    // freestanding tub under the window
+    b.box('ceramic', 12.0, 0, -4.8, 13.6, 0.6, -3.9)
+    b.box('screen', 12.1, 0.45, -4.7, 13.5, 0.602, -4.0, { collide: false })
+    for (const [x, zz] of [[12.1, -4.7], [13.5, -4.7], [12.1, -4.0], [13.5, -4.0]]) b.boxC('gold', x, zz, 0.06, 0.06, 0, 0.08, { collide: false })
+    // double vanity on the west wall, front faces +x
+    b.box('darkWood', 9.06, 0, -4.6, 9.66, 0.82, -2.6)
+    b.box('marble', 9.06, 0.82, -4.65, 9.72, 0.87, -2.55, { collide: false })
+    for (const zz of [-4.05, -3.15]) b.boxC('ceramic', 9.35, zz, 0.36, 0.4, 0.87, 0.9, { collide: false })
+    P.cabinetDoor(z, { id: I('cab-vanity'), hx: 9.672, hz: -4.58, y0: 0.06, h: 0.7, w: 0.96, facing: '+x', extend: 'z+', name: 'vanity cabinet' })
+    b.box('darkWood', 9.06, 1.3, -4.0, 9.22, 1.95, -3.2, { collide: false }) // mirror cabinet body
+    P.cabinetDoor(z, { id: I('cab-mirror'), hx: 9.232, hz: -4.0, y0: 1.31, h: 0.63, w: 0.8, facing: '+x', extend: 'z+', mat: 'mirror', name: 'mirror cabinet', open: 1.6 })
+    if (!home) {
+      P.photo(z, { id: 'photo-bath', x: 9.15, y: 1.52, z: -3.6, rot: 0 })
+      P.doc(z, {
+        id: 'doc-bath', x: 9.45, y: 0.872, z: -2.85, rot: 0.1, title: 'Note on the sink',
+        text: `7\n7\n7\n7\n7\n7\n7\n\nIT'S IN THE WALLS NOW\nDON'T COUNT\nDON'T COUNT\nDON'T`,
+      })
+    }
+    // walk-in shower (glass, solid)
+    b.box('marble', 9.06, 0, -2.3, 10.4, 0.04, -1.1, { collide: false })
+    b.box('glass', 10.36, 0, -2.3, 10.4, 2.1, -1.1)
+    b.box('glass', 9.06, 0, -2.34, 9.8, 2.1, -2.3)
+    b.box('steel', 9.5, 2.0, -1.8, 9.8, 2.03, -1.5, { collide: false }) // rain head
+    // toilet
+    b.boxC('ceramic', 12.5, -1.45, 0.42, 0.6, 0, 0.42)
+    b.boxC('ceramic', 12.5, -1.18, 0.42, 0.16, 0.42, 0.8)
+    b.box('gold', 11.3, 1.0, -1.13, 11.9, 1.03, -1.1, { collide: false }) // towel rail
+    b.box('frame', 11.35, 0.6, -1.15, 11.85, 1.0, -1.12, { collide: false })
+    P.plant(z, 13.35, -1.45)
   })
 }
 
-// Apartment 803 — the player's own flat, where the game starts. Same plan as 703.
-function buildHome(z) {
-  const b = z.b
-  const y = HOME_K * FLOOR_H, yc = y + CEIL_H
-  for (const [id, x, zz, sw, style] of [['home-living', 7.5, -5.7, 'sw8-living', 'dome'], ['home-kitchen', 7.6, -2.3, 'sw8-kitchen', 'panel'],
-    ['home-hall', 10.8, -2.5, 'sw8-hall', 'dome'], ['home-bedroom', 11.9, -5.8, 'sw8-bedroom', 'dome'], ['home-bath', 12.7, -2.4, 'sw8-bath', 'dome']])
-    P.ceilingLamp(z, { id, x, y: yc, z: zz, circuit: 'f8', switchId: sw, intensity: 6, range: 6, style })
-  P.lightSwitch(z, { id: 'sw8-kitchen', circuit: 'f8', x: 6.6, z: -1.1, y: y + 1.25, facing: '-z', label: 'kitchen light' })
-  P.lightSwitch(z, { id: 'sw8-living', circuit: 'f8', x: 7.2, z: -3.66, y: y + 1.25, facing: '-z', label: 'living room light' })
-  P.lightSwitch(z, { id: 'sw8-hall', circuit: 'f8', x: 9.94, z: -1.45, y: y + 1.25, facing: '-x', label: 'hall light' })
-  P.lightSwitch(z, { id: 'sw8-bedroom', circuit: 'f8', x: 11.3, z: -3.96, y: y + 1.25, facing: '-z', label: 'bedroom light' })
-  P.lightSwitch(z, { id: 'sw8-bath', circuit: 'f8', x: 11.54, z: -1.6, y: y + 1.25, facing: '-x', label: 'bathroom light' })
-  // a battery lamp on the nightstand is the only light when you wake up
-  z.fixture(new Fixture({ id: 'home-batterylamp', pos: new THREE.Vector3(11.36, y + 0.95, -4.25), color: 0xffc888, intensity: 1.3, range: 4, flicker: 0.25 }))
-
-  z.lift(y, () => {
-    // bedroom (start)
-    P.bed(z, { x0: 11.65, z0: -6.0, x1: 13.25, z1: -3.97, head: '+z' })
-    P.nightstand(z, { id: 'home-night-1', x0: 11.12, z0: -4.46, x1: 11.6, z1: -3.97, facing: '-z' })
-    P.nightstand(z, { id: 'home-night-2', x0: 13.25, z0: -4.46, x1: 13.69, z1: -3.97, facing: '-z' })
-    b.boxC('steel', 11.36, -4.22, 0.12, 0.12, 0.55, 0.78, { collide: false }) // battery lamp
-    b.boxC('emissive', 11.36, -4.22, 0.08, 0.08, 0.78, 0.84, { collide: false, shadow: false })
-    b.box('darkWood', 10.07, 0, -7.55, 10.66, 2.05, -6.0)
-    P.cabinetDoor(z, { id: 'home-wardrobe-l', hx: 10.672, hz: -7.55, y0: 0.04, h: 1.97, w: 0.775, facing: '+x', extend: 'z+', name: 'wardrobe' })
-    P.cabinetDoor(z, { id: 'home-wardrobe-r', hx: 10.672, hz: -6.0, y0: 0.04, h: 1.97, w: 0.775, facing: '+x', extend: 'z-', name: 'wardrobe' })
-    P.table(z, { x0: 11.2, z0: -7.68, x1: 12.5, z1: -7.1 })
-    P.chair(z, { x: 12.0, z: -6.75, facing: '-z' })
-    P.boxes(z, 13.3, -7.3, 2) // unpacked moving boxes
-    P.rug(z, { x0: 10.8, z0: -6.9, x1: 13.0, z1: -6.1, mat: 'blanket' })
-    P.doc(z, {
-      id: 'doc-home-phone', x: 11.22, y: 0.552, z: -4.25, rot: 0.3, w: 0.08, d: 0.15, title: 'Your phone',
-      text: `11:52 PM — 0% battery.\n\nLast message, from an unknown number, 11:47 PM:\n\n"803. You can hear it too, can't you. The counting. It's coming up from 703.\nThe lifts are dead. Take the stairs.\nThe manager left Hale's spare key in the front desk. Find out what he did."`,
-    })
-    // living room
-    P.sofa(z, { x0: 9.0, z0: -6.6, x1: 9.92, z1: -4.6, facing: '-x', mat: 'fabricRed' })
-    P.table(z, { x0: 6.9, z0: -5.9, x1: 7.7, z1: -4.9, h: 0.45 })
-    b.box('darkWood', 5.12, 0, -5.9, 5.55, 0.5, -4.7)
-    b.box('blackPlastic', 5.15, 0.5, -5.55, 5.6, 0.95, -5.0)
-    b.box('screen', 5.6, 0.55, -5.5, 5.61, 0.9, -5.05, { collide: false })
-    P.boxes(z, 5.6, -7.2, 3); P.boxes(z, 6.4, -7.3, 2)
-    P.plant(z, 9.55, -7.35)
-    // kitchen
-    b.box('appliance', 5.12, 0, -3.54, 5.8, 1.78, -2.88)
-    P.cabinetDoor(z, { id: 'home-fridge', hx: 5.13, hz: -2.87, y0: 0.05, h: 1.7, w: 0.66, facing: '+z', extend: 'x+', mat: 'appliance', name: 'fridge', open: 1.7 })
-    b.box('darkWood', 5.8, 0, -3.54, 7.4, 0.86, -2.94)
-    b.box('lightWood', 5.8, 0.86, -3.54, 7.4, 0.9, -2.91, { collide: false })
-    b.box('steel', 6.75, 0.9, -3.44, 7.25, 0.905, -3.04, { collide: false })
-    P.drawer(z, { id: 'home-drawer', x: 6.2, y: 0.76, z: -2.94 + 0.0125, w: 0.76, h: 0.15, d: 0.55, facing: '+z', name: 'kitchen drawer' })
-    P.doc(z, {
-      id: 'doc-home-note', x: 6.0, y: 0.002, z: -1.45, rot: 0.6, title: 'Note slipped under your door',
-      text: `To the new tenant in 803,\n\nPlease stop walking around at night. Every time you do, the knocking in 703 starts again, right below you.\n\nIf you ever go down there: the breakers are in the maintenance room by the lobby. DON'T turn on floor 7.\n\n— your neighbour in 804`,
-    })
-    // bathroom
-    b.box('ceramic', 11.66, 0, -3.84, 13.69, 0.55, -3.12)
-    b.boxC('ceramic', 13.38, -1.9, 0.6, 0.42, 0, 0.42)
-    b.boxC('ceramic', 13.6, -1.9, 0.18, 0.4, 0.42, 0.8)
-    b.box('darkWood', 12.15, 0, -1.55, 12.95, 0.82, -1.11)
-    b.box('ceramic', 12.12, 0.82, -1.6, 12.98, 0.86, -1.11, { collide: false })
-    b.box('mirror', 12.2, 1.3, -1.13, 12.9, 1.95, -1.11, { collide: false })
-  })
-}
+function buildApartment(z) { furnishLuxury(z, APT_K, false) }
+function buildHome(z) { furnishLuxury(z, HOME_K, true) }
 
 function buildRoofProps(z) {
   const b = z.b, y = ROOF_Y

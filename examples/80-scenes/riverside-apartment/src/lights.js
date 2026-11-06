@@ -16,7 +16,8 @@ export class Fixture {
     this.level = 1
   }
   get pos() { return typeof this._pos === 'function' ? this._pos() : this._pos }
-  get floorIndex() { return this.floor === 'outside' ? 'outside' : (this.floor ?? floorOfY(this.pos.y)) }
+  // ceiling fixtures hang just under the next slab, so judge the storey from 1.2 m lower
+  get floorIndex() { return this.floor === 'outside' ? 'outside' : (this.floor ?? floorOfY(this.pos.y - 1.2)) }
 }
 
 export class LightManager {
@@ -63,7 +64,9 @@ export class LightManager {
     }
     // reassign the light pool a few times a second
     this.timer -= dt
-    if (this.timer <= 0) {
+    const moved = !this.lastEye || (this.lastEye.x - eye.x) ** 2 + (this.lastEye.y - eye.y) ** 2 + (this.lastEye.z - eye.z) ** 2 > 9
+    if (this.timer <= 0 || moved) {
+      this.lastEye = { x: eye.x, y: eye.y, z: eye.z }
       this.timer = 0.15
       const cands = []
       for (const f of this.fixtures) {

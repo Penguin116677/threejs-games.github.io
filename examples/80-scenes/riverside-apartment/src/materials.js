@@ -92,6 +92,48 @@ function wallpaper(seed) {
   return c
 }
 
+// Dark green damask with gold, faded and water-stained: once-expensive wallpaper.
+function damask(seed) {
+  const [c, ctx] = canvas(256, 512)
+  const r = rng(seed)
+  ctx.fillStyle = '#28372e'; ctx.fillRect(0, 0, 256, 512)
+  for (let y = 0; y < 512; y += 64)
+    for (let x = 0; x < 256; x += 64) {
+      const ox = ((y / 64) % 2) * 32
+      ctx.save(); ctx.translate(x + ox + 32, y + 32)
+      ctx.fillStyle = 'rgba(176,146,82,0.32)'
+      ctx.beginPath()
+      ctx.moveTo(0, -24); ctx.bezierCurveTo(14, -14, 14, 10, 0, 24); ctx.bezierCurveTo(-14, 10, -14, -14, 0, -24); ctx.fill()
+      ctx.fillStyle = 'rgba(176,146,82,0.22)'
+      ctx.beginPath(); ctx.arc(0, 0, 5, 0, Math.PI * 2); ctx.fill()
+      ctx.restore()
+    }
+  const dado = 512 - 512 / 3
+  ctx.fillStyle = '#3a2618'; ctx.fillRect(0, dado, 256, 512 - dado) // wood wainscot
+  for (let x = 0; x < 256; x += 64) { ctx.strokeStyle = 'rgba(0,0,0,0.4)'; ctx.lineWidth = 3; ctx.strokeRect(x + 8, dado + 12, 48, 512 - dado - 40) }
+  ctx.fillStyle = '#b0925a'; ctx.fillRect(0, dado - 6, 256, 6) // gilt rail
+  ctx.fillStyle = '#1e140c'; ctx.fillRect(0, 512 - 20, 256, 20)
+  noise(ctx, 256, 512, r, 0.08, 6000)
+  stains(ctx, 256, 512, r, 14, '30,25,10', 0.3)
+  drips(ctx, 256, 512, r, 10, '20,15,5')
+  return c
+}
+
+function marble(seed, base = '#d9d6cf', tile = 0) {
+  const [c, ctx] = canvas(256)
+  const r = rng(seed)
+  ctx.fillStyle = base; ctx.fillRect(0, 0, 256, 256)
+  for (let i = 0; i < 26; i++) {
+    ctx.strokeStyle = `rgba(90,90,95,${0.08 + r() * 0.22})`; ctx.lineWidth = 0.5 + r() * 2
+    ctx.beginPath(); ctx.moveTo(r() * 256, r() * 256)
+    ctx.bezierCurveTo(r() * 256, r() * 256, r() * 256, r() * 256, r() * 256, r() * 256); ctx.stroke()
+  }
+  if (tile) { ctx.strokeStyle = 'rgba(60,55,50,0.6)'; ctx.lineWidth = 2; for (let i = 0; i <= 256; i += 256 / tile) { ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i, 256); ctx.moveTo(0, i); ctx.lineTo(256, i); ctx.stroke() } }
+  stains(ctx, 256, 256, r, 5, '60,50,20', 0.18)
+  noise(ctx, 256, 256, r, 0.04, 3000)
+  return c
+}
+
 function tiles(seed, color, grout, n = 4) {
   const [c, ctx] = canvas(256)
   const r = rng(seed)
@@ -286,6 +328,12 @@ export function createMaterials(quality = 'high') {
   std('utilityPaint', { map: toTexture(wallPaint(6, '#6f706b', '#545650', false)) }, [2, 3])
   std('wallpaper', { map: toTexture(wallpaper(7)) }, [1.2, 3])
   std('kitchenPaint', { map: toTexture(wallPaint(8, '#a19a72', '#7c745a')) }, [2, 3])
+  std('luxWall', { map: toTexture(damask(30)) }, [1.0, 3])
+  std('marble', { map: toTexture(marble(31, '#d9d6cf', 2)), roughness: 0.25 }, [1.6, 1.6])
+  std('marbleWall', { map: toTexture(marble(32, '#cfcac0', 2)), roughness: 0.3 }, [1.2, 1.2])
+  std('velvet', { color: 0x4a1622, roughness: 1 })
+  std('gold', { color: 0xb8954a, metalness: 0.9, roughness: 0.3 })
+  std('piano', { color: 0x070708, metalness: 0.2, roughness: 0.15 })
   std('wallTile', { map: toTexture(tiles(9, '#d8d6cc', '#6b6a62')), roughness: 0.45 }, [0.6, 0.6])
   std('floorTile', { map: toTexture(tiles(10, '#9a9686', '#3a3a34', 3)), roughness: 0.6 }, [0.9, 0.9])
   std('lobbyFloor', { map: toTexture(checker(11)), roughness: 0.4 }, [1.2, 1.2])

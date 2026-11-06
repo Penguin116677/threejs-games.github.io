@@ -72,10 +72,10 @@ async function main() {
     const { ctx, E, errors } = await open()
     const s = await E(() => __RA.step(0.3))
     check(errors.length === 0, 'console/page errors', errors)
-    check(s.grounded && Math.abs(s.y - 21) < 0.01 && s.x > 10.06 && s.z < -3.96, 'player starts in the bedroom of 803 (top floor)', s)
+    check(s.grounded && Math.abs(s.y - 21) < 0.01 && s.x > 5.06 && s.z < -6.06, 'player starts in the bedroom of 803 (top floor)', s)
     check(s.zones.apt803 && !s.zones.lobby, 'only nearby zones are loaded at start', s.zones)
     const counts = await E(() => ({ doors: __RA.game.doors.length, colliders: __RA.game.world.all.size, interactables: __RA.game.interactables.size }))
-    check(counts.doors === FLOORS * 6 - 1 + 3 + 3 + 2 + 1, 'door count (6 per floor, lobby has an archway; + 3 in 703 + 3 in 803 + 2 entrance + roof)', counts)
+    check(counts.doors === FLOORS * 5 + 2 + 2 + 2 + 1, 'door count (5 per floor: 2 north + 2 south + stairs; + 2 in 703 + 2 in 803 + 2 entrance + roof)', counts)
     await ctx.close()
     return counts
   })
@@ -90,11 +90,11 @@ async function main() {
       if (r && r.ok === false) throw Object.assign(new Error('route step failed: ' + name), { detail: r })
       return r
     }
-    await E(() => __RA.teleport(0.5, 0, -13.5, Math.PI))
-    await step('walk to entrance', () => __RA.path([[0.5, -9.2]]))
+    await E(() => __RA.teleport(0.5, 0, -17.5, Math.PI))
+    await step('walk to entrance', () => __RA.path([[0.5, -13.2]]))
     await step('open front door', () => __RA.use('door-entrance-x+'))
     await E(() => __RA.step(1))
-    await step('enter lobby', () => __RA.path([[0.05, -8.6], [0.05, -6.5]]))
+    await step('enter lobby', () => __RA.path([[0.05, -12.6], [0.05, -10.5], [1.5, -7.0]]))
     check((await E(() => __RA.status())).flags.entered, 'entered flag')
     await step('front desk', () => __RA.path([[4.4, -6.3], [4.45, -4.4]]))
     await step('try 703 key before drawer is open (must be hidden)', () => {
@@ -123,8 +123,8 @@ async function main() {
     for (const b of ['brk-elevator', 'brk-f7', 'brk-lobby', 'brk-stairs']) await step('breaker ' + b, id => __RA.use(id), b)
     const pw = (await E(() => __RA.status())).power
     check(pw.elevator && pw.f7 && pw.lobby && pw.stairs, 'all breakers on', pw)
-    await step('read maintenance log', () => { __RA.path([[-8.4, -5.5], [-11.0, -6.3]]); return __RA.use('doc-maint') })
-    await step('back to elevator', () => __RA.path([[-8.4, -5.5], [-8.4, -2.4], [-5.55, -2.4], [-5.55, 0.0], [-9.4, 0.15]]))
+    await step('read maintenance log', () => { __RA.path([[-8.4, -9.5], [-11.0, -10.3]]); return __RA.use('doc-maint') })
+    await step('back to elevator', () => __RA.path([[-8.4, -9.5], [-8.4, -2.4], [-5.55, -2.4], [-5.55, 0.0], [-9.4, 0.15]]))
     await step('call elevator', () => __RA.use('elevator-call-0'))
     await step('doors open', () => __RA.waitFor("g.elevator.state==='open'", 10))
     await step('enter car', () => __RA.path([[-9.4, 2.3]]))
@@ -139,41 +139,39 @@ async function main() {
     await step('unlock & open 703', () => __RA.use('door-6-03'))
     await E(() => __RA.step(1))
     check(!(await E(() => __RA.game.door('door-6-03').locked)), '703 unlocked by the key')
-    await step('kitchen', () => __RA.path([[5.95, -1.7], [8.4, -2.6]]))
+    await step('foyer', () => __RA.path([[5.95, -1.7], [5.95, -2.6]]))
+    await step('kitchen', () => __RA.path([[4.8, -2.6], [3.0, -2.1]]))
     await step('kitchen light switch', () => __RA.use('sw-kitchen'))
     check(await E(() => __RA.game.switches['sw-kitchen'] && __RA.game.lights.isOn([...__RA.game.lights.fixtures].find(f => f.id === 'apt-kitchen'))), 'kitchen light on')
-    await step('kitchen drawer', () => __RA.use('drawer-kitchen-1'))
+    await step('kitchen drawer', () => { __RA.path([[-2.5, -2.11]]); return __RA.use('drawer-kitchen-1') })
     await E(() => __RA.step(0.6))
     await step('photo in drawer', () => __RA.use('photo-kitchen'))
-    await step('fridge', () => { __RA.path([[6.4, -2.0]]); return __RA.use('fridge') })
-    await step('living room', () => __RA.path([[8.4, -2.4], [8.4, -4.3], [8.0, -5.2]]))
-    await step('living light', () => { __RA.path([[8.4, -4.0]]); return __RA.use('sw-living') })
-    await step('diary on coffee table', () => { __RA.path([[8.0, -5.2]]); return __RA.use('doc-diary1') })
-    await step('to hall door', () => __RA.path([[8.4, -4.0], [8.4, -2.8], [9.5, -2.2]]))
-    await step('open hall door', () => __RA.use('door-703-hall'))
-    await E(() => __RA.step(1))
-    await step('hall', () => __RA.path([[10.8, -2.2], [10.7, -3.2]]))
+    await step('fridge', () => __RA.use('fridge'))
+    await step('living room', () => __RA.path([[1.6, -2.1], [1.9, -4.0], [-1.0, -5.4]]))
+    await step('diary on coffee table', () => { __RA.path([[-1.95, -7.2]]); return __RA.use('doc-diary1') })
+    await step('living light', () => { __RA.path([[0.9, -5.2], [4.2, -5.2], [4.2, -6.0]]); return __RA.use('sw-living') })
+    await step('gallery', () => __RA.path([[4.3, -5.3], [5.8, -5.3], [7.05, -5.1]]))
     await step('open bedroom door', () => __RA.use('door-703-bedroom'))
     await E(() => __RA.step(1))
-    await step('bedroom', () => __RA.path([[10.7, -4.6], [10.9, -5.5]]))
-    await step('bedroom switch', () => { __RA.path([[10.9, -4.6]]); return __RA.use('sw-bedroom') })
-    await step('wardrobe', () => { __RA.path([[11.4, -6.7]]); return __RA.use('wardrobe-l') })
-    await step('nightstand drawer', () => { __RA.path([[11.35, -5.1]]); return __RA.use('drawer-night-1') })
+    await step('bedroom', () => __RA.path([[7.05, -6.9], [7.0, -8.5]]))
+    await step('bedroom switch', () => { __RA.path([[6.9, -6.9]]); return __RA.use('sw-bedroom') })
+    await step('wardrobe', () => { __RA.path([[8.3, -7.4]]); return __RA.use('wardrobe-l') })
+    await step('nightstand drawer', () => { __RA.path([[7.6, -10.4]]); return __RA.use('drawer-night-1') })
     await E(() => __RA.step(0.6))
     await step('photo in nightstand', () => __RA.use('photo-bedroom'))
-    await step('diary on desk', () => { __RA.path([[11.85, -6.3]]); return __RA.use('doc-diary2') })
-    await step('back to hall', () => __RA.path([[10.7, -5.0], [10.7, -4.4], [10.7, -3.2], [11.0, -2.35]]))
+    await step('diary on desk', () => { __RA.path([[6.6, -10.6]]); return __RA.use('doc-diary2') })
+    await step('to bathroom door', () => __RA.path([[7.3, -8.8], [10.6, -6.9]]))
     await step('open bathroom door', () => __RA.use('door-703-bath'))
     await E(() => __RA.step(1))
-    await step('bathroom', () => __RA.path([[12.3, -2.35]]))
-    await step('mirror cabinet', () => { __RA.path([[12.55, -1.95]]); return __RA.use('cab-mirror') })
+    await step('bathroom', () => __RA.path([[10.6, -5.2], [11.0, -3.5]]))
+    await step('mirror cabinet', () => { __RA.path([[10.2, -3.6]]); return __RA.use('cab-mirror') })
     await E(() => __RA.step(0.8))
     await step('photo behind mirror', () => __RA.use('photo-bath'))
-    await step('bathroom note (scare)', () => __RA.use('doc-bath'))
+    await step('bathroom note (scare)', () => { __RA.path([[10.2, -3.0]]); return __RA.use('doc-bath') })
     const sa = await E(() => __RA.status())
     for (const r of ['kitchen', 'living', 'bedroom', 'bathroom', 'scare']) check(sa.flags[r], 'visited/flag ' + r, sa.flags)
     // stairs up to the roof
-    await step('leave 703', () => __RA.path([[11.0, -2.35], [9.4, -2.0], [5.95, -1.6], [5.95, 0.0], [-11.55, 0.2]]))
+    await step('leave 703', () => __RA.path([[11.0, -3.5], [10.6, -5.2], [10.6, -7.1], [7.05, -7.1], [7.05, -5.2], [5.95, -2.6], [5.95, -1.6], [5.95, 0.0], [-11.55, 0.2]]))
     await step('open stair door 7', () => __RA.use('door-stair-6'))
     await E(() => __RA.step(1))
     await step('climb to 8', () => __RA.path([[-11.55, 1.6], [-11.4, 2.6], [-13.0, 2.6], [-13.0, 6.6], [-11.4, 6.6], [-11.4, 2.4]]))
@@ -197,7 +195,7 @@ async function main() {
     await step('enter car 8', () => __RA.path([[-9.4, 2.3]]))
     await step('press 1', () => __RA.use('elevator-btn-0'))
     await step('ride to lobby', () => __RA.waitFor("g.elevator.k===0 && g.elevator.state==='open'", 40))
-    await step('walk out to the street', () => __RA.path([[-9.4, 0.0], [0.05, 0.0], [0.05, -6.5], [0.05, -8.6], [0.5, -11]]))
+    await step('walk out to the street', () => __RA.path([[-9.4, 0.0], [0.05, 0.0], [1.5, -7.0], [0.05, -10.5], [0.05, -12.6], [0.5, -15]]))
     const end = await E(() => __RA.status())
     check(end.photos.length >= 5, 'collected photographs along the route', end.photos)
     check(end.recoveries === 0, 'no fail-safe recoveries were needed', end.recoveries)
@@ -216,11 +214,9 @@ async function main() {
         const s0 = __RA.step(0.5)
         st('start in bedroom', { ok: s0.y === 21 && s0.grounded && /803/.test(document.getElementById('objective').textContent) })
         st('read phone', __RA.use('doc-home-phone'))
-        st('light switch is dead', (() => { __RA.path([[10.9, -4.6]]); const r = __RA.use('sw8-bedroom'); return { ok: r.ok && /dead/.test(__RA.game.ui.lastToast) } })())
-        st('bedroom door', __RA.use('door-803-bedroom')); __RA.step(1)
-        st('to hall', __RA.path([[10.7, -4.6], [10.7, -3.2], [10.8, -2.2]]))
-        st('hall door', __RA.use('door-803-hall')); __RA.step(1)
-        st('to kitchen', __RA.path([[9.5, -2.2], [8.4, -2.4], [5.95, -1.7]]))
+        st('light switch is dead', (() => { __RA.path([[7.0, -6.8]]); const r = __RA.use('sw8-bedroom'); return { ok: r.ok && /dead/.test(__RA.game.ui.lastToast) } })())
+        st('bedroom door', (() => { __RA.path([[7.05, -6.8]]); return __RA.use('door-803-bedroom') })()); __RA.step(1)
+        st('through the gallery', __RA.path([[7.05, -5.2], [5.95, -2.6], [5.95, -1.7]]))
         st('note under the door', __RA.use('doc-home-note'))
         st('front door of 803 (unlocked)', __RA.use('door-7-03')); __RA.step(1)
         st('corridor 8', __RA.path([[6.0, -1.7], [6.0, 0.2], [-11.55, 0.2]]))
@@ -401,15 +397,15 @@ async function main() {
           door01: [-5.55, -0.5], door02: [0.45, -0.5], door03: [5.95, -0.5], door04: [-1.55, 0.5], door05: [7.45, 0.5],
           eastWindow: [13.2, 0], westWindow: [-13.2, 0],
         }
-        if (k === 0) Object.assign(targets, { lobby: [0.5, -4], entrance: [0.5, -7.4], maintenance: [-9, -4], desk: [4.4, -4.4], street: [0.5, -12] })
-        if (k === 6 || k === 7) Object.assign(targets, { kitchen: [8.4, -2.4], living: [7.5, -6.3], hall: [10.8, -2.4], bedroom: [11, -6.5], bathroom: [12.4, -2.3] })
-        const bounds = k === 0 ? { x0: -16, x1: 16, z0: -14, z1: 8 } : undefined
+        if (k === 0) Object.assign(targets, { lobby: [0.5, -4], entrance: [0.5, -11.4], maintenance: [-9, -8], desk: [4.4, -4.4], street: [0.5, -16] })
+        if (k === 6 || k === 7) Object.assign(targets, { kitchen: [0, -2.1], living: [-1, -6], dining: [2.7, -8.6], hall: [6.5, -3.5], bedroom: [9.5, -8.5], bathroom: [11, -3] })
+        const bounds = k === 0 ? { x0: -16, x1: 16, z0: -18, z1: 8 } : undefined
         const res = __RA.reachable(y, [-9.4, 0], targets, bounds)
         out.push({ k, area: res.area, targets: res.targets, why: res.why })
       }
       // roof
       __RA.teleport(-11.55, 24, 0, 0)
-      const roof = __RA.reachable(24, [-11.55, 0], { door: [-11.55, 1.6], tank: [3.6, 3.5], northEast: [13, -7], southEast: [13, 7], west: [-13, -6] })
+      const roof = __RA.reachable(24, [-11.55, 0], { door: [-11.55, 1.6], tank: [3.6, 3.5], northEast: [13, -11], southEast: [13, 7], west: [-13, -10] })
       out.push({ k: 8, area: roof.area, targets: roof.targets })
       return out
     }, { FLOORS })
@@ -435,18 +431,21 @@ async function main() {
         const p = g.player.pos
         out[name] = { stoppedBefore: opts.check(p), at: [+p.x.toFixed(2), +p.y.toFixed(2), +p.z.toFixed(2)], overlapping: !!g.player.overlapping() }
       }
-      probe('exterior wall (living window wall)', [7, y7, -6], [7, y7, -9.5], { check: p => p.z > -7.7 })
-      probe('window glass', [6.7, y7, -6.9], [6.7, y7, -10], { check: p => p.z > -7.7 })
-      probe('partition wall', [8, y7, -2.4], [12, y7, -2.4], { check: p => p.x < 9.94 || p.x > 10.06 && p.z > -2.6 && p.z < -1.75 })
-      probe('sofa', [8.3, y7, -5.6], [10.5, y7, -5.6], { check: p => p.x < 9.0 })
-      probe('bed', [10.6, y7, -5.0], [14, y7, -5.0], { check: p => p.x < 11.65 })
-      probe('fridge', [5.45, y7, -2.0], [5.45, y7, -4], { check: p => p.z > -2.88 })
-      probe('kitchen counter', [6.6, y7, -2.0], [6.6, y7, -4], { check: p => p.z > -2.94 + 0.27 })
-      probe('bathtub', [12.6, y7, -2.4], [12.6, y7, -4], { check: p => p.z > -3.12 })
+      probe('exterior wall (bedroom)', [13.0, y7, -9.5], [13.0, y7, -14], { check: p => p.z > -11.7 })
+      probe('window glass (bedroom)', [6.6, y7, -10.5], [6.6, y7, -14], { check: p => p.z > -11.7 })
+      probe('partition wall (gallery | bath)', [7.5, y7, -2.6], [11, y7, -2.6], { check: p => p.x < 8.94 })
+      probe('sofa', [1.2, y7, -8.3], [-1.5, y7, -8.3], { check: p => p.x > 0.4 })
+      probe('bed', [7.6, y7, -10.2], [12, y7, -10.2], { check: p => p.x < 8.5 })
+      probe('fridge', [-3.45, y7, -3.0], [-3.45, y7, -0.5], { check: p => p.z < -1.85 })
+      probe('kitchen counter', [-1.0, y7, -2.15], [-1.0, y7, -0.5], { check: p => p.z < -1.72 })
+      probe('kitchen island', [-0.1, y7, -4.3], [-0.1, y7, -1.0], { check: p => p.z < -3.4 })
+      probe('grand piano', [2.6, y7, -8.6], [2.6, y7, -4.0], { check: p => p.z < -8.0 })
+      probe('bathtub', [12.8, y7, -3.0], [12.8, y7, -6], { check: p => p.z > -3.9 })
+      probe('shower glass', [10.0, y7, -3.0], [10.0, y7, -1.0], { check: p => p.z < -2.34 })
       probe('closed locked door 701', [-5.55, y7, 0.3], [-5.55, y7, -3], { check: p => p.z > -0.9 })
       probe('corridor end window', [12, y7, 0], [16, y7, 0], { check: p => p.x < 13.7 })
-      probe('lobby glass', [-2.2, 0, -6.5], [-2.2, 0, -11], { check: p => p.z > -7.7 })
-      probe('roof parapet', [0, 24, -6], [0, 24, -12], { check: p => p.z > -7.7 })
+      probe('lobby glass', [-2.2, 0, -10.5], [-2.2, 0, -15], { check: p => p.z > -11.7 })
+      probe('roof parapet', [0, 24, -10], [0, 24, -16], { check: p => p.z > -11.7 })
       probe('elevator closed doors (no car)', [-9.4, 9, 0.2], [-9.4, 9, 3], { check: p => p.z < 0.93 })
       probe('stair spine wall', [-13.0, 3 + 0.3, 4.2], [-10.9, 3, 4.2], { check: p => p.x < -12.3 })
       probe('map boundary', [20, 0, -25], [40, 0, -25], { check: p => p.x < 32 })
@@ -471,9 +470,9 @@ async function main() {
         const y = k * 3
         spawns.push([-12, y, 0], [0, y, 0], [11, y, 0], [-11.4, y, 2.2], [-12.9, y + 1.5, 6.6], [-9.4, y, 2.3])
       }
-      spawns.push([0.5, 0, -4], [-9, 0, -4], [4.4, 0, -4.6], [0.5, 0, -12], [-20, 0, -20], [20, 0, 10])
-      spawns.push([10.9, 21, -5.3], [7.5, 21, -5.5], [8, 21, -2.3], [12.4, 21, -2.3])
-      spawns.push([7.5, 18, -5.5], [8, 18, -2.3], [10.8, 18, -2.5], [11, 18, -6.5], [12.6, 18, -2.4], [0, 24, 0], [10, 24, 6])
+      spawns.push([0.5, 0, -4], [-9, 0, -4], [4.4, 0, -4.6], [0.5, 0, -16], [0.5, 0, -9], [-9, 0, -9], [-20, 0, -24], [20, 0, 10])
+      spawns.push([7.4, 21, -10.4], [-1, 21, -6], [6.5, 21, -3.5], [11, 21, -3], [0, 21, -2.1])
+      spawns.push([-1, 18, -6], [0, 18, -2.1], [6.5, 18, -3.5], [9.5, 18, -8.5], [11, 18, -3], [2.7, 18, -8.6], [0, 24, 0], [10, 24, 6])
       let worst = { overlap: 0, below: 0, outside: 0, escapes: 0, stuck: 0 }
       const issues = []
       let steps = 0
@@ -499,7 +498,7 @@ async function main() {
           if (p.x < -32 || p.x > 32 || p.z < -32 || p.z > 16) worst.outside++
           const isIn = inside(p)
           // leaving the footprint is only legal through the front entrance (ground floor)
-          if (lastIn && !isIn && !(p.y < 0.5 && p.z < -7.5 && p.x > -0.5 && p.x < 1.5)) { worst.escapes++; if (issues.length < 10) issues.push({ kind: 'left building through geometry', from: before, to: { ...p } }) }
+          if (lastIn && !isIn && !(p.y < 0.5 && p.z < -11.5 && p.x > -0.5 && p.x < 1.5)) { worst.escapes++; if (issues.length < 10) issues.push({ kind: 'left building through geometry', from: before, to: { ...p } }) }
           if (!lastIn && isIn && p.y > 0.5 && !(p.y > 23.5)) { worst.escapes++; if (issues.length < 10) issues.push({ kind: 'entered building above ground through geometry', from: before, to: { ...p } }) }
           lastIn = isIn
           // stuck: grounded, wanting to move, and unable to move any direction for 3 s
@@ -536,10 +535,10 @@ async function main() {
       o.lobbyLightOffInitially = fx() && !g.lights.isOn(fx())
       o.breakerUse = __RA.use('brk-lobby').ok && g.power.lobby && g.lights.isOn(fx())
       // pickup + inventory UI
-      __RA.teleport(-7.6, 0, -6.3, 0); __RA.step(0.3)
+      __RA.teleport(-7.6, 0, -10.3, 0); __RA.step(0.3)
       o.pickupPhoto = __RA.use('photo-maint').ok && g.photos.has('photo-maint') && /1\/7/.test(document.getElementById('inventory').textContent)
       // document overlay opens and closes
-      __RA.teleport(-11.6, 0, -6.4, 0); __RA.step(0.2)
+      __RA.teleport(-11.6, 0, -10.4, 0); __RA.step(0.2)
       const it = [...g.interactables].find(i => i.id === 'doc-maint')
       const c = it.aimBox().getCenter(new __RA.THREE.Vector3()); __RA.lookAt(c.x, c.y, c.z)
       g.aimed.it.interact(g)
@@ -552,7 +551,7 @@ async function main() {
       o.lockedMessage = /lock|handle|radiator|mildew/i.test(g.ui.lastToast) && g.door('door-3-01').locked
       // apartment light switch needs floor-7 power
       g.door('door-6-03').locked = false; g.door('door-6-03').set(true, -1); __RA.step(1)
-      __RA.teleport(6.6, 18, -1.6, 0); __RA.step(0.2)
+      __RA.teleport(3.2, 18, -2.0, 0); __RA.step(0.2)
       const kf = () => [...g.lights.fixtures].find(f => f.id === 'apt-kitchen')
       __RA.use('sw-kitchen')
       o.switchWithoutPower = g.switches['sw-kitchen'] && !g.lights.isOn(kf())
@@ -561,13 +560,13 @@ async function main() {
       __RA.use('sw-kitchen')
       o.switchOff = !g.lights.isOn(kf())
       // cabinet + drawer state persists across zone unload/reload
-      __RA.teleport(6.6, 18, -2.2, 0); __RA.step(0.2)
+      __RA.teleport(-2.0, 18, -2.15, 0); __RA.step(0.2)
       __RA.use('cab-k1'); __RA.step(1)
       __RA.use('drawer-kitchen-2'); __RA.step(1)
       const opened = g.state.get('cab-k1')?.open && g.state.get('drawer-kitchen-2')?.open
       __RA.teleport(0.5, 0, -4, 0); __RA.step(0.5) // apt703 unloads
       const unloaded = !g.zones.get('apt703').loaded
-      __RA.teleport(6.6, 18, -2.2, 0); __RA.step(0.5)
+      __RA.teleport(-2.0, 18, -2.15, 0); __RA.step(0.5)
       const dr = [...g.interactables].find(i => i.id === 'drawer-kitchen-2')
       o.stateSurvivesStreaming = opened && unloaded && g.zones.get('apt703').loaded && dr.amount === 1
       return o
@@ -633,7 +632,7 @@ async function main() {
     await tap('btn-sprint')
     res.sprintToggle = await E(() => __RA.game.input.sprintToggle && document.getElementById('btn-sprint').classList.contains('on'))
     // interact: stand at the entrance, aim at the door, press USE
-    await E(() => { __RA.game.autoSim = false; __RA.teleport(0.5, 0, -9.2, Math.PI); __RA.lookAt(-0.0, 1.2, -7.85); __RA.game.autoSim = true })
+    await E(() => { __RA.game.autoSim = false; __RA.teleport(0.5, 0, -13.2, Math.PI); __RA.lookAt(-0.0, 1.2, -11.85); __RA.game.autoSim = true })
     await page.waitForTimeout(300)
     await tap('btn-interact')
     await page.waitForTimeout(600)
@@ -651,7 +650,7 @@ async function main() {
     const { ctx, E } = await open()
     const r = await E(() => {
       const g = __RA.game, out = {}
-      const spots = { street: [0.5, 0, -13.5, Math.PI], lobby: [0.5, 0, -4, Math.PI], floor4: [0, 9, 0, -Math.PI / 2], floor7: [0, 18, 0, -Math.PI / 2], apt703: [7.5, 18, -5, 0.5], roof: [0, 24, 0, 0] }
+      const spots = { street: [0.5, 0, -17.5, Math.PI], lobby: [0.5, 0, -4, Math.PI], floor4: [0, 9, 0, -Math.PI / 2], floor7: [0, 18, 0, -Math.PI / 2], apt703: [-1, 18, -6, 0.5], roof: [0, 24, 0, 0] }
       for (const [n, [x, y, z, yaw]] of Object.entries(spots)) {
         __RA.teleport(x, y, z, yaw)
         __RA.step(0.1)

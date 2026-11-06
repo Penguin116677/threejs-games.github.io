@@ -94,8 +94,8 @@ export class Game {
     this.#wireStory()
 
     // start in the bedroom of 803 (top floor), facing the bedroom door
-    this.player.teleport(10.9, HOME_K * FLOOR_H, -5.3)
-    this.yaw = Math.PI
+    this.player.teleport(7.4, HOME_K * FLOOR_H, -10.4)
+    this.yaw = 3.06
     this.zones.update(0, 0, true)
     this.ui.updateInventory()
     this.#objectives()

@@ -8,7 +8,8 @@ export const FLOORS = 8 // floors 1 (lobby) .. 8
 export const ROOF_Y = FLOORS * FLOOR_H
 
 // Building outer footprint.
-export const B = { x0: -14, x1: 14, z0: -8, z1: 8 }
+// The north (street) side is 4 m deeper than the south side: 10.6 m deep luxury units.
+export const B = { x0: -14, x1: 14, z0: -12, z1: 8 }
 export const EXT_T = 0.3 // exterior wall thickness (0.1 brick + 0.2 plaster)
 export const IN = { x0: B.x0 + EXT_T, x1: B.x1 - EXT_T, z0: B.z0 + EXT_T, z1: B.z1 - EXT_T }
 
@@ -16,7 +17,8 @@ export const IN = { x0: B.x0 + EXT_T, x1: B.x1 - EXT_T, z0: B.z0 + EXT_T, z1: B.
 export const COR = { z0: -0.9, z1: 0.9 }
 
 // Partition lines between units (centre x).
-export const NORTH_SPLITS = [-4, 5] // units 01 | 02 | 03
+export const NORTH_SPLITS = [-4, 5] // ground floor: maintenance | lobby | office
+// On residential floors units 02+03 are merged into one luxury apartment (x -3.9 … 13.7).
 export const SOUTH_SPLIT = 3 // units 04 | 05
 
 // Stairwell (switch-back, two flights per floor), south-west corner.
@@ -49,14 +51,15 @@ export const APT_K = 6
 // The player's own apartment, 803, is directly above it on the top floor (k = 7).
 export const HOME_K = 7
 export const hasApartment = k => k === APT_K || k === HOME_K
+// Luxury plan (≈186 m²), shared by 703 and 803.
 export const APT = {
-  x0: 5.1, x1: IN.x1, z0: IN.z0, z1: -1.1,
+  x0: -3.9, x1: IN.x1, z0: IN.z0, z1: -1.1,
   // room rectangles (clear interior)
-  kitchen: { x0: 5.1, x1: 9.94, z0: -3.54, z1: -1.1 },
-  living: { x0: 5.1, x1: 9.94, z0: IN.z0, z1: -3.66 },
-  hall: { x0: 10.06, x1: 11.54, z0: -3.84, z1: -1.1 },
-  bedroom: { x0: 10.06, x1: IN.x1, z0: IN.z0, z1: -3.96 },
-  bathroom: { x0: 11.66, x1: IN.x1, z0: -3.84, z1: -1.1 },
+  kitchen: { x0: -3.9, x1: 3.94, z0: -4.54, z1: -1.1 }, // open kitchen with island  (≈27 m²)
+  living: { x0: -3.9, x1: 4.94, z0: IN.z0, z1: -4.66 }, // living + dining           (≈62 m²)
+  hall: { x0: 4.06, x1: 8.94, z0: -5.94, z1: -1.1 }, // entry foyer + gallery          (≈20 m²)
+  bedroom: { x0: 5.06, x1: IN.x1, z0: IN.z0, z1: -6.06 }, // master bedroom          (≈49 m²)
+  bathroom: { x0: 9.06, x1: IN.x1, z0: -5.94, z1: -1.1 }, // en-suite bathroom       (≈22 m²)
 }
 
 // Playable map bounds (outside the building).

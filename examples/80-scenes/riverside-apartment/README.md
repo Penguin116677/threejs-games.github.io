@@ -17,12 +17,12 @@ Apartment 703 (kitchen, living room, hall, bedroom, bathroom) → stairs → roo
 
 | Area | Contents |
 | --- | --- |
-| All 8 floors | Real slabs, 0.3 m exterior / 0.2 m corridor / 0.12 m partition walls, 2.75 m ceilings, door openings with frames, windows with solid glass, corridor with 5 apartment doors, stairwell door, elevator landing (call button, floor indicator, sliding doors) |
+| All 8 floors | 28 × 20 m footprint (north units 10.6 m deep). Real slabs, 0.3 m exterior / 0.2 m corridor / 0.12 m partition walls, 2.75 m ceilings, door openings with frames, windows with solid glass, corridor with 5 apartment doors, stairwell door, elevator landing (call button, floor indicator, sliding doors) |
 | Stairwell | Switch-back stairs, two 9-riser flights per floor (16.7 cm rise, 32 cm tread), mid landings, spine wall, continues to a roof bulkhead |
 | Elevator | Moving car that carries the player, centre-opening car + landing doors, 8 floor buttons + door-open, auto-close with obstruction re-open, needs the ELEVATOR breaker |
 | Ground floor | Lobby (desk, mailboxes, notice board), maintenance room (breaker panel, workbench), locked office / laundry / storage |
-| Apartment 803 (start) | Same plan as 703: bedroom with battery lamp, phone and wardrobe, living room, kitchen, bathroom; floor 8 has no power |
-| Apartment 703 | Kitchen (fridge, cupboards, drawers, wall cabinets), living room (sofa, TV, bookshelf, dining set), hall, bedroom (bed, nightstands, wardrobe, desk), bathroom (bath, toilet, vanity, mirror cabinet); light switch per room |
+| Apartment 803 (start) | Same luxury plan as 703 (moving boxes, battery lamp, phone, note under the door); floor 8 has no power |
+| Apartment 703 | ≈186 m² luxury plan (units 02 + 03 merged): living + dining ≈62 m² (velvet sectional, wall TV, grand piano, dining for six, floor-to-ceiling windows), open kitchen ≈27 m² (marble worktops, island with stools, tall fridge, drawers, wall cabinets), entry foyer/gallery ≈20 m², master bedroom ≈49 m² (king bed, wardrobe wall, writing desk, reading corner), en-suite ≈22 m² (freestanding tub, double vanity, mirror cabinet, glass walk-in shower); damask walls, marble floors, chandeliers, a light switch per room |
 | Roof | Parapet, water tank, AC units, final document |
 
 Apartment doors open into their unit. Other apartments are locked (doors are real and openable in tests; interiors are empty
