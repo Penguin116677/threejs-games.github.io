@@ -1419,3 +1419,169 @@ body.ranah-kelabu #game {
   background: rgba(40, 130, 75, 0.9);
   font-weight: 700;
 }
+
+/* ---------------------------------------------------------------- komando bala tentara Rajawali (v0.27.0)
+   Kanan bawah (tempat tombol jurus pedang dulu): 4 komandan di busur sekitar Lompat, baris perintah
+   di atasnya (Ikuti aku · Ke titik · Formasi · Kiri · Kanan), keterangan divisi terpilih paling atas.
+   Layar mendatar: komandan sebaris di kiri Lompat, perintah di atasnya. */
+#komando {
+  --r: max(20px, env(safe-area-inset-right));
+  --b: max(22px, env(safe-area-inset-bottom));
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  width: 0;
+  height: 0;
+  pointer-events: none;
+}
+
+#komando .komando-tombol {
+  pointer-events: auto;
+  width: 54px;
+  height: 54px;
+  min-height: 0;
+  padding: 0;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, 0.65);
+  background: rgba(30, 45, 60, 0.42);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1px;
+  color: #fff;
+  font-size: 9.5px;
+  font-weight: 700;
+  line-height: 1.05;
+  touch-action: none;
+  transition: transform 0.08s, background 0.12s, box-shadow 0.12s;
+}
+
+#komando .komando-tombol svg {
+  width: 22px;
+  height: 22px;
+}
+
+#komando .komando-tombol:active {
+  transform: scale(0.93);
+}
+
+/* komandan: busur di sekitar Lompat (jari-jari ±160 px), tepi sewarna panji divisinya */
+#komando .komandan .komando-tombol {
+  position: absolute;
+  width: 58px;
+  height: 58px;
+}
+
+#komando .komandan .komando-tombol:nth-child(1) { right: calc(var(--r) + 176px); bottom: calc(var(--b) + 4px); }
+#komando .komandan .komando-tombol:nth-child(2) { right: calc(var(--r) + 160px); bottom: calc(var(--b) + 72px); }
+#komando .komandan .komando-tombol:nth-child(3) { right: calc(var(--r) + 120px); bottom: calc(var(--b) + 130px); }
+#komando .komandan .komando-tombol:nth-child(4) { right: calc(var(--r) + 60px); bottom: calc(var(--b) + 164px); }
+
+#komando .panji-hijau { border-color: #7fe07f; background: rgba(40, 120, 50, 0.5); }
+#komando .panji-merah { border-color: #ff8a7a; background: rgba(150, 35, 30, 0.5); }
+#komando .panji-biru { border-color: #8ab8ff; background: rgba(35, 70, 150, 0.5); }
+#komando .panji-emas { border-color: #ffe07a; background: rgba(150, 110, 20, 0.5); }
+
+#komando .komandan .komando-tombol.dipilih {
+  border-color: #ffe14a;
+  border-width: 3px;
+  box-shadow: 0 0 14px rgba(255, 220, 80, 0.9);
+  transform: scale(1.1);
+}
+
+/* perintah & formasi: satu baris di atas busur komandan */
+#komando .komando-baris.perintah,
+#komando .komando-baris.formasi {
+  position: absolute;
+  right: var(--r);
+  bottom: calc(var(--b) + 236px);
+  display: flex;
+  gap: 6px;
+}
+
+#komando .komando-baris[hidden] {
+  display: none;
+}
+
+#komando .perintah .komando-tombol,
+#komando .formasi .komando-tombol {
+  width: 52px;
+  height: 52px;
+  background: rgba(20, 90, 120, 0.55);
+}
+
+#komando .formasi .komando-tombol {
+  background: rgba(60, 50, 110, 0.6);
+}
+
+#komando .komando-tombol.redup {
+  opacity: 0.45;
+}
+
+#komando .komando-tombol.aktif {
+  border-color: #ffe14a;
+  box-shadow: 0 0 10px rgba(255, 220, 80, 0.7);
+}
+
+#komando .komando-tombol.menyala {
+  border-color: #ffe14a;
+  background: rgba(200, 140, 20, 0.8);
+  animation: denyut 0.45s infinite alternate;
+}
+
+#komando .komando-tombol.batal {
+  background: rgba(90, 40, 40, 0.6);
+}
+
+#komando .komando-status {
+  position: absolute;
+  right: var(--r);
+  bottom: calc(var(--b) + 296px);
+  width: max-content;
+  max-width: calc(100vw - 2 * var(--r) - 8px);
+  padding: 4px 10px;
+  border-radius: 10px;
+  background: rgba(0, 30, 45, 0.6);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* tombol aksi sesuai keadaan naik di atas panel komando */
+body.ada-komando #aksi-konteks {
+  bottom: calc(max(22px, env(safe-area-inset-bottom)) + 328px);
+}
+
+@media (orientation: landscape) {
+  #komando .komandan .komando-tombol:nth-child(1) { right: calc(var(--r) + 276px); bottom: var(--b); }
+  #komando .komandan .komando-tombol:nth-child(2) { right: calc(var(--r) + 212px); bottom: var(--b); }
+  #komando .komandan .komando-tombol:nth-child(3) { right: calc(var(--r) + 148px); bottom: var(--b); }
+  #komando .komandan .komando-tombol:nth-child(4) { right: calc(var(--r) + 84px); bottom: var(--b); }
+
+  #komando .komando-baris.perintah,
+  #komando .komando-baris.formasi {
+    right: calc(var(--r) + 84px);
+    bottom: calc(var(--b) + 68px);
+  }
+
+  #komando .komando-status {
+    right: calc(var(--r) + 84px);
+    bottom: calc(var(--b) + 128px);
+    max-width: 50vw;
+  }
+
+  body.ada-komando #aksi-konteks {
+    bottom: calc(max(22px, env(safe-area-inset-bottom)) + 164px);
+  }
+}
+
+/* peta dalam mode pilih titik tujuan (perintah Ke titik) */
+#peta-kanvas.pilih {
+  cursor: crosshair;
+  outline: 3px solid #ffe14a;
+  outline-offset: -3px;
+}

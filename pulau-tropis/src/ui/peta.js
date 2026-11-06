@@ -283,7 +283,8 @@ export function createWorldMap({ ground, plans, regions, frost = null, camps = [
     ctx.fillText(text, x, y)
   }
 
-  // marks: penanda tambahan [{ x, z, label? }] (mis. perahu pemain): titik toska, berlabel bila ada label
+  // marks: penanda tambahan [{ x, z, label?, color? }] (perahu pemain: toska; komandan Rajawali: warna
+  // panji divisinya), berlabel bila ada label
   function draw(player, heading, marks) {
     if (!base) drawBase()
     const rect = canvas.getBoundingClientRect()
@@ -313,7 +314,7 @@ export function createWorldMap({ ground, plans, regions, frost = null, camps = [
     }
     for (const l of LABELS) label(l.text, px(l.x) * s, pz(l.z) * s, l.size, scale)
     for (const m of marks) {
-      ctx.fillStyle = '#3fd0d4'
+      ctx.fillStyle = m.color || '#3fd0d4'
       ctx.strokeStyle = '#06292b'
       ctx.lineWidth = 1.5 * scale
       ctx.beginPath()
@@ -342,9 +343,27 @@ export function createWorldMap({ ground, plans, regions, frost = null, camps = [
     label('Kamu', x, y + 17 * scale, 11, scale)
   }
 
+  // mode pilih titik (perintah "Ke titik" komandan Rajawali): ketukan di peta → fn({ x, z }) di dunia
+  let pickFn = null
+  canvas.addEventListener('click', e => {
+    if (!pickFn) return
+    e.stopPropagation()
+    const rect = canvas.getBoundingClientRect()
+    const x = WORLD.minX + ((e.clientX - rect.left) / rect.width) * W * M_PER_PX
+    const z = WORLD.minZ + ((e.clientY - rect.top) / rect.height) * H * M_PER_PX
+    const fn = pickFn
+    pickFn = null
+    fn({ x, z })
+  })
+
   return {
     get open() {
       return !panel.hidden
+    },
+    // fn({ x, z }) dipanggil sekali saat peta diketuk; null = peta biasa
+    setPick(fn) {
+      pickFn = fn
+      canvas.classList.toggle('pilih', !!fn)
     },
     show(player, heading, marks = []) {
       panel.hidden = false
@@ -352,6 +371,8 @@ export function createWorldMap({ ground, plans, regions, frost = null, camps = [
     },
     hide() {
       panel.hidden = true
+      pickFn = null
+      canvas.classList.remove('pilih')
     },
     // untuk pengujian: warna dasar peta di titik dunia (x, z)
     sample(x, z) {

@@ -1177,6 +1177,86 @@ export const RESEP = {
       return 0.8
     },
   },
+  // ---------------------------------------------------------------- bala tentara Pulau Rajawali (v0.27.0)
+  // terompet aba-aba saat pemain memberi perintah (antarmuka: selalu terdengar)
+  'aba-aba': {
+    ui: true,
+    vol: 1.1,
+    fn: (a, o, t) => {
+      const c = a.ctx
+      const notes = [[392, 0, 0.16], [523, 0.17, 0.32]]
+      for (const [f, d, len] of notes) {
+        const os = c.createOscillator()
+        os.type = 'sawtooth'
+        os.frequency.setValueAtTime(f * 0.97, t + d)
+        os.frequency.linearRampToValueAtTime(f, t + d + 0.04)
+        const lp = c.createBiquadFilter()
+        lp.type = 'lowpass'
+        lp.frequency.setValueAtTime(900, t + d)
+        lp.frequency.linearRampToValueAtTime(2400, t + d + 0.06)
+        lp.Q.value = 2
+        const g = c.createGain()
+        env(g.gain, t + d, 0.03, len, 0.07, len * 0.55)
+        os.connect(lp).connect(g).connect(o)
+        os.start(t + d)
+        os.stop(t + d + len + 0.05)
+      }
+      a.until = Math.max(a.until || 0, t + 0.55)
+      return 0.55
+    },
+  },
+  // komandan menjawab ("Siap!"): suara lantang, nada per komandan
+  'komandan-siap': {
+    range: 130,
+    ref: 16,
+    vol: 1.2,
+    fn: (a, o, t, op) => babble(a, o, t, { syll: 3, f0: op.nada ?? 125, gain: 0.26, rate: 1.25, breathy: 0.25 }),
+  },
+  // seluruh divisi menyahut ("Hah!"), kuda meringkik bila kavaleri
+  'sorak-pasukan': {
+    range: 150,
+    ref: 22,
+    fn: (a, o, t, op) => {
+      for (let i = 0; i < 6; i++) babble(a, o, t + rnd(0, 0.09), { syll: 1, f0: rnd(105, 165), gain: 0.07, rate: 1.4, breathy: 0.3 })
+      noise(a, o, t, { dur: 0.3, kind: 'pink', type: 'bandpass', f: 700, q: 0.8, gain: 0.06, at: 0.02 })
+      if (op.kuda) RESEP.kuda.fn(a, o, t + 0.25, op)
+      return 0.9
+    },
+  },
+  // derap barisan: puluhan kaki menapak hampir bersamaan (kuat = banyaknya yang berjalan, lari = laju)
+  'derap-barisan': {
+    range: 90,
+    ref: 12,
+    gema: 0.4,
+    fn: (a, o, t, op) => {
+      const k = op.kuat ?? 1
+      const n = 5 + Math.round(k * 4)
+      for (let i = 0; i < n; i++) {
+        const d = rnd(0, op.lari ? 0.05 : 0.09)
+        noise(a, o, t + d, { dur: 0.09, kind: 'pink', type: 'lowpass', f: rnd(700, 1300), gain: 0.07 * k, at: 0.006 })
+        tone(a, o, t + d, { f: rnd(80, 110), f1: 50, dur: 0.06, gain: 0.04 * k })
+      }
+      // gemerincing zirah & senjata
+      noise(a, o, t + 0.02, { dur: 0.08, type: 'bandpass', f: rnd(3500, 5200), q: 3, gain: 0.025 * k, at: 0.004 })
+      return 0.25
+    },
+  },
+  // derap kuda: empat kuku berurutan (jalan) atau beruntun cepat (berlari)
+  'derap-kuda': {
+    range: 110,
+    ref: 14,
+    gema: 0.4,
+    fn: (a, o, t, op) => {
+      const k = op.kuat ?? 1
+      const gap = op.lari ? 0.055 : 0.12
+      for (let i = 0; i < 4; i++) {
+        const d = i * gap + rnd(0, 0.02)
+        tone(a, o, t + d, { type: 'triangle', f: rnd(210, 260), f1: 110, dur: 0.05, gain: 0.08 * k })
+        noise(a, o, t + d, { dur: 0.06, kind: 'pink', type: 'bandpass', f: rnd(900, 1400), q: 1.5, gain: 0.09 * k, at: 0.002 })
+      }
+      return 0.5
+    },
+  },
   cangkul: {
     range: 35,
     fn: (a, o, t) => {

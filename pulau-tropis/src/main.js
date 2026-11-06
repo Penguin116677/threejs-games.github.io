@@ -22,6 +22,7 @@ import { createKencana, boatGeometry } from './world/kencana/kingdom.js'
 import { planRajawali } from './world/rajawali/rencana.js'
 import { createRajawali } from './world/rajawali/pulau.js'
 import { createBala } from './world/rajawali/bala.js'
+import { createKomando } from './ui/komando.js'
 import { buildingMaterial, buildingDepthMaterial } from './world/kencana/material.js'
 import { createVillagers } from './world/kencana/villagers.js'
 import { createArmy } from './world/kencana/pasukan.js'
@@ -124,8 +125,8 @@ function findSpawn(ground, colliders) {
   return { x: -128, z: 128, heading: Math.atan2(128, -128) }
 }
 
-const HINT_TOUCH = '<b>Joystick</b> (kiri bawah): berjalan, dorong penuh = lari · Geser layar: putar kamera · Cubit: zoom<br>dekati orang: <b>Bicara</b> · dekati prajurit Kencana: <b>Ajak</b> jadi anak buah (menolak → <b>Duel</b>)<br>dekati pohon: <b>Tebang</b> = <b>kayu</b> → buat <b>pancing</b> &amp; <b>perahu</b> di <b>Tas</b> · pulau tidak berjembatan: berenang / berlayar<br><b>Peta</b>: Kencana (barat) memusuhimu · Aeloria (utara) damai bila kamu tidak rusuh · <b>Frostfall</b> (timur): pegunungan salju, gua & kastel · <b>ketuk kios / elf</b>'
-const HINT_KEYS = '<b>WASD / panah</b>: berjalan (Shift = pelan) · Seret: putar kamera · Roda: zoom<br>F: pukul (kombo) · 1–5: jurus (5 = Ranah Tebas) · Spasi: lompat / panjat · orc kalah = koin · B: tas · G / Enter: bicara · J: ajak prajurit jadi anak buah · U: duel<br>Pukul pohon = kayu → buat pancing &amp; perahu di Tas · C: mancing / tarik · V: naik / turun perahu<br>M: peta — Kencana (barat) memusuhimu · Aeloria (utara) damai bila kamu tidak rusuh · Frostfall (timur): pegunungan salju, gua & kastel · klik kios / elf'
+const HINT_TOUCH = '<b>Joystick</b> (kiri bawah): berjalan, dorong penuh = lari · Geser layar: putar kamera · Cubit: zoom<br><b>Kerajaanmu</b> (Pulau Rajawali, barat laut): kanan bawah pilih <b>komandan</b> → <b>Ikuti aku</b> · <b>Ke titik</b> (ketuk tanah / peta) · <b>Formasi</b> · <b>Kiri</b> / <b>Kanan</b> = mengepung<br>dekati orang: <b>Bicara</b> · dekati prajurit Kencana: <b>Ajak</b> jadi anak buah (menolak → <b>Duel</b>)<br>dekati pohon: <b>Tebang</b> = <b>kayu</b> → buat <b>pancing</b> &amp; <b>perahu</b> di <b>Tas</b> · pulau tidak berjembatan: berenang / berlayar<br><b>Peta</b>: Kencana (barat) memusuhimu · Aeloria (utara) damai bila kamu tidak rusuh · <b>Frostfall</b> (timur): pegunungan salju, gua & kastel · <b>ketuk kios / elf</b>'
+const HINT_KEYS = '<b>WASD / panah</b>: berjalan (Shift = pelan) · Seret: putar kamera · Roda: zoom<br>F: pukul (kombo) · 1–5: jurus (5 = Ranah Tebas) · Spasi: lompat / panjat<br>Kerajaanmu (Pulau Rajawali, barat laut): 6–9 pilih komandan · I ikuti aku · O ke titik (lalu klik tanah / peta) · L formasi · Z / X geser kiri / kanan (kepung) · orc kalah = koin · B: tas · G / Enter: bicara · J: ajak prajurit jadi anak buah · U: duel<br>Pukul pohon = kayu → buat pancing &amp; perahu di Tas · C: mancing / tarik · V: naik / turun perahu<br>M: peta — Kencana (barat) memusuhimu · Aeloria (utara) damai bila kamu tidak rusuh · Frostfall (timur): pegunungan salju, gua & kastel · klik kios / elf'
 
 // FOV kamera (tegak, mendatar): layar tegak butuh FOV lebih lebar agar sisi kiri-kanan tetap
 // terlihat dari kamera di belakang karakter
@@ -785,6 +786,11 @@ async function start() {
     player.face(treeNear.x, treeNear.z)
     input.pressAttack()
   })
+  // panel komando bala tentara Rajawali (kanan bawah): pilih komandan → perintah untuk divisinya
+  const komando = bala ? createKomando({ bala, bubbles, message: showMessage, touch: touchUI }) : null
+  // percikan & suara renang prajurit Rajawali; derap barisan / kuda dibunyikan di render loop
+  bala?.onSplash(a => sfx('cebur', { x: a.x, y: ISLAND.seaLevel, z: a.z }, { besar: a.mounted ? 1.2 : 0.7 }))
+  bala?.onSwim(a => sfx('renang', { x: a.x, y: ISLAND.seaLevel, z: a.z }, { kuat: a.mounted ? 1 : 0.6 }))
   function nearestTree(p) {
     let best = null
     let bestD = Infinity
@@ -823,6 +829,9 @@ async function start() {
     const ch = chestNear(p)
     const sealed = !!ch && chestSealed(ch)
     btnPeti.set(free && !!ch, sealed ? 'Tersegel es' : 'Buka peti', sealed ? 'kalahkan Naga Es' : 'harta karun')
+    const showKomando = !!komando && mode === 'main' && !player.defeated && !chat.open && $('peta').hidden
+    komando?.setVisible(showKomando)
+    document.body.classList.toggle('ada-komando', showKomando)
     treeNear = free && !boat.aboard && !player.swimming ? nearestTree(p) : null
     btnTebang.set(!!treeNear, 'Tebang', `kayu ${bag.jumlah('kayu')}`)
     // jumlah anak buah di HUD (di bawah koin)
@@ -1051,6 +1060,12 @@ async function start() {
   // memakai joystick (mengetuk tanah tidak menggerakkan karakter)
   function handleTap(tap) {
     if (player.defeated) return
+    // perintah "Ke titik" menunggu tujuan: ketukan di tanah / laut = tujuan divisi
+    if (komando?.picking) {
+      const hit = pickGround(tap.x, tap.y)
+      if (hit) komando.pickPoint(hit)
+      return
+    }
     // ketuk elf → kartu isi pikirannya; tetapi pedagang yang sedang berjaga (sering tertutup atap
     // kiosnya) berarti kiosnya yang diketuk
     const elf = elfCard?.pick(tap.x, tap.y)
@@ -1228,7 +1243,17 @@ async function start() {
       $('panel-pengaturan').hidden = true
       hideHint()
       // perahu: titik toska tanpa tulisan (dijelaskan di keterangan peta; tulisannya menimpa label dermaga)
-      worldMap.show(player.position, player.heading, boat.built ? [boat.position] : [])
+      // komandan Rajawali: titik sewarna panji divisinya; "Ke titik" yang menunggu tujuan → ketuk peta
+      const marks = [...(boat.built ? [boat.position] : []), ...(komando ? komando.mapMarks() : [])]
+      worldMap.show(player.position, player.heading, marks)
+      komando?.setVisible(false)
+      if (komando?.picking) {
+        worldMap.setPick(p => {
+          worldMap.hide()
+          komando.pickPoint(p)
+        })
+        showMessage(touchUI ? 'Ketuk titik tujuan di peta.' : 'Klik titik tujuan di peta.', 2400)
+      }
     }
   }
   $('btn-peta').addEventListener('click', toggleMap)
@@ -1244,6 +1269,7 @@ async function start() {
     else if ((e.code === 'KeyG' || e.code === 'Enter') && !e.repeat && mode === 'main' && !chat.open) chat.talk()
     else if (e.code === 'KeyJ' && !e.repeat) invitePress()
     else if (e.code === 'KeyU' && !e.repeat) duelPress()
+    else if (!e.repeat && mode === 'main' && komando?.key(e.code)) e.preventDefault()
     else if (e.code === 'Escape') {
       worldMap.hide()
       elfCard?.hide()
@@ -1468,6 +1494,22 @@ async function start() {
     leader.heading = player.heading
     leader.speed = player.speed
     bala?.update(wdt, { camera, player: { x: player.position.x, y: player.position.y, z: player.position.z, heading: player.heading } })
+    if (bala) {
+      komando?.update(dt)
+      // derap barisan / kuda seirama langkah tiap divisi yang sedang bergerak (di darat)
+      for (const div of bala.divisions) {
+        if (div.moving < 15 || div.swimming > 50) {
+          div.sndT = 0
+          continue
+        }
+        if ((div.sndT = (div.sndT ?? 0) - wdt) > 0) continue
+        const run = div.speed > (div.mounted ? 4.2 : 2.6)
+        div.sndT = run ? 0.3 : div.mounted ? 0.55 : 0.5
+        const at = { x: div.ax, y: ground.surfaceAt(div.ax, div.az) + 0.5, z: div.az }
+        sfx(div.mounted ? 'derap-kuda' : 'derap-barisan', at, { kuat: Math.min(1.2, div.moving / 70), lari: run })
+        if (div.mounted && Math.random() < 0.05) sfx('kuda', at)
+      }
+    }
     soldiers?.update(wdt, {
       camera,
       focus: mode === 'main' ? player.position : controls.target,
@@ -1556,7 +1598,7 @@ async function start() {
   // akses untuk debugging / pengujian otomatis
   window.__pulau = {
     renderer, scene, camera, controls, ground, shore, quality, trees, rocks, grass, water, env, kencana, region, plan, villagers, army, worldMap, banner, aeloria, elfPlan, elfMask, life,
-    frost, frostPlan, frostMask, weather, openSecret, openChest, warga, naga, ranahFx, rajawali, rajaPlan, bala,
+    frost, frostPlan, frostMask, weather, openSecret, openChest, warga, naga, ranahFx, rajawali, rajaPlan, bala, komando,
     player, cam, input, colliders, nav, markers, effects, enemies, soldiers, security, patrol, recruits, bubbles, pickGround, setMode, getMode: () => mode, bag, gear, shop, elfSec, elfCard,
     boat, fishing, ripples, recipes, craftBoat, boardBoat, leaveBoat, chat, placesFor, suara, ambience,
     frames: () => frameCount, debug,

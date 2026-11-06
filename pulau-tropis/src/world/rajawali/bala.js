@@ -513,9 +513,9 @@ export function createBala({ ground, colliders, nav, quality, soldier }) {
     const cz = base.z + bfz * FOCUS
     // arah dari titik tengah ke pasukan, diputar ke kiri / kanan pasukan
     const a0 = Math.atan2(base.x - cx, base.z - cz)
-    // kanan pasukan (menghadap h) = (−cos h, sin h) → sudut kanan = h − π/2; memutar posisi ke kanan
-    // pasukan mengitari titik di depan = sudut berkurang (lihat dari atas)
-    const a1 = a0 - dir * FLANK
+    // kiri pasukan yang menghadap h = (cos h, −sin h); dari titik tengah, pasukan berada di arah
+    // a0 = h + π, jadi bergeser ke kirinya = sudut berkurang, ke kanannya = sudut bertambah
+    const a1 = a0 + dir * FLANK
     const x = cx + Math.sin(a1) * FOCUS
     const z = cz + Math.cos(a1) * FOCUS
     moveTo(div, x, z, Math.atan2(cx - x, cz - z))
